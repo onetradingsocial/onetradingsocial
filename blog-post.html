@@ -1612,7 +1612,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           '" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
       } else {
         cover.innerHTML = '<div class="thumb ' + esc(post.thumb_color) + '">' +
-          '<span class="glyph">' + esc(post.thumb_icon) + '</span></div>';
+          '<span class="glyph">' + post.thumb_icon + '</span></div>';
       }
 
       // Body
@@ -1664,7 +1664,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           '<img src="' + esc(p.image) + '" alt="' + esc(p.title) +
           '" style="width:100%;height:100%;object-fit:cover"></a>'
       : '<a class="thumb ' + esc(p.thumb_color) + '" href="' + href + '">' +
-          '<span class="glyph">' + esc(p.thumb_icon) + '</span>' +
+          '<span class="glyph">' + p.thumb_icon + '</span>' +
           '<span class="thumb-lbl">' + esc(p.category) + '</span></a>';
     return '<article class="pcard-blog reveal">' +
       thumb +
