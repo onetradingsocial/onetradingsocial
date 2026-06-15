@@ -49,6 +49,7 @@ A JSON array of post objects. Each object has:
 | `featured` | boolean | Exactly one post should be `true` — renders in hero slot on blog page |
 | `thumb_color` | string | CSS class: t-violet, t-cyan, t-green, t-mag, t-orange |
 | `thumb_icon` | string | SVG string for the card thumbnail icon |
+| `image` | string \| null | Optional. URL to cover image (relative `/assets/images/...` or absolute). If present, renders as `<img>` in the cover slot on both the card and article page. If absent/null, falls back to gradient+icon. |
 | `body` | string | Full article body as an HTML string |
 
 **Seeded content:** 10 posts from the existing hardcoded cards in `blog.html` plus the post from `blog_post_payload.json` in the repo root. Slugs are derived from titles (lowercase, spaces → hyphens, punctuation stripped).
@@ -88,7 +89,7 @@ The existing page structure (`.article-hero`, `.article-body`, `.article-foot`) 
    - `.standfirst` ← `post.excerpt`
    - `.crumbs` category link ← `post.category`
    - Author name, date, readtime ← `post.author_name`, `post.published_date`, `post.readtime`
-   - `.article-cover` thumb class + icon ← `post.thumb_color`, `post.thumb_icon`
+   - `.article-cover` — if `post.image` is set, render `<img src="post.image" alt="post.title">` with `object-fit: cover`; otherwise render gradient block with `post.thumb_color` + `post.thumb_icon`
    - `.prose` ← `post.body` (set via `innerHTML`)
    - `.article-tags` ← `post.tags` rendered as `<span>` chips
    - Author bio block ← `post.author_name`, `post.author_role`, `post.author_bio`, `post.author_color`
@@ -109,7 +110,7 @@ The existing layout shell (hero, search, filter buttons, `.featured` section, `#
 1. `fetch('/data/posts.json')`
 2. Sort posts by `published_date` descending
 3. Find `post.featured === true` → render featured card in `.featured .wrap`
-4. Remaining posts → render `<article class="pcard-blog reveal" data-cat="...">` into `#postGrid`
+4. Remaining posts → render `<article class="pcard-blog reveal" data-cat="...">` into `#postGrid`. Card thumbnail: if `post.image` set, render `<img>` with `object-fit: cover`; otherwise render gradient block with `post.thumb_color` + `post.thumb_icon`
 5. Each card links to `/blog/post.slug`
 6. Update `.count` span ← `"Showing N articles"`
 
