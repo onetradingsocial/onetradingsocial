@@ -1437,13 +1437,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           </a>
         </div>
       </div>
-      <a href="TradingSocial Pricing.html#pricing">Pricing</a>
-      <a href="TradingSocial Blog.html" class="active">Blog</a>
+      <a href="/pricing#pricing">Pricing</a>
+      <a href="/blog" class="active">Blog</a>
       <a href="/#about">About</a>
     </nav>
     <div class="nav-cta">
       <a class="nav-login" href="#">Log in</a>
-      <a class="btn btn-primary btn-sm" href="TradingSocial Pricing.html#plans">Join the Beta</a>
+      <a class="btn btn-primary btn-sm" href="/pricing#plans">Join the Beta</a>
     </div>
   </div>
 </header>
@@ -1453,14 +1453,14 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
   <div class="wrap">
     <div class="article-head">
       <span class="crumbs">
-        <a href="TradingSocial Blog.html">Blog</a><span class="sep">/</span><span>Journaling</span>
+        <a href="/blog">Blog</a><span class="sep">/</span><span id="js-crumb-cat"></span>
       </span>
-      <h1>Why a trading journal is the highest-ROI habit you're not building</h1>
-      <p class="standfirst">Most traders track P&amp;L and call it a day. The ones who actually compound do something quieter — they review. Here's the case for journaling, and a framework that takes ten minutes.</p>
+      <h1 id="js-title"></h1>
+      <p class="standfirst" id="js-standfirst"></p>
       <div class="article-byline">
         <div class="post-meta">
-          <span class="av a1"></span>
-          <span class="pm-t"><b>Maya Okonkwo</b><span>Jun 3, 2026<span class="dotsep">·</span>9 min read</span></span>
+          <span id="js-av" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;display:inline-block;border:1px solid var(--border)"></span>
+          <span class="pm-t"><b id="js-author"></b><span id="js-date-read"></span></span>
         </div>
         <div class="article-share">
           <a href="#" aria-label="Share on X"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></a>
@@ -1474,104 +1474,23 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 
 <!-- ============================ COVER ============================ -->
 <div class="wrap">
-  <div class="article-cover reveal">
-    <div class="thumb t-violet">
-      <span class="glyph"><svg viewBox="0 0 24 24" fill="none"><path d="M5 4h11l3 3v13H5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M9 9h6M9 13h6M9 17h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-      <span class="thumb-lbl">Cover image · drop a hero graphic here</span>
-    </div>
-  </div>
+  <div class="article-cover reveal" id="js-cover"></div>
 </div>
 
 <!-- ============================ BODY ============================ -->
 <article class="article-body">
-  <div class="prose">
-    <p class="dek">Ask a hundred traders what they do after the close and most will say the same thing: they check the number. Green day, good day. Red day, bad day. The problem is that the number is the one piece of feedback that teaches you almost nothing.</p>
+  <div class="prose" id="js-prose"></div>
 
-    <p>A trading journal is the cheapest edge available to a retail trader. It costs no money, requires no special data feed, and works on every market and every timeframe. Yet it's the first habit to get dropped and the last to get picked back up — because reviewing your own decisions is uncomfortable in a way that watching P&amp;L tick up never is.</p>
+  <div class="article-foot">
+    <div class="article-tags" id="js-tags"></div>
+  </div>
 
-    <p>This piece makes the case for journaling as your highest-ROI habit, then gives you a framework you can run in about ten minutes a day.</p>
-
-    <h2>Why P&amp;L is the wrong teacher</h2>
-    <p>Profit and loss is an <strong>outcome</strong>, and outcomes are noisy. You can place a textbook trade — right setup, right size, right exit plan — and still lose because the market did something improbable. You can also break every rule you have and get paid for it. If you only judge yourself by the result, you'll learn the wrong lesson roughly half the time.</p>
-
-    <p>What you actually want to improve is your <strong>process</strong>: the quality of the decisions you control. A journal is how you separate the two. It lets you ask a better question than "did I make money?" — namely, "did I follow my plan, and was the plan any good?"</p>
-
-    <blockquote>You can't manage what you don't measure — and P&amp;L measures luck and skill in the same number.</blockquote>
-
-    <h2>What a useful entry actually contains</h2>
-    <p>A journal entry isn't a diary. It's structured data about a decision, captured while it's still fresh. The best entries are short but consistent — the same fields every time, so patterns surface across dozens of trades.</p>
-
-    <p>At minimum, log these for every trade:</p>
-    <ul>
-      <li><strong>The setup</strong> — what pattern or thesis made this a trade, in one line.</li>
-      <li><strong>Risk</strong> — where your stop was and what fraction of your account it risked.</li>
-      <li><strong>Execution</strong> — did you take the entry and exit you planned, or improvise?</li>
-      <li><strong>Emotion</strong> — one word for your state: calm, rushed, bored, revenge.</li>
-      <li><strong>Mistake tags</strong> — if you broke a rule, name it. "Moved stop." "Sized up." "No setup."</li>
-    </ul>
-
-    <div class="callout">
-      <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 16v-5M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle></svg></span>
-      <div>
-        <b>Tag mistakes the same way every time</b>
-        <p>A fixed vocabulary of errors turns vague regret into a sortable list. After 50 trades you'll see which single tag is costing you the most — and that's the one habit worth fixing first.</p>
-      </div>
-    </div>
-
-    <h2>The ten-minute daily review</h2>
-    <p>Journaling fails when it feels like homework. Keep the daily loop tight enough that you'll actually do it after every session:</p>
-    <ol>
-      <li><strong>Log while warm.</strong> Fill the fields above within a few minutes of closing each position, before your memory rewrites the story.</li>
-      <li><strong>Read the day back.</strong> Skim every entry once. Note any trade where the outcome and the process disagree — a loss you're proud of, or a win you're not.</li>
-      <li><strong>Pick one lesson.</strong> Not ten. One. Write a single sentence you'd tell yourself before tomorrow's open.</li>
-    </ol>
-
-    <p>That's it. The compounding doesn't come from any single entry — it comes from doing this every day until the patterns are impossible to ignore.</p>
-
-    <figure>
-      <div class="thumb t-cyan">
-        <span class="glyph"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-        <span class="thumb-lbl">Chart placeholder · equity curve by mistake tag</span>
-      </div>
-      <figcaption>Once tagged, your losses sort themselves — and one or two tags usually explain most of the damage.</figcaption>
-    </figure>
-
-    <h2>The weekly zoom-out</h2>
-    <p>Daily review keeps you honest; weekly review is where the strategy decisions live. Once a week, step back and look at the aggregate, not the individual trades:</p>
-    <ul>
-      <li>Which setup made or lost you the most — and is your sizing matched to that?</li>
-      <li>What's your most expensive mistake tag this week versus last?</li>
-      <li>How did your best trades feel at the time? Calm usually wins; rushed usually doesn't.</li>
-    </ul>
-
-    <p>This is the layer where a journal stops being a record and becomes a feedback system. You're no longer asking whether you had a good week — you're asking what to do more of, and what to stop.</p>
-
-    <blockquote>Discipline isn't a personality trait. It's a review habit you can build like any other.</blockquote>
-
-    <h2>Start smaller than you think</h2>
-    <p>The most common journaling failure is starting too ambitious — twenty fields, screenshots, a spreadsheet with formulas — and quitting in a week. Start with three fields and a one-line lesson. Make it so small you can't talk yourself out of it. You can always add structure once the habit is real.</p>
-
-    <p>The traders who improve fastest aren't the ones with the best entries. They're the ones who never skipped the review. A journal is just the place that habit lives.</p>
-
-    <hr>
-
-    <div class="article-foot">
-      <div class="article-tags">
-        <span class="tag tag--neutral">Journaling</span>
-        <span class="tag tag--neutral">Process</span>
-        <span class="tag tag--neutral">Discipline</span>
-        <span class="tag tag--neutral">Review</span>
-        <span class="tag tag--neutral">Beginner-friendly</span>
-      </div>
-    </div>
-
-    <div class="author-box">
-      <span class="av a1" style="background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span>
-      <div>
-        <h5>Maya Okonkwo</h5>
-        <span class="role">Head of Trader Education · TradingSocial</span>
-        <p>Maya writes about the behavioural side of trading — journaling, review routines and the quiet habits that separate consistent traders from busy ones. Former prop-desk coach.</p>
-      </div>
+  <div class="author-box">
+    <span id="js-bio-av" style="width:56px;height:56px;border-radius:50%;flex-shrink:0;border:1px solid var(--border);display:inline-block"></span>
+    <div>
+      <h5 id="js-bio-name"></h5>
+      <span class="role" id="js-bio-role"></span>
+      <p id="js-bio-text"></p>
     </div>
   </div>
 </article>
@@ -1581,61 +1500,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
   <div class="wrap">
     <div class="postgrid-head">
       <h3>Keep reading</h3>
-      <a class="filter-sort" href="TradingSocial Blog.html"><b>All articles</b>
+      <a class="filter-sort" href="/blog"><b>All articles</b>
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       </a>
     </div>
-    <div class="postgrid">
-
-      <article class="pcard-blog reveal">
-        <a class="thumb t-cyan" href="TradingSocial Blog Post.html">
-          <span class="glyph"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-          <span class="thumb-lbl">Analytics</span>
-        </a>
-        <div class="pcard-body">
-          <span class="pcard-cat">Analytics</span>
-          <h4><a href="TradingSocial Blog Post.html">Win rate is lying to you: a plain-English guide to R-multiples and expectancy</a></h4>
-          <p class="excerpt">A 40% win rate can crush a 70% one. Here's the math that actually decides whether you make money.</p>
-          <div class="post-meta">
-            <span class="av a2"></span>
-            <span class="pm-t"><b>Daniel Reyes</b><span>Jun 1, 2026<span class="dotsep">·</span>7 min</span></span>
-          </div>
-        </div>
-      </article>
-
-      <article class="pcard-blog reveal">
-        <a class="thumb t-violet" href="TradingSocial Blog Post.html">
-          <span class="glyph"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><circle cx="19" cy="17" r="2.5" stroke="currentColor" stroke-width="2"></circle></svg></span>
-          <span class="thumb-lbl">Journaling</span>
-        </a>
-        <div class="pcard-body">
-          <span class="pcard-cat">Journaling</span>
-          <h4><a href="TradingSocial Blog Post.html">How to tag your trading mistakes — and actually stop repeating them</a></h4>
-          <p class="excerpt">A simple taxonomy of errors turns vague regret into a checklist you can fix, one tag at a time.</p>
-          <div class="post-meta">
-            <span class="av a1"></span>
-            <span class="pm-t"><b>Maya Okonkwo</b><span>May 28, 2026<span class="dotsep">·</span>6 min</span></span>
-          </div>
-        </div>
-      </article>
-
-      <article class="pcard-blog reveal">
-        <a class="thumb t-mag" href="TradingSocial Blog Post.html">
-          <span class="glyph"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18c0 1 .8 2 3 2s3-1 3-2M8.5 11a3.5 3.5 0 117 0c0 2-1 2.5-1.2 4H9.7C9.5 13.5 8.5 13 8.5 11z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 3v2M5 6l1.5 1.5M19 6l-1.5 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-          <span class="thumb-lbl">Psychology</span>
-        </a>
-        <div class="pcard-body">
-          <span class="pcard-cat">Psychology</span>
-          <h4><a href="TradingSocial Blog Post.html">The psychology of revenge trading — and five ways to break the loop</a></h4>
-          <p class="excerpt">The trade after a loss is the most dangerous one you'll place. Here's why, and how to interrupt it.</p>
-          <div class="post-meta">
-            <span class="av a3"></span>
-            <span class="pm-t"><b>Leo Carter</b><span>May 20, 2026<span class="dotsep">·</span>6 min</span></span>
-          </div>
-        </div>
-      </article>
-
-    </div>
+    <div class="postgrid" id="js-related"></div>
   </div>
 </section>
 
@@ -1648,8 +1517,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
       <h2 class="h2">Your journal, built in.<br>Start logging for free.</h2>
       <p class="hero-sub">Everything in this article is one feature inside TradingSocial — structured entries, mistake tags and weekly reviews. Free during beta.</p>
       <div class="hero-cta">
-        <a class="btn btn-onband btn-lg" href="TradingSocial Pricing.html#plans">Start Free<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
-        <a class="btn btn-band-ghost btn-lg" href="TradingSocial Blog.html">Back to the blog</a>
+        <a class="btn btn-onband btn-lg" href="/pricing#plans">Start Free<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+        <a class="btn btn-band-ghost btn-lg" href="/blog">Back to the blog</a>
       </div>
     </div>
   </div>
@@ -1676,9 +1545,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
       <div class="foot-col">
         <h5>Company</h5>
         <a href="/#about">About</a>
-        <a href="TradingSocial Pricing.html#pricing">Pricing</a>
-        <a href="TradingSocial Blog.html">Blog</a>
-        <a href="TradingSocial Pricing.html#beta">Join the Beta</a>
+        <a href="/pricing#pricing">Pricing</a>
+        <a href="/blog">Blog</a>
+        <a href="/pricing#beta">Join the Beta</a>
       </div>
       <div class="foot-col">
         <h5>Legal</h5>
@@ -1700,4 +1569,118 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 
 
 
+<script>
+(function () {
+  var slug = window.location.pathname.replace(/^\/blog\//, '').replace(/\/$/, '');
+  if (!slug) { window.location.href = '/blog'; return; }
+
+  fetch('/data/posts.json')
+    .then(function (r) { if (!r.ok) throw new Error('fetch failed'); return r.json(); })
+    .then(function (posts) {
+      var post = null;
+      for (var i = 0; i < posts.length; i++) {
+        if (posts[i].slug === slug) { post = posts[i]; break; }
+      }
+      if (!post) { window.location.href = '/blog'; return; }
+
+      // Page meta
+      document.title = post.title + ' — TradingSocial';
+      setMeta('og:title', post.title);
+      setMeta('og:description', post.excerpt);
+      setMeta('og:url', 'https://tradingsocial.com/blog/' + post.slug);
+      var canon = document.querySelector('link[rel="canonical"]');
+      if (canon) canon.href = 'https://tradingsocial.com/blog/' + post.slug;
+
+      // Hero
+      document.getElementById('js-crumb-cat').textContent = post.category;
+      document.getElementById('js-title').textContent = post.title;
+      document.getElementById('js-standfirst').textContent = post.excerpt;
+
+      // Byline
+      var av = document.getElementById('js-av');
+      av.style.background = post.author_color;
+      document.getElementById('js-author').textContent = post.author_name;
+      document.getElementById('js-date-read').innerHTML =
+        fmtDate(post.published_date) +
+        '<span class="dotsep">·</span>' +
+        post.readtime + ' read';
+
+      // Cover
+      var cover = document.getElementById('js-cover');
+      if (post.image) {
+        cover.innerHTML = '<img src="' + esc(post.image) + '" alt="' + esc(post.title) +
+          '" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
+      } else {
+        cover.innerHTML = '<div class="thumb ' + post.thumb_color + '">' +
+          '<span class="glyph">' + post.thumb_icon + '</span></div>';
+      }
+
+      // Body
+      document.getElementById('js-prose').innerHTML = post.body;
+
+      // Tags
+      document.getElementById('js-tags').innerHTML = post.tags
+        .map(function (t) { return '<span class="tag tag--neutral">' + esc(t) + '</span>'; })
+        .join('');
+
+      // Author bio
+      var bioAv = document.getElementById('js-bio-av');
+      bioAv.style.background = post.author_color;
+      document.getElementById('js-bio-name').textContent = post.author_name;
+      document.getElementById('js-bio-role').textContent = post.author_role;
+      document.getElementById('js-bio-text').textContent = post.author_bio;
+
+      // Related posts (3 most recent, excluding current)
+      var related = posts
+        .filter(function (p) { return p.slug !== slug; })
+        .sort(function (a, b) { return new Date(b.published_date) - new Date(a.published_date); })
+        .slice(0, 3);
+      document.getElementById('js-related').innerHTML = related.map(renderCard).join('');
+    })
+    .catch(function () {
+      var hero = document.querySelector('.article-hero .wrap');
+      if (hero) hero.innerHTML = '<p style="color:#9d8ec4;padding:4rem 0;text-align:center">Could not load post. Please refresh.</p>';
+    });
+
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function setMeta(prop, val) {
+    var el = document.querySelector('meta[property="' + prop + '"]');
+    if (el) el.setAttribute('content', val);
+  }
+
+  function renderCard(p) {
+    var href = '/blog/' + p.slug;
+    var thumb = p.image
+      ? '<a class="thumb" href="' + href + '" style="overflow:hidden;background:#1a1330">' +
+          '<img src="' + esc(p.image) + '" alt="' + esc(p.title) +
+          '" style="width:100%;height:100%;object-fit:cover"></a>'
+      : '<a class="thumb ' + p.thumb_color + '" href="' + href + '">' +
+          '<span class="glyph">' + p.thumb_icon + '</span>' +
+          '<span class="thumb-lbl">' + esc(p.category) + '</span></a>';
+    return '<article class="pcard-blog reveal">' +
+      thumb +
+      '<div class="pcard-body">' +
+        '<span class="pcard-cat">' + esc(p.category) + '</span>' +
+        '<h4><a href="' + href + '">' + esc(p.title) + '</a></h4>' +
+        '<p class="excerpt">' + esc(p.excerpt) + '</p>' +
+        '<div class="post-meta">' +
+          '<span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:' + esc(p.author_color) + '"></span>' +
+          '<span class="pm-t"><b>' + esc(p.author_name) + '</b>' +
+            '<span>' + fmtDate(p.published_date) + '<span class="dotsep">·</span>' + esc(p.readtime) + '</span>' +
+          '</span>' +
+        '</div>' +
+      '</div>' +
+    '</article>';
+  }
+})();
+</script>
 </body></html>
