@@ -1603,7 +1603,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
       document.getElementById('js-date-read').innerHTML =
         fmtDate(post.published_date) +
         '<span class="dotsep">·</span>' +
-        post.readtime + ' read';
+        esc(post.readtime) + ' read';
 
       // Cover
       var cover = document.getElementById('js-cover');
@@ -1611,8 +1611,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
         cover.innerHTML = '<img src="' + esc(post.image) + '" alt="' + esc(post.title) +
           '" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
       } else {
-        cover.innerHTML = '<div class="thumb ' + post.thumb_color + '">' +
-          '<span class="glyph">' + post.thumb_icon + '</span></div>';
+        cover.innerHTML = '<div class="thumb ' + esc(post.thumb_color) + '">' +
+          '<span class="glyph">' + esc(post.thumb_icon) + '</span></div>';
       }
 
       // Body
@@ -1658,13 +1658,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
   }
 
   function renderCard(p) {
-    var href = '/blog/' + p.slug;
+    var href = '/blog/' + esc(p.slug);
     var thumb = p.image
       ? '<a class="thumb" href="' + href + '" style="overflow:hidden;background:#1a1330">' +
           '<img src="' + esc(p.image) + '" alt="' + esc(p.title) +
           '" style="width:100%;height:100%;object-fit:cover"></a>'
-      : '<a class="thumb ' + p.thumb_color + '" href="' + href + '">' +
-          '<span class="glyph">' + p.thumb_icon + '</span>' +
+      : '<a class="thumb ' + esc(p.thumb_color) + '" href="' + href + '">' +
+          '<span class="glyph">' + esc(p.thumb_icon) + '</span>' +
           '<span class="thumb-lbl">' + esc(p.category) + '</span></a>';
     return '<article class="pcard-blog reveal">' +
       thumb +
