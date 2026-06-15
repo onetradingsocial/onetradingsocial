@@ -26,5 +26,8 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/blog/:slug", "destination": "/blog-post.html" }
   ]
 }
