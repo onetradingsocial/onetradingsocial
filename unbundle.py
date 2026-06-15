@@ -122,7 +122,7 @@ def build_seo_and_ga(output_name: str) -> str:
         f'  <meta name="twitter:description" content="{desc}">',
         f'  <meta name="twitter:image" content="{OG_IMAGE}">',
         f'  <link rel="canonical" href="{canonical}">',
-        f'  <link rel="icon" href="/assets/images/favicon.ico">',
+        f'  <link rel="icon" type="image/png" href="/assets/images/favicon.png">',
     ]
     return '\n'.join(lines)
 
