@@ -1701,7 +1701,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
         '<div class="post-meta">' +
           '<span style="width:32px;height:32px;border-radius:50%;flex-shrink:0;display:inline-block;background:' + esc(p.author_color) + '"></span>' +
           '<span class="pm-t"><b>' + esc(p.author_name) + '</b>' +
-            '<span>' + fmtDate(p.published_date) + '<span class="dotsep">·</span>' + esc(p.readtime) + ' read</span>' +
+            '<span>' + esc(fmtDate(p.published_date)) + '<span class="dotsep">·</span>' + esc(p.readtime) + ' read</span>' +
           '</span>' +
         '</div>' +
         '<span class="featured-read">Read the article ' +
@@ -1726,7 +1726,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
         '<div class="post-meta">' +
           '<span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:' + esc(p.author_color) + '"></span>' +
           '<span class="pm-t"><b>' + esc(p.author_name) + '</b>' +
-            '<span>' + fmtDate(p.published_date) + '<span class="dotsep">·</span>' + esc(p.readtime) + '</span>' +
+            '<span>' + esc(fmtDate(p.published_date)) + '<span class="dotsep">·</span>' + esc(p.readtime) + '</span>' +
           '</span>' +
         '</div>' +
       '</div>' +
