@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 const stamp = Date.now()
 const username = `e2e_${stamp}`
-const email = `e2e_${stamp}@example.com`
+const email = `e2e_${stamp}@tradingsocial.io`
 const password = 'password123'
 
 test('signup -> onboarding -> profile, then logout', async ({ page }) => {
@@ -36,7 +36,7 @@ test('unauthed protected route redirects to login', async ({ page }) => {
 test('reserved username is rejected at signup', async ({ page }) => {
   await page.goto('/app/signup')
   await page.fill('input[name="username"]', 'login')
-  await page.fill('input[name="email"]', `r_${Date.now()}@example.com`)
+  await page.fill('input[name="email"]', `r_${Date.now()}@tradingsocial.io`)
   await page.fill('input[name="password"]', 'password123')
   await page.check('input[name="terms"]')
   await page.click('button:has-text("Join the Beta")')
