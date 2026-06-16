@@ -18,12 +18,15 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   if (password.length < 8) return { error: 'Password must be at least 8 characters.' }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { username } },
   })
   if (error) return { error: error.message }
+  if (data.user && data.user.identities && data.user.identities.length === 0) {
+    return { error: 'An account with this email already exists.' }
+  }
 
   redirect('/onboarding')
 }

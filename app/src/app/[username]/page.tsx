@@ -14,7 +14,7 @@ export default async function ProfilePage({
   const { data: profile } = await supabase
     .from('profiles')
     .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, xp, level, created_at')
-    .ilike('username', username)
+    .eq('username', username)
     .maybeSingle()
 
   // RLS hides private profiles from non-owners -> no row -> 404 (no existence leak).

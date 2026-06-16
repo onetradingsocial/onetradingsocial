@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Authed but onboarding incomplete -> force onboarding (except onboarding/auth itself).
-  if (user && !path.startsWith('/onboarding') && !path.startsWith('/auth')) {
+  if (user && isProtected && !path.startsWith('/onboarding')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('onboarding_completed')
