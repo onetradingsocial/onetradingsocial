@@ -9,31 +9,45 @@ const initial: ActionState = {}
 export default function SignupPage() {
   const [state, action, pending] = useActionState(signUp, initial)
   return (
-    <main className="mx-auto max-w-sm p-8">
-      <h1 className="text-2xl font-bold">Create your free profile</h1>
-      <form action={action} className="mt-6 space-y-4">
-        <input name="username" placeholder="Username" required
-          className="w-full rounded border border-gray-300 px-3 py-2" />
-        <input name="email" type="email" placeholder="Email" required
-          className="w-full rounded border border-gray-300 px-3 py-2" />
-        <input name="password" type="password" placeholder="Password (min 8)" required
-          className="w-full rounded border border-gray-300 px-3 py-2" />
-        <label className="flex items-start gap-2 text-sm text-gray-600">
-          <input type="checkbox" name="terms" className="mt-1" />
-          I agree to the Terms and financial disclaimer. TradingSocial is an education and
-          performance-tracking platform and does not provide financial advice.
-        </label>
-        {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-        <button disabled={pending}
-          className="w-full rounded bg-black py-2 font-medium text-white disabled:opacity-50">
-          {pending ? 'Creating…' : 'Join the Beta'}
-        </button>
-      </form>
-      <div className="my-4 text-center text-sm text-gray-400">or</div>
-      <GoogleButton />
-      <p className="mt-6 text-center text-sm text-gray-600">
-        Already have an account? <a href="/app/login" className="underline">Log in</a>
-      </p>
-    </main>
+    <div className="ts-authwrap">
+      <div className="ts-card ts-card--auth">
+        <p className="eyebrow">Join the beta</p>
+        <h1 className="ts-h1 mt-3">Create your free profile</h1>
+        <p className="ts-sub">Build your trading profile. Prove your edge. Climb the leaderboard.</p>
+
+        <form action={action} className="mt-6 grid gap-3.5">
+          <label className="ts-field">
+            <span className="ts-label">Username</span>
+            <input name="username" required className="ts-input" placeholder="yourname" />
+          </label>
+          <label className="ts-field">
+            <span className="ts-label">Email</span>
+            <input name="email" type="email" required className="ts-input" placeholder="you@email.com" />
+          </label>
+          <label className="ts-field">
+            <span className="ts-label">Password</span>
+            <input name="password" type="password" required className="ts-input" placeholder="At least 8 characters" />
+          </label>
+          <label className="ts-checkline">
+            <input type="checkbox" name="terms" />
+            <span>
+              I agree to the Terms and financial disclaimer. TradingSocial is an education and
+              performance-tracking platform and does not provide financial advice.
+            </span>
+          </label>
+          {state.error && <p className="ts-error">{state.error}</p>}
+          <button disabled={pending} className="btn btn-primary btn-block">
+            {pending ? 'Creating…' : 'Join the Beta'}
+          </button>
+        </form>
+
+        <div className="ts-or">or</div>
+        <GoogleButton />
+
+        <p className="ts-sub text-center mt-5">
+          Already have an account? <a href="/app/login" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Log in</a>
+        </p>
+      </div>
+    </div>
   )
 }

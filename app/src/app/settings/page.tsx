@@ -10,16 +10,24 @@ export default async function SettingsPage() {
     .from('profiles').select('avatar_url, username').eq('id', user.id).single()
 
   return (
-    <main className="mx-auto max-w-lg p-8">
-      <h1 className="text-2xl font-bold">Settings</h1>
-      <p className="mt-1 text-gray-600">@{profile?.username}</p>
-      <section className="mt-6">
-        <h2 className="text-sm font-medium">Avatar</h2>
-        <div className="mt-2"><AvatarUploader current={profile?.avatar_url ?? null} /></div>
+    <main className="ts-page" style={{ maxWidth: 620 }}>
+      <p className="eyebrow">Account</p>
+      <h1 className="ts-h1 mt-3">Settings</h1>
+      <p className="ts-sub">@{profile?.username}</p>
+
+      <section className="ts-card mt-7">
+        <h2 className="ts-h2">Profile photo</h2>
+        <p className="ts-sub mb-5">PNG or JPEG. Shown on your public profile.</p>
+        <AvatarUploader current={profile?.avatar_url ?? null} />
       </section>
-      <form action="/app/auth/signout" method="post" className="mt-8">
-        <button className="rounded border border-gray-300 px-4 py-2 text-sm">Log out</button>
-      </form>
+
+      <section className="ts-card mt-5">
+        <h2 className="ts-h2">Session</h2>
+        <p className="ts-sub mb-4">Sign out of TradingSocial on this device.</p>
+        <form action="/app/auth/signout" method="post">
+          <button className="btn btn-ghost">Log out</button>
+        </form>
+      </section>
     </main>
   )
 }

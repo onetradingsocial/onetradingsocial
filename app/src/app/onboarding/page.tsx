@@ -10,9 +10,13 @@ export default async function OnboardingPage() {
     .from('profiles').select('username').eq('id', user.id).single()
 
   return (
-    <main className="mx-auto max-w-lg p-8">
-      <h1 className="text-2xl font-bold">Build your trader identity</h1>
-      <OnboardingForm initialUsername={profile?.username ?? ''} />
-    </main>
+    <div className="ts-authwrap">
+      <div className="ts-card ts-card--narrow">
+        <p className="eyebrow">Set up your identity</p>
+        <h1 className="ts-h1 mt-3">Build your trader profile</h1>
+        <p className="ts-sub">A few quick questions — this shapes your public profile and leaderboard placement.</p>
+        <OnboardingForm initialUsername={profile?.username ?? ''} />
+      </div>
+    </div>
   )
 }

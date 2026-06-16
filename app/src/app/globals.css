@@ -1,1 +1,249 @@
 @import "tailwindcss";
+
+/* ============================================================
+   TradingSocial App — brand system (matches marketing site)
+   ============================================================ */
+
+:root {
+  /* surfaces */
+  --bg:         #FFFFFF;
+  --bg-2:       #F6F6FB;
+  --bg-3:       #F0EFF8;
+  --surface:    #FFFFFF;
+  --surface-2:  #F7F6FC;
+  --surface-3:  #EFEEF7;
+  --border:     rgba(22,19,40,0.09);
+  --border-2:   rgba(22,19,40,0.14);
+  --border-vio: rgba(124,92,230,0.32);
+
+  /* text */
+  --text:       #16131F;
+  --dim:        #56536B;
+  --faint:      #8B8799;
+  --faintest:   #B6B3C4;
+
+  /* brand + semantic */
+  --violet:      #7C5CE6;
+  --violet-br:   #6B43E0;
+  --violet-deep: #5530C8;
+  --up:          #12A56B;
+  --up-soft:     #E4F7EF;
+  --down:        #E5475D;
+  --down-soft:   #FCEBED;
+  --xp:          #E08A1E;
+
+  /* brand gradient (cyan → violet → magenta → orange) */
+  --c-cyan:   #3FB6E8;
+  --c-mag:    #C840BC;
+  --c-orange: #FF7A4D;
+  --brand-grad: linear-gradient(115deg, #3FB6E8 0%, #7C5CE6 36%, #C840BC 70%, #FF7A4D 100%);
+  --brand-grad-soft: linear-gradient(120deg, rgba(63,182,232,0.14), rgba(124,92,230,0.14) 42%, rgba(200,64,188,0.14) 72%, rgba(255,122,77,0.14));
+  --glow-brand: radial-gradient(60% 60% at 50% 40%, rgba(124,92,230,0.22) 0%, rgba(200,64,188,0.10) 45%, rgba(124,92,230,0) 72%);
+
+  /* type — wired to next/font variables, with fallbacks */
+  --display: var(--font-display), "Space Grotesk", system-ui, sans-serif;
+  --body:    var(--font-body), "Manrope", system-ui, sans-serif;
+  --mono:    var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+
+  --radius: 14px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 2px 10px -4px rgba(22,19,40,0.12);
+  --shadow:    0 18px 40px -22px rgba(22,19,40,0.30);
+  --shadow-lg: 0 40px 90px -38px rgba(22,19,40,0.42);
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--body);
+  color: var(--text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background:
+    radial-gradient(70% 50% at 80% -8%, rgba(124,92,230,0.10), transparent 60%),
+    radial-gradient(60% 45% at 0% 0%, rgba(63,182,232,0.08), transparent 55%),
+    var(--bg);
+  min-height: 100vh;
+}
+::selection { background: rgba(124,92,230,0.20); color: var(--violet-deep); }
+
+h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; letter-spacing: -0.02em; }
+
+.grad-text {
+  background: var(--brand-grad);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11.5px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--violet-br); font-weight: 600;
+}
+.muted { color: var(--dim); }
+.faint { color: var(--faint); }
+
+/* ---------- Logo ---------- */
+.ts-logo {
+  font-family: var(--display); font-weight: 700; font-size: 19px;
+  letter-spacing: -0.03em; display: inline-flex; align-items: center; gap: 9px;
+}
+.ts-logo .dot {
+  width: 11px; height: 11px; border-radius: 4px; background: var(--brand-grad);
+  box-shadow: 0 4px 12px -3px rgba(124,92,230,0.6);
+}
+
+/* ---------- Nav ---------- */
+.ts-nav {
+  position: sticky; top: 0; z-index: 40;
+  backdrop-filter: saturate(180%) blur(14px);
+  background: rgba(255,255,255,0.72);
+  border-bottom: 1px solid var(--border);
+}
+.ts-nav-inner {
+  max-width: 1100px; margin: 0 auto; padding: 14px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.ts-nav-links { display: flex; align-items: center; gap: 6px; }
+.ts-nav-link {
+  font-size: 14px; font-weight: 600; color: var(--dim);
+  padding: 8px 12px; border-radius: 10px; transition: background .15s, color .15s;
+}
+.ts-nav-link:hover { color: var(--text); background: var(--surface-2); }
+
+/* ---------- Layout shells ---------- */
+.ts-authwrap {
+  min-height: calc(100vh - 60px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 20px;
+}
+.ts-page { max-width: 1100px; margin: 0 auto; padding: 36px 24px 80px; }
+
+/* ---------- Card ---------- */
+.ts-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 30px;
+}
+.ts-card--auth { width: 100%; max-width: 420px; }
+.ts-card--narrow { max-width: 560px; }
+
+/* ---------- Headings within cards ---------- */
+.ts-h1 { font-size: 27px; letter-spacing: -0.03em; }
+.ts-h2 { font-size: 20px; letter-spacing: -0.02em; }
+.ts-sub { color: var(--dim); font-size: 14.5px; margin-top: 6px; }
+
+/* ---------- Fields ---------- */
+.ts-field { display: block; }
+.ts-label {
+  display: block; font-size: 12.5px; font-weight: 600; color: var(--dim);
+  margin-bottom: 7px; letter-spacing: -0.01em;
+}
+.ts-input, .ts-select, .ts-textarea {
+  width: 100%; height: 46px; padding: 0 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: 12px;
+  font-family: var(--body); font-size: 15px; color: var(--text);
+  transition: border-color .16s, box-shadow .16s, background .16s;
+}
+.ts-textarea { height: auto; padding: 12px 14px; line-height: 1.5; resize: vertical; }
+.ts-input::placeholder, .ts-textarea::placeholder { color: var(--faintest); }
+.ts-input:focus, .ts-select:focus, .ts-textarea:focus {
+  outline: none; border-color: var(--border-vio); background: #fff;
+  box-shadow: 0 0 0 4px rgba(124,92,230,0.12);
+}
+.ts-select { appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2356536B' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
+  text-transform: capitalize;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  height: 46px; padding: 0 20px; border-radius: 12px;
+  font-family: var(--body); font-weight: 600; font-size: 15px; letter-spacing: -0.01em;
+  transition: transform .16s ease, box-shadow .22s ease, background-position .5s ease, border-color .18s, background .18s;
+}
+.btn:disabled { opacity: .55; cursor: default; }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn-block { width: 100%; }
+.btn-primary {
+  background: var(--brand-grad); background-size: 160% auto; color: #fff;
+  box-shadow: 0 8px 22px -8px rgba(124,92,230,0.6), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.btn-primary:not(:disabled):hover { transform: translateY(-2px); background-position: right center; box-shadow: 0 14px 34px -8px rgba(200,64,188,0.55); }
+.btn-ghost {
+  background: var(--surface); border: 1px solid var(--border-2); color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.btn-ghost:not(:disabled):hover { border-color: var(--border-vio); transform: translateY(-2px); box-shadow: var(--shadow); }
+.btn-sm { height: 40px; padding: 0 15px; font-size: 14px; border-radius: 10px; }
+
+/* ---------- Divider ---------- */
+.ts-or {
+  display: flex; align-items: center; gap: 12px; color: var(--faint);
+  font-size: 12.5px; margin: 18px 0; font-weight: 600;
+}
+.ts-or::before, .ts-or::after { content: ""; height: 1px; flex: 1; background: var(--border); }
+
+/* ---------- Selectable chips (markets / styles) ---------- */
+.ts-chips { display: flex; flex-wrap: wrap; gap: 9px; }
+.ts-chip {
+  position: relative; cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--border-2);
+  font-size: 13.5px; font-weight: 600; color: var(--dim);
+  transition: border-color .15s, color .15s, background .15s, transform .12s;
+  text-transform: capitalize;
+}
+.ts-chip:hover { border-color: var(--border-vio); color: var(--text); }
+.ts-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.ts-chip:has(input:checked) {
+  background: var(--brand-grad-soft); border-color: var(--violet);
+  color: var(--violet-deep);
+}
+
+/* ---------- Radio segmented (visibility) ---------- */
+.ts-seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 12px; padding: 4px; gap: 4px; }
+.ts-seg label {
+  position: relative; cursor: pointer; padding: 7px 18px; border-radius: 9px;
+  font-size: 13.5px; font-weight: 600; color: var(--dim); transition: color .15s, background .15s;
+}
+.ts-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.ts-seg label:has(input:checked) { background: #fff; color: var(--violet-deep); box-shadow: var(--shadow-sm); }
+
+/* ---------- Terms / checkline ---------- */
+.ts-checkline { display: flex; gap: 10px; font-size: 13px; color: var(--dim); line-height: 1.5; }
+.ts-checkline input { margin-top: 3px; accent-color: var(--violet); width: 16px; height: 16px; flex: none; }
+
+/* ---------- Error / hint ---------- */
+.ts-error {
+  font-size: 13.5px; color: var(--down); font-weight: 600;
+  background: var(--down-soft); border: 1px solid rgba(229,71,93,0.22);
+  padding: 9px 12px; border-radius: 10px;
+}
+
+/* ---------- Profile ---------- */
+.ts-avatar {
+  width: 84px; height: 84px; border-radius: 22px; object-fit: cover;
+  border: 1px solid var(--border-2); box-shadow: var(--shadow-sm);
+}
+.ts-avatar--ph {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--brand-grad); color: #fff; font-family: var(--display);
+  font-weight: 700; font-size: 32px;
+}
+.ts-statgrid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.ts-stat { background: var(--surface); padding: 16px 18px; }
+.ts-stat dt { font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+.ts-stat dd { font-size: 15px; font-weight: 600; margin-top: 4px; text-transform: capitalize; }
+.ts-tag {
+  display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--border); font-size: 12.5px;
+  font-weight: 600; color: var(--dim); margin: 0 6px 6px 0; text-transform: capitalize;
+}
+.ts-placeholder { border: 1px dashed var(--border-2); border-radius: 16px; padding: 18px; color: var(--faint); font-size: 13.5px; }
+.ts-placeholder .lab { color: var(--faintest); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 6px; }

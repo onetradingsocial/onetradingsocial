@@ -15,7 +15,7 @@ test('signup -> onboarding -> profile, then logout', async ({ page }) => {
 
   // Onboarding
   await expect(page).toHaveURL(/\/app\/onboarding/)
-  await page.check('input[name="main_markets"][value="forex"]')
+  await page.locator('label.ts-chip', { hasText: 'forex' }).click()
   await page.fill('input[name="goal"]', 'Get consistent')
   await page.click('button:has-text("Finish")')
 

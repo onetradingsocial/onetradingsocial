@@ -20,33 +20,44 @@ export default async function ProfilePage({
   // RLS hides private profiles from non-owners -> no row -> 404 (no existence leak).
   if (!profile) notFound()
 
+  const name = profile.display_name ?? profile.username
+  const initial = name.charAt(0).toUpperCase()
+  const styles: string[] = profile.trading_styles ?? []
+  const markets: string[] = profile.main_markets ?? []
+
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <header className="flex items-center gap-4">
-        {profile.avatar_url && (
-          <img src={profile.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover" />
+    <main className="ts-page" style={{ maxWidth: 720 }}>
+      <div className="ts-card">
+        <header className="flex items-center gap-5">
+          {profile.avatar_url
+            ? <img src={profile.avatar_url} alt="" className="ts-avatar" />
+            : <div className="ts-avatar ts-avatar--ph">{initial}</div>}
+          <div>
+            <h1 className="ts-h1">{name}</h1>
+            <p className="muted" style={{ fontWeight: 600 }}>@{profile.username}</p>
+          </div>
+        </header>
+
+        {profile.bio && <p className="mt-5" style={{ color: 'var(--dim)', maxWidth: '60ch' }}>{profile.bio}</p>}
+
+        {(markets.length > 0 || styles.length > 0) && (
+          <div className="mt-5">
+            {markets.map((m) => <span key={m} className="ts-tag">{m}</span>)}
+            {styles.map((s) => <span key={s} className="ts-tag">{s}</span>)}
+          </div>
         )}
-        <div>
-          <h1 className="text-2xl font-bold">{profile.display_name ?? profile.username}</h1>
-          <p className="text-gray-500">@{profile.username}</p>
-        </div>
-      </header>
 
-      {profile.bio && <p className="mt-4 text-gray-700">{profile.bio}</p>}
+        <dl className="ts-statgrid mt-6">
+          <div className="ts-stat"><dt>Experience</dt><dd>{profile.experience_level ?? '—'}</dd></div>
+          <div className="ts-stat"><dt>Level</dt><dd>Level {profile.level} · {profile.xp} XP</dd></div>
+          <div className="ts-stat"><dt>Followers</dt><dd>0 · 0 following</dd></div>
+          <div className="ts-stat"><dt>Member since</dt><dd>{new Date(profile.created_at).toLocaleDateString()}</dd></div>
+        </dl>
+      </div>
 
-      <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
-        <div><dt className="text-gray-500">Experience</dt><dd className="capitalize">{profile.experience_level ?? '—'}</dd></div>
-        <div><dt className="text-gray-500">Markets</dt><dd>{profile.main_markets?.join(', ') || '—'}</dd></div>
-        <div><dt className="text-gray-500">Styles</dt><dd>{profile.trading_styles?.join(', ') || '—'}</dd></div>
-        <div><dt className="text-gray-500">Member since</dt><dd>{new Date(profile.created_at).toLocaleDateString()}</dd></div>
-      </dl>
-
-      {/* Placeholders for later phases */}
-      <section className="mt-6 rounded border border-gray-200 p-4 text-sm text-gray-500">
-        <div>XP: {profile.xp} · Level {profile.level} <span className="text-gray-400">(coming soon)</span></div>
-        <div className="mt-1">Followers 0 · Following 0 <span className="text-gray-400">(Phase 3)</span></div>
-        <div className="mt-1">No trades logged yet <span className="text-gray-400">(Phase 2)</span></div>
-      </section>
+      <div className="ts-placeholder mt-5">
+        No trades logged yet<span className="lab">Journal · Phase 2</span>
+      </div>
     </main>
   )
 }
