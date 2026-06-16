@@ -40,7 +40,7 @@ Each phase is its own spec → plan → build cycle.
 ### 3.1 App shell
 - **Next.js (App Router) + TypeScript + Tailwind CSS**, located in the existing `app/` directory of this repo.
 - `next.config` sets `basePath: '/app'` so every route is served under `/app/*`.
-- Deployed as its **own Vercel project** (e.g. `tradingsocial-app`), separate from the static marketing site.
+- Deployed as its **own Vercel project** (e.g. `tradingsocial-app`), separate from the static marketing site. **Same GitHub repo, same Vercel account** — two projects importing one repo with different Root Directory settings: marketing project Root Directory = repo root (static HTML), app project Root Directory = `app/` (Next.js). One bill, one domain.
 - Design tokens (colors, type, spacing) extracted from the Bubble page exports already placed in `app/` (`TradingSocial *.html`). Those exports are visual reference only — not ported markup.
 
 ### 3.2 Routing the subpath
