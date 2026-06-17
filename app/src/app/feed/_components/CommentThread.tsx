@@ -1,25 +1,30 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useCallback, useEffect, useState, useTransition } from 'react'
 import { addComment, deleteComment, getComments, type CommentItem } from '@/app/actions/social'
 import { UserLink } from '@/app/_components/UserLink'
 
 export function CommentThread({ postId, onCountChange }: { postId: string; onCountChange?: (n: number) => void }) {
   const [comments, setComments] = useState<CommentItem[]>([])
   const [text, setText] = useState('')
+  const [error, setError] = useState('')
   const [pending, start] = useTransition()
 
-  async function load() {
+  const load = useCallback(async () => {
     const cs = await getComments(postId)
     setComments(cs)
     onCountChange?.(cs.length)
-  }
-  useEffect(() => { load() }, [postId])
+  }, [postId, onCountChange])
+  useEffect(() => { load() }, [load])
 
   function submit() {
     if (!text.trim()) return
-    const b = text; setText('')
-    start(async () => { await addComment(postId, b); await load() })
+    const b = text; setText(''); setError('')
+    start(async () => {
+      const r = await addComment(postId, b)
+      if (r.error) { setError(r.error); setText(b); return }
+      await load()
+    })
   }
   function remove(id: string) {
     start(async () => { await deleteComment(id); await load() })
@@ -39,6 +44,7 @@ export function CommentThread({ postId, onCountChange }: { postId: string; onCou
           onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') submit() }} />
         <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={pending || !text.trim()}>Reply</button>
       </div>
+      {error && <p className="ts-error">{error}</p>}
     </div>
   )
 }

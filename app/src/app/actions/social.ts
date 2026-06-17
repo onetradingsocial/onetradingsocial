@@ -18,7 +18,7 @@ export async function createPost(formData: FormData): Promise<SocialState> {
   if (!body) return { error: 'Write something first.' }
   if (body.length > 2000) return { error: 'Post is too long (2000 max).' }
   const { error } = await supabase.from('posts').insert({ author_id: user.id, body })
-  if (error) return { error: error.message }
+  if (error) { console.error('createPost', error.message); return { error: 'Could not save your post. Try again.' } }
   revalidatePath('/')
   return { ok: true }
 }
@@ -38,10 +38,19 @@ export async function toggleLike(postId: string): Promise<{ liked: boolean; coun
   if (!user) return { error: 'Not authenticated.' }
   const { data: existing } = await supabase.from('likes')
     .select('post_id').eq('post_id', postId).eq('user_id', user.id).maybeSingle()
-  if (existing) await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id)
-  else await supabase.from('likes').insert({ post_id: postId, user_id: user.id })
-  const { count } = await supabase.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', postId)
-  return { liked: !existing, count: count ?? 0 }
+  if (existing) {
+    await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id)
+  } else {
+    await supabase.from('likes').upsert(
+      { post_id: postId, user_id: user.id },
+      { onConflict: 'post_id,user_id', ignoreDuplicates: true },
+    )
+  }
+  const [{ count }, { data: nowLiked }] = await Promise.all([
+    supabase.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', postId),
+    supabase.from('likes').select('post_id').eq('post_id', postId).eq('user_id', user.id).maybeSingle(),
+  ])
+  return { liked: !!nowLiked, count: count ?? 0 }
 }
 
 export async function getComments(postId: string): Promise<CommentItem[]> {
@@ -64,7 +73,7 @@ export async function addComment(postId: string, body: string): Promise<SocialSt
   if (!text) return { error: 'Comment is empty.' }
   if (text.length > 1000) return { error: 'Comment too long.' }
   const { error } = await supabase.from('comments').insert({ post_id: postId, author_id: user.id, body: text })
-  if (error) return { error: error.message }
+  if (error) { console.error('addComment', error.message); return { error: 'Could not post your comment. Try again.' } }
   return { ok: true }
 }
 

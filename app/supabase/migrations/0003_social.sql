@@ -70,3 +70,11 @@ drop policy if exists comments_insert on public.comments;
 create policy comments_insert on public.comments for insert with check (author_id = auth.uid());
 drop policy if exists comments_delete on public.comments;
 create policy comments_delete on public.comments for delete using (author_id = auth.uid());
+
+-- Defense-in-depth: enforce body length at the DB layer (app also validates)
+do $$ begin
+  alter table public.posts add constraint posts_body_len check (length(body) > 0 and length(body) <= 2000);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.comments add constraint comments_body_len check (length(body) > 0 and length(body) <= 1000);
+exception when duplicate_object then null; end $$;
