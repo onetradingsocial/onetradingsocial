@@ -25,7 +25,7 @@ export default async function SettingsPage() {
       <section className="ts-card mt-5">
         <h2 className="ts-h2">Trading account</h2>
         <p className="ts-sub mb-4">Used to size trades by risk % and show P/L in money.</p>
-        <form action={async (fd: FormData) => { await saveAccount({}, fd) }} className="grid gap-3.5" style={{ maxWidth: 320 }}>
+        <form action={saveAccount} className="grid gap-3.5" style={{ maxWidth: 320 }}>
           <label className="ts-field">
             <span className="ts-label">Account balance</span>
             <input name="account_balance" type="number" step="0.01" min="0"
