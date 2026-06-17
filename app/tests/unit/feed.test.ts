@@ -20,3 +20,15 @@ describe('tally', () => {
     expect(tally(null, 'post_id')).toEqual({})
   })
 })
+
+import { timeAgo } from '@/lib/time'
+
+describe('timeAgo', () => {
+  const base = new Date('2026-06-18T12:00:00Z').getTime()
+  it('formats seconds/minutes/hours/days', () => {
+    expect(timeAgo('2026-06-18T11:59:30Z', base)).toBe('just now')
+    expect(timeAgo('2026-06-18T11:45:00Z', base)).toBe('15m')
+    expect(timeAgo('2026-06-18T09:00:00Z', base)).toBe('3h')
+    expect(timeAgo('2026-06-15T12:00:00Z', base)).toBe('3d')
+  })
+})
