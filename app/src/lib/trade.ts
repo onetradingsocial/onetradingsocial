@@ -93,3 +93,67 @@ export function computeClose(input: CloseInput): CloseComputed {
   const outcome = rMultiple > EPS ? 'win' : rMultiple < -EPS ? 'loss' : 'breakeven'
   return { realizedPips, rMultiple, pnlAmount, outcome }
 }
+
+export type TradeForMetrics = {
+  status: 'open' | 'closed'
+  outcome: Outcome
+  rMultiple: number | null
+  pnlAmount: number | null
+  tradedAt: string
+  mistakeTags: string[]
+}
+
+export type Metrics = {
+  total: number          // closed trades
+  open: number
+  wins: number
+  losses: number
+  winRate: number
+  avgRr: number
+  profitFactor: number
+  best: number
+  worst: number
+  currentStreak: number  // +n win run / -n loss run, by most recent closed
+  netPnl: number
+  mistakeCounts: Record<string, number>
+}
+
+export function computeMetrics(trades: TradeForMetrics[]): Metrics {
+  const closed = trades.filter((t) => t.status === 'closed' && t.rMultiple != null)
+  const open = trades.length - closed.length
+  const rs = closed.map((t) => t.rMultiple as number)
+  const wins = rs.filter((r) => r > EPS).length
+  const losses = rs.filter((r) => r < -EPS).length
+  const grossWin = rs.filter((r) => r > 0).reduce((a, b) => a + b, 0)
+  const grossLoss = Math.abs(rs.filter((r) => r < 0).reduce((a, b) => a + b, 0))
+  const netPnl = closed.reduce((a, t) => a + (t.pnlAmount ?? 0), 0)
+
+  const mistakeCounts: Record<string, number> = {}
+  for (const t of closed) for (const tag of t.mistakeTags) mistakeCounts[tag] = (mistakeCounts[tag] ?? 0) + 1
+
+  // streak: walk most-recent-first by tradedAt
+  const byRecent = [...closed].sort((a, b) => b.tradedAt.localeCompare(a.tradedAt))
+  let streak = 0
+  for (const t of byRecent) {
+    const r = t.rMultiple as number
+    if (Math.abs(r) <= EPS) break
+    const dir = r > 0 ? 1 : -1
+    if (streak === 0 || Math.sign(streak) === dir) streak += dir
+    else break
+  }
+
+  return {
+    total: closed.length,
+    open,
+    wins,
+    losses,
+    winRate: closed.length ? wins / closed.length : 0,
+    avgRr: closed.length ? rs.reduce((a, b) => a + b, 0) / closed.length : 0,
+    profitFactor: grossLoss ? grossWin / grossLoss : 0,
+    best: rs.length ? Math.max(...rs) : 0,
+    worst: rs.length ? Math.min(...rs) : 0,
+    currentStreak: streak,
+    netPnl,
+    mistakeCounts,
+  }
+}

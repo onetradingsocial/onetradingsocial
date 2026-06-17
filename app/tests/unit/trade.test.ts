@@ -85,3 +85,35 @@ it('exposes tag lists', () => {
   expect(MISTAKE_TAGS).toContain('FOMO')
   expect(SETUP_PRESETS).toContain('Breakout')
 })
+
+import { computeMetrics } from '@/lib/trade'
+
+describe('computeMetrics', () => {
+  const closed = (rMultiple: number, pnl: number, mistakes: string[] = []) => ({
+    status: 'closed' as const, outcome: rMultiple > 0 ? ('win' as const) : ('loss' as const),
+    rMultiple, pnlAmount: pnl, tradedAt: '2026-06-01T00:00:00Z', mistakeTags: mistakes,
+  })
+
+  it('aggregates win rate, profit factor, best/worst, net P/L', () => {
+    const m = computeMetrics([
+      closed(2, 200), closed(-1, -100), closed(1, 100, ['FOMO']),
+      { status: 'open', outcome: 'open', rMultiple: null, pnlAmount: null, tradedAt: '2026-06-02T00:00:00Z', mistakeTags: [] },
+    ])
+    expect(m.total).toBe(3)        // closed only
+    expect(m.open).toBe(1)
+    expect(m.wins).toBe(2)
+    expect(m.losses).toBe(1)
+    expect(m.winRate).toBeCloseTo(2 / 3, 5)
+    expect(m.avgRr).toBeCloseTo((2 - 1 + 1) / 3, 5)
+    expect(m.profitFactor).toBeCloseTo(3 / 1, 5) // (2+1)/|-1|
+    expect(m.best).toBe(2)
+    expect(m.worst).toBe(-1)
+    expect(m.netPnl).toBe(200)
+    expect(m.mistakeCounts.FOMO).toBe(1)
+  })
+
+  it('empty input yields zeros', () => {
+    const m = computeMetrics([])
+    expect(m).toMatchObject({ total: 0, wins: 0, winRate: 0, profitFactor: 0, netPnl: 0 })
+  })
+})
