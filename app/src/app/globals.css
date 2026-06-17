@@ -450,3 +450,41 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 
 .ts-banner { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 14px; font-size: 13.5px; color: var(--dim); background: var(--brand-grad-soft); border: 1px solid var(--border-vio); }
 .ts-banner b { color: var(--text); }
+
+/* ---------- Social feed ---------- */
+.ts-feed { display: grid; grid-template-columns: 1fr 300px; gap: 22px; align-items: start; }
+@media (max-width: 900px) { .ts-feed { grid-template-columns: 1fr; } .ts-feed-side { display: none; } }
+.ts-feed-main { display: flex; flex-direction: column; gap: 16px; }
+
+.ts-userlink { display: inline-flex; align-items: center; gap: 10px; }
+.ts-userlink-av { width: 38px; height: 38px; border-radius: 11px; object-fit: cover; flex: none; }
+.ts-userlink-ph { display: inline-flex; align-items: center; justify-content: center; background: var(--brand-grad); color: #fff; font-family: var(--display); font-weight: 700; }
+.ts-userlink-meta { display: flex; flex-direction: column; line-height: 1.2; }
+.ts-userlink-meta .nm { font-weight: 700; font-size: 14.5px; color: var(--text); }
+.ts-userlink-meta .un { font-size: 12.5px; color: var(--faint); }
+.ts-userlink:hover .nm { color: var(--violet-br); }
+
+.ts-composer { padding: 18px; }
+.ts-composer-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; gap: 12px; flex-wrap: wrap; }
+.ts-composer-attach { display: flex; align-items: center; gap: 8px; }
+.ts-attach { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--border-2); background: var(--surface-2); font-size: 13px; font-weight: 600; color: var(--dim); }
+.ts-attach:disabled { opacity: 0.6; }
+
+.ts-post { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-sm); padding: 18px; }
+.ts-post-head { display: flex; align-items: center; justify-content: space-between; }
+.ts-post-body { margin-top: 12px; white-space: pre-wrap; line-height: 1.55; color: var(--text); }
+.ts-post-acts { display: flex; align-items: center; gap: 8px; margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+.ts-act { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 600; color: var(--dim); }
+.ts-act:hover { background: var(--surface-2); }
+.ts-act--on { color: var(--down); }
+.ts-mini { font-size: 12.5px; color: var(--faint); font-weight: 600; }
+.ts-mini:hover { color: var(--down); }
+
+.ts-comments { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+.ts-comment { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; }
+.ts-comment p { font-size: 14px; color: var(--text); }
+.ts-comment-add { display: flex; gap: 8px; }
+
+.ts-suggest { padding: 18px; position: sticky; top: 80px; }
+.ts-suggest-list { display: flex; flex-direction: column; gap: 14px; }
+.ts-suggest-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
