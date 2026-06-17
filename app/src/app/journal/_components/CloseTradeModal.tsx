@@ -12,8 +12,10 @@ export function CloseTradeModal({ tradeId }: { tradeId: string }) {
   const [error, setError] = useState('')
 
   async function submit() {
+    const ex = Number(exit)
+    if (!Number.isFinite(ex)) { setError('Enter a valid exit price.'); return }
     setPending(true); setError('')
-    const res = await closeTrade(tradeId, Number(exit))
+    const res = await closeTrade(tradeId, ex)
     if (res.error) { setError(res.error); setPending(false); return }
     setPending(false); setOpen(false); router.refresh()
   }

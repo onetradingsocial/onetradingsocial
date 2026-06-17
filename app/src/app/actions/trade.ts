@@ -3,7 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { pipInfo } from '@/lib/instruments'
-import { computeOpen, computeClose, type Direction, type SizingMode } from '@/lib/trade'
+import {
+  computeOpen, computeClose, DIRECTIONS, SIZING_MODES, CONFIDENCE_LEVELS, EMOTIONS,
+  type Direction, type SizingMode,
+} from '@/lib/trade'
 
 export type TradeState = { error?: string; ok?: boolean; tradeId?: string }
 
@@ -34,6 +37,12 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
 
   if (!instrument) return { error: 'Instrument is required.' }
   if (entry == null || stop == null) return { error: 'Entry and stop are required.' }
+  if (!(DIRECTIONS as readonly string[]).includes(direction)) return { error: 'Invalid direction.' }
+  if (!(SIZING_MODES as readonly string[]).includes(sizingMode)) return { error: 'Invalid sizing mode.' }
+  const confidence = String(formData.get('confidence') ?? '')
+  const emotion = String(formData.get('emotion') ?? '')
+  if (confidence && !(CONFIDENCE_LEVELS as readonly string[]).includes(confidence)) return { error: 'Invalid confidence.' }
+  if (emotion && !(EMOTIONS as readonly string[]).includes(emotion)) return { error: 'Invalid emotion.' }
 
   const { pipSize, pipValuePerLot } = pipInfo(instrument, market)
   const open = computeOpen({
@@ -62,8 +71,8 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
     risk_percent: riskPercent, lots, risk_amount: open.riskAmount,
     sl_pips: open.slPips, tp_pips: open.tpPips, planned_rr: open.plannedRr,
     setup_type: String(formData.get('setup_type') ?? '') || null,
-    confidence: String(formData.get('confidence') ?? '') || null,
-    emotion: String(formData.get('emotion') ?? '') || null,
+    confidence: confidence || null,
+    emotion: emotion || null,
     note: String(formData.get('note') ?? '') || null,
     is_public: isPublic,
     mistake_tags: formData.getAll('mistake_tags').map(String),
@@ -81,6 +90,7 @@ export async function closeTrade(tradeId: string, exitPrice: number): Promise<Tr
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  if (!Number.isFinite(exitPrice)) return { error: 'Invalid exit price.' }
 
   const { data: t } = await supabase
     .from('trades')

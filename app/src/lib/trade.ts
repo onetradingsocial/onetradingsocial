@@ -124,8 +124,8 @@ export function computeMetrics(trades: TradeForMetrics[]): Metrics {
   const rs = closed.map((t) => t.rMultiple as number)
   const wins = rs.filter((r) => r > EPS).length
   const losses = rs.filter((r) => r < -EPS).length
-  const grossWin = rs.filter((r) => r > 0).reduce((a, b) => a + b, 0)
-  const grossLoss = Math.abs(rs.filter((r) => r < 0).reduce((a, b) => a + b, 0))
+  const grossWin = rs.filter((r) => r > EPS).reduce((a, b) => a + b, 0)
+  const grossLoss = Math.abs(rs.filter((r) => r < -EPS).reduce((a, b) => a + b, 0))
   const netPnl = closed.reduce((a, t) => a + (t.pnlAmount ?? 0), 0)
 
   const mistakeCounts: Record<string, number> = {}
@@ -149,7 +149,7 @@ export function computeMetrics(trades: TradeForMetrics[]): Metrics {
     losses,
     winRate: closed.length ? wins / closed.length : 0,
     avgRr: closed.length ? rs.reduce((a, b) => a + b, 0) / closed.length : 0,
-    profitFactor: grossLoss ? grossWin / grossLoss : 0,
+    profitFactor: grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : 0,
     best: rs.length ? Math.max(...rs) : 0,
     worst: rs.length ? Math.min(...rs) : 0,
     currentStreak: streak,
