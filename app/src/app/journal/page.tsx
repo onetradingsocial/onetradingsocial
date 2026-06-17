@@ -4,6 +4,7 @@ import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { StatsBar } from './_components/StatsBar'
 import { TradeRow } from './_components/TradeRow'
 import { TradeFilters } from './_components/TradeFilters'
+import { TradeCaptureModal } from './_components/TradeCaptureModal'
 
 export default async function JournalPage({
   searchParams,
@@ -38,7 +39,7 @@ export default async function JournalPage({
           <p className="eyebrow">Trade Journal</p>
           <h1 className="ts-h1 mt-2">Your trades</h1>
         </div>
-        {/* "Log trade" capture modal is wired in here in Task 10 */}
+        <TradeCaptureModal defaultPublic={profile?.is_public ?? true} accountBalance={profile?.account_balance ?? 0} />
       </div>
 
       <div className="mt-6"><StatsBar m={metrics} currency={profile?.account_currency ?? 'USD'} /></div>
