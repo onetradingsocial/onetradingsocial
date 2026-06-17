@@ -1,3 +1,5 @@
+import { CloseTradeModal } from './CloseTradeModal'
+
 type Row = {
   id: string
   instrument: string
@@ -31,6 +33,7 @@ export function TradeRow({ t }: { t: Row }) {
       <td>{t.r_multiple != null ? `${t.r_multiple.toFixed(2)}R` : t.planned_rr != null ? `1:${t.planned_rr.toFixed(2)}` : '—'}</td>
       <td>{tags.slice(0, 2).map((x) => <span key={x} className="ts-tag">{x}</span>)}</td>
       <td><span className={`ts-badge ts-badge--${t.status === 'open' ? 'open' : t.outcome}`}>{t.status === 'open' ? 'open' : t.outcome}</span></td>
+      <td>{t.status === 'open' ? <CloseTradeModal tradeId={t.id} /> : null}</td>
     </tr>
   )
 }

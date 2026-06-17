@@ -55,7 +55,7 @@ export default async function JournalPage({
         ) : (
           <table className="ts-table">
             <thead>
-              <tr><th>Instrument</th><th>Entry</th><th>Exit</th><th>P/L</th><th>R:R</th><th>Tags</th><th>Status</th></tr>
+              <tr><th>Instrument</th><th>Entry</th><th>Exit</th><th>P/L</th><th>R:R</th><th>Tags</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>{shown.map((t) => <TradeRow key={t.id} t={t} />)}</tbody>
           </table>
