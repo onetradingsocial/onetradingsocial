@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { RESERVED_USERNAMES } from '@/lib/username'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { StatsBar } from '@/app/journal/_components/StatsBar'
+import { FollowButton } from '@/app/_components/FollowButton'
 
 export default async function ProfilePage({
   params,
@@ -31,6 +32,22 @@ export default async function ProfilePage({
   const { data: idRow } = await supabase
     .from('profiles').select('id, account_currency').eq('username', profile.username).single()
 
+  const profileId = idRow?.id
+  const { data: { user: viewer } } = await supabase.auth.getUser()
+  let followerCount = 0, followingCount = 0, isFollowing = false
+  if (profileId) {
+    const fc = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profileId)
+    const gc = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profileId)
+    followerCount = fc.count ?? 0
+    followingCount = gc.count ?? 0
+    if (viewer && viewer.id !== profileId) {
+      const { data: vf } = await supabase.from('follows')
+        .select('follower_id').eq('follower_id', viewer.id).eq('following_id', profileId).maybeSingle()
+      isFollowing = !!vf
+    }
+  }
+  const isSelf = !!(viewer && profileId && viewer.id === profileId)
+
   type PubTrade = {
     id: string; instrument: string; direction: string; status: string; outcome: string
     entry_price: number; exit_price: number | null; pnl_amount: number | null
@@ -58,10 +75,11 @@ export default async function ProfilePage({
           {profile.avatar_url
             ? <img src={profile.avatar_url} alt="" className="ts-avatar" />
             : <div className="ts-avatar ts-avatar--ph">{initial}</div>}
-          <div>
+          <div style={{ flex: 1 }}>
             <h1 className="ts-h1">{name}</h1>
             <p className="muted" style={{ fontWeight: 600 }}>@{profile.username}</p>
           </div>
+          {viewer && !isSelf && profileId && <FollowButton targetId={profileId} initialFollowing={isFollowing} />}
         </header>
 
         {profile.bio && <p className="mt-5" style={{ color: 'var(--dim)', maxWidth: '60ch' }}>{profile.bio}</p>}
@@ -76,7 +94,7 @@ export default async function ProfilePage({
         <dl className="ts-statgrid mt-6">
           <div className="ts-stat"><dt>Experience</dt><dd>{profile.experience_level ?? '—'}</dd></div>
           <div className="ts-stat"><dt>Level</dt><dd>Level {profile.level} · {profile.xp} XP</dd></div>
-          <div className="ts-stat"><dt>Followers</dt><dd>0 · 0 following</dd></div>
+          <div className="ts-stat"><dt>Followers</dt><dd>{followerCount} · {followingCount} following</dd></div>
           <div className="ts-stat"><dt>Member since</dt><dd>{new Date(profile.created_at).toLocaleDateString()}</dd></div>
         </dl>
       </div>
