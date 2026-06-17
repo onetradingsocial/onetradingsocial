@@ -28,6 +28,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/app/:path*", "destination": "https://onetradingsocial-app.vercel.app/app/:path*" },
     { "source": "/blog/:slug", "destination": "/blog-post.html" }
   ]
 }
