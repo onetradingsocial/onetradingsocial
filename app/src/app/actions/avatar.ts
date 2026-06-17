@@ -1,24 +1,28 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { presignAvatarUpload } from '@/lib/r2'
+import { signAvatarUpload, avatarPublicUrl } from '@/lib/storage'
 
-export async function getAvatarUploadUrl(contentType: string) {
-  if (contentType !== 'image/png' && contentType !== 'image/jpeg') {
-    return { error: 'Only PNG or JPEG allowed.' as const }
-  }
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' as const }
-  return presignAvatarUpload(user.id, contentType)
+function isAllowed(ct: string): ct is 'image/png' | 'image/jpeg' {
+  return ct === 'image/png' || ct === 'image/jpeg'
 }
 
-export async function saveAvatarUrl(publicUrl: string) {
+export async function getAvatarUploadUrl(contentType: string) {
+  if (!isAllowed(contentType)) return { error: 'Only PNG or JPEG allowed.' as const }
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' as const }
-  const prefix = `${process.env.R2_PUBLIC_BASE_URL}/avatars/${user.id}.`
-  if (!publicUrl.startsWith(prefix)) return { error: 'Invalid avatar URL.' as const }
+  return signAvatarUpload(user.id, contentType)
+}
+
+export async function saveAvatarUrl(contentType: string) {
+  if (!isAllowed(contentType)) return { error: 'Only PNG or JPEG allowed.' as const }
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' as const }
+  // Rebuild URL server-side from the session user id; never trust a client URL.
+  // Cache-bust query so the browser drops the previous avatar after re-upload.
+  const publicUrl = `${avatarPublicUrl(user.id, contentType)}?v=${Date.now()}`
   await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
-  return { ok: true as const }
+  return { ok: true as const, publicUrl }
 }

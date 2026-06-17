@@ -1,7 +1,10 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { getAvatarUploadUrl, saveAvatarUrl } from '@/app/actions/avatar'
+
+const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
 
 export function AvatarUploader({ current }: { current: string | null }) {
   const [url, setUrl] = useState(current)
@@ -12,12 +15,19 @@ export function AvatarUploader({ current }: { current: string | null }) {
     const file = e.target.files?.[0]
     if (!file) return
     setStatus('Uploading…')
+
     const signed = await getAvatarUploadUrl(file.type)
-    if ('error' in signed) { setStatus(signed.error); return }
-    const put = await fetch(signed.url, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
-    if (!put.ok) { setStatus('Upload failed. Try again.'); return }
-    await saveAvatarUrl(signed.publicUrl)
-    setUrl(signed.publicUrl)
+    if ('error' in signed) { setStatus(signed.error ?? 'Upload failed.'); return }
+
+    const supabase = createClient()
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .uploadToSignedUrl(signed.path, signed.token, file, { upsert: true })
+    if (error) { setStatus('Upload failed. Try again.'); return }
+
+    const saved = await saveAvatarUrl(file.type)
+    if ('error' in saved) { setStatus(saved.error ?? 'Upload failed.'); return }
+    setUrl(saved.publicUrl)
     setStatus('Saved.')
   }
 
