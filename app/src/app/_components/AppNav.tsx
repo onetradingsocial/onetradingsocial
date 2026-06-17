@@ -21,6 +21,7 @@ export async function AppNav() {
           {user ? (
             <>
               <Link className="ts-nav-link" href="/">Home</Link>
+              <Link className="ts-nav-link" href="/journal">Journal</Link>
               {username && <Link className="ts-nav-link" href={`/${username}`}>Profile</Link>}
               <Link className="ts-nav-link" href="/settings">Settings</Link>
               <form action="/app/auth/signout" method="post">
