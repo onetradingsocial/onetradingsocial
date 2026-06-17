@@ -21,6 +21,10 @@ export default async function JournalPage() {
     .eq('user_id', user.id)
     .order('traded_at', { ascending: false })
 
+  const { data: prof } = await supabase
+    .from('profiles').select('account_balance').eq('id', user.id).single()
+  const noBalance = !prof?.account_balance
+
   const trades = (all ?? []) as JTrade[]
   const closed = trades.filter((t) => t.status === 'closed')
 
@@ -40,6 +44,14 @@ export default async function JournalPage() {
   return (
     <main className="ts-page">
       <JournalHero monthLabel={monthLabel} monthTrades={sums.monthTrades} monthNet={sums.monthNet} streak={metrics.currentStreak} />
+
+      {noBalance && (
+        <div className="ts-banner mt-5">
+          <span>💡 Set your <b>account balance</b> in{' '}
+            <a href="/app/settings" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Settings</a>{' '}
+            to see P/L in money. R-multiples and win rate already work.</span>
+        </div>
+      )}
 
       <div className="mt-5">
         <StatCards metrics={metrics} allTime={sums.allTime} monthNet={sums.monthNet} monthLabel={monthLabel} weekTrades={sums.weekTrades} />

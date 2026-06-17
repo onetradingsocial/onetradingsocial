@@ -447,3 +447,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-side--long { background: var(--up-soft); color: var(--up); }
 .ts-side--short { background: var(--down-soft); color: var(--down); }
 .ts-table-foot { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; margin-top: 4px; border-top: 1px solid var(--border); font-size: 13px; }
+
+.ts-banner { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 14px; font-size: 13.5px; color: var(--dim); background: var(--brand-grad-soft); border: 1px solid var(--border-vio); }
+.ts-banner b { color: var(--text); }
