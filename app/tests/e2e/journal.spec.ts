@@ -20,7 +20,7 @@ async function signUpAndOnboard(page: import('@playwright/test').Page) {
 test('log a closed trade and see it in the journal with computed R', async ({ page }) => {
   await signUpAndOnboard(page)
   await page.goto('/app/journal')
-  await page.click('button:has-text("Log trade")')
+  await page.locator('button:has-text("Log trade")').first().click()
 
   await page.fill('input[name="entry_price"]', '1.0856')
   await page.fill('input[name="stop_price"]', '1.0806')
@@ -37,7 +37,7 @@ test('log a closed trade and see it in the journal with computed R', async ({ pa
 test('log an open trade then close it', async ({ page }) => {
   await signUpAndOnboard(page)
   await page.goto('/app/journal')
-  await page.click('button:has-text("Log trade")')
+  await page.locator('button:has-text("Log trade")').first().click()
   await page.fill('input[name="entry_price"]', '1.1000')
   await page.fill('input[name="stop_price"]', '1.0950')
   await page.fill('input[name="target_price"]', '1.1100')

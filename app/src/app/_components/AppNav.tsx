@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Brand } from './Brand'
+import { NewTradeButton } from './NewTradeButton'
 
 export async function AppNav() {
   const supabase = await createClient()
@@ -24,6 +25,7 @@ export async function AppNav() {
               <Link className="ts-nav-link" href="/journal">Journal</Link>
               {username && <Link className="ts-nav-link" href={`/${username}`}>Profile</Link>}
               <Link className="ts-nav-link" href="/settings">Settings</Link>
+              <NewTradeButton />
               <form action="/app/auth/signout" method="post">
                 <button className="btn btn-ghost btn-sm" type="submit">Log out</button>
               </form>
