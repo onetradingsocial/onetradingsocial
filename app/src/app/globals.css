@@ -247,3 +247,38 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 }
 .ts-placeholder { border: 1px dashed var(--border-2); border-radius: 16px; padding: 18px; color: var(--faint); font-size: 13.5px; }
 .ts-placeholder .lab { color: var(--faintest); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 6px; }
+
+/* ---------- Journal ---------- */
+.ts-statbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.ts-statcard { background: var(--surface); padding: 16px 18px; }
+.ts-statcard dt { font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+.ts-statcard dd { font-family: var(--display); font-weight: 600; font-size: 22px; margin-top: 4px; letter-spacing: -0.02em; }
+
+.ts-table { width: 100%; border-collapse: collapse; }
+.ts-table th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--faint); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.ts-table td { padding: 13px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.ts-table tr:hover td { background: var(--surface-2); }
+
+.ts-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; text-transform: capitalize; }
+.ts-badge--open { background: var(--surface-3); color: var(--dim); }
+.ts-badge--win { background: var(--up-soft); color: var(--up); }
+.ts-badge--loss { background: var(--down-soft); color: var(--down); }
+.ts-badge--breakeven { background: var(--surface-3); color: var(--dim); }
+
+.ts-pos { color: var(--up); font-weight: 600; }
+.ts-neg { color: var(--down); font-weight: 600; }
+
+/* Filters */
+.ts-filterbar { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 12px; padding: 4px; gap: 4px; }
+.ts-filterbar a { padding: 7px 16px; border-radius: 9px; font-size: 13.5px; font-weight: 600; color: var(--dim); }
+.ts-filterbar a[data-active="true"] { background: #fff; color: var(--violet-deep); box-shadow: var(--shadow-sm); }
+
+/* Modal */
+.ts-modal-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(22,19,40,0.45); backdrop-filter: blur(3px); display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; overflow-y: auto; }
+.ts-modal { width: 100%; max-width: 640px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 26px; }
+.ts-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.ts-modal-close { width: 34px; height: 34px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--dim); display: inline-flex; align-items: center; justify-content: center; }
+.ts-compute { background: var(--brand-grad-soft); border: 1px solid var(--border-vio); border-radius: 14px; padding: 14px 16px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.ts-compute .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dim); font-weight: 600; }
+.ts-compute .v { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.02em; }
+.ts-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
