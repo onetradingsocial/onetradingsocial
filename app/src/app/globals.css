@@ -488,3 +488,46 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-suggest { padding: 18px; position: sticky; top: 80px; }
 .ts-suggest-list { display: flex; flex-direction: column; gap: 14px; }
 .ts-suggest-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* ---------- Home dashboard ---------- */
+.ts-feed-side { display: flex; flex-direction: column; gap: 16px; }
+.ts-link-sm { font-size: 13px; font-weight: 600; color: var(--violet-br); }
+
+/* welcome hero */
+.ts-whero { position: relative; overflow: hidden; border-radius: var(--radius-lg); padding: 26px 28px; color: #fff;
+  background: linear-gradient(115deg, #5530C8 0%, #7C5CE6 45%, #C840BC 100%); box-shadow: 0 24px 60px -30px rgba(124,92,230,0.7); }
+.ts-whero-glow { position: absolute; inset: 0; background: radial-gradient(60% 120% at 88% 0%, rgba(255,255,255,0.18), transparent 60%); }
+.ts-whero-body { position: relative; display: flex; gap: 20px; align-items: center; }
+.ts-whero-rank { font-family: var(--display); font-weight: 700; font-size: 52px; line-height: 1; letter-spacing: -0.04em; opacity: 0.92; flex: none; }
+.ts-whero-cta { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.btn-band-ghost { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.4); color: #fff; backdrop-filter: blur(6px); }
+.btn-band-ghost:not(:disabled):hover { background: rgba(255,255,255,0.24); transform: translateY(-2px); }
+
+/* performance row */
+.ts-perfrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+@media (max-width: 760px) { .ts-perfrow { grid-template-columns: repeat(2, 1fr); } }
+.ts-perfcard { border-radius: 16px; padding: 14px; border: 1px solid var(--border); min-height: 104px; display: flex; flex-direction: column; }
+.ts-perfcard[data-tone="gold"] { background: linear-gradient(160deg, #FFF6E6, #fff); }
+.ts-perfcard[data-tone="green"] { background: linear-gradient(160deg, #E9F9F0, #fff); }
+.ts-perfcard[data-tone="violet"] { background: linear-gradient(160deg, #F1ECFD, #fff); }
+.ts-perfcard[data-tone="sky"] { background: linear-gradient(160deg, #E9F4FB, #fff); }
+.ts-perfcard[data-tone="blue"] { background: linear-gradient(160deg, #EAF0FB, #fff); }
+.ts-perfcard .l { font-size: 11.5px; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: 0.03em; }
+.ts-perfcard .v { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: -0.02em; margin-top: 4px; }
+.ts-perfcard .sp { margin-top: auto; }
+.ts-mspark { width: 100%; height: 26px; }
+.ts-mspark-empty { height: 26px; border-bottom: 1.5px dashed var(--border-2); opacity: 0.5; margin-bottom: 4px; }
+
+/* log-trade banner */
+.ts-logbanner { display: flex; align-items: center; gap: 16px; border-radius: 18px; padding: 18px 22px; color: #fff;
+  background: linear-gradient(115deg, #6B43E0, #C840BC); box-shadow: 0 18px 44px -24px rgba(200,64,188,0.7); }
+.ts-logbanner-icon { width: 44px; height: 44px; flex: none; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(255,255,255,0.18); }
+.ts-logbanner-text { flex: 1; }
+.ts-logbanner-text .t { font-family: var(--display); font-weight: 700; font-size: 18px; }
+.ts-logbanner-text .s { font-size: 13px; color: rgba(255,255,255,0.85); margin-top: 2px; }
+
+/* right rail cards */
+.ts-railcard { padding: 18px; }
+.ts-rail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ts-rail-head .ts-h2 { font-size: 16px; }
+.ts-suggest { position: static; }
