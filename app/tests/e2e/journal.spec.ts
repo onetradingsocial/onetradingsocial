@@ -28,10 +28,9 @@ test('log a closed trade and see it in the journal with computed R', async ({ pa
   await page.fill('input[name="exit_price"]', '1.0936') // closes immediately, +1.6R win
   await page.click('button:has-text("Save trade")')
 
-  // Row appears, marked win
+  // Row appears with computed R (+1.6R) and instrument
   await expect(page.locator('table.ts-table')).toContainText('EUR/USD')
-  await expect(page.locator('.ts-badge--win')).toBeVisible()
-  await expect(page.locator('table.ts-table')).toContainText('1.60R')
+  await expect(page.locator('table.ts-table')).toContainText('+1.6R')
 })
 
 test('log an open trade then close it', async ({ page }) => {
@@ -47,5 +46,5 @@ test('log an open trade then close it', async ({ page }) => {
   await page.click('button:has-text("Close")')
   await page.fill('.ts-modal input.ts-input', '1.1100')
   await page.click('.ts-modal button:has-text("Close trade")')
-  await expect(page.locator('.ts-badge--win')).toBeVisible()
+  await expect(page.locator('table.ts-table')).toContainText('+2.0R')
 })

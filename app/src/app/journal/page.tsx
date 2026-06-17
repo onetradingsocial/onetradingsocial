@@ -1,65 +1,71 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
-import { StatsBar } from './_components/StatsBar'
-import { TradeRow } from './_components/TradeRow'
-import { TradeFilters } from './_components/TradeFilters'
-import { NewTradeButton } from '@/app/_components/NewTradeButton'
+import { monthlyPnl, equityCurve, assetDistribution, calendarCells, periodSums, MONTHS, type JTrade } from '@/lib/journal-stats'
+import { JournalHero } from './_components/JournalHero'
+import { StatCards } from './_components/StatCards'
+import { MonthlyPL } from './_components/MonthlyPL'
+import { EquityCurve } from './_components/EquityCurve'
+import { AssetDonut } from './_components/AssetDonut'
+import { TradingCalendar } from './_components/TradingCalendar'
+import { RecentTrades } from './_components/RecentTrades'
 
-export default async function JournalPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ filter?: string }>
-}) {
-  const { filter = 'all' } = await searchParams
+export default async function JournalPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles').select('account_currency, is_public, account_balance').eq('id', user.id).single()
-
   const { data: all } = await supabase
     .from('trades')
-    .select('id, instrument, direction, status, outcome, entry_price, exit_price, pnl_amount, r_multiple, planned_rr, setup_type, strategy_tags, mistake_tags, traded_at')
+    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, traded_at')
     .eq('user_id', user.id)
     .order('traded_at', { ascending: false })
 
-  const trades = all ?? []
+  const trades = (all ?? []) as JTrade[]
+  const closed = trades.filter((t) => t.status === 'closed')
+
+  const now = new Date()
+  const year = now.getFullYear(), month = now.getMonth()
+  const monthLabel = `${MONTHS[month]} ${year}`
+
   const metrics = computeMetrics(trades.map((t): TradeForMetrics => ({
-    status: t.status as 'open' | 'closed', outcome: t.outcome, rMultiple: t.r_multiple,
-    pnlAmount: t.pnl_amount, tradedAt: t.traded_at, mistakeTags: t.mistake_tags ?? [],
+    status: t.status as 'open' | 'closed', outcome: t.outcome as TradeForMetrics['outcome'], rMultiple: t.r_multiple,
+    pnlAmount: t.pnl_amount, tradedAt: t.traded_at, mistakeTags: [],
   })))
-  const shown = trades.filter((t) => filter === 'all' ? true : t.status === filter)
+  const sums = periodSums(closed, year, month)
+  const eq = equityCurve(closed)
+  const dist = assetDistribution(trades)
+  const cal = calendarCells(trades, year, month)
 
   return (
     <main className="ts-page">
-      <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <p className="eyebrow">Trade Journal</p>
-          <h1 className="ts-h1 mt-2">Your trades</h1>
+      <JournalHero monthLabel={monthLabel} monthTrades={sums.monthTrades} monthNet={sums.monthNet} streak={metrics.currentStreak} />
+
+      <div className="mt-5">
+        <StatCards metrics={metrics} allTime={sums.allTime} monthNet={sums.monthNet} monthLabel={monthLabel} weekTrades={sums.weekTrades} />
+      </div>
+
+      <div className="ts-panels mt-5">
+        <div className="ts-card">
+          <div className="flex items-center justify-between"><h2 className="ts-h2">Monthly P/L</h2><span className="faint">{year}</span></div>
+          <div className="mt-3"><MonthlyPL data={monthlyPnl(closed, year)} /></div>
         </div>
-        <NewTradeButton className="btn btn-primary" />
+        <div className="ts-card">
+          <div className="flex items-center justify-between"><h2 className="ts-h2">Equity Curve</h2><span className="faint">YTD</span></div>
+          <div className="mt-3"><EquityCurve points={eq.points} final={eq.final} /></div>
+        </div>
+        <div className="ts-card">
+          <div className="flex items-center justify-between"><h2 className="ts-h2">Asset Distribution</h2><span className="faint">by volume</span></div>
+          <div className="mt-3"><AssetDonut data={dist} total={trades.length} /></div>
+        </div>
       </div>
 
-      <div className="mt-6"><StatsBar m={metrics} currency={profile?.account_currency ?? 'USD'} /></div>
-
-      <div className="mt-7 flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 12 }}>
-        <h2 className="ts-h2">Recent trades</h2>
-        <TradeFilters active={filter} />
+      <div className="mt-5">
+        <TradingCalendar cells={cal} monthLabel={monthLabel} today={now.getDate()} />
       </div>
 
-      <div className="ts-card mt-3" style={{ padding: 8 }}>
-        {shown.length === 0 ? (
-          <p className="faint" style={{ padding: 24, textAlign: 'center' }}>No trades yet. Log your first trade.</p>
-        ) : (
-          <table className="ts-table">
-            <thead>
-              <tr><th>Instrument</th><th>Entry</th><th>Exit</th><th>P/L</th><th>R:R</th><th>Tags</th><th>Status</th><th></th></tr>
-            </thead>
-            <tbody>{shown.map((t) => <TradeRow key={t.id} t={t} />)}</tbody>
-          </table>
-        )}
+      <div className="mt-5">
+        <RecentTrades trades={trades} monthNet={sums.monthNet} />
       </div>
     </main>
   )
