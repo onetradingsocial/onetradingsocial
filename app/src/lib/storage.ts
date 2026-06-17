@@ -22,3 +22,22 @@ export async function signAvatarUpload(userId: string, contentType: string) {
   if (error || !data) return { error: 'Could not create upload URL.' as const }
   return { path: data.path, token: data.token }
 }
+
+function tradeChartKey(userId: string, tradeId: string, contentType: string) {
+  const ext = contentType === 'image/png' ? 'png' : 'jpg'
+  return `trades/${userId}/${tradeId}.${ext}`
+}
+
+export function tradeChartPublicUrl(userId: string, tradeId: string, contentType: string) {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${tradeChartKey(userId, tradeId, contentType)}`
+}
+
+export async function signTradeChartUpload(userId: string, tradeId: string, contentType: string) {
+  const path = tradeChartKey(userId, tradeId, contentType)
+  const supabase = createServiceClient()
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUploadUrl(path, { upsert: true })
+  if (error || !data) return { error: 'Could not create upload URL.' as const }
+  return { path: data.path, token: data.token }
+}
