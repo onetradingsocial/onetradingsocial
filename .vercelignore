@@ -2,3 +2,9 @@ unbundle.py
 docs/
 __pycache__/
 *.pyc
+
+# Next.js app is a separate Vercel project (onetradingsocial-app).
+# Shipping it into the static/marketing deploy makes /app resolve to a real
+# directory on the filesystem, which the trailingSlash:false normalizer
+# 308-loops onto itself before the /app/* rewrite can proxy it.
+app/
