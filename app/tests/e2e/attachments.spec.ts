@@ -26,9 +26,12 @@ test('create a poll and vote on it', async ({ page }) => {
   await opts.nth(1).fill('Short')
   await page.click('.ts-composer button:has-text("Post")')
 
-  await expect(page.locator('.ts-poll')).toBeVisible()
-  await page.locator('.ts-poll-opt', { hasText: 'Long' }).click()
-  await expect(page.locator('.ts-poll-opt', { hasText: 'Long' })).toContainText('100%')
+  // The just-created post is first in the feed (newest self post).
+  const poll = page.locator('.ts-post').first().locator('.ts-poll')
+  await expect(poll).toBeVisible()
+  const longOpt = poll.locator('.ts-poll-opt', { hasText: 'Long' }).first()
+  await longOpt.click()
+  await expect(longOpt).toContainText('100%')
 })
 
 test('share a trade in a post', async ({ page }) => {
@@ -50,6 +53,7 @@ test('share a trade in a post', async ({ page }) => {
   await page.locator('.ts-picker-row', { hasText: 'EUR/USD' }).first().click()
   await page.click('.ts-composer button:has-text("Post")')
 
-  await expect(page.locator('.ts-trade-att')).toContainText('EUR/USD')
-  await expect(page.locator('.ts-trade-att')).toContainText('1.6R')
+  const card = page.locator('.ts-post').first().locator('.ts-trade-att')
+  await expect(card).toContainText('EUR/USD')
+  await expect(card).toContainText('1.6R')
 })
