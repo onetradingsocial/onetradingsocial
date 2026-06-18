@@ -55,6 +55,7 @@ create policy poll_votes_select on public.poll_votes for select using (true);
 drop policy if exists poll_votes_insert on public.poll_votes;
 create policy poll_votes_insert on public.poll_votes for insert with check (user_id = auth.uid());
 drop policy if exists poll_votes_update on public.poll_votes;
-create policy poll_votes_update on public.poll_votes for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy poll_votes_update on public.poll_votes for update using (user_id = auth.uid())
+  with check (user_id = auth.uid() and exists (select 1 from public.poll_options o where o.id = option_id and o.post_id = post_id));
 drop policy if exists poll_votes_delete on public.poll_votes;
 create policy poll_votes_delete on public.poll_votes for delete using (user_id = auth.uid());

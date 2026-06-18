@@ -5,7 +5,7 @@ import { signPostImageUpload, postImagePublicUrl } from '@/lib/storage'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const postId = searchParams.get('postId'); const idx = Number(searchParams.get('idx')); const ct = searchParams.get('ct')
-  if (!postId || !Number.isInteger(idx) || (ct !== 'image/png' && ct !== 'image/jpeg')) {
+  if (!postId || !Number.isInteger(idx) || idx < 0 || idx > 3 || (ct !== 'image/png' && ct !== 'image/jpeg')) {
     return NextResponse.json({ error: 'bad request' }, { status: 400 })
   }
   const supabase = await createClient()

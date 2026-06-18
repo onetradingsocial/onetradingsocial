@@ -18,10 +18,14 @@ export function PollAttachment({ postId, options, votes, myVote }: {
 
   function vote(optionId: string) {
     if (mine === optionId) return
-    const without = localVotes.filter((v) => true) // keep others; PK ensures one per user server-side
-    const next = mine ? without : [...without, { option_id: optionId }]
+    setLocalVotes((vs) => {
+      let removed = false
+      const kept = mine
+        ? vs.filter((v) => { if (!removed && v.option_id === mine) { removed = true; return false } return true })
+        : vs.slice()
+      return [...kept, { option_id: optionId }]
+    })
     setMine(optionId)
-    setLocalVotes(mine ? localVotes : next)
     start(async () => { await votePoll(postId, optionId); router.refresh() })
   }
 

@@ -36,7 +36,7 @@ export function PostCard({ post }: { post: FeedItem }) {
         <UserLink username={post.author.username} displayName={post.author.display_name} avatarUrl={post.author.avatar_url} sub={timeAgo(post.created_at)} />
         {post.isOwn && <button type="button" className="ts-mini" onClick={() => start(async () => { await deletePost(post.id); router.refresh() })}>Delete</button>}
       </div>
-      <p className="ts-post-body">{post.body}</p>
+      {post.body.trim() && <p className="ts-post-body">{post.body}</p>}
       {post.attachment.type === 'trade' && <TradeAttachment t={post.attachment.trade} />}
       {post.attachment.type === 'images' && <ImageGallery urls={post.attachment.images} />}
       {post.attachment.type === 'poll' && <PollAttachment postId={post.id} options={post.attachment.options} votes={post.attachment.votes} myVote={post.attachment.myVote} />}

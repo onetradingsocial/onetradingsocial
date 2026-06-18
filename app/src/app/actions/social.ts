@@ -39,17 +39,23 @@ export async function createPost(input: CreatePostInput): Promise<{ postId?: str
   if (type === 'poll') {
     optionLabels = (input.pollOptions ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 4)
     if (optionLabels.length < 2) return { error: 'A poll needs at least 2 options.' }
+    if (optionLabels.some((l) => l.length > 100)) return { error: 'Poll options must be 100 characters or fewer.' }
     if (!body) return { error: 'Add a poll question.' }
   }
 
   const { data: post, error } = await supabase.from('posts').insert({
-    author_id: user.id, body: body || ' ', attachment_type: type,
+    author_id: user.id, body, attachment_type: type,
     trade_id: type === 'trade' ? input.tradeId : null,
   }).select('id').single()
   if (error || !post) return { error: error?.message ?? 'Could not create post.' }
 
   if (type === 'poll') {
-    await supabase.from('poll_options').insert(optionLabels.map((label, ord) => ({ post_id: post.id, label, ord })))
+    const { error: optErr } = await supabase.from('poll_options')
+      .insert(optionLabels.map((label, ord) => ({ post_id: post.id, label, ord })))
+    if (optErr) {
+      await supabase.from('posts').delete().eq('id', post.id)
+      return { error: 'Could not save the poll. Try again.' }
+    }
   }
 
   revalidatePath('/')
