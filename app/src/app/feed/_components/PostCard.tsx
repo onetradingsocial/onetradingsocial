@@ -30,6 +30,8 @@ export function PostCard({ post }: { post: FeedItem }) {
       <div className="ts-post-acts">
         <LikeButton postId={post.id} initialLiked={post.viewerLiked} initialCount={post.likeCount} />
         <button type="button" className="ts-act" onClick={() => setOpen((o) => !o)}>💬 {commentCount}</button>
+        <button type="button" className="ts-act" title="Share — coming soon" disabled>↗ Share</button>
+        <button type="button" className="ts-act ts-act--right" title="Copy to journal — coming soon" disabled>🔖 Copy to journal</button>
       </div>
       {open && <CommentThread postId={post.id} onCountChange={setCommentCount} />}
     </article>

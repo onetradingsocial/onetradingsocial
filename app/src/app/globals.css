@@ -572,3 +572,55 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-perfcard { background: #fff !important; }
 .ts-perfcard .hd { display: flex; align-items: center; justify-content: space-between; }
 .ts-perfcard .ic { width: 24px; height: 24px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+
+/* ---------- Home: streak chain ---------- */
+.ts-chain { margin-top: 16px; }
+.ts-chain-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); font-weight: 600; }
+.ts-chain-dots { display: flex; gap: 7px; margin-top: 8px; }
+.ts-chain-dot { width: 26px; height: 26px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border-2); }
+.ts-chain-dot[data-on="true"] { background: var(--brand-grad); border-color: transparent; box-shadow: 0 4px 10px -3px rgba(124,92,230,0.5); }
+
+/* ---------- post engagement ---------- */
+.ts-act--right { margin-left: auto; }
+
+/* ---------- Trader of the week ---------- */
+.ts-totw { position: relative; overflow: hidden; border-radius: var(--radius-lg); padding: 20px; color: #fff;
+  background: linear-gradient(150deg, #6B43E0, #C840BC); box-shadow: 0 18px 44px -26px rgba(124,92,230,0.7); }
+.ts-totw-glow { position: absolute; inset: 0; background: radial-gradient(70% 100% at 90% 0%, rgba(255,255,255,0.2), transparent 60%); }
+.ts-totw-body { position: relative; }
+.ts-totw-head { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.ts-totw-av { width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 18px; overflow: hidden; flex: none; }
+.ts-totw-av img { width: 100%; height: 100%; object-fit: cover; }
+.ts-totw-head .nm { font-family: var(--display); font-weight: 700; font-size: 16px; }
+.ts-totw-head .un { font-size: 12.5px; color: rgba(255,255,255,0.8); }
+.ts-totw-cta { display: flex; gap: 8px; margin-top: 16px; }
+.ts-totw-cta .btn { flex: 1; }
+
+/* ---------- Leaderboard list ---------- */
+.ts-lb { display: flex; flex-direction: column; gap: 4px; }
+.ts-lb-row { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 11px; }
+.ts-lb-row:hover { background: var(--surface-2); }
+.ts-lb-num { width: 22px; height: 22px; flex: none; border-radius: 7px; font-size: 11.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-3); color: var(--dim); }
+.ts-lb-num--1 { background: #FFF1D6; color: #B26B00; }
+.ts-lb-num--2 { background: #ECECF3; color: #6B6880; }
+.ts-lb-num--3 { background: #F7E6DD; color: #B5560F; }
+.ts-lb-row .ts-userlink { flex: 1; min-width: 0; }
+.ts-lb-val { margin-left: auto; font-weight: 700; font-size: 13px; }
+
+/* ---------- Daily quests ---------- */
+.ts-quests { display: flex; flex-direction: column; gap: 10px; }
+.ts-quest { display: flex; align-items: center; gap: 10px; }
+.ts-quest-check { width: 20px; height: 20px; flex: none; border-radius: 7px; border: 1.5px solid var(--border-2); background: var(--surface-2); }
+.ts-quest-check[data-done="true"] { background: var(--up); border-color: var(--up); }
+.ts-quest-label { flex: 1; font-size: 13.5px; font-weight: 600; color: var(--text); }
+.ts-quest-xp { font-size: 11px; font-weight: 700; color: var(--xp); background: #FFF6E6; border: 1px solid rgba(224,138,30,0.25); padding: 2px 8px; border-radius: 999px; }
+
+/* ---------- Recent trades (rail) ---------- */
+.ts-recent { display: flex; flex-direction: column; gap: 4px; }
+.ts-recent-row { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 11px; }
+.ts-recent-row:hover { background: var(--surface-2); }
+.ts-recent-badge { width: 30px; height: 30px; flex: none; border-radius: 9px; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+.ts-recent-meta { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.ts-recent-meta .ins { font-weight: 600; font-size: 13.5px; }
+.ts-recent-meta .lab { font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ts-recent-row > span:last-child { margin-left: auto; }

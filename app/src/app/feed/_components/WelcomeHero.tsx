@@ -22,6 +22,14 @@ export function WelcomeHero({ name, streak, race }: { name: string; streak: numb
         <p className="ts-standing-text">
           Welcome back, <b>{name}</b>. Log your setups and build a track record — leagues &amp; rankings arrive with the Leaderboard phase.
         </p>
+        <div className="ts-chain">
+          <span className="ts-chain-label">Your streak</span>
+          <div className="ts-chain-dots">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <span key={i} className="ts-chain-dot" data-on={streak > 0 && i < Math.min(streak, 7)} />
+            ))}
+          </div>
+        </div>
         <div className="ts-standing-cta">
           <NewTradeButton className="btn btn-primary" label="+ Log a trade" />
           <a href="/app/journal" className="btn btn-ghost">Open journal</a>

@@ -64,8 +64,14 @@ export default async function Home() {
 
   // Performance (own trades)
   const { data: tradeRows } = await supabase.from('trades')
-    .select('status, outcome, r_multiple, pnl_amount, traded_at').eq('user_id', user.id)
+    .select('id, instrument, market, setup_type, status, outcome, r_multiple, pnl_amount, traded_at')
+    .eq('user_id', user.id).order('traded_at', { ascending: false })
   const trades = tradeRows ?? []
+  const recentTrades = trades.slice(0, 4).map((t) => ({
+    id: t.id, instrument: t.instrument, market: t.market,
+    label: t.setup_type || (t.status === 'open' ? 'Open position' : 'Closed trade'),
+    pnl: t.pnl_amount, status: t.status,
+  }))
   const metrics = computeMetrics(trades.map((t): TradeForMetrics => ({
     status: t.status as 'open' | 'closed', outcome: t.outcome as TradeForMetrics['outcome'],
     rMultiple: t.r_multiple, pnlAmount: t.pnl_amount, tradedAt: t.traded_at, mistakeTags: [],
@@ -94,7 +100,7 @@ export default async function Home() {
         <PostComposer />
         <FeedTabs items={items} />
       </div>
-      <RightRail suggested={suggested} />
+      <RightRail suggested={suggested} recentTrades={recentTrades} />
     </main>
   )
 }
