@@ -2,7 +2,9 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { assembleFeed, tally } from '@/lib/feed'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
-import { type FeedItem } from './feed/_components/PostCard'
+import { type FeedItem, type Attachment } from './feed/_components/PostCard'
+import { type TradeCard } from './feed/_components/attachments/TradeAttachment'
+import { type AttachmentType } from '@/app/actions/social'
 import { PostComposer } from './feed/_components/PostComposer'
 import { WelcomeHero } from './feed/_components/WelcomeHero'
 import { PerformanceRow } from './feed/_components/PerformanceRow'
@@ -11,10 +13,10 @@ import { FeedTabs, type FeedTabItem } from './feed/_components/FeedTabs'
 import { RightRail } from './feed/_components/RightRail'
 
 const EMPTY = ['00000000-0000-0000-0000-000000000000']
-const SELECT = 'id, body, created_at, author_id, author:profiles!posts_author_id_fkey(id, username, display_name, avatar_url)'
+const SELECT = 'id, body, created_at, author_id, attachment_type, trade_id, author:profiles!posts_author_id_fkey(id, username, display_name, avatar_url)'
 
 type RawAuthor = { id: string; username: string; display_name: string | null; avatar_url: string | null }
-type RawPost = { id: string; body: string; created_at: string; author_id: string; author: RawAuthor | RawAuthor[] }
+type RawPost = { id: string; body: string; created_at: string; author_id: string; attachment_type: AttachmentType; trade_id: string | null; author: RawAuthor | RawAuthor[] }
 
 export default async function Home() {
   const supabase = await createClient()
@@ -52,12 +54,44 @@ export default async function Home() {
   const commentCount = tally(commentRows, 'post_id')
   const myLikeSet = new Set((myLikes ?? []).map((r) => r.post_id))
 
+  const tradeIds = merged.filter((p) => p.attachment_type === 'trade' && p.trade_id).map((p) => p.trade_id as string)
+  const imagePostIds = merged.filter((p) => p.attachment_type === 'images').map((p) => p.id)
+  const pollPostIds = merged.filter((p) => p.attachment_type === 'poll').map((p) => p.id)
+  const F = (a: string[]) => (a.length ? a : EMPTY)
+
+  const [{ data: tradeRowsAtt }, { data: imgRows }, { data: optRows }, { data: voteRows }, { data: myVoteRows }] = await Promise.all([
+    supabase.from('trades').select('id, instrument, direction, entry_price, stop_price, target_price, exit_price, r_multiple, pnl_amount, realized_pips, status, screenshot_url, setup_type, strategy_tags').in('id', F(tradeIds)),
+    supabase.from('post_images').select('post_id, url, ord').in('post_id', F(imagePostIds)).order('ord', { ascending: true }),
+    supabase.from('poll_options').select('id, post_id, label, ord').in('post_id', F(pollPostIds)).order('ord', { ascending: true }),
+    supabase.from('poll_votes').select('post_id, option_id').in('post_id', F(pollPostIds)),
+    supabase.from('poll_votes').select('post_id, option_id').eq('user_id', user.id).in('post_id', F(pollPostIds)),
+  ])
+  const tradeById = new Map((tradeRowsAtt ?? []).map((t) => [t.id, t as unknown as TradeCard]))
+  const imagesByPost = new Map<string, string[]>()
+  for (const r of imgRows ?? []) imagesByPost.set(r.post_id, [...(imagesByPost.get(r.post_id) ?? []), r.url])
+  const optionsByPost = new Map<string, { id: string; label: string }[]>()
+  for (const r of optRows ?? []) optionsByPost.set(r.post_id, [...(optionsByPost.get(r.post_id) ?? []), { id: r.id, label: r.label }])
+  const votesByPost = new Map<string, { option_id: string }[]>()
+  for (const r of voteRows ?? []) votesByPost.set(r.post_id, [...(votesByPost.get(r.post_id) ?? []), { option_id: r.option_id }])
+  const myVoteByPost = new Map((myVoteRows ?? []).map((r) => [r.post_id, r.option_id]))
+
+  function attachmentFor(p: { id: string; attachment_type: AttachmentType; trade_id: string | null }): Attachment {
+    if (p.attachment_type === 'trade' && p.trade_id) {
+      const t = tradeById.get(p.trade_id)
+      if (t) return { type: 'trade', trade: t }
+    }
+    if (p.attachment_type === 'images') return { type: 'images', images: imagesByPost.get(p.id) ?? [] }
+    if (p.attachment_type === 'poll') return { type: 'poll', options: optionsByPost.get(p.id) ?? [], votes: votesByPost.get(p.id) ?? [], myVote: myVoteByPost.get(p.id) ?? null }
+    return { type: 'none' }
+  }
+
   const items: FeedTabItem[] = merged.map((p) => {
     const author = (Array.isArray(p.author) ? p.author[0] : p.author)
     const base: FeedItem = {
       id: p.id, body: p.body, created_at: p.created_at, author,
       likeCount: likeCount[p.id] ?? 0, commentCount: commentCount[p.id] ?? 0,
       viewerLiked: myLikeSet.has(p.id), isOwn: author.id === user.id,
+      attachment: attachmentFor(p),
     }
     return { ...base, fromFollowed: author.id === user.id || followingSet.has(author.id) }
   })
