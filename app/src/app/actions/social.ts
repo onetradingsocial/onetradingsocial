@@ -10,17 +10,88 @@ export type CommentItem = {
   author: { username: string; display_name: string | null; avatar_url: string | null }
 }
 
-export async function createPost(formData: FormData): Promise<SocialState> {
+export type AttachmentType = 'none' | 'trade' | 'images' | 'poll'
+
+export type CreatePostInput = {
+  body: string
+  attachmentType: AttachmentType
+  tradeId?: string | null
+  pollOptions?: string[]
+}
+
+export async function createPost(input: CreatePostInput): Promise<{ postId?: string; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
-  const body = String(formData.get('body') ?? '').trim()
-  if (!body) return { error: 'Write something first.' }
+
+  const body = (input.body ?? '').trim()
+  const type = input.attachmentType
+  if (!body && type !== 'images' && type !== 'trade') return { error: 'Write something first.' }
   if (body.length > 2000) return { error: 'Post is too long (2000 max).' }
-  const { error } = await supabase.from('posts').insert({ author_id: user.id, body })
-  if (error) { console.error('createPost', error.message); return { error: 'Could not save your post. Try again.' } }
+
+  if (type === 'trade') {
+    if (!input.tradeId) return { error: 'No trade selected.' }
+    const { data: t } = await supabase.from('trades').select('user_id').eq('id', input.tradeId).single()
+    if (!t || t.user_id !== user.id) return { error: 'Trade not found.' }
+  }
+
+  let optionLabels: string[] = []
+  if (type === 'poll') {
+    optionLabels = (input.pollOptions ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 4)
+    if (optionLabels.length < 2) return { error: 'A poll needs at least 2 options.' }
+    if (!body) return { error: 'Add a poll question.' }
+  }
+
+  const { data: post, error } = await supabase.from('posts').insert({
+    author_id: user.id, body: body || ' ', attachment_type: type,
+    trade_id: type === 'trade' ? input.tradeId : null,
+  }).select('id').single()
+  if (error || !post) return { error: error?.message ?? 'Could not create post.' }
+
+  if (type === 'poll') {
+    await supabase.from('poll_options').insert(optionLabels.map((label, ord) => ({ post_id: post.id, label, ord })))
+  }
+
+  revalidatePath('/')
+  return { postId: post.id }
+}
+
+export async function attachPostImages(postId: string, urls: string[]): Promise<SocialState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+  const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/`
+  const rows = urls.filter((u) => u.startsWith(prefix)).slice(0, 4).map((url, ord) => ({ post_id: postId, url, ord }))
+  if (rows.length === 0) return { error: 'No valid images.' }
+  // ownership enforced by RLS (post_images_insert checks post author)
+  const { error } = await supabase.from('post_images').insert(rows)
+  if (error) return { error: error.message }
   revalidatePath('/')
   return { ok: true }
+}
+
+export async function votePoll(postId: string, optionId: string): Promise<{ error?: string; ok?: boolean }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+  const { data: opt } = await supabase.from('poll_options').select('id').eq('id', optionId).eq('post_id', postId).maybeSingle()
+  if (!opt) return { error: 'Invalid option.' }
+  await supabase.from('poll_votes').upsert(
+    { post_id: postId, user_id: user.id, option_id: optionId },
+    { onConflict: 'post_id,user_id' },
+  )
+  revalidatePath('/')
+  return { ok: true }
+}
+
+export async function getPickableTrades(): Promise<{ id: string; instrument: string; direction: string; r_multiple: number | null; pnl_amount: number | null; status: string; traded_at: string }[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const { data } = await supabase.from('trades')
+    .select('id, instrument, direction, r_multiple, pnl_amount, status, traded_at')
+    .eq('user_id', user.id).order('traded_at', { ascending: false }).limit(20)
+  return data ?? []
 }
 
 export async function deletePost(postId: string): Promise<SocialState> {
