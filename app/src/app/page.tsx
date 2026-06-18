@@ -88,7 +88,7 @@ export default async function Home() {
   return (
     <main className="ts-page ts-feed">
       <div className="ts-feed-main">
-        <WelcomeHero name={name} />
+        <WelcomeHero name={name} streak={metrics.currentStreak} race={suggested.slice(0, 3)} />
         <PerformanceRow metrics={metrics} spark={spark} />
         <LogTradeBanner />
         <PostComposer />

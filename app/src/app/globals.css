@@ -531,3 +531,44 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-rail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ts-rail-head .ts-h2 { font-size: 16px; }
 .ts-suggest { position: static; }
+
+/* ---------- Nav (template match) ---------- */
+.ts-nav-inner { gap: 14px; }
+.ts-nav-brand { flex: none; }
+.ts-navpills { display: flex; align-items: center; gap: 4px; flex: none; }
+.ts-navpill { padding: 8px 14px; border-radius: 10px; font-size: 14px; font-weight: 600; color: var(--dim); }
+.ts-navpill:hover { background: var(--surface-2); color: var(--text); }
+.ts-navpill[data-active="true"] { background: var(--brand-grad-soft); color: var(--violet-deep); }
+.ts-navpill--soon { color: var(--faintest); cursor: default; }
+.ts-nav-search { flex: 1; max-width: 380px; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; color: var(--faint); }
+.ts-nav-search input { border: none; background: none; outline: none; width: 100%; font-family: var(--body); font-size: 14px; color: var(--text); }
+.ts-nav-search span { font-size: 17px; }
+.ts-nav-right { display: flex; align-items: center; gap: 8px; flex: none; }
+.ts-nav-icon { width: 38px; height: 38px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--border); color: var(--dim); font-size: 15px; }
+.ts-nav-icon:hover { border-color: var(--border-vio); color: var(--violet-br); }
+.ts-nav-avatar { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; background: var(--brand-grad); color: #fff; font-family: var(--display); font-weight: 700; flex: none; }
+.ts-nav-avatar img { width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 1024px) { .ts-nav-search { display: none; } }
+@media (max-width: 720px) { .ts-navpills .ts-navpill--soon { display: none; } }
+
+/* ---------- 2-col hero ---------- */
+.ts-hero2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; }
+@media (max-width: 860px) { .ts-hero2 { grid-template-columns: 1fr; } }
+.ts-standing-top { display: flex; align-items: center; gap: 16px; margin-top: 10px; }
+.ts-standing-rank { font-family: var(--display); font-weight: 700; font-size: 56px; line-height: 1; letter-spacing: -0.04em; }
+.ts-standing-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ts-chip2 { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--surface-2); border: 1px solid var(--border); color: var(--dim); }
+.ts-chip2--up { background: var(--up-soft); color: var(--up); border-color: rgba(18,165,107,0.3); }
+.ts-chip2--down { background: var(--down-soft); color: var(--down); border-color: rgba(229,71,93,0.3); }
+.ts-standing-text { margin-top: 14px; color: var(--dim); font-size: 14px; line-height: 1.55; }
+.ts-standing-text b { color: var(--text); }
+.ts-standing-cta { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.ts-race-list { display: flex; flex-direction: column; gap: 10px; }
+.ts-race-row { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 12px; }
+.ts-race-row:hover { background: var(--surface-2); }
+.ts-race-num { width: 24px; height: 24px; flex: none; border-radius: 8px; background: var(--surface-3); color: var(--dim); font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* performance cards -> white + icon */
+.ts-perfcard { background: #fff !important; }
+.ts-perfcard .hd { display: flex; align-items: center; justify-content: space-between; }
+.ts-perfcard .ic { width: 24px; height: 24px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); }

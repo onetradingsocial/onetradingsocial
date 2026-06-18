@@ -9,11 +9,11 @@ function money(n: number) {
 export function PerformanceRow({ metrics, spark }: { metrics: Metrics; spark: number[] }) {
   const pnlColor = metrics.netPnl >= 0 ? 'var(--up)' : 'var(--down)'
   const cards = [
-    { label: 'Rank', value: '#—', tone: 'gold', spark: [] as number[], color: 'var(--xp)' },
-    { label: 'Net P/L', value: money(metrics.netPnl), tone: 'green', spark, color: pnlColor },
-    { label: 'Win rate', value: `${(metrics.winRate * 100).toFixed(0)}%`, tone: 'violet', spark: [] as number[], color: 'var(--violet)' },
-    { label: 'Avg R', value: `${metrics.avgRr.toFixed(2)}R`, tone: 'sky', spark: [] as number[], color: 'var(--c-cyan)' },
-    { label: 'Total trades', value: String(metrics.total), tone: 'blue', spark: [] as number[], color: 'var(--violet-deep)' },
+    { label: 'Overall rank', value: '#—', tone: 'gold', icon: '🏆', spark: [] as number[], color: 'var(--xp)' },
+    { label: 'Total P/L', value: money(metrics.netPnl), tone: 'green', icon: '💳', spark, color: pnlColor },
+    { label: 'Win rate', value: `${(metrics.winRate * 100).toFixed(0)}%`, tone: 'violet', icon: '✓', spark: [] as number[], color: 'var(--violet)' },
+    { label: 'Avg R:R', value: `${metrics.avgRr.toFixed(2)}R`, tone: 'sky', icon: '⚖', spark: [] as number[], color: 'var(--c-cyan)' },
+    { label: 'Total trades', value: String(metrics.total), tone: 'blue', icon: '▤', spark: [] as number[], color: 'var(--violet-deep)' },
   ]
   return (
     <div className="ts-card">
@@ -24,7 +24,7 @@ export function PerformanceRow({ metrics, spark }: { metrics: Metrics; spark: nu
       <div className="ts-perfrow mt-3">
         {cards.map((c) => (
           <div key={c.label} className="ts-perfcard" data-tone={c.tone}>
-            <div className="l">{c.label}</div>
+            <div className="hd"><span className="l">{c.label}</span><span className="ic">{c.icon}</span></div>
             <div className="v">{c.value}</div>
             <div className="sp">{c.spark.length > 1 ? <MiniSpark points={c.spark} color={c.color} /> : <div className="ts-mspark-empty" />}</div>
           </div>
