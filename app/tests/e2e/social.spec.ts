@@ -23,7 +23,7 @@ async function signUp(page: import('@playwright/test').Page) {
 test('post, like, and comment on the feed', async ({ page }) => {
   const user = await signUp(page)
   const body = `My first setup idea ${user}`
-  await page.fill('textarea[name="body"]', body)
+  await page.fill('.ts-composer textarea', body)
   await page.click('button:has-text("Post")')
   await expect(page.locator('.ts-feed-main')).toContainText(body)
 
@@ -40,7 +40,7 @@ test('post, like, and comment on the feed', async ({ page }) => {
 test('follow another trader and see their post in the feed', async ({ page }) => {
   const userA = await signUp(page)
   const post = `Trader A breakout call ${userA}`
-  await page.fill('textarea[name="body"]', post)
+  await page.fill('.ts-composer textarea', post)
   await page.click('button:has-text("Post")')
   await expect(page.locator('.ts-feed-main')).toContainText(post)
   // log out
