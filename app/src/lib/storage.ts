@@ -41,3 +41,20 @@ export async function signTradeChartUpload(userId: string, tradeId: string, cont
   if (error || !data) return { error: 'Could not create upload URL.' as const }
   return { path: data.path, token: data.token }
 }
+
+function postImageKey(userId: string, postId: string, idx: number, contentType: string) {
+  const ext = contentType === 'image/png' ? 'png' : 'jpg'
+  return `posts/${userId}/${postId}/${idx}.${ext}`
+}
+
+export function postImagePublicUrl(userId: string, postId: string, idx: number, contentType: string) {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${postImageKey(userId, postId, idx, contentType)}`
+}
+
+export async function signPostImageUpload(userId: string, postId: string, idx: number, contentType: string) {
+  const path = postImageKey(userId, postId, idx, contentType)
+  const supabase = createServiceClient()
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path, { upsert: true })
+  if (error || !data) return { error: 'Could not create upload URL.' as const }
+  return { path: data.path, token: data.token }
+}
