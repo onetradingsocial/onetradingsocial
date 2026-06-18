@@ -624,3 +624,48 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-recent-meta .ins { font-weight: 600; font-size: 13.5px; }
 .ts-recent-meta .lab { font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ts-recent-row > span:last-child { margin-left: auto; }
+
+/* ---------- Post attachments ---------- */
+.ts-trade-att { border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-top: 12px; background: var(--surface-2); }
+.ts-trade-att-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ts-trade-att-head .sym { font-family: var(--display); font-weight: 700; font-size: 17px; }
+.ts-trade-att-grid { display: grid; grid-template-columns: 90px 1fr; gap: 14px; margin-top: 12px; align-items: stretch; }
+@media (max-width: 540px) { .ts-trade-att-grid { grid-template-columns: 1fr; } }
+.ts-rrbar { position: relative; background: linear-gradient(to top, var(--down-soft), var(--up-soft)); border-radius: 10px; border: 1px solid var(--border); min-height: 96px; }
+.ts-rrbar-tick { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 6px; transform: translateY(50%); }
+.ts-rrbar-line { flex: 1; height: 0; border-top: 1.5px dashed currentColor; }
+.ts-rrbar-tag { font-size: 9.5px; font-weight: 700; padding: 1px 5px; border-radius: 5px; background: #fff; border: 1px solid currentColor; }
+.ts-rrbar-tick--entry { color: var(--violet-deep); }
+.ts-rrbar-tick--stop { color: var(--down); }
+.ts-rrbar-tick--target { color: var(--up); }
+.ts-trade-att-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ts-trade-att-stat dt { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--faint); font-weight: 600; }
+.ts-trade-att-stat dd { font-family: var(--mono); font-weight: 600; font-size: 14px; margin-top: 2px; }
+.ts-trade-att-shot { margin-top: 12px; border-radius: 12px; width: 100%; border: 1px solid var(--border); }
+
+.ts-gallery { display: grid; gap: 6px; margin-top: 12px; border-radius: 14px; overflow: hidden; }
+.ts-gallery[data-n="1"] { grid-template-columns: 1fr; }
+.ts-gallery[data-n="2"] { grid-template-columns: 1fr 1fr; }
+.ts-gallery[data-n="3"] { grid-template-columns: 1fr 1fr; }
+.ts-gallery[data-n="4"] { grid-template-columns: 1fr 1fr; }
+.ts-gallery img { width: 100%; height: 100%; max-height: 280px; object-fit: cover; display: block; cursor: zoom-in; }
+.ts-gallery[data-n="3"] img:first-child { grid-column: span 2; }
+
+.ts-poll { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.ts-poll-opt { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border-2); background: var(--surface); font-weight: 600; font-size: 14px; overflow: hidden; cursor: pointer; }
+.ts-poll-opt:hover { border-color: var(--border-vio); }
+.ts-poll-fill { position: absolute; inset: 0 auto 0 0; background: var(--brand-grad-soft); z-index: 0; }
+.ts-poll-opt[data-mine="true"] { border-color: var(--violet); }
+.ts-poll-opt span { position: relative; z-index: 1; }
+.ts-poll-total { font-size: 12px; color: var(--faint); }
+
+.ts-attbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ts-attbar .ts-attach { cursor: pointer; }
+.ts-attbar .ts-attach[data-active="true"] { background: var(--brand-grad-soft); border-color: var(--violet); color: var(--violet-deep); }
+.ts-att-preview { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--border-vio); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; }
+.ts-pollbuild { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ts-thumbs { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.ts-thumbs img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); }
+.ts-picker-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; margin-top: 12px; }
+.ts-picker-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
+.ts-picker-row:hover { border-color: var(--violet); background: var(--surface-2); }
