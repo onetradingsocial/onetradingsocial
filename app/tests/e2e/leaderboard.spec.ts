@@ -50,20 +50,24 @@ test('two traders ranked by P&L on the leaderboard', async ({ page }) => {
   await setupAndLogWin(page, '2000')  // smaller balance -> smaller P&L
 
   await page.goto('/app/leaderboard')
-  const board = page.locator('.ts-board-table tbody')
-  await expect(board).toContainText(userHigh)
-  await expect(board).toContainText(userLow)
 
-  // Higher P&L ranks above: userHigh's row precedes userLow's row.
-  const rowsText = await board.locator('tr').allInnerTexts()
-  const hiIdx = rowsText.findIndex((r) => r.includes(userHigh))
-  const loIdx = rowsText.findIndex((r) => r.includes(userLow))
-  expect(hiIdx).toBeGreaterThanOrEqual(0)
-  expect(loIdx).toBeGreaterThan(hiIdx)
+  // Search each trader (the board is paginated and shared across runs), then read
+  // the rank cell of their row. Higher P&L must earn a smaller rank number.
+  const search = page.locator('.lb-tsearch input')
+  const rankOf = async (user: string) => {
+    await search.fill(user)
+    const row = page.locator('.lb-table tbody tr').first()
+    await expect(row).toContainText(user)
+    return parseInt((await row.locator('.lb-rk').innerText()).trim(), 10)
+  }
+  const hiRank = await rankOf(userHigh)
+  const loRank = await rankOf(userLow)
+  expect(hiRank).toBeLessThan(loRank)
 
-  // Period switch still renders the board.
-  await page.click('.ts-seg-btn:has-text("All-time")')
-  await expect(page.locator('.ts-board-table tbody')).toContainText(userLow)
+  // Period switch still renders a board.
+  await search.fill('')
+  await page.click('.lb-seg:has-text("All time")')
+  await expect(page.locator('.lb-table')).toBeVisible()
 })
 
 test('nav Leaderboard link opens the page', async ({ page }) => {

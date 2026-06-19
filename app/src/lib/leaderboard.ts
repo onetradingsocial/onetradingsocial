@@ -1,4 +1,4 @@
-export type Period = 'week' | 'month' | 'all'
+export type Period = 'day' | 'week' | 'month' | 'all'
 export type PerfSort = 'pnl' | 'winRate' | 'avgR' | 'trades'
 
 export type PerfTrade = { user_id: string; pnl_amount: number | null; r_multiple: number | null; outcome: string }
@@ -65,6 +65,6 @@ export function rankFollowers(follows: { following_id: string }[]): RankedCount[
 
 export function windowStart(period: Period, now: number): string | null {
   if (period === 'all') return null
-  const days = period === 'week' ? 7 : 30
+  const days = period === 'day' ? 1 : period === 'week' ? 7 : 30
   return new Date(now - days * 864e5).toISOString()
 }

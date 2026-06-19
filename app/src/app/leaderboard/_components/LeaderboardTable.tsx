@@ -1,5 +1,9 @@
-import { UserLink } from '@/app/_components/UserLink'
+'use client'
+
+import { useMemo, useState } from 'react'
 import { FollowButton } from '@/app/_components/FollowButton'
+import { Avatar } from './Avatar'
+import { fmtPL } from './format'
 
 export type BoardRow = {
   rank: number
@@ -7,42 +11,100 @@ export type BoardRow = {
   username: string
   displayName: string | null
   avatarUrl: string | null
-  headline: string        // formatted metric, e.g. "+$160" or "12 trades"
-  barPct: number          // 0..100 proportion bar width
-  winRate: number | null  // null hides the cell (non-performance categories)
-  avgR: number | null
-  trades: number | null
+  pnl: number
+  winRate: number // 0..1
+  avgR: number
+  trades: number
 }
 
-const pct = (n: number | null) => (n == null ? '—' : `${Math.round(n * 100)}%`)
-const r2 = (n: number | null) => (n == null ? '—' : `${n.toFixed(2)}R`)
+const PAGE_SIZE = 8
 
 export function LeaderboardTable({ rows, viewerId }: { rows: BoardRow[]; viewerId: string }) {
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(0)
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return rows
+    return rows.filter((r) => (r.displayName ?? '').toLowerCase().includes(q) || r.username.toLowerCase().includes(q))
+  }, [query, rows])
+
   if (rows.length === 0) {
-    return <p className="ts-placeholder mt-3">No ranked trades in this window yet — log public trades to climb.</p>
+    return <div className="lb-panel lb-empty">No ranked trades in this window yet — log public trades to climb.</div>
   }
+
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, pages - 1)
+  const slice = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
+  const from = filtered.length ? safePage * PAGE_SIZE + 1 : 0
+  const to = Math.min(filtered.length, (safePage + 1) * PAGE_SIZE)
+
   return (
-    <div className="ts-card ts-board mt-4" style={{ padding: 8 }}>
-      <table className="ts-table ts-board-table">
-        <thead><tr><th>#</th><th>Trader</th><th>Metric</th><th>Win%</th><th>Avg R</th><th>Trades</th><th></th></tr></thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.userId} data-self={row.userId === viewerId}>
-              <td><span className={`ts-lb-num ts-lb-num--${row.rank <= 3 ? row.rank : 'x'}`}>{row.rank}</span></td>
-              <td><UserLink username={row.username} displayName={row.displayName} avatarUrl={row.avatarUrl} /></td>
-              <td>
-                <div className="ts-board-metric"><span className="val">{row.headline}</span>
-                  <span className="ts-board-bar"><i style={{ width: `${row.barPct}%` }} /></span>
-                </div>
-              </td>
-              <td>{pct(row.winRate)}</td>
-              <td>{r2(row.avgR)}</td>
-              <td>{row.trades ?? '—'}</td>
-              <td>{row.userId === viewerId ? <span className="faint">You</span> : <FollowButton targetId={row.userId} initialFollowing={false} />}</td>
+    <div className="lb-panel">
+      <div className="lb-panel-h" style={{ flexWrap: 'wrap', rowGap: 10 }}>
+        <h2>All Traders</h2>
+        <div className="lb-toolbar">
+          <div className="lb-pager">
+            <span className="cnt">{from}–{to} of {filtered.length}</span>
+            <button className="lb-pgbtn" disabled={safePage === 0} onClick={() => setPage(safePage - 1)} aria-label="Previous page">‹</button>
+            <button className="lb-pgbtn" disabled={safePage >= pages - 1} onClick={() => setPage(safePage + 1)} aria-label="Next page">›</button>
+          </div>
+          <label className="lb-tsearch">
+            <span aria-hidden>⌕</span>
+            <input placeholder="Search traders…" value={query} onChange={(e) => { setQuery(e.target.value); setPage(0) }} />
+          </label>
+        </div>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="lb-table">
+          <thead>
+            <tr>
+              <th style={{ width: 64 }}>Rank</th>
+              <th>Trader</th>
+              <th className="num">Total P/L</th>
+              <th className="num col-hide">Win rate</th>
+              <th className="num col-hide">Avg R:R</th>
+              <th className="num col-hide">Trades</th>
+              <th className="num">Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {slice.map((t) => {
+              const self = t.userId === viewerId
+              const win = Math.round(t.winRate * 100)
+              return (
+                <tr key={t.userId} className={self ? 'me' : ''}>
+                  <td><span className={'lb-rk' + (t.rank <= 3 ? ' g' + t.rank : '')}>{t.rank}</span></td>
+                  <td>
+                    <div className="lb-trader">
+                      <Avatar src={t.avatarUrl} name={t.displayName || t.username} size={38} ring={t.rank <= 3} />
+                      <div className="who" style={{ minWidth: 0 }}>
+                        <b>{t.displayName || t.username}{self && <span className="lb-you">You</span>}</b>
+                        <span>@{t.username}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="num"><span className={'lb-pl ' + (t.pnl > 0 ? 'up' : t.pnl < 0 ? 'down' : 'flat')}>{fmtPL(t.pnl)}</span></td>
+                  <td className="num col-hide">
+                    <span className="lb-wr">
+                      <span className="lb-wrbar"><i style={{ width: win + '%' }} /></span>
+                      <span className="lb-cellnum">{win}%</span>
+                    </span>
+                  </td>
+                  <td className="num col-hide"><span className="lb-cellnum">{t.avgR.toFixed(2)}:1</span></td>
+                  <td className="num col-hide"><span className="lb-cellnum muted">{t.trades}</span></td>
+                  <td className="num">
+                    {self ? <span className="lb-act self">You</span> : <FollowButton targetId={t.userId} initialFollowing={false} />}
+                  </td>
+                </tr>
+              )
+            })}
+            {slice.length === 0 && (
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '34px 0', color: 'var(--faint)' }}>No traders match “{query}”.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

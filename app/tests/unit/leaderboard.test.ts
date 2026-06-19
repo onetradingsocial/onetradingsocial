@@ -55,7 +55,8 @@ describe('rankFollowers', () => {
 
 describe('windowStart', () => {
   const now = new Date('2026-06-19T00:00:00Z').getTime()
-  it('week = now-7d, month = now-30d, all = null', () => {
+  it('day = now-1d, week = now-7d, month = now-30d, all = null', () => {
+    expect(windowStart('day', now)).toBe('2026-06-18T00:00:00.000Z')
     expect(windowStart('week', now)).toBe('2026-06-12T00:00:00.000Z')
     expect(windowStart('month', now)).toBe('2026-05-20T00:00:00.000Z')
     expect(windowStart('all', now)).toBeNull()

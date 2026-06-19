@@ -1,34 +1,43 @@
-import type { BoardRow } from './LeaderboardTable'
+import { Avatar } from './Avatar'
+import { fmtPL } from './format'
 import { FollowButton } from '@/app/_components/FollowButton'
+import type { BoardRow } from './LeaderboardTable'
 
 // Visual order: #2 left, #1 center (elevated), #3 right.
-const SLOTS = [1, 0, 2] // indexes into the top-3 array
+const SLOTS = [
+  { idx: 1, tier: 2 },
+  { idx: 0, tier: 1 },
+  { idx: 2, tier: 3 },
+] as const
 
 export function Podium({ top, viewerId }: { top: BoardRow[]; viewerId: string }) {
   if (top.length === 0) return null
   return (
-    <div className="ts-podium mt-4">
-      {SLOTS.map((idx) => {
-        const row = top[idx]
-        if (!row) return <div key={idx} className="ts-pod ts-pod--empty" />
+    <div className="lb-podium">
+      {SLOTS.map(({ idx, tier }) => {
+        const t = top[idx]
+        if (!t) return <div key={tier} className={`lb-pod t${tier} lb-pod--empty`} />
+        const self = t.userId === viewerId
         return (
-          <div key={row.userId} className={`ts-pod ts-pod--${row.rank}`} data-self={row.userId === viewerId}>
-            <div className="ts-pod-rank">{row.rank === 1 ? '👑' : `#${row.rank}`}</div>
-            <span className="ts-pod-av">
-              {row.avatarUrl ? <img src={row.avatarUrl} alt="" /> : (row.displayName || row.username).charAt(0).toUpperCase()}
-            </span>
-            <div className="ts-pod-name">{row.displayName || row.username}</div>
-            <div className="ts-pod-un">@{row.username}</div>
-            <div className="ts-pod-metric">{row.headline}</div>
-            <div className="ts-pod-stats">
-              {row.winRate != null && <span>{Math.round(row.winRate * 100)}% win</span>}
-              {row.avgR != null && <span>{row.avgR.toFixed(2)}R</span>}
-              {row.trades != null && <span>{row.trades} trades</span>}
+          <div key={t.userId} className={`lb-pod t${tier}`}>
+            <span className="cap" />
+            <span className={`lb-rk g${tier} rankbadge`}>{t.rank}</span>
+            <div className="av-wrap">
+              {tier === 1 && <span className="crown">👑</span>}
+              <Avatar src={t.avatarUrl} name={t.displayName || t.username} size={tier === 1 ? 80 : 64} ring />
             </div>
-            <div className="ts-pod-cta">
-              {row.userId === viewerId
-                ? <a href={`/app/${row.username}`} className="btn btn-band-ghost btn-sm">View</a>
-                : <FollowButton targetId={row.userId} initialFollowing={false} />}
+            <div className="name">{t.displayName || t.username}{self && <span className="lb-you">You</span>}</div>
+            <div className="handle">@{t.username}</div>
+            <div className={`pl ${t.pnl >= 0 ? 'up' : 'down'}`}>{fmtPL(t.pnl)}</div>
+            <div className="pod-stats">
+              <div className="m"><div className="k">Win rate</div><div className="v">{Math.round(t.winRate * 100)}%</div></div>
+              <div className="m"><div className="k">Avg R:R</div><div className="v">{t.avgR.toFixed(1)}</div></div>
+              <div className="m"><div className="k">Trades</div><div className="v">{t.trades}</div></div>
+            </div>
+            <div className="pod-btn">
+              {self
+                ? <a href={`/app/${t.username}`} className="h-btn h-btn-grad h-btn-sm">Your profile</a>
+                : <FollowButton targetId={t.userId} initialFollowing={false} />}
             </div>
           </div>
         )
