@@ -4,6 +4,7 @@ import { RESERVED_USERNAMES } from '@/lib/username'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { StatsBar } from '@/app/journal/_components/StatsBar'
 import { FollowButton } from '@/app/_components/FollowButton'
+import { getPerformanceRanking } from '@/lib/server/ranking'
 
 export default async function ProfilePage({
   params,
@@ -68,6 +69,13 @@ export default async function ProfilePage({
     pnlAmount: t.pnl_amount, tradedAt: t.traded_at, mistakeTags: t.mistake_tags ?? [],
   })))
 
+  // All-time performance rank for this profile (null if no qualifying public trades).
+  let profileRank: number | null = null
+  if (profileId) {
+    const board = await getPerformanceRanking(supabase, 'all')
+    profileRank = board.find((e) => e.userId === profileId)?.rank ?? null
+  }
+
   return (
     <main className="ts-page" style={{ maxWidth: 720 }}>
       <div className="ts-card">
@@ -93,6 +101,7 @@ export default async function ProfilePage({
 
         <dl className="ts-statgrid mt-6">
           <div className="ts-stat"><dt>Experience</dt><dd>{profile.experience_level ?? '—'}</dd></div>
+          <div className="ts-stat"><dt>Rank</dt><dd>{profileRank ? `#${profileRank}` : 'Unranked'}</dd></div>
           <div className="ts-stat"><dt>Level</dt><dd>Level {profile.level} · {profile.xp} XP</dd></div>
           <div className="ts-stat"><dt>Followers</dt><dd>{followerCount} · {followingCount} following</dd></div>
           <div className="ts-stat"><dt>Member since</dt><dd>{new Date(profile.created_at).toLocaleDateString()}</dd></div>
