@@ -42,11 +42,11 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
     if (cutoff) q = q.gte('traded_at', cutoff)
     const { data: trs } = await q
     const ranked = rankConsistency((trs ?? []) as { user_id: string }[])
-    rows = await joinProfiles(supabase, ranked, (r) => `${r.count} trades`, ranked[0]?.count ?? 1)
+    rows = await joinProfiles(supabase, ranked, (n) => `${n} trades`)
   } else {
     const { data: follows } = await supabase.from('follows').select('following_id')
     const ranked = rankFollowers((follows ?? []) as { following_id: string }[])
-    rows = await joinProfiles(supabase, ranked, (r) => `${r.count} followers`, ranked[0]?.count ?? 1)
+    rows = await joinProfiles(supabase, ranked, (n) => `${n} followers`)
   }
 
   const top3 = rows.slice(0, 3)
@@ -79,25 +79,30 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
 }
 
 // Shared profile join for the count-based categories (consistency, followed).
+// `ranked` arrives sorted desc by count. We filter to visible profiles FIRST, then
+// re-derive dense ranks over the visible set so hidden users never create rank gaps
+// (matching the performance path) — keeping every surface gapless.
 async function joinProfiles(
   supabase: Awaited<ReturnType<typeof createClient>>,
   ranked: { userId: string; count: number; rank: number }[],
-  headline: (r: { userId: string; count: number; rank: number }) => string,
-  cap: number,
+  headline: (count: number) => string,
 ): Promise<BoardRow[]> {
   if (ranked.length === 0) return []
   const { data: profs } = await supabase
     .from('profiles').select('id, username, display_name, avatar_url')
     .in('id', ranked.map((r) => r.userId)).eq('is_public', true).eq('onboarding_completed', true)
   const pmap = new Map((profs ?? []).map((p) => [p.id, p]))
-  return ranked
-    .filter((r) => pmap.has(r.userId))
-    .map((r) => {
-      const p = pmap.get(r.userId)!
-      return {
-        rank: r.rank, userId: r.userId, username: p.username, displayName: p.display_name, avatarUrl: p.avatar_url,
-        headline: headline(r), barPct: Math.round((r.count / Math.max(1, cap)) * 100),
-        winRate: null, avgR: null, trades: r.count,
-      }
-    })
+  const visible = ranked.filter((r) => pmap.has(r.userId))
+  const cap = Math.max(1, visible[0]?.count ?? 1)
+  let rank = 0
+  let prev: number | null = null
+  return visible.map((r) => {
+    if (prev === null || r.count !== prev) { rank += 1; prev = r.count } // dense rank over visible only
+    const p = pmap.get(r.userId)!
+    return {
+      rank, userId: r.userId, username: p.username, displayName: p.display_name, avatarUrl: p.avatar_url,
+      headline: headline(r.count), barPct: Math.round((r.count / cap) * 100),
+      winRate: null, avgR: null, trades: r.count,
+    }
+  })
 }
