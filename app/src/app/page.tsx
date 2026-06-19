@@ -11,6 +11,7 @@ import { PerformanceRow } from './feed/_components/PerformanceRow'
 import { LogTradeBanner } from './feed/_components/LogTradeBanner'
 import { FeedTabs, type FeedTabItem } from './feed/_components/FeedTabs'
 import { RightRail } from './feed/_components/RightRail'
+import { getPerformanceRanking } from '@/lib/server/ranking'
 
 const EMPTY = ['00000000-0000-0000-0000-000000000000']
 const SELECT = 'id, body, created_at, author_id, attachment_type, trade_id, author:profiles!posts_author_id_fkey(id, username, display_name, avatar_url)'
@@ -26,6 +27,14 @@ export default async function Home() {
   const { data: profile } = await supabase
     .from('profiles').select('username, display_name').eq('id', user.id).single()
   const name = profile?.display_name || profile?.username || 'trader'
+
+  // Leaderboard data (shared helper): week board for rail/race, all-time for the viewer's rank.
+  const [weekBoard, allTimeBoard] = await Promise.all([
+    getPerformanceRanking(supabase, 'week'),
+    getPerformanceRanking(supabase, 'all'),
+  ])
+  const viewerRank = allTimeBoard.find((e) => e.userId === user.id)?.rank ?? null
+  const leaders = weekBoard.slice(0, 5).map((e) => ({ rank: e.rank, username: e.username, display_name: e.displayName, avatar_url: e.avatarUrl, pnl: e.pnl }))
 
   // Follows
   const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id)
@@ -128,13 +137,13 @@ export default async function Home() {
   return (
     <main className="ts-page ts-feed">
       <div className="ts-feed-main">
-        <WelcomeHero name={name} streak={metrics.currentStreak} race={suggested.slice(0, 3)} />
+        <WelcomeHero name={name} streak={metrics.currentStreak} rank={viewerRank} total={allTimeBoard.length} race={leaders.slice(0, 3)} />
         <PerformanceRow metrics={metrics} spark={spark} />
         <LogTradeBanner />
         <PostComposer />
         <FeedTabs items={items} />
       </div>
-      <RightRail suggested={suggested} recentTrades={recentTrades} />
+      <RightRail suggested={suggested} recentTrades={recentTrades} leaders={leaders} />
     </main>
   )
 }

@@ -9,7 +9,7 @@ export function NavLinks() {
     <div className="ts-navpills">
       <Link href="/" className="ts-navpill" data-active={path === '/'}>Home</Link>
       <Link href="/journal" className="ts-navpill" data-active={!!path?.startsWith('/journal')}>Journal</Link>
-      <span className="ts-navpill ts-navpill--soon" title="Leaderboard — coming soon">Leaderboard</span>
+      <Link href="/leaderboard" className="ts-navpill" data-active={!!path?.startsWith('/leaderboard')}>Leaderboard</Link>
     </div>
   )
 }

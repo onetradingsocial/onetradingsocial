@@ -4,6 +4,7 @@ import { marketColor, instrumentBadge } from '@/lib/journal-stats'
 
 type Trader = { id: string; username: string; display_name: string | null; avatar_url: string | null }
 type RecentTrade = { id: string; instrument: string; market: string; label: string; pnl: number | null; status: string }
+type Leader = { rank: number; username: string; display_name: string | null; avatar_url: string | null; pnl: number }
 
 const QUESTS = [
   { label: 'Log today’s trades', xp: 50, done: false },
@@ -11,9 +12,8 @@ const QUESTS = [
   { label: 'Study 15 min — Risk Mgmt', xp: 80, done: false },
 ]
 
-export function RightRail({ suggested, recentTrades }: { suggested: Trader[]; recentTrades: RecentTrade[] }) {
+export function RightRail({ suggested, recentTrades, leaders }: { suggested: Trader[]; recentTrades: RecentTrade[]; leaders: Leader[] }) {
   const featured = suggested[0]
-  const board = suggested.slice(0, 5)
 
   return (
     <aside className="ts-feed-side">
@@ -42,17 +42,19 @@ export function RightRail({ suggested, recentTrades }: { suggested: Trader[]; re
         </div>
       </div>
 
-      {/* Leaderboard */}
+      {/* Leaderboard (real, this week) */}
       <div className="ts-card ts-railcard">
-        <div className="ts-rail-head"><h2 className="ts-h2">Leaderboard · this week</h2><span className="ts-soon">soon</span></div>
+        <div className="ts-rail-head"><h2 className="ts-h2">Leaderboard · this week</h2><a href="/app/leaderboard" className="ts-link-sm">All</a></div>
         <div className="ts-lb mt-3">
-          {board.length === 0
-            ? <p className="faint" style={{ fontSize: 13 }}>Rankings populate as traders log results.</p>
-            : board.map((t, i) => (
-                <div key={t.id} className="ts-lb-row">
-                  <span className={`ts-lb-num ts-lb-num--${i + 1}`}>{i + 1}</span>
+          {leaders.length === 0
+            ? <p className="faint" style={{ fontSize: 13 }}>Rankings populate as traders log public results.</p>
+            : leaders.map((t) => (
+                <div key={t.username} className="ts-lb-row">
+                  <span className={`ts-lb-num ts-lb-num--${t.rank <= 3 ? t.rank : 'x'}`}>{t.rank}</span>
                   <UserLink username={t.username} displayName={t.display_name} avatarUrl={t.avatar_url} />
-                  <span className="ts-lb-val faint">—</span>
+                  <span className={`ts-lb-val ${t.pnl >= 0 ? 'ts-pos' : 'ts-neg'}`} style={{ fontWeight: 700 }}>
+                    {t.pnl >= 0 ? '+' : '−'}${Math.abs(t.pnl).toFixed(0)}
+                  </span>
                 </div>
               ))}
         </div>
