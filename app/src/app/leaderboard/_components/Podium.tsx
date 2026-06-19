@@ -21,9 +21,15 @@ export function Podium({ top, viewerId }: { top: BoardRow[]; viewerId: string })
         return (
           <div key={t.userId} className={`lb-pod t${tier}`}>
             <span className="cap" />
-            <span className={`lb-rk g${tier} rankbadge`}>{t.rank}</span>
+            {tier !== 1 && <span className={`lb-rk g${tier} rankbadge`}>{t.rank}</span>}
             <div className="av-wrap">
-              {tier === 1 && <span className="crown">👑</span>}
+              {tier === 1 && (
+                <span className="crown" aria-label="1st place">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden>
+                    <path d="M2 7l4.5 3.8L12 4l5.5 6.8L22 7l-1.8 11.2H3.8L2 7zm3 13.5h14v1.5H5v-1.5z" />
+                  </svg>
+                </span>
+              )}
               <Avatar src={t.avatarUrl} name={t.displayName || t.username} size={tier === 1 ? 80 : 64} ring />
             </div>
             <div className="name">{t.displayName || t.username}{self && <span className="lb-you">You</span>}</div>

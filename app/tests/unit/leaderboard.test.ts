@@ -28,14 +28,25 @@ describe('rankPerformance', () => {
     t('c', 100, 9, 'win'),                              // c: pnl 100, trades 1
   ]).values()]
 
-  it('default sorts by pnl desc, tie-break trades desc then pnl desc, dense rank', () => {
+  it('default sorts by pnl desc and assigns unique sequential ranks', () => {
     const r = rankPerformance(aggs)              // default 'pnl'
-    expect(r.map((x) => x.userId)).toEqual(['a', 'b', 'c']) // a & b tie 300 -> a first (more trades)
-    expect(r.map((x) => x.rank)).toEqual([1, 1, 2])         // dense: equal pnl share rank
+    expect(r.map((x) => x.userId)).toEqual(['a', 'b', 'c']) // a & b tie 300 (stable order)
+    expect(r.map((x) => x.rank)).toEqual([1, 2, 3])         // ranks are unique, no shared positions
   })
   it('sorts by trades / winRate / avgR', () => {
     expect(rankPerformance(aggs, 'trades').map((x) => x.userId)).toEqual(['a', 'b', 'c'])
     expect(rankPerformance(aggs, 'avgR').map((x) => x.userId)).toEqual(['c', 'b', 'a'])
+  })
+  it('breaks ties on the sorted metric by join date (earlier joiner ranks higher)', () => {
+    const base = aggregatePerformance([t('x', 50, 1, 'win'), t('y', 50, 1, 'win'), t('z', 50, 1, 'win')])
+    const withJoin = [
+      { ...base.get('x')!, joinedAt: 300 },
+      { ...base.get('y')!, joinedAt: 100 }, // oldest -> rank 1
+      { ...base.get('z')!, joinedAt: 200 },
+    ]
+    const r = rankPerformance(withJoin, 'winRate') // all 100% win -> tie -> join date decides
+    expect(r.map((x) => x.userId)).toEqual(['y', 'z', 'x'])
+    expect(r.map((x) => x.rank)).toEqual([1, 2, 3])
   })
 })
 

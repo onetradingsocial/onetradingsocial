@@ -27,17 +27,16 @@ export function aggregatePerformance(trades: PerfTrade[]): Map<string, Agg> {
 const perfKey = (a: Agg, sort: PerfSort): number =>
   sort === 'pnl' ? a.pnl : sort === 'winRate' ? a.winRate : sort === 'avgR' ? a.avgR : a.trades
 
-export function rankPerformance(aggs: Agg[], sort: PerfSort = 'pnl'): RankedPerf[] {
+// `joinedAt` (profile created_at as a timestamp) breaks ties on the sorted metric.
+export type Sortable = Agg & { joinedAt?: number }
+
+export function rankPerformance(aggs: Sortable[], sort: PerfSort = 'pnl'): RankedPerf[] {
+  // Sort by the chosen metric desc; equal scores -> the earlier-joined user ranks higher.
   const sorted = [...aggs].sort(
-    (a, b) => perfKey(b, sort) - perfKey(a, sort) || b.trades - a.trades || b.pnl - a.pnl,
+    (a, b) => perfKey(b, sort) - perfKey(a, sort) || (a.joinedAt ?? 0) - (b.joinedAt ?? 0),
   )
-  let rank = 0
-  let prev: number | null = null
-  return sorted.map((a) => {
-    const k = perfKey(a, sort)
-    if (prev === null || k !== prev) { rank += 1; prev = k } // dense rank on the chosen key
-    return { ...a, rank }
-  })
+  // Unique, gapless ranks: every trader gets a distinct position.
+  return sorted.map((a, i) => ({ ...a, rank: i + 1 }))
 }
 
 function rankCounts(counts: Map<string, number>): RankedCount[] {

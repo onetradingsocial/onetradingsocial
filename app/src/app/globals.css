@@ -749,7 +749,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .lb-pod.t2 .rankbadge { background: linear-gradient(135deg,#C7CDD8,#9AA3B2); }
 .lb-pod.t3 .rankbadge { background: linear-gradient(135deg,#E0A06B,#C77B43); }
 .lb-pod .av-wrap { position: relative; z-index: 1; margin-bottom: 12px; }
-.lb-pod .crown { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: 16px; background: linear-gradient(135deg,#FFE08A,#E3A92B); box-shadow: 0 5px 12px -3px rgba(227,169,43,0.75); }
+.lb-pod .crown { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #5A3A00; background: linear-gradient(135deg,#FFE08A,#E3A92B); box-shadow: 0 5px 12px -3px rgba(227,169,43,0.75); z-index: 2; }
+.lb-pod .crown svg { display: block; }
 .lb-pod .name { font-family: var(--display); font-size: 18px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 4px; }
 .lb-pod.t1 .name { font-size: 20px; }
 .lb-pod .handle { font-family: var(--mono); font-size: 11.5px; color: var(--faint); margin-top: 1px; }
@@ -762,7 +763,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .lb-pod .pod-stats .m .k { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); }
 .lb-pod .pod-stats .m .v { font-family: var(--mono); font-size: 14px; font-weight: 700; margin-top: 2px; }
 .lb-pod .pod-btn { margin-top: 15px; width: 100%; display: flex; justify-content: center; }
-.lb-pod .pod-btn .h-btn { width: 100%; }
+.lb-pod .pod-btn > * { width: auto; }
 
 /* generic section panel */
 .lb-panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--sh-sm); overflow: hidden; }

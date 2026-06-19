@@ -36,13 +36,16 @@ export async function getPerformanceRanking(
 
   const { data: profs } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url')
+    .select('id, username, display_name, avatar_url, created_at')
     .in('id', aggs.map((a) => a.userId))
     .eq('is_public', true)
     .eq('onboarding_completed', true)
   const pmap = new Map((profs ?? []).map((p) => [p.id, p]))
 
-  const visible = aggs.filter((a) => pmap.has(a.userId))
+  // Attach join date so equal scores tie-break by who joined first.
+  const visible = aggs
+    .filter((a) => pmap.has(a.userId))
+    .map((a) => ({ ...a, joinedAt: Date.parse(pmap.get(a.userId)!.created_at) }))
   return rankPerformance(visible, sort).map((r) => {
     const p = pmap.get(r.userId)!
     return {
