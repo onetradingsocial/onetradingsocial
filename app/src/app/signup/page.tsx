@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useActionState } from 'react'
 import { signUp, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
@@ -45,7 +46,7 @@ export default function SignupPage() {
         <GoogleButton />
 
         <p className="ts-sub text-center mt-5">
-          Already have an account? <a href="/app/login" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Log in</a>
+          Already have an account? <Link href="/login" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Log in</Link>
         </p>
       </div>
     </div>

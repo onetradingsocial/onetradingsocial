@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Avatar } from './Avatar'
 import { fmtPL } from './format'
 import { FollowButton } from '@/app/_components/FollowButton'
@@ -50,7 +51,7 @@ export function Podium({ top, viewerId, kind = 'performance' }: { top: BoardRow[
               )}
             <div className="pod-btn">
               {self
-                ? <a href={`/app/${t.username}`} className="h-btn h-btn-grad h-btn-sm">Your profile</a>
+                ? <Link href={`/${t.username}`} className="h-btn h-btn-grad h-btn-sm">Your profile</Link>
                 : <FollowButton targetId={t.userId} initialFollowing={false} />}
             </div>
           </div>

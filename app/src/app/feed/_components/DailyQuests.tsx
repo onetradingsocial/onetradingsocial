@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { QuestProgress } from '@/lib/xp'
 
 export function DailyQuests({ quests }: { quests: QuestProgress[] }) {
@@ -6,7 +7,7 @@ export function DailyQuests({ quests }: { quests: QuestProgress[] }) {
     <div className="ts-card">
       <div className="ts-rail-head">
         <h2 className="ts-h2">Daily quests</h2>
-        <a href="/app/achievements" className="ts-link-sm">{done}/{quests.length} · All</a>
+        <Link href="/achievements" className="ts-link-sm">{done}/{quests.length} · All</Link>
       </div>
       <ul className="ach-quests mt-3">
         {quests.map((q) => (

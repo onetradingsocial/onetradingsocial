@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { UserLink } from '@/app/_components/UserLink'
 import { FollowButton } from '@/app/_components/FollowButton'
 import { marketColor, instrumentBadge } from '@/lib/journal-stats'
@@ -33,7 +34,7 @@ export function RightRail({ suggested, recentTrades, leaders }: { suggested: Tra
               </div>
               <div className="ts-totw-cta">
                 <FollowButton targetId={featured.id} initialFollowing={false} />
-                <a href={`/app/${featured.username}`} className="btn btn-band-ghost btn-sm">View profile</a>
+                <Link href={`/${featured.username}`} className="btn btn-band-ghost btn-sm">View profile</Link>
               </div>
             </>
           ) : (
@@ -44,7 +45,7 @@ export function RightRail({ suggested, recentTrades, leaders }: { suggested: Tra
 
       {/* Leaderboard (real, this week) */}
       <div className="ts-card ts-railcard">
-        <div className="ts-rail-head"><h2 className="ts-h2">Leaderboard · this week</h2><a href="/app/leaderboard" className="ts-link-sm">All</a></div>
+        <div className="ts-rail-head"><h2 className="ts-h2">Leaderboard · this week</h2><Link href="/leaderboard" className="ts-link-sm">All</Link></div>
         <div className="ts-lb mt-3">
           {leaders.length === 0
             ? <p className="faint" style={{ fontSize: 13 }}>Rankings populate as traders log public results.</p>
@@ -76,18 +77,18 @@ export function RightRail({ suggested, recentTrades, leaders }: { suggested: Tra
 
       {/* Recent trades (real, own) */}
       <div className="ts-card ts-railcard">
-        <div className="ts-rail-head"><h2 className="ts-h2">Recent trades</h2><a href="/app/journal" className="ts-link-sm">All</a></div>
+        <div className="ts-rail-head"><h2 className="ts-h2">Recent trades</h2><Link href="/journal" className="ts-link-sm">All</Link></div>
         <div className="ts-recent mt-3">
           {recentTrades.length === 0
             ? <p className="faint" style={{ fontSize: 13 }}>Log a trade to see it here.</p>
             : recentTrades.map((t) => (
-                <a key={t.id} href="/app/journal" className="ts-recent-row">
+                <Link key={t.id} href="/journal" className="ts-recent-row">
                   <span className="ts-recent-badge" style={{ background: marketColor(t.market) }}>{instrumentBadge(t.instrument)}</span>
                   <span className="ts-recent-meta"><span className="ins">{t.instrument}</span><span className="lab">{t.label}</span></span>
                   <span className={t.pnl == null ? 'faint' : t.pnl >= 0 ? 'ts-pos' : 'ts-neg'} style={{ fontWeight: 700, fontSize: 13 }}>
                     {t.pnl == null ? 'open' : `${t.pnl >= 0 ? '+' : '−'}$${Math.abs(t.pnl).toFixed(0)}`}
                   </span>
-                </a>
+                </Link>
               ))}
         </div>
       </div>

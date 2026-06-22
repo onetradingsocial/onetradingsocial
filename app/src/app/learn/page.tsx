@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 import { getCourses } from '@/lib/server/learning'
 
 export default async function LearnPage() {
@@ -18,13 +19,13 @@ export default async function LearnPage() {
         {courses.map((c) => {
           const pct = c.lessonCount ? Math.round((c.completedCount / c.lessonCount) * 100) : 0
           return (
-            <a key={c.id} href={`/app/learn/${c.slug}`} className="ts-card learn-card">
+            <Link key={c.id} href={`/learn/${c.slug}`} className="ts-card learn-card">
               {c.difficulty && <span className="eyebrow">{c.difficulty}</span>}
               <h2 className="ts-h2">{c.title}</h2>
               {c.summary && <p className="faint" style={{ fontSize: 14 }}>{c.summary}</p>}
               <div className="ach-bar mt-3"><i style={{ width: pct + '%' }} /></div>
               <p className="faint mt-3" style={{ fontSize: 12 }}>{c.completedCount}/{c.lessonCount} lessons</p>
-            </a>
+            </Link>
           )
         })}
       </div>

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Metrics } from '@/lib/trade'
 import { MiniSpark } from './MiniSpark'
 
@@ -19,7 +20,7 @@ export function PerformanceRow({ metrics, spark }: { metrics: Metrics; spark: nu
     <div className="ts-card">
       <div className="flex items-center justify-between">
         <h2 className="ts-h2">Your performance</h2>
-        <a href="/app/journal" className="ts-link-sm">Open journal →</a>
+        <Link href="/journal" className="ts-link-sm">Open journal →</Link>
       </div>
       <div className="ts-perfrow mt-3">
         {cards.map((c) => (

@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 import { getLessonForViewer } from '@/lib/server/learning'
 import { Quiz } from './Quiz'
 
@@ -13,7 +14,7 @@ export default async function LessonPage({ params }: { params: Promise<{ course:
 
   return (
     <main className="ts-page" style={{ maxWidth: 720 }}>
-      <a href={`/app/learn/${course}`} className="ts-link-sm">← {view.courseTitle}</a>
+      <Link href={`/learn/${course}`} className="ts-link-sm">← {view.courseTitle}</Link>
       <h1 className="ts-h1 mt-3">{view.title}</h1>
       {/* Trusted HTML: lesson body is seed-only (migration-authored, no user write path).
           If a Phase 7 admin authoring UI is added, this must be sanitized (e.g. DOMPurify). */}

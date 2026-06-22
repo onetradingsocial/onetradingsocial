@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getPerformanceRanking } from '@/lib/server/ranking'
@@ -96,7 +97,7 @@ async function LeaderboardRail({ supabase, userId, cat, period }: { supabase: Aw
     const pct = Math.round(xp.level.progress * 100)
     return (
       <div className="ts-card ts-railcard">
-        <div className="ts-rail-head"><h2 className="ts-h2">Your XP</h2><a href="/app/achievements" className="ts-link-sm">All</a></div>
+        <div className="ts-rail-head"><h2 className="ts-h2">Your XP</h2><Link href="/achievements" className="ts-link-sm">All</Link></div>
         <p className="ach-xp mt-3">Level {xp.level.level} · {xp.totalXp.toLocaleString()} XP</p>
         <div className="ach-bar mt-3"><i style={{ width: pct + '%' }} /></div>
         <p className="faint mt-3" style={{ fontSize: 13 }}>{xp.level.xpIntoLevel.toLocaleString()} / {xp.level.xpToNext.toLocaleString()} XP to level {xp.level.level + 1}</p>
