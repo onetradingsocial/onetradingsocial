@@ -5,6 +5,7 @@ import {
   dailyQuestProgress, weeklyQuestProgress, type XpTrade,
   closedCount, totalXpFromTrades, windowXp, windowCutoff,
   historicalDailyBonus, historicalWeeklyBonus,
+  questStreak, maxQuestStreak, winStreakMax, evaluateBadges, BADGES,
 } from '@/lib/xp'
 
 describe('xpForLevel', () => {
@@ -112,5 +113,50 @@ describe('windowXp', () => {
     expect(windowCutoff('all', now)).toBeNull()
     expect(windowCutoff('week', now)).toBe(now - 7 * 864e5)
     expect(windowCutoff('month', now)).toBe(now - 30 * 864e5)
+  })
+})
+
+describe('streaks', () => {
+  const now = Date.parse('2026-06-22T12:00:00Z')
+  const dayDone = (d: string): XpTrade[] => [mk(`${d}T01:00:00Z`, `${d}T02:00:00Z`)]
+  it('questStreak counts consecutive complete days up to today', () => {
+    const trades = [...dayDone('2026-06-22'), ...dayDone('2026-06-21'), ...dayDone('2026-06-20')]
+    expect(questStreak(trades, now)).toBe(3)
+  })
+  it('today incomplete -> streak counts the run ending yesterday', () => {
+    const trades = [...dayDone('2026-06-21'), ...dayDone('2026-06-20')]
+    expect(questStreak(trades, now)).toBe(2)
+  })
+  it('a gap breaks the streak', () => {
+    const trades = [...dayDone('2026-06-22'), ...dayDone('2026-06-20')]
+    expect(questStreak(trades, now)).toBe(1)
+  })
+  it('maxQuestStreak finds the longest historical run', () => {
+    const trades = [...dayDone('2026-06-01'), ...dayDone('2026-06-02'), ...dayDone('2026-06-22')]
+    expect(maxQuestStreak(trades)).toBe(2)
+  })
+  it('winStreakMax = longest run of consecutive wins by close time', () => {
+    const trades = [
+      mk('2026-06-01T00:00:00Z', '2026-06-01T01:00:00Z', 'win'),
+      mk('2026-06-02T00:00:00Z', '2026-06-02T01:00:00Z', 'win'),
+      mk('2026-06-03T00:00:00Z', '2026-06-03T01:00:00Z', 'loss'),
+      mk('2026-06-04T00:00:00Z', '2026-06-04T01:00:00Z', 'win'),
+    ]
+    expect(winStreakMax(trades)).toBe(2)
+  })
+})
+
+describe('evaluateBadges', () => {
+  it('marks earned vs locked with current progress', () => {
+    const badges = evaluateBadges({ closedCount: 12, level: 3, maxQuestStreak: 7, maxWinStreak: 4 })
+    expect(badges.find((b) => b.id === 'trades_10')).toMatchObject({ earned: true, current: 12 })
+    expect(badges.find((b) => b.id === 'trades_50')).toMatchObject({ earned: false, current: 12 })
+    expect(badges.find((b) => b.id === 'level_5')).toMatchObject({ earned: false, current: 3 })
+    expect(badges.find((b) => b.id === 'streak_7')).toMatchObject({ earned: true, current: 7 })
+    expect(badges.find((b) => b.id === 'wins_5')).toMatchObject({ earned: false, current: 4 })
+  })
+  it('declares all four badge categories', () => {
+    expect(new Set(BADGES.map((b) => b.category)))
+      .toEqual(new Set(['trades', 'level', 'questStreak', 'winStreak']))
   })
 })

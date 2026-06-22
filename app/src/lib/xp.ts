@@ -147,3 +147,79 @@ export function windowXp(trades: XpTrade[], period: Period, now: number): number
     + windowBonus(trades, DAILY_QUESTS, dayKey, XP.DAILY_QUEST_BONUS, cutoff)
     + windowBonus(trades, WEEKLY_QUESTS, weekKey, XP.WEEKLY_QUEST_BONUS, cutoff)
 }
+
+function dailyCountMaps(trades: XpTrade[]): Map<QuestMetric, Map<string, number>> {
+  const per = new Map<QuestMetric, Map<string, number>>()
+  for (const q of DAILY_QUESTS) if (!per.has(q.metric)) per.set(q.metric, bucketCounts(trades, q.metric, dayKey))
+  return per
+}
+function dayComplete(per: Map<QuestMetric, Map<string, number>>, key: string): boolean {
+  return DAILY_QUESTS.every((q) => (per.get(q.metric)!.get(key) ?? 0) >= q.target)
+}
+
+export function questStreak(trades: XpTrade[], now: number): number {
+  const per = dailyCountMaps(trades)
+  let cursor = utcDayStart(now)
+  if (!dayComplete(per, dayKey(cursor))) cursor -= DAY
+  let streak = 0
+  while (dayComplete(per, dayKey(cursor))) { streak += 1; cursor -= DAY }
+  return streak
+}
+
+export function maxQuestStreak(trades: XpTrade[]): number {
+  const per = dailyCountMaps(trades)
+  const keys = new Set<string>()
+  for (const m of per.values()) for (const k of m.keys()) keys.add(k)
+  const completeDays = [...keys].filter((k) => dayComplete(per, k))
+    .map((k) => Date.parse(k + 'T00:00:00.000Z')).sort((a, b) => a - b)
+  if (completeDays.length === 0) return 0
+  let best = 1, run = 1
+  for (let i = 1; i < completeDays.length; i++) {
+    run = completeDays[i] - completeDays[i - 1] === DAY ? run + 1 : 1
+    if (run > best) best = run
+  }
+  return best
+}
+
+export function winStreakMax(trades: XpTrade[]): number {
+  const closed = trades.filter((t) => t.status === 'closed' && t.closed_at)
+    .sort((a, b) => Date.parse(a.closed_at!) - Date.parse(b.closed_at!))
+  let best = 0, run = 0
+  for (const t of closed) {
+    if (t.outcome === 'win') { run += 1; if (run > best) best = run } else run = 0
+  }
+  return best
+}
+
+export type BadgeCategory = 'trades' | 'level' | 'questStreak' | 'winStreak'
+export type BadgeDef = { id: string; category: BadgeCategory; label: string; threshold: number }
+
+export const BADGES: BadgeDef[] = [
+  { id: 'trades_1', category: 'trades', label: 'First Trade', threshold: 1 },
+  { id: 'trades_10', category: 'trades', label: '10 Trades', threshold: 10 },
+  { id: 'trades_50', category: 'trades', label: '50 Trades', threshold: 50 },
+  { id: 'trades_100', category: 'trades', label: '100 Trades', threshold: 100 },
+  { id: 'trades_500', category: 'trades', label: '500 Trades', threshold: 500 },
+  { id: 'level_5', category: 'level', label: 'Level 5', threshold: 5 },
+  { id: 'level_10', category: 'level', label: 'Level 10', threshold: 10 },
+  { id: 'level_25', category: 'level', label: 'Level 25', threshold: 25 },
+  { id: 'streak_7', category: 'questStreak', label: '7-Day Streak', threshold: 7 },
+  { id: 'streak_30', category: 'questStreak', label: '30-Day Streak', threshold: 30 },
+  { id: 'wins_5', category: 'winStreak', label: '5 Win Streak', threshold: 5 },
+  { id: 'wins_10', category: 'winStreak', label: '10 Win Streak', threshold: 10 },
+]
+
+export type BadgeStats = { closedCount: number; level: number; maxQuestStreak: number; maxWinStreak: number }
+export type EvaluatedBadge = BadgeDef & { earned: boolean; current: number }
+
+export function evaluateBadges(stats: BadgeStats): EvaluatedBadge[] {
+  const value = (c: BadgeCategory): number =>
+    c === 'trades' ? stats.closedCount
+      : c === 'level' ? stats.level
+      : c === 'questStreak' ? stats.maxQuestStreak
+      : stats.maxWinStreak
+  return BADGES.map((b) => {
+    const current = value(b.category)
+    return { ...b, current, earned: current >= b.threshold }
+  })
+}
