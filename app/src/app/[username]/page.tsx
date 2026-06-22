@@ -5,6 +5,7 @@ import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { StatsBar } from '@/app/journal/_components/StatsBar'
 import { FollowButton } from '@/app/_components/FollowButton'
 import { getPerformanceRanking } from '@/lib/server/ranking'
+import { getUserXp } from '@/lib/server/xp'
 
 export default async function ProfilePage({
   params,
@@ -17,7 +18,7 @@ export default async function ProfilePage({
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, xp, level, created_at')
+    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, created_at')
     .eq('username', username)
     .maybeSingle()
 
@@ -76,6 +77,11 @@ export default async function ProfilePage({
     profileRank = board.find((e) => e.userId === profileId)?.rank ?? null
   }
 
+  // Derived XP/level (single source of truth; static profiles.xp/level columns are ignored).
+  // publicOnly: this is a cross-viewer surface — never count the owner's private trades.
+  const profileXp = profileId ? await getUserXp(supabase, profileId, { publicOnly: true }) : null
+  const earnedBadges = (profileXp?.badges ?? []).filter((b) => b.earned)
+
   return (
     <main className="ts-page" style={{ maxWidth: 720 }}>
       <div className="ts-card">
@@ -102,10 +108,20 @@ export default async function ProfilePage({
         <dl className="ts-statgrid mt-6">
           <div className="ts-stat"><dt>Experience</dt><dd>{profile.experience_level ?? '—'}</dd></div>
           <div className="ts-stat"><dt>Rank</dt><dd>{profileRank ? `#${profileRank}` : 'Unranked'}</dd></div>
-          <div className="ts-stat"><dt>Level</dt><dd>Level {profile.level} · {profile.xp} XP</dd></div>
+          <div className="ts-stat"><dt>Level</dt><dd>{profileXp ? `Level ${profileXp.level.level} · ${profileXp.totalXp.toLocaleString()} XP` : '—'}</dd></div>
           <div className="ts-stat"><dt>Followers</dt><dd>{followerCount} · {followingCount} following</dd></div>
           <div className="ts-stat"><dt>Member since</dt><dd>{new Date(profile.created_at).toLocaleDateString()}</dd></div>
         </dl>
+        {earnedBadges.length > 0 && (
+          <div className="mt-6">
+            <div className="ts-rail-head"><p className="eyebrow">Badges</p><a href="/app/achievements" className="ts-link-sm">All</a></div>
+            <div className="badge-grid mt-3">
+              {earnedBadges.map((b) => (
+                <div key={b.id} className="badge earned"><span className="badge-dot" aria-hidden>★</span><b>{b.label}</b></div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <section className="mt-6">

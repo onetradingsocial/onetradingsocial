@@ -834,3 +834,24 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 @media (max-width: 720px) {
   .lb-table .col-hide { display: none; }
 }
+
+/* Achievements / XP */
+.ach-hero { display: flex; flex-direction: column; gap: 12px; }
+.ach-lvl { display: flex; align-items: center; gap: 14px; }
+.ach-lvl-badge { font-size: 40px; font-weight: 800; line-height: 1; min-width: 52px; text-align: center; }
+.ach-xp { font-weight: 700; }
+.ach-bar, .ach-qbar { background: var(--line, rgba(255,255,255,.08)); border-radius: 999px; overflow: hidden; }
+.ach-bar { height: 10px; } .ach-qbar { height: 6px; margin-top: 6px; }
+.ach-bar i, .ach-qbar i { display: block; height: 100%; background: linear-gradient(90deg, #34d399, #22d3ee); }
+.ach-quest-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .ach-quest-cols { grid-template-columns: 1fr; } }
+.ach-quests { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.ach-quest { display: flex; align-items: center; gap: 10px; }
+.ach-quest-top { display: flex; justify-content: space-between; gap: 8px; }
+.ach-quest-check { width: 20px; height: 20px; border-radius: 999px; border: 1px solid var(--line, rgba(255,255,255,.18)); display: grid; place-items: center; font-size: 12px; color: #34d399; }
+.ach-quest.done .ach-quest-check { background: rgba(52,211,153,.15); border-color: #34d399; }
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.badge { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; padding: 14px 8px; border-radius: 12px; border: 1px solid var(--line, rgba(255,255,255,.08)); }
+.badge.locked { opacity: .45; }
+.badge.earned { background: rgba(52,211,153,.08); border-color: rgba(52,211,153,.35); }
+.badge-dot { font-size: 22px; }

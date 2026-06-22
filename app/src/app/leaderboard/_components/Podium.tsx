@@ -10,7 +10,9 @@ const SLOTS = [
   { idx: 2, tier: 3 },
 ] as const
 
-export function Podium({ top, viewerId }: { top: BoardRow[]; viewerId: string }) {
+// `kind='xp'` reuses the BoardRow shape with xp in `pnl` and level in `trades`,
+// rendering an "{n} XP" value + a single Level stat instead of money/win-rate stats.
+export function Podium({ top, viewerId, kind = 'performance' }: { top: BoardRow[]; viewerId: string; kind?: 'performance' | 'xp' }) {
   if (top.length === 0) return null
   return (
     <div className="lb-podium">
@@ -34,12 +36,18 @@ export function Podium({ top, viewerId }: { top: BoardRow[]; viewerId: string })
             </div>
             <div className="name">{t.displayName || t.username}{self && <span className="lb-you">You</span>}</div>
             <div className="handle">@{t.username}</div>
-            <div className={`pl ${t.pnl >= 0 ? 'up' : 'down'}`}>{fmtPL(t.pnl)}</div>
-            <div className="pod-stats">
-              <div className="m"><div className="k">Win rate</div><div className="v">{Math.round(t.winRate * 100)}%</div></div>
-              <div className="m"><div className="k">Avg R:R</div><div className="v">{t.avgR.toFixed(1)}</div></div>
-              <div className="m"><div className="k">Trades</div><div className="v">{t.trades}</div></div>
-            </div>
+            {kind === 'xp'
+              ? <div className="pl up">{t.pnl.toLocaleString()} XP</div>
+              : <div className={`pl ${t.pnl >= 0 ? 'up' : 'down'}`}>{fmtPL(t.pnl)}</div>}
+            {kind === 'xp'
+              ? <div className="pod-stats"><div className="m"><div className="k">Level</div><div className="v">{t.trades}</div></div></div>
+              : (
+                <div className="pod-stats">
+                  <div className="m"><div className="k">Win rate</div><div className="v">{Math.round(t.winRate * 100)}%</div></div>
+                  <div className="m"><div className="k">Avg R:R</div><div className="v">{t.avgR.toFixed(1)}</div></div>
+                  <div className="m"><div className="k">Trades</div><div className="v">{t.trades}</div></div>
+                </div>
+              )}
             <div className="pod-btn">
               {self
                 ? <a href={`/app/${t.username}`} className="h-btn h-btn-grad h-btn-sm">Your profile</a>

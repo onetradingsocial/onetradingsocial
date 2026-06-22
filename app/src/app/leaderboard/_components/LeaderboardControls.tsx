@@ -16,7 +16,7 @@ const SORTS = [
   { key: 'trades', label: 'Sort: Trades' },
 ] as const
 
-export function LeaderboardControls({ period, sort }: { period: string; sort: string }) {
+export function LeaderboardControls({ period, sort, cat }: { period: string; sort: string; cat: string }) {
   const router = useRouter()
   const sp = useSearchParams()
   const push = (next: Record<string, string>) => {
@@ -24,19 +24,22 @@ export function LeaderboardControls({ period, sort }: { period: string; sort: st
     for (const [k, v] of Object.entries(next)) p.set(k, v)
     router.push(`/leaderboard?${p.toString()}`)
   }
+  const periods = cat === 'xp' ? PERIODS.filter((p) => p.key !== 'day') : PERIODS
   return (
     <div className="lb-filters">
       <div className="lb-segs">
-        {PERIODS.map((p) => (
+        {periods.map((p) => (
           <button key={p.key} className={'lb-seg' + (period === p.key ? ' on' : '')} onClick={() => push({ period: p.key })}>{p.label}</button>
         ))}
       </div>
-      <div className="lb-metric">
-        <select value={sort} onChange={(e) => push({ sort: e.target.value })}>
-          {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-        </select>
-        <span className="chev" aria-hidden>▾</span>
-      </div>
+      {cat !== 'xp' && (
+        <div className="lb-metric">
+          <select value={sort} onChange={(e) => push({ sort: e.target.value })}>
+            {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+          <span className="chev" aria-hidden>▾</span>
+        </div>
+      )}
     </div>
   )
 }
