@@ -115,11 +115,12 @@ A daily quest is "completed on day D" if that day's metric count ≥ target. Sum
 2. **Home** (`app/page.tsx` + `feed/_components/WelcomeHero.tsx`):
    - Replace the styled **quest placeholder** with a compact **daily-quests** widget (top 2–3, progress) linking to `/app/achievements`.
    - Add a **level/XP chip** in `WelcomeHero` alongside the existing trade-streak chip. (The existing trade win/loss streak chip stays — distinct concept.)
-3. **Leaderboard** (`leaderboard/page.tsx` + `_components/LeaderboardControls.tsx` + table):
-   - Make the **XP** tab real: `cat=xp`, period seg (week/month/all), ranked via `getXpRanking`. Columns: Rank, Trader, **Level**, **XP**. Remove the "soon" treatment from XP; **Learning** stays "soon".
-   - Podium + RankCard reused; value formatter shows `Lvl N · {xp} XP`.
+3. **Leaderboard** (`leaderboard/page.tsx` + a new `_components/LeaderboardTabs.tsx` + table):
+   - **Reality check:** the merged leaderboard is **Performance-only** — there is no category-tab UI yet (the only "soon" placeholder is a *Daily quests* right-rail card). So this phase **adds** a minimal category tab control: **Performance** (existing board) | **XP** (new). No Consistency/Followed/Learning tabs (not built; out of scope).
+   - Tab routing via `?cat=performance|xp` (default `performance`). On `cat=xp`: period seg (week/month/all, **no `day`**, reusing `windowXp`), ranked via `getXpRanking`. Columns: Rank, Trader, **Level**, **XP**. Podium reused (value = `Lvl N · {xp} XP`).
+   - Replace the "Daily quests · soon" rail card with a real **Your XP** mini-card (level, total XP, next-level progress) linking to `/app/achievements`.
 4. **Profile** (`app/[username]/page.tsx`):
-   - Add a **Level + total-XP** stat to the stat row (next to the existing all-time Rank).
+   - **Reality check:** profile already renders `Level {profile.level} · {profile.xp} XP` from the **static** `profiles.xp`/`profiles.level` columns (migration 0001, default `0`/`1` — currently wrong for everyone, never written). Switch this stat to the **derived** value from `getUserXp` so it's correct and single-source. The static columns are left in place but unread (dropping them is a separate cleanup, out of scope).
    - **Earned-badge showcase** (earned only; links to `/app/achievements`).
 
 ---
@@ -127,6 +128,7 @@ A daily quest is "completed on day D" if that day's metric count ≥ target. Sum
 ## 5. Data flow & integrity
 
 - **No write path.** Closing a trade already updates `trades`; XP recomputes on next read. No hooks added to `actions/trade.ts`. No double-count risk.
+- **Static `profiles.xp`/`profiles.level` are intentionally not read** — the derived `getUserXp` value is the single source of truth. The columns stay (no migration); a future cleanup may drop them.
 - **Privacy:** the XP leaderboard reuses the leaderboard's public-closed-trades + public-profile filter, so private traders never appear. Per-user pages (`getUserXp`) read the owner's own trades (all visibilities) for their own achievements view; profile-page badges/level shown publicly derive only from that profile's trades consistent with existing profile exposure.
 - **Performance:** `getXpRanking` scans public closed trades once (same shape/scale as the existing performance board). Acceptable at current volume; revisit with a materialized view if needed (not now).
 
