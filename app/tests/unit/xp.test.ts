@@ -153,15 +153,24 @@ describe('streaks', () => {
 
 describe('evaluateBadges', () => {
   it('marks earned vs locked with current progress', () => {
-    const badges = evaluateBadges({ closedCount: 12, level: 3, maxQuestStreak: 7, maxWinStreak: 4 })
+    const badges = evaluateBadges({ closedCount: 12, level: 3, maxQuestStreak: 7, maxWinStreak: 4, lessonsCompleted: 0 })
     expect(badges.find((b) => b.id === 'trades_10')).toMatchObject({ earned: true, current: 12 })
     expect(badges.find((b) => b.id === 'trades_50')).toMatchObject({ earned: false, current: 12 })
     expect(badges.find((b) => b.id === 'level_5')).toMatchObject({ earned: false, current: 3 })
     expect(badges.find((b) => b.id === 'streak_7')).toMatchObject({ earned: true, current: 7 })
     expect(badges.find((b) => b.id === 'wins_5')).toMatchObject({ earned: false, current: 4 })
   })
-  it('declares all four badge categories', () => {
+  it('declares all four trade/level/streak badge categories', () => {
     expect(new Set(BADGES.map((b) => b.category)))
-      .toEqual(new Set(['trades', 'level', 'questStreak', 'winStreak']))
+      .toEqual(new Set(['trades', 'level', 'questStreak', 'winStreak', 'lessons']))
+  })
+})
+
+describe('evaluateBadges — lessons', () => {
+  it('earns lesson badges by lessonsCompleted', () => {
+    const badges = evaluateBadges({ closedCount: 0, level: 1, maxQuestStreak: 0, maxWinStreak: 0, lessonsCompleted: 6 })
+    expect(badges.find((b) => b.id === 'lessons_1')).toMatchObject({ earned: true, current: 6 })
+    expect(badges.find((b) => b.id === 'lessons_5')).toMatchObject({ earned: true, current: 6 })
+    expect(badges.find((b) => b.id === 'lessons_25')).toMatchObject({ earned: false, current: 6 })
   })
 })

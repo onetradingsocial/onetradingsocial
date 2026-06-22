@@ -199,7 +199,7 @@ export function winStreakMax(trades: XpTrade[]): number {
   return best
 }
 
-export type BadgeCategory = 'trades' | 'level' | 'questStreak' | 'winStreak'
+export type BadgeCategory = 'trades' | 'level' | 'questStreak' | 'winStreak' | 'lessons'
 export type BadgeDef = { id: string; category: BadgeCategory; label: string; threshold: number }
 
 export const BADGES: BadgeDef[] = [
@@ -215,9 +215,12 @@ export const BADGES: BadgeDef[] = [
   { id: 'streak_30', category: 'questStreak', label: '30-Day Streak', threshold: 30 },
   { id: 'wins_5', category: 'winStreak', label: '5 Win Streak', threshold: 5 },
   { id: 'wins_10', category: 'winStreak', label: '10 Win Streak', threshold: 10 },
+  { id: 'lessons_1', category: 'lessons', label: 'First Lesson', threshold: 1 },
+  { id: 'lessons_5', category: 'lessons', label: '5 Lessons', threshold: 5 },
+  { id: 'lessons_25', category: 'lessons', label: '25 Lessons', threshold: 25 },
 ]
 
-export type BadgeStats = { closedCount: number; level: number; maxQuestStreak: number; maxWinStreak: number }
+export type BadgeStats = { closedCount: number; level: number; maxQuestStreak: number; maxWinStreak: number; lessonsCompleted: number }
 export type EvaluatedBadge = BadgeDef & { earned: boolean; current: number }
 
 export function evaluateBadges(stats: BadgeStats): EvaluatedBadge[] {
@@ -225,7 +228,8 @@ export function evaluateBadges(stats: BadgeStats): EvaluatedBadge[] {
     c === 'trades' ? stats.closedCount
       : c === 'level' ? stats.level
       : c === 'questStreak' ? stats.maxQuestStreak
-      : stats.maxWinStreak
+      : c === 'winStreak' ? stats.maxWinStreak
+      : stats.lessonsCompleted
   return BADGES.map((b) => {
     const current = value(b.category)
     return { ...b, current, earned: current >= b.threshold }

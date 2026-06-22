@@ -4,9 +4,25 @@ import {
   totalXpFromTrades, levelFromXp, dailyQuestProgress, weeklyQuestProgress,
   questStreak, maxQuestStreak, winStreakMax, closedCount, evaluateBadges, windowXp,
 } from '@/lib/xp'
+import { learningTotalXp, learningWindowXp, type LearningCompletion } from '@/lib/learning'
+
+// A user's lesson completions joined to each lesson's xp_reward.
+async function fetchCompletions(supabase: SupabaseClient, userId: string): Promise<LearningCompletion[]> {
+  const { data } = await supabase
+    .from('lesson_completions')
+    .select('completed_at, lessons(xp_reward)')
+    .eq('user_id', userId)
+  return (data ?? []).map((r) => {
+    const l = r.lessons as { xp_reward: number } | { xp_reward: number }[] | null
+    const xp = Array.isArray(l) ? (l[0]?.xp_reward ?? 0) : (l?.xp_reward ?? 0)
+    return { completed_at: r.completed_at as string, xp_reward: xp }
+  })
+}
 
 export type UserXp = {
   totalXp: number
+  learningXp: number
+  lessonsCompleted: number
   level: LevelInfo
   daily: QuestProgress[]
   weekly: QuestProgress[]
@@ -29,10 +45,14 @@ export async function getUserXp(
   if (opts.publicOnly) q = q.eq('is_public', true)
   const { data } = await q
   const trades = (data ?? []) as XpTrade[]
-  const totalXp = totalXpFromTrades(trades)
+  const completions = await fetchCompletions(supabase, userId)
+  const learningXp = learningTotalXp(completions)
+  const totalXp = totalXpFromTrades(trades) + learningXp
   const level = levelFromXp(totalXp)
   return {
     totalXp,
+    learningXp,
+    lessonsCompleted: completions.length,
     level,
     daily: dailyQuestProgress(trades, now),
     weekly: weeklyQuestProgress(trades, now),
@@ -42,6 +62,7 @@ export async function getUserXp(
       level: level.level,
       maxQuestStreak: maxQuestStreak(trades),
       maxWinStreak: winStreakMax(trades),
+      lessonsCompleted: completions.length,
     }),
   }
 }
@@ -51,24 +72,43 @@ export type XpRankedEntry = {
   xp: number; level: number
 }
 
-// Public closed trades -> per-user windowXp -> keep visible profiles -> rank by window XP.
-// Level column reflects all-time PUBLIC XP (privacy-by-construction, same as performance board).
+// Combined XP board: public-closed-trade XP + learning XP, per user, in a window.
+// Candidates = union of trade-XP owners and learning-XP owners; keep visible profiles.
+// Level column reflects all-time combined PUBLIC XP (privacy-by-construction).
 export async function getXpRanking(supabase: SupabaseClient, period: Period, now = Date.now()): Promise<XpRankedEntry[]> {
-  const { data: rows } = await supabase
+  const { data: tradeRows } = await supabase
     .from('trades')
     .select('user_id, traded_at, closed_at, status, outcome')
     .eq('is_public', true)
     .eq('status', 'closed')
-
-  const byUser = new Map<string, XpTrade[]>()
-  for (const r of (rows ?? []) as (XpTrade & { user_id: string })[]) {
-    const arr = byUser.get(r.user_id) ?? []
+  const tradeByUser = new Map<string, XpTrade[]>()
+  for (const r of (tradeRows ?? []) as (XpTrade & { user_id: string })[]) {
+    const arr = tradeByUser.get(r.user_id) ?? []
     arr.push(r)
-    byUser.set(r.user_id, arr)
+    tradeByUser.set(r.user_id, arr)
   }
-  const scored = [...byUser.entries()]
-    .map(([userId, trades]) => ({ userId, xp: windowXp(trades, period, now), level: levelFromXp(totalXpFromTrades(trades)).level }))
-    .filter((s) => s.xp > 0)
+
+  const { data: compRows } = await supabase
+    .from('lesson_completions')
+    .select('user_id, completed_at, lessons(xp_reward)')
+  const learnByUser = new Map<string, LearningCompletion[]>()
+  for (const r of compRows ?? []) {
+    const l = r.lessons as { xp_reward: number } | { xp_reward: number }[] | null
+    const xp = Array.isArray(l) ? (l[0]?.xp_reward ?? 0) : (l?.xp_reward ?? 0)
+    const uid = r.user_id as string
+    const arr = learnByUser.get(uid) ?? []
+    arr.push({ completed_at: r.completed_at as string, xp_reward: xp })
+    learnByUser.set(uid, arr)
+  }
+
+  const userIds = new Set<string>([...tradeByUser.keys(), ...learnByUser.keys()])
+  const scored = [...userIds].map((userId) => {
+    const t = tradeByUser.get(userId) ?? []
+    const l = learnByUser.get(userId) ?? []
+    const xp = windowXp(t, period, now) + learningWindowXp(l, period, now)
+    const level = levelFromXp(totalXpFromTrades(t) + learningTotalXp(l)).level
+    return { userId, xp, level }
+  }).filter((s) => s.xp > 0)
   if (scored.length === 0) return []
 
   const { data: profs } = await supabase
