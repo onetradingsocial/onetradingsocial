@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { NewTradeButton } from '@/app/_components/NewTradeButton'
 import { UserLink } from '@/app/_components/UserLink'
 
@@ -21,7 +22,7 @@ export function WelcomeHero({ name, streak, rank, total, race, level, xp }: { na
           </div>
         </div>
         <p className="ts-standing-text">
-          Welcome back, <b>{name}</b>. Log public setups to climb the <a href="/app/leaderboard" className="ts-link-sm">leaderboard</a>.
+          Welcome back, <b>{name}</b>. Log public setups to climb the <Link href="/leaderboard" className="ts-link-sm">leaderboard</Link>.
         </p>
         <div className="ts-chain">
           <span className="ts-chain-label">Your streak</span>
@@ -33,14 +34,14 @@ export function WelcomeHero({ name, streak, rank, total, race, level, xp }: { na
         </div>
         <div className="ts-standing-cta">
           <NewTradeButton className="btn btn-primary" label="+ Log a trade" />
-          <a href="/app/journal" className="btn btn-ghost">Open journal</a>
+          <Link href="/journal" className="btn btn-ghost">Open journal</Link>
         </div>
       </div>
 
       <div className="ts-card ts-race">
         <div className="flex items-center justify-between">
           <p className="eyebrow">The race · this week</p>
-          <a href="/app/leaderboard" className="ts-link-sm">All</a>
+          <Link href="/leaderboard" className="ts-link-sm">All</Link>
         </div>
         <div className="ts-race-list mt-3">
           {race.length === 0

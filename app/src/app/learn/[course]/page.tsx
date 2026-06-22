@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 import { getCourseWithLessons } from '@/lib/server/learning'
 
 export default async function CoursePage({ params }: { params: Promise<{ course: string }> }) {
@@ -14,7 +15,7 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
   return (
     <main className="ts-page" style={{ maxWidth: 720 }}>
       <header className="lb-head"><div className="tx">
-        <a href="/app/learn" className="ts-link-sm">← All courses</a>
+        <Link href="/learn" className="ts-link-sm">← All courses</Link>
         <h1 className="ts-h1">{course.title}</h1>
         {course.summary && <p>{course.summary}</p>}
         <p className="faint" style={{ fontSize: 13 }}>{doneCount}/{course.lessons.length} complete</p>
@@ -22,11 +23,11 @@ export default async function CoursePage({ params }: { params: Promise<{ course:
       <ol className="learn-lessons mt-6">
         {course.lessons.map((l) => (
           <li key={l.id}>
-            <a href={`/app/learn/${slug}/${l.slug}`} className={'ts-card learn-lesson' + (l.completed ? ' done' : '')}>
+            <Link href={`/learn/${slug}/${l.slug}`} className={'ts-card learn-lesson' + (l.completed ? ' done' : '')}>
               <span className="learn-tick" aria-hidden>{l.completed ? '✓' : l.ord}</span>
               <b>{l.title}</b>
               {l.completed && <span className="ts-chip2" style={{ marginLeft: 'auto' }}>Completed</span>}
-            </a>
+            </Link>
           </li>
         ))}
       </ol>

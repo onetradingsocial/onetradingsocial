@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
@@ -48,7 +49,7 @@ export default async function JournalPage() {
       {noBalance && (
         <div className="ts-banner mt-5">
           <span>💡 Set your <b>account balance</b> in{' '}
-            <a href="/app/settings" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Settings</a>{' '}
+            <Link href="/settings" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Settings</Link>{' '}
             to see P/L in money. R-multiples and win rate already work.</span>
         </div>
       )}

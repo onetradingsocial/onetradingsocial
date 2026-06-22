@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { RESERVED_USERNAMES } from '@/lib/username'
@@ -114,7 +115,7 @@ export default async function ProfilePage({
         </dl>
         {earnedBadges.length > 0 && (
           <div className="mt-6">
-            <div className="ts-rail-head"><p className="eyebrow">Badges</p><a href="/app/achievements" className="ts-link-sm">All</a></div>
+            <div className="ts-rail-head"><p className="eyebrow">Badges</p><Link href="/achievements" className="ts-link-sm">All</Link></div>
             <div className="badge-grid mt-3">
               {earnedBadges.map((b) => (
                 <div key={b.id} className="badge earned"><span className="badge-dot" aria-hidden>★</span><b>{b.label}</b></div>
