@@ -18,7 +18,7 @@ export default async function ProfilePage({
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, xp, level, created_at')
+    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, created_at')
     .eq('username', username)
     .maybeSingle()
 
@@ -78,7 +78,8 @@ export default async function ProfilePage({
   }
 
   // Derived XP/level (single source of truth; static profiles.xp/level columns are ignored).
-  const profileXp = profileId ? await getUserXp(supabase, profileId) : null
+  // publicOnly: this is a cross-viewer surface — never count the owner's private trades.
+  const profileXp = profileId ? await getUserXp(supabase, profileId, { publicOnly: true }) : null
   const earnedBadges = (profileXp?.badges ?? []).filter((b) => b.earned)
 
   return (

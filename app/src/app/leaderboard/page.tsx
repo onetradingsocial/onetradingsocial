@@ -82,7 +82,7 @@ async function XpBoard({ supabase, period, userId }: { supabase: Awaited<ReturnT
       {rows.length > 0 && (
         <section>
           <div className="lb-section-h"><h2>Top earners</h2><span className="lb-section-sub">{PERIOD_LABEL[period]}</span></div>
-          <Podium top={podium} viewerId={userId} />
+          <Podium top={podium} viewerId={userId} kind="xp" />
         </section>
       )}
       <XpTable rows={rows} viewerId={userId} />
@@ -103,13 +103,14 @@ async function LeaderboardRail({ supabase, userId, cat, period }: { supabase: Aw
       </div>
     )
   }
-  const allTime = await getPerformanceRanking(supabase, 'all')
-  const me = allTime.find((e) => e.userId === userId) ?? null
-  const leader = allTime[0] ?? null
+  // Rank the rail to the SAME period as the board so the rank matches its period label.
+  const board = await getPerformanceRanking(supabase, period)
+  const me = board.find((e) => e.userId === userId) ?? null
+  const leader = board[0] ?? null
   return (
     <YourStanding
       rank={me?.rank ?? null}
-      total={allTime.length}
+      total={board.length}
       pnl={me?.pnl ?? 0}
       winRate={me?.winRate ?? 0}
       periodLabel={PERIOD_LABEL[period]}

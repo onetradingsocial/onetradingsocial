@@ -14,12 +14,20 @@ export type UserXp = {
   badges: EvaluatedBadge[]
 }
 
-// One user's full XP picture from ALL their trades (their own private view).
-export async function getUserXp(supabase: SupabaseClient, userId: string, now = Date.now()): Promise<UserXp> {
-  const { data } = await supabase
+// One user's XP picture. Owner view (default) counts ALL their trades; pass
+// `publicOnly` for cross-viewer surfaces (public profile) so private-trade XP never leaks.
+export async function getUserXp(
+  supabase: SupabaseClient,
+  userId: string,
+  opts: { now?: number; publicOnly?: boolean } = {},
+): Promise<UserXp> {
+  const now = opts.now ?? Date.now()
+  let q = supabase
     .from('trades')
     .select('traded_at, closed_at, status, outcome')
     .eq('user_id', userId)
+  if (opts.publicOnly) q = q.eq('is_public', true)
+  const { data } = await q
   const trades = (data ?? []) as XpTrade[]
   const totalXp = totalXpFromTrades(trades)
   const level = levelFromXp(totalXp)
