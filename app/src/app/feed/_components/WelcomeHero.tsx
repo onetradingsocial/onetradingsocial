@@ -3,7 +3,7 @@ import { UserLink } from '@/app/_components/UserLink'
 
 type Leader = { rank: number; username: string; display_name: string | null; avatar_url: string | null; pnl: number }
 
-export function WelcomeHero({ name, streak, rank, total, race }: { name: string; streak: number; rank: number | null; total: number; race: Leader[] }) {
+export function WelcomeHero({ name, streak, rank, total, race, level, xp }: { name: string; streak: number; rank: number | null; total: number; race: Leader[]; level: number; xp: number }) {
   return (
     <div className="ts-hero2">
       <div className="ts-card ts-standing">
@@ -11,6 +11,7 @@ export function WelcomeHero({ name, streak, rank, total, race }: { name: string;
         <div className="ts-standing-top">
           <span className="ts-standing-rank grad-text">{rank ? `#${rank}` : '#—'}</span>
           <div className="ts-standing-chips">
+            <span className="ts-chip2">⚡ Lvl {level} · {xp.toLocaleString()} XP</span>
             <span className="ts-chip2">🏆 {rank ? `top ${Math.max(1, Math.round((rank / Math.max(1, total)) * 100))}%` : 'Unranked'}</span>
             {streak !== 0 && (
               <span className={`ts-chip2 ${streak > 0 ? 'ts-chip2--up' : 'ts-chip2--down'}`}>

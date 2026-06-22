@@ -12,6 +12,8 @@ import { LogTradeBanner } from './feed/_components/LogTradeBanner'
 import { FeedTabs, type FeedTabItem } from './feed/_components/FeedTabs'
 import { RightRail } from './feed/_components/RightRail'
 import { getPerformanceRanking } from '@/lib/server/ranking'
+import { getUserXp } from '@/lib/server/xp'
+import { DailyQuests } from './feed/_components/DailyQuests'
 
 const EMPTY = ['00000000-0000-0000-0000-000000000000']
 const SELECT = 'id, body, created_at, author_id, attachment_type, trade_id, author:profiles!posts_author_id_fkey(id, username, display_name, avatar_url)'
@@ -35,6 +37,7 @@ export default async function Home() {
   ])
   const viewerRank = allTimeBoard.find((e) => e.userId === user.id)?.rank ?? null
   const leaders = weekBoard.slice(0, 5).map((e) => ({ rank: e.rank, username: e.username, display_name: e.displayName, avatar_url: e.avatarUrl, pnl: e.pnl }))
+  const xp = await getUserXp(supabase, user.id)
 
   // Follows
   const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id)
@@ -137,9 +140,10 @@ export default async function Home() {
   return (
     <main className="ts-page ts-feed">
       <div className="ts-feed-main">
-        <WelcomeHero name={name} streak={metrics.currentStreak} rank={viewerRank} total={allTimeBoard.length} race={leaders.slice(0, 3)} />
+        <WelcomeHero name={name} streak={metrics.currentStreak} rank={viewerRank} total={allTimeBoard.length} race={leaders.slice(0, 3)} level={xp.level.level} xp={xp.totalXp} />
         <PerformanceRow metrics={metrics} spark={spark} />
         <LogTradeBanner />
+        <DailyQuests quests={xp.daily} />
         <PostComposer />
         <FeedTabs items={items} />
       </div>
