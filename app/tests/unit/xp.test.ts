@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { XP, xpForLevel, levelFromXp } from '@/lib/xp'
+import {
+  XP, xpForLevel, levelFromXp,
+  DAILY_QUESTS, WEEKLY_QUESTS, utcDayStart, utcWeekStart, dayKey, weekKey,
+  dailyQuestProgress, weeklyQuestProgress, type XpTrade,
+} from '@/lib/xp'
 
 describe('xpForLevel', () => {
   it('cumulative rising cost: reach(L) = 100*(L-1)*L/2', () => {
@@ -30,5 +34,47 @@ describe('levelFromXp', () => {
   })
   it('exposes tunable constants', () => {
     expect(XP.BASE_PER_TRADE).toBe(50)
+  })
+})
+
+const mk = (t: string, c: string | null = null, o = 'win'): XpTrade =>
+  ({ traded_at: t, closed_at: c, status: c ? 'closed' : 'open', outcome: o })
+
+describe('UTC boundaries', () => {
+  it('utcDayStart floors to 00:00:00Z', () => {
+    expect(new Date(utcDayStart(Date.parse('2026-06-22T15:30:00Z'))).toISOString())
+      .toBe('2026-06-22T00:00:00.000Z')
+  })
+  it('utcWeekStart floors to Monday 00:00Z (ISO week)', () => {
+    expect(new Date(utcWeekStart(Date.parse('2026-06-24T10:00:00Z'))).toISOString())
+      .toBe('2026-06-22T00:00:00.000Z')
+    expect(new Date(utcWeekStart(Date.parse('2026-06-21T10:00:00Z'))).toISOString())
+      .toBe('2026-06-15T00:00:00.000Z')
+  })
+  it('dayKey/weekKey are stable UTC bucket labels', () => {
+    expect(dayKey(Date.parse('2026-06-22T23:59:00Z'))).toBe('2026-06-22')
+    expect(weekKey(Date.parse('2026-06-24T10:00:00Z'))).toBe('2026-06-22')
+  })
+})
+
+describe('quest progress (current window)', () => {
+  const now = Date.parse('2026-06-22T12:00:00Z')
+  it('daily: counts today created vs closed per quest', () => {
+    const trades = [
+      mk('2026-06-22T01:00:00Z', '2026-06-22T02:00:00Z'),
+      mk('2026-06-21T23:00:00Z'),
+    ]
+    const d = dailyQuestProgress(trades, now)
+    expect(d.find((q) => q.id === 'log_trade')).toMatchObject({ current: 1, target: 1, done: true })
+    expect(d.find((q) => q.id === 'close_trade')).toMatchObject({ current: 1, target: 1, done: true })
+  })
+  it('weekly: 10 created this week meets log_10', () => {
+    const trades = Array.from({ length: 10 }, (_, i) => mk(`2026-06-22T0${i % 8}:0${i % 6}:00Z`, null))
+    const w = weeklyQuestProgress(trades, now)
+    expect(w.find((q) => q.id === 'log_10')).toMatchObject({ current: 10, target: 10, done: true })
+  })
+  it('exposes quest definitions as data', () => {
+    expect(DAILY_QUESTS.map((q) => q.id)).toEqual(['log_trade', 'close_trade'])
+    expect(WEEKLY_QUESTS.map((q) => q.id)).toEqual(['log_10', 'close_5'])
   })
 })
