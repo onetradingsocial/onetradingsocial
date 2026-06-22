@@ -876,7 +876,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .quiz-done { color: #34d399; font-weight: 600; }
 
 /* ---------- Help / feedback widget ---------- */
-.help-widget { position: fixed; left: 20px; bottom: 20px; z-index: 55; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; font-family: var(--body); }
+.help-widget { position: fixed; right: 20px; bottom: 20px; z-index: 55; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; font-family: var(--body); }
 .help-fab {
   display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 18px;
   border-radius: 999px; cursor: pointer; color: #fff; font-weight: 600; font-size: 15px;
