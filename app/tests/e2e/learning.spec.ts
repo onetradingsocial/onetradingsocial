@@ -1,8 +1,9 @@
 import { test, expect, type Page } from '@playwright/test'
 
 async function signUpAndOnboard(page: Page, prefix: string) {
-  const stamp = Date.now() + Math.floor(Math.random() * 1000)
-  const username = `${prefix}_${stamp}`
+  // Keep usernames within the 3-20 char limit: short prefix + base36 time/random.
+  const stamp = Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36)
+  const username = `${prefix}_${stamp}`.slice(0, 20)
   await page.goto('/app/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `${username}@tradingsocial.io`)
@@ -18,7 +19,7 @@ async function signUpAndOnboard(page: Page, prefix: string) {
 }
 
 test('passing the quiz grants XP and marks the lesson complete', async ({ page }) => {
-  await signUpAndOnboard(page, 'learn')
+  await signUpAndOnboard(page, 'lp')
   await page.goto('/app/learn/foundations/what-is-a-trade')
   await expect(page.getByRole('heading', { name: 'Quiz' })).toBeVisible()
   // Seeded correct answer for this lesson is the first option.
@@ -34,7 +35,7 @@ test('passing the quiz grants XP and marks the lesson complete', async ({ page }
 })
 
 test('a wrong answer does not complete the lesson', async ({ page }) => {
-  await signUpAndOnboard(page, 'learnfail')
+  await signUpAndOnboard(page, 'lf')
   await page.goto('/app/learn/foundations/reading-candles')
   // Correct answer for this lesson is option 2; pick option 1 (wrong).
   await page.locator('.quiz-q').first().locator('input[type=radio]').first().check()
