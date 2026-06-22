@@ -144,6 +144,11 @@ describe('streaks', () => {
     ]
     expect(winStreakMax(trades)).toBe(2)
   })
+  it('empty trades -> all streaks are 0', () => {
+    expect(questStreak([], now)).toBe(0)
+    expect(maxQuestStreak([])).toBe(0)
+    expect(winStreakMax([])).toBe(0)
+  })
 })
 
 describe('evaluateBadges', () => {

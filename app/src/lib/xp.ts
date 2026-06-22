@@ -130,6 +130,10 @@ export function windowCutoff(period: Period, now: number): number | null {
   if (period === 'all') return null
   return now - (period === 'week' ? 7 : 30) * DAY
 }
+// Bonus XP attributed to a window by whole bucket: a day/week bucket counts if its
+// UTC start is >= cutoff. This is intentionally a calendar-bucket approximation, not a
+// rolling boundary (the base XP below uses the exact closed_at). A bucket straddling the
+// cutoff is counted whole — acceptable since quests are inherently per-day/per-week units.
 function windowBonus(trades: XpTrade[], defs: QuestDef[], keyOf: (ms: number) => string, perBonus: number, cutoff: number): number {
   let bonus = 0
   for (const q of defs)
@@ -140,7 +144,7 @@ function windowBonus(trades: XpTrade[], defs: QuestDef[], keyOf: (ms: number) =>
 export function windowXp(trades: XpTrade[], period: Period, now: number): number {
   const cutoff = windowCutoff(period, now)
   if (cutoff == null) return totalXpFromTrades(trades)
-  let base = 0
+  let base = 0 // base XP gated on the exact closed_at; bonuses gated per calendar bucket (see windowBonus)
   for (const t of trades)
     if (t.status === 'closed' && t.closed_at && Date.parse(t.closed_at) >= cutoff) base += XP.BASE_PER_TRADE
   return base
@@ -148,6 +152,8 @@ export function windowXp(trades: XpTrade[], period: Period, now: number): number
     + windowBonus(trades, WEEKLY_QUESTS, weekKey, XP.WEEKLY_QUEST_BONUS, cutoff)
 }
 
+// Per-metric day-bucket counts. Keyed by metric (not quest id) since each daily quest
+// currently uses a distinct metric; revisit if two daily quests ever share a metric.
 function dailyCountMaps(trades: XpTrade[]): Map<QuestMetric, Map<string, number>> {
   const per = new Map<QuestMetric, Map<string, number>>()
   for (const q of DAILY_QUESTS) if (!per.has(q.metric)) per.set(q.metric, bucketCounts(trades, q.metric, dayKey))
@@ -157,6 +163,8 @@ function dayComplete(per: Map<QuestMetric, Map<string, number>>, key: string): b
   return DAILY_QUESTS.every((q) => (per.get(q.metric)!.get(key) ?? 0) >= q.target)
 }
 
+// Today counts toward the streak only if complete; if today is incomplete, the streak
+// is the run of complete days ending yesterday (so a day-in-progress never zeroes it).
 export function questStreak(trades: XpTrade[], now: number): number {
   const per = dailyCountMaps(trades)
   let cursor = utcDayStart(now)
