@@ -874,3 +874,34 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .quiz-pass { color: #34d399; font-weight: 700; }
 .quiz-fail { color: #f87171; }
 .quiz-done { color: #34d399; font-weight: 600; }
+
+/* ---------- Help / feedback widget ---------- */
+.help-widget { position: fixed; left: 20px; bottom: 20px; z-index: 55; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; font-family: var(--body); }
+.help-fab {
+  display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 18px;
+  border-radius: 999px; cursor: pointer; color: #fff; font-weight: 600; font-size: 15px;
+  background: var(--brand-grad); background-size: 160% auto;
+  box-shadow: 0 10px 28px -10px rgba(124,92,230,0.7), inset 0 1px 0 rgba(255,255,255,0.3);
+  transition: transform .16s ease, box-shadow .22s ease, background-position .5s ease;
+}
+.help-fab:hover { transform: translateY(-2px); background-position: right center; box-shadow: 0 16px 38px -12px rgba(200,64,188,0.6); }
+.help-fab svg { width: 19px; height: 19px; flex: none; }
+.help-panel {
+  width: min(340px, calc(100vw - 40px)); background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.help-panel-head { display: flex; align-items: center; justify-content: space-between; }
+.help-panel-head strong { font-family: var(--display); font-size: 16px; color: var(--text); }
+.help-close { font-size: 22px; line-height: 1; color: var(--faint); cursor: pointer; padding: 0 4px; }
+.help-close:hover { color: var(--text); }
+.help-field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: var(--dim); }
+.help-field select, .help-field textarea {
+  font-family: var(--body); font-size: 14px; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; width: 100%;
+}
+.help-field textarea { resize: vertical; min-height: 88px; }
+.help-field select:focus, .help-field textarea:focus { outline: none; border-color: var(--border-vio); }
+.help-error { color: var(--down); font-size: 13px; font-weight: 600; margin: 0; }
+.help-sent { display: flex; flex-direction: column; gap: 4px; padding: 6px 2px; }
+.help-sent strong { font-family: var(--display); font-size: 16px; color: var(--text); }
+.help-sent span { color: var(--dim); font-size: 14px; }

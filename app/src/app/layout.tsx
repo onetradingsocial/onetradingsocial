@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Space_Grotesk, Manrope, JetBrains_Mono } from 'next/font/google'
 import { AppNav } from './_components/AppNav'
 import { TradeModalProvider } from './_components/TradeModalProvider'
+import { HelpWidget } from './_components/HelpWidget'
 import { createClient } from '@/lib/supabase/server'
 
 const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display' })
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <TradeModalProvider config={config}>
           <AppNav />
           {children}
+          {user && <HelpWidget />}
         </TradeModalProvider>
       </body>
     </html>
