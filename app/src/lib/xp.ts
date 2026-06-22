@@ -93,3 +93,57 @@ export function weeklyQuestProgress(trades: XpTrade[], now: number): QuestProgre
   const start = utcWeekStart(now)
   return progressFor(WEEKLY_QUESTS, trades, start, start + 7 * DAY)
 }
+
+function bucketCounts(trades: XpTrade[], metric: QuestMetric, keyOf: (ms: number) => string): Map<string, number> {
+  const m = new Map<string, number>()
+  for (const t of trades) {
+    const ts = metricTime(t, metric)
+    if (ts == null) continue
+    const k = keyOf(ts)
+    m.set(k, (m.get(k) ?? 0) + 1)
+  }
+  return m
+}
+
+export function closedCount(trades: XpTrade[]): number {
+  return trades.filter((t) => t.status === 'closed').length
+}
+export function historicalDailyBonus(trades: XpTrade[]): number {
+  let bonus = 0
+  for (const q of DAILY_QUESTS)
+    for (const c of bucketCounts(trades, q.metric, dayKey).values())
+      if (c >= q.target) bonus += XP.DAILY_QUEST_BONUS
+  return bonus
+}
+export function historicalWeeklyBonus(trades: XpTrade[]): number {
+  let bonus = 0
+  for (const q of WEEKLY_QUESTS)
+    for (const c of bucketCounts(trades, q.metric, weekKey).values())
+      if (c >= q.target) bonus += XP.WEEKLY_QUEST_BONUS
+  return bonus
+}
+export function totalXpFromTrades(trades: XpTrade[]): number {
+  return XP.BASE_PER_TRADE * closedCount(trades) + historicalDailyBonus(trades) + historicalWeeklyBonus(trades)
+}
+
+export function windowCutoff(period: Period, now: number): number | null {
+  if (period === 'all') return null
+  return now - (period === 'week' ? 7 : 30) * DAY
+}
+function windowBonus(trades: XpTrade[], defs: QuestDef[], keyOf: (ms: number) => string, perBonus: number, cutoff: number): number {
+  let bonus = 0
+  for (const q of defs)
+    for (const [k, c] of bucketCounts(trades, q.metric, keyOf))
+      if (c >= q.target && Date.parse(k + 'T00:00:00.000Z') >= cutoff) bonus += perBonus
+  return bonus
+}
+export function windowXp(trades: XpTrade[], period: Period, now: number): number {
+  const cutoff = windowCutoff(period, now)
+  if (cutoff == null) return totalXpFromTrades(trades)
+  let base = 0
+  for (const t of trades)
+    if (t.status === 'closed' && t.closed_at && Date.parse(t.closed_at) >= cutoff) base += XP.BASE_PER_TRADE
+  return base
+    + windowBonus(trades, DAILY_QUESTS, dayKey, XP.DAILY_QUEST_BONUS, cutoff)
+    + windowBonus(trades, WEEKLY_QUESTS, weekKey, XP.WEEKLY_QUEST_BONUS, cutoff)
+}

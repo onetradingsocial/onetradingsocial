@@ -3,6 +3,8 @@ import {
   XP, xpForLevel, levelFromXp,
   DAILY_QUESTS, WEEKLY_QUESTS, utcDayStart, utcWeekStart, dayKey, weekKey,
   dailyQuestProgress, weeklyQuestProgress, type XpTrade,
+  closedCount, totalXpFromTrades, windowXp, windowCutoff,
+  historicalDailyBonus, historicalWeeklyBonus,
 } from '@/lib/xp'
 
 describe('xpForLevel', () => {
@@ -76,5 +78,39 @@ describe('quest progress (current window)', () => {
   it('exposes quest definitions as data', () => {
     expect(DAILY_QUESTS.map((q) => q.id)).toEqual(['log_trade', 'close_trade'])
     expect(WEEKLY_QUESTS.map((q) => q.id)).toEqual(['log_10', 'close_5'])
+  })
+})
+
+describe('totals & bonuses', () => {
+  it('totalXpFromTrades = trades*BASE + daily + weekly bonuses', () => {
+    const trades = [mk('2026-06-22T01:00:00Z', '2026-06-22T02:00:00Z')]
+    expect(closedCount(trades)).toBe(1)
+    expect(historicalDailyBonus(trades)).toBe(60)
+    expect(historicalWeeklyBonus(trades)).toBe(0)
+    expect(totalXpFromTrades(trades)).toBe(110)
+  })
+  it('weekly bonus triggers once 10 created in a week', () => {
+    const trades = Array.from({ length: 10 }, (_, i) => mk(`2026-06-22T0${i % 8}:0${i % 6}:00Z`, null))
+    expect(historicalWeeklyBonus(trades)).toBe(150)
+  })
+})
+
+describe('windowXp', () => {
+  const now = Date.parse('2026-06-22T12:00:00Z')
+  it('all-period equals total', () => {
+    const trades = [mk('2026-06-22T01:00:00Z', '2026-06-22T02:00:00Z')]
+    expect(windowXp(trades, 'all', now)).toBe(totalXpFromTrades(trades))
+  })
+  it('week window excludes trades closed before the cutoff', () => {
+    const trades = [
+      mk('2026-06-21T00:00:00Z', '2026-06-21T01:00:00Z'),
+      mk('2026-05-01T00:00:00Z', '2026-05-01T01:00:00Z'),
+    ]
+    expect(windowXp(trades, 'week', now)).toBe(110)
+  })
+  it('windowCutoff: week=now-7d, month=now-30d, all=null', () => {
+    expect(windowCutoff('all', now)).toBeNull()
+    expect(windowCutoff('week', now)).toBe(now - 7 * 864e5)
+    expect(windowCutoff('month', now)).toBe(now - 30 * 864e5)
   })
 })
