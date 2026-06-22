@@ -21,6 +21,7 @@ export default async function AchievementsPage() {
       </div></header>
 
       <XpHero level={xp.level} totalXp={xp.totalXp} questStreak={xp.questStreak} />
+      <p className="faint mt-3" style={{ fontSize: 13 }}>📚 {xp.lessonsCompleted} lesson{xp.lessonsCompleted === 1 ? '' : 's'} completed · <a href="/app/learn" className="ts-link-sm">Learn</a></p>
 
       <div className="ach-quest-cols mt-6">
         <QuestList title="Daily quests" quests={xp.daily} reward={XP.DAILY_QUEST_BONUS} />
