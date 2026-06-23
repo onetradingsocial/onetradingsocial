@@ -67,8 +67,9 @@ export default async function AnalyticsPage() {
       <Section title="Ops">
         <div style={grid2}>
           <Stat label="Feedback total" value={d.ops.totalFeedback} />
-          <Stat label="Open feedback" value={d.ops.openFeedback} />
-          <Stat label="Resolved feedback" value={d.ops.closedFeedback} />
+          <Stat label="Open" value={d.ops.openFeedback} />
+          <Stat label="Triaged" value={d.ops.triagedFeedback} />
+          <Stat label="Resolved" value={d.ops.closedFeedback} />
         </div>
         <TrendBars title="Feedback / week" data={d.ops.feedbackPerWeek} />
       </Section>

@@ -100,7 +100,7 @@ export type AnalyticsDashboard = {
     topCourses: { courseTitle: string; count: number }[]
     publishedLessons: number; leaderboardParticipants: number
   }
-  ops: { totalFeedback: number; openFeedback: number; closedFeedback: number; feedbackPerWeek: WeekBucket[] }
+  ops: { totalFeedback: number; openFeedback: number; triagedFeedback: number; closedFeedback: number; feedbackPerWeek: WeekBucket[] }
 }
 
 export function buildDashboard(input: AnalyticsInput, now: Date): AnalyticsDashboard {
@@ -109,6 +109,8 @@ export function buildDashboard(input: AnalyticsInput, now: Date): AnalyticsDashb
   const activitySets = [input.trades, input.posts, input.comments, input.likes, input.completions]
   const social = [...input.likes, ...input.comments]
   const openFeedback = input.feedback.filter((f) => f.status === 'open').length
+  const triagedFeedback = input.feedback.filter((f) => f.status === 'triaged').length
+  const closedFeedback = input.feedback.filter((f) => f.status === 'closed').length
   return {
     growth: {
       totalUsers: input.profiles.length,
@@ -136,7 +138,8 @@ export function buildDashboard(input: AnalyticsInput, now: Date): AnalyticsDashb
     ops: {
       totalFeedback: input.feedback.length,
       openFeedback,
-      closedFeedback: input.feedback.length - openFeedback,
+      triagedFeedback,
+      closedFeedback,
       feedbackPerWeek: bucketByWeek(input.feedback.map((f) => ({ createdAt: f.createdAt })), now),
     },
   }

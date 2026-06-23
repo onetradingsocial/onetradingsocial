@@ -124,6 +124,7 @@ describe('buildDashboard', () => {
     expect(d.content.leaderboardParticipants).toBe(2) // a, b
     expect(d.ops.totalFeedback).toBe(2)
     expect(d.ops.openFeedback).toBe(1)
-    expect(d.ops.closedFeedback).toBe(1)
+    expect(d.ops.triagedFeedback).toBe(1)
+    expect(d.ops.closedFeedback).toBe(0)
   })
 })
