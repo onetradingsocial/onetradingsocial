@@ -81,7 +81,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
     if (chart && res.tradeId) {
       const ct = chart.type === 'image/png' ? 'image/png' : 'image/jpeg'
       const supabase = createClient()
-      const signed = await fetch(`/app/api/trade-chart-url?tradeId=${res.tradeId}&ct=${encodeURIComponent(ct)}`).then((r) => r.json())
+      const signed = await fetch(`/api/trade-chart-url?tradeId=${res.tradeId}&ct=${encodeURIComponent(ct)}`).then((r) => r.json())
       if (signed?.path && signed?.token) {
         await supabase.storage.from(BUCKET).uploadToSignedUrl(signed.path, signed.token, chart, { upsert: true })
         await saveTradeChartUrl(res.tradeId, signed.publicUrl)

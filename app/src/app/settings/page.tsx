@@ -43,7 +43,7 @@ export default async function SettingsPage() {
       <section className="ts-card mt-5">
         <h2 className="ts-h2">Session</h2>
         <p className="ts-sub mb-4">Sign out of TradingSocial on this device.</p>
-        <form action="/app/auth/signout" method="post">
+        <form action="/auth/signout" method="post">
           <button className="btn btn-ghost">Log out</button>
         </form>
       </section>

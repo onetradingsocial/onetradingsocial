@@ -13,7 +13,7 @@ const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['500', '600'], variab
 export const metadata: Metadata = {
   title: 'TradingSocial',
   description: 'Track. Prove. Improve your trading.',
-  icons: { icon: '/app/favicon.png' },
+  icons: { icon: '/favicon.png' },
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

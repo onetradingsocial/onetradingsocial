@@ -7,14 +7,14 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
 
   if (!code) {
-    return NextResponse.redirect(`${base}/app/login?error=oauth`)
+    return NextResponse.redirect(`${base}/login?error=oauth`)
   }
 
   const supabase = await createClient()
   const { error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) {
-    return NextResponse.redirect(`${base}/app/login?error=oauth`)
+    return NextResponse.redirect(`${base}/login?error=oauth`)
   }
   // New Google users have onboarding_completed=false; middleware sends them to onboarding.
-  return NextResponse.redirect(`${base}/app`)
+  return NextResponse.redirect(`${base}/`)
 }

@@ -40,7 +40,7 @@ export function PostComposer() {
         const urls: string[] = []
         for (let i = 0; i < images.length; i++) {
           const f = images[i]; const ct = f.type === 'image/png' ? 'image/png' : 'image/jpeg'
-          const signed = await fetch(`/app/api/post-image-url?postId=${res.postId}&idx=${i}&ct=${encodeURIComponent(ct)}`).then((r) => r.json())
+          const signed = await fetch(`/api/post-image-url?postId=${res.postId}&idx=${i}&ct=${encodeURIComponent(ct)}`).then((r) => r.json())
           if (signed?.path && signed?.token) {
             await supabase.storage.from(BUCKET).uploadToSignedUrl(signed.path, signed.token, f, { upsert: true })
             urls.push(signed.publicUrl)

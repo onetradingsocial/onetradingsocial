@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './tests/e2e',
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000/app/login',
+    url: 'http://localhost:3000/login',
     reuseExistingServer: !process.env.CI,
   },
   use: { baseURL: 'http://localhost:3000' },
