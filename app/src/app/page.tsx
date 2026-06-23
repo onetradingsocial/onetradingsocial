@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { assembleFeed, tally } from '@/lib/feed'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { type FeedItem, type Attachment } from './feed/_components/PostCard'
@@ -23,31 +23,50 @@ type RawPost = { id: string; body: string; created_at: string; author_id: string
 
 export default async function Home() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles').select('username, display_name').eq('id', user.id).single()
-  const name = profile?.display_name || profile?.username || 'trader'
-
-  // Leaderboard data (shared helper): week board for rail/race, all-time for the viewer's rank.
-  const [weekBoard, allTimeBoard] = await Promise.all([
+  // Stage A — everything keyed only on the viewer. These are mutually
+  // independent, so run them as one parallel batch rather than a serial
+  // waterfall of remote round-trips. (week board: rail/race; all-time: viewer rank.)
+  const [
+    { data: profile },
+    weekBoard,
+    allTimeBoard,
+    xp,
+    { data: follows },
+    { data: ownTradeRows },
+  ] = await Promise.all([
+    supabase.from('profiles').select('username, display_name').eq('id', user.id).single(),
     getPerformanceRanking(supabase, 'week'),
     getPerformanceRanking(supabase, 'all'),
+    getUserXp(supabase, user.id),
+    supabase.from('follows').select('following_id').eq('follower_id', user.id),
+    supabase.from('trades')
+      .select('id, instrument, market, setup_type, status, outcome, r_multiple, pnl_amount, traded_at')
+      .eq('user_id', user.id).order('traded_at', { ascending: false }),
   ])
+  const name = profile?.display_name || profile?.username || 'trader'
   const viewerRank = allTimeBoard.find((e) => e.userId === user.id)?.rank ?? null
   const leaders = weekBoard.slice(0, 5).map((e) => ({ rank: e.rank, username: e.username, display_name: e.displayName, avatar_url: e.avatarUrl, pnl: e.pnl }))
-  const xp = await getUserXp(supabase, user.id)
-
-  // Follows
-  const { data: follows } = await supabase.from('follows').select('following_id').eq('follower_id', user.id)
   const followingIds = (follows ?? []).map((f) => f.following_id)
   const followingSet = new Set(followingIds)
   const authorIds = [user.id, ...followingIds]
 
-  // Posts (followed + self, then fallback)
-  const { data: primaryRaw } = await supabase.from('posts').select(SELECT)
-    .in('author_id', authorIds).order('created_at', { ascending: false }).limit(30)
+  // Stage B — posts and suggested-traders both depend only on the follow graph,
+  // so fetch them together.
+  const suggestedPromise = followingIds.length < 5
+    ? supabase.from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .eq('is_public', true).eq('onboarding_completed', true).neq('id', user.id)
+        .order('created_at', { ascending: false }).limit(8)
+    : Promise.resolve({ data: [] as RawAuthor[] })
+  const [{ data: primaryRaw }, { data: sug }] = await Promise.all([
+    supabase.from('posts').select(SELECT)
+      .in('author_id', authorIds).order('created_at', { ascending: false }).limit(30),
+    suggestedPromise,
+  ])
+  const suggested = (sug ?? []).filter((s) => !followingSet.has(s.id)).slice(0, 5)
   let fallbackRaw: RawPost[] = []
   if ((primaryRaw?.length ?? 0) < 5) {
     const { data } = await supabase.from('posts').select(SELECT).order('created_at', { ascending: false }).limit(30)
@@ -108,11 +127,8 @@ export default async function Home() {
     return { ...base, fromFollowed: author.id === user.id || followingSet.has(author.id) }
   })
 
-  // Performance (own trades)
-  const { data: tradeRows } = await supabase.from('trades')
-    .select('id, instrument, market, setup_type, status, outcome, r_multiple, pnl_amount, traded_at')
-    .eq('user_id', user.id).order('traded_at', { ascending: false })
-  const trades = tradeRows ?? []
+  // Performance (own trades) — fetched in Stage A.
+  const trades = ownTradeRows ?? []
   const recentTrades = trades.slice(0, 4).map((t) => ({
     id: t.id, instrument: t.instrument, market: t.market,
     label: t.setup_type || (t.status === 'open' ? 'Open position' : 'Closed trade'),
@@ -126,16 +142,6 @@ export default async function Home() {
   const spark = trades.filter((t) => t.status === 'closed')
     .sort((a, b) => a.traded_at.localeCompare(b.traded_at))
     .map((t) => { eq += t.pnl_amount ?? 0; return eq })
-
-  // Suggested traders
-  let suggested: RawAuthor[] = []
-  if (followingIds.length < 5) {
-    const { data: sug } = await supabase.from('profiles')
-      .select('id, username, display_name, avatar_url')
-      .eq('is_public', true).eq('onboarding_completed', true).neq('id', user.id)
-      .order('created_at', { ascending: false }).limit(8)
-    suggested = (sug ?? []).filter((s) => !followingSet.has(s.id)).slice(0, 5)
-  }
 
   return (
     <main className="ts-page ts-feed">
