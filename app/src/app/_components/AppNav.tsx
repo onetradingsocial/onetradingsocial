@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/server/admin'
 import { Brand } from './Brand'
 import { NewTradeButton } from './NewTradeButton'
 import { NavLinks } from './NavLinks'
@@ -30,6 +31,9 @@ export async function AppNav() {
               <button type="button" className="ts-nav-icon" title="Notifications — soon" aria-label="Notifications">🔔</button>
               <button type="button" className="ts-nav-icon" title="Messages — soon" aria-label="Messages">✉</button>
               <NewTradeButton className="btn btn-primary btn-sm" />
+              {isAdmin(user) && (
+                <Link href="/admin" className="ts-nav-icon" title="Admin" aria-label="Admin">🛡</Link>
+              )}
               <Link href="/settings" className="ts-nav-icon" title="Settings" aria-label="Settings">⚙</Link>
               {profile?.username && (
                 <Link href={`/${profile.username}`} className="ts-nav-avatar" aria-label="Your profile">
