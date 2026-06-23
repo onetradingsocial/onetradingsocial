@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { RESERVED_USERNAMES } from '@/lib/username'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { StatsBar } from '@/app/journal/_components/StatsBar'
@@ -36,7 +36,7 @@ export default async function ProfilePage({
     .from('profiles').select('id, account_currency').eq('username', profile.username).single()
 
   const profileId = idRow?.id
-  const { data: { user: viewer } } = await supabase.auth.getUser()
+  const viewer = await getSessionUser(supabase)
   let followerCount = 0, followingCount = 0, isFollowing = false
   if (profileId) {
     const fc = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profileId)

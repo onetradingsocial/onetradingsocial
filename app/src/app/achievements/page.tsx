@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { getUserXp } from '@/lib/server/xp'
 import { XP } from '@/lib/xp'
 import { XpHero } from './_components/XpHero'
@@ -9,7 +9,7 @@ import { BadgeGrid } from './_components/BadgeGrid'
 
 export default async function AchievementsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
   const xp = await getUserXp(supabase, user.id)

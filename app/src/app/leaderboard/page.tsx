@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getXpRanking, getUserXp } from '@/lib/server/xp'
 import type { Period as XpPeriod } from '@/lib/xp'
@@ -24,7 +24,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   const sort = (['pnl', 'winRate', 'avgR', 'trades'].includes(sp.sort ?? '') ? sp.sort : 'pnl') as PerfSort
 
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
   return (

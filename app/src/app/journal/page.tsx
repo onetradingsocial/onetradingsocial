@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { monthlyPnl, equityCurve, assetDistribution, calendarCells, periodSums, MONTHS, type JTrade } from '@/lib/journal-stats'
 import { JournalHero } from './_components/JournalHero'
@@ -13,7 +13,7 @@ import { RecentTrades } from './_components/RecentTrades'
 
 export default async function JournalPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
   const { data: all } = await supabase

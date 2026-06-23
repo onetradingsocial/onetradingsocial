@@ -4,7 +4,7 @@ import { Space_Grotesk, Manrope, JetBrains_Mono } from 'next/font/google'
 import { AppNav } from './_components/AppNav'
 import { TradeModalProvider } from './_components/TradeModalProvider'
 import { HelpWidget } from './_components/HelpWidget'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 
 const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display' })
 const body = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body' })
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   let config: { accountBalance: number; defaultPublic: boolean } | null = null
   if (user) {
     const { data } = await supabase

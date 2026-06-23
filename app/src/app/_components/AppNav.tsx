@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/server/admin'
 import { Brand } from './Brand'
 import { NewTradeButton } from './NewTradeButton'
@@ -7,7 +7,7 @@ import { NavLinks } from './NavLinks'
 
 export async function AppNav() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
 
   let profile: { username: string; avatar_url: string | null } | null = null
   if (user) {

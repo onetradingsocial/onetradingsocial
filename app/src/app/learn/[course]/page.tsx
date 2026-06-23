@@ -1,12 +1,12 @@
 import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { getCourseWithLessons } from '@/lib/server/learning'
 
 export default async function CoursePage({ params }: { params: Promise<{ course: string }> }) {
   const { course: slug } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
   const course = await getCourseWithLessons(supabase, slug, user.id)
   if (!course) notFound()
