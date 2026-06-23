@@ -1,2 +1,6 @@
 __pycache__/
 .claude/
+.agents/
+.claire/
+.mcp.json
+skills-lock.json
