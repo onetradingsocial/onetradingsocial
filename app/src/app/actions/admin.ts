@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
-import { validateSlug, validateNonNegInt } from '@/lib/admin'
+import { validateSlug, validateNonNegInt, validateQuizOptions } from '@/lib/admin'
 import { sanitizeLessonHtml } from '@/lib/sanitizeHtml'
 
 const FEEDBACK_STATUSES = ['open', 'triaged', 'closed'] as const
@@ -108,6 +108,31 @@ export async function setLessonPublished(id: string, published: boolean): Promis
   const svc = createServiceClient()
   const { error } = await svc.from('lessons').update({ published }).eq('id', id)
   if (error) return { error: 'Update failed.' }
+  revalidatePath('/learn')
+  return {}
+}
+
+export type QuestionInput = { prompt: string; options: { label: string; isCorrect: boolean }[] }
+
+export async function setLessonQuiz(lessonId: string, questions: QuestionInput[]): Promise<{ error?: string }> {
+  await requireAdmin()
+  for (const q of questions) {
+    if (!q.prompt.trim()) return { error: 'Every question needs a prompt.' }
+    const e = validateQuizOptions(q.options)
+    if (e) return { error: e }
+  }
+  const svc = createServiceClient()
+  // Replace the whole quiz: delete existing questions (cascades to options), re-insert.
+  await svc.from('quiz_questions').delete().eq('lesson_id', lessonId)
+  for (let qi = 0; qi < questions.length; qi++) {
+    const q = questions[qi]
+    const { data: inserted, error } = await svc.from('quiz_questions')
+      .insert({ lesson_id: lessonId, prompt: q.prompt, ord: qi }).select('id').single()
+    if (error || !inserted) return { error: 'Save failed.' }
+    const optRows = q.options.map((o, oi) => ({ question_id: inserted.id, label: o.label, is_correct: o.isCorrect, ord: oi }))
+    const { error: optErr } = await svc.from('quiz_options').insert(optRows)
+    if (optErr) return { error: 'Save failed.' }
+  }
   revalidatePath('/learn')
   return {}
 }
