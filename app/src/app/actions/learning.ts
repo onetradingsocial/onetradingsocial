@@ -13,8 +13,8 @@ export async function submitQuiz(lessonId: string, answers: QuizAnswers): Promis
   if (!user) return { passed: false, wrongQuestionIds: [], xpAwarded: 0, error: 'Not authenticated.' }
 
   const svc = createServiceClient()
-  const { data: lesson } = await svc.from('lessons').select('id, xp_reward').eq('id', lessonId).maybeSingle()
-  if (!lesson) return { passed: false, wrongQuestionIds: [], xpAwarded: 0, error: 'Lesson not found.' }
+  const { data: lesson } = await svc.from('lessons').select('id, xp_reward, published').eq('id', lessonId).maybeSingle()
+  if (!lesson || !lesson.published) return { passed: false, wrongQuestionIds: [], xpAwarded: 0, error: 'Lesson not found.' }
 
   const { data: questions } = await svc.from('quiz_questions')
     .select('id, quiz_options(id, is_correct)').eq('lesson_id', lessonId)
