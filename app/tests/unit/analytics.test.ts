@@ -63,3 +63,67 @@ describe('daysAgo', () => {
     expect(daysAgo(new Date('2026-06-24T00:00:00Z'), 7).toISOString()).toBe('2026-06-17T00:00:00.000Z')
   })
 })
+
+import { distinctActiveUsers, topCourseCompletions, buildDashboard } from '@/lib/analytics'
+import type { AnalyticsInput } from '@/lib/analytics'
+
+describe('distinctActiveUsers', () => {
+  it('unions distinct userIds across sets within the window', () => {
+    const since = iso('2026-06-20')
+    const trades = [{ createdAt: '2026-06-23T00:00:00Z', userId: 'a' }, { createdAt: '2026-06-23T00:00:00Z', userId: 'b' }]
+    const posts = [{ createdAt: '2026-06-23T00:00:00Z', userId: 'a' }, { createdAt: '2026-06-19T00:00:00Z', userId: 'c' }]
+    expect(distinctActiveUsers([trades, posts], since)).toBe(2) // a, b (c is before cutoff)
+  })
+  it('ignores rows without a userId', () => {
+    expect(distinctActiveUsers([[{ createdAt: '2026-06-23T00:00:00Z' }]], iso('2026-06-20'))).toBe(0)
+  })
+})
+
+describe('topCourseCompletions', () => {
+  it('counts per course and sorts desc, capped to limit', () => {
+    const rows = [
+      { courseTitle: 'Risk' }, { courseTitle: 'Risk' }, { courseTitle: 'Risk' },
+      { courseTitle: 'Foundations' }, { courseTitle: 'Foundations' },
+      { courseTitle: 'Psychology' },
+    ]
+    expect(topCourseCompletions(rows, 2)).toEqual([
+      { courseTitle: 'Risk', count: 3 },
+      { courseTitle: 'Foundations', count: 2 },
+    ])
+  })
+})
+
+describe('buildDashboard', () => {
+  const now = new Date('2026-06-24T12:00:00Z')
+  const base: AnalyticsInput = {
+    profiles: [{ createdAt: '2026-06-23T00:00:00Z' }, { createdAt: '2026-01-01T00:00:00Z' }],
+    trades: [{ createdAt: '2026-06-23T00:00:00Z', userId: 'a' }],
+    closedPublicTrades: [{ createdAt: '2026-06-23T00:00:00Z', userId: 'a' }, { createdAt: '2026-06-23T00:00:00Z', userId: 'b' }],
+    posts: [{ createdAt: '2026-06-23T00:00:00Z', userId: 'b' }],
+    comments: [],
+    likes: [{ createdAt: '2026-06-23T00:00:00Z', userId: 'a' }],
+    completions: [{ createdAt: '2026-06-23T00:00:00Z', userId: 'a' }],
+    completionsByCourse: [{ courseTitle: 'Risk' }],
+    publishedLessons: 4,
+    feedback: [
+      { createdAt: '2026-06-23T00:00:00Z', status: 'open' },
+      { createdAt: '2026-06-23T00:00:00Z', status: 'triaged' },
+    ],
+  }
+
+  it('rolls up growth, engagement, content, and ops', () => {
+    const d = buildDashboard(base, now)
+    expect(d.growth.totalUsers).toBe(2)
+    expect(d.growth.new7d).toBe(1)
+    expect(d.growth.signupsPerWeek).toHaveLength(12)
+    expect(d.engagement.active7d).toBe(2) // a (trades/likes/completions) + b (posts)
+    expect(d.engagement.totalTrades).toBe(1)
+    expect(d.content.totalCompletions).toBe(1)
+    expect(d.content.topCourses).toEqual([{ courseTitle: 'Risk', count: 1 }])
+    expect(d.content.publishedLessons).toBe(4)
+    expect(d.content.leaderboardParticipants).toBe(2) // a, b
+    expect(d.ops.totalFeedback).toBe(2)
+    expect(d.ops.openFeedback).toBe(1)
+    expect(d.ops.closedFeedback).toBe(1)
+  })
+})

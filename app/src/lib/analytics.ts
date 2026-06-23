@@ -50,3 +50,94 @@ export function countSince(rows: DatedRow[], since: Date): number {
   }
   return c
 }
+
+export function distinctActiveUsers(rowSets: DatedRow[][], since: Date): number {
+  const s = since.getTime()
+  const set = new Set<string>()
+  for (const rows of rowSets) {
+    for (const r of rows) {
+      if (!r.userId) continue
+      const t = new Date(r.createdAt).getTime()
+      if (!Number.isNaN(t) && t >= s) set.add(r.userId)
+    }
+  }
+  return set.size
+}
+
+export function topCourseCompletions(
+  rows: { courseTitle: string }[],
+  limit = 5,
+): { courseTitle: string; count: number }[] {
+  const m = new Map<string, number>()
+  for (const r of rows) m.set(r.courseTitle, (m.get(r.courseTitle) ?? 0) + 1)
+  return [...m.entries()]
+    .map(([courseTitle, count]) => ({ courseTitle, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+}
+
+export type AnalyticsInput = {
+  profiles: DatedRow[]
+  trades: DatedRow[]
+  closedPublicTrades: DatedRow[]
+  posts: DatedRow[]
+  comments: DatedRow[]
+  likes: DatedRow[]
+  completions: DatedRow[]
+  completionsByCourse: { courseTitle: string }[]
+  publishedLessons: number
+  feedback: { createdAt: string; status: string }[]
+}
+
+export type AnalyticsDashboard = {
+  growth: { totalUsers: number; new7d: number; new30d: number; signupsPerWeek: WeekBucket[] }
+  engagement: {
+    active7d: number; active30d: number; totalTrades: number
+    tradesPerWeek: WeekBucket[]; postsPerWeek: WeekBucket[]; socialPerWeek: WeekBucket[]
+  }
+  content: {
+    totalCompletions: number; completionsPerWeek: WeekBucket[]
+    topCourses: { courseTitle: string; count: number }[]
+    publishedLessons: number; leaderboardParticipants: number
+  }
+  ops: { totalFeedback: number; openFeedback: number; closedFeedback: number; feedbackPerWeek: WeekBucket[] }
+}
+
+export function buildDashboard(input: AnalyticsInput, now: Date): AnalyticsDashboard {
+  const d7 = daysAgo(now, 7)
+  const d30 = daysAgo(now, 30)
+  const activitySets = [input.trades, input.posts, input.comments, input.likes, input.completions]
+  const social = [...input.likes, ...input.comments]
+  const openFeedback = input.feedback.filter((f) => f.status === 'open').length
+  return {
+    growth: {
+      totalUsers: input.profiles.length,
+      new7d: countSince(input.profiles, d7),
+      new30d: countSince(input.profiles, d30),
+      signupsPerWeek: bucketByWeek(input.profiles, now),
+    },
+    engagement: {
+      active7d: distinctActiveUsers(activitySets, d7),
+      active30d: distinctActiveUsers(activitySets, d30),
+      totalTrades: input.trades.length,
+      tradesPerWeek: bucketByWeek(input.trades, now),
+      postsPerWeek: bucketByWeek(input.posts, now),
+      socialPerWeek: bucketByWeek(social, now),
+    },
+    content: {
+      totalCompletions: input.completions.length,
+      completionsPerWeek: bucketByWeek(input.completions, now),
+      topCourses: topCourseCompletions(input.completionsByCourse),
+      publishedLessons: input.publishedLessons,
+      leaderboardParticipants: new Set(
+        input.closedPublicTrades.map((t) => t.userId).filter((u): u is string => !!u),
+      ).size,
+    },
+    ops: {
+      totalFeedback: input.feedback.length,
+      openFeedback,
+      closedFeedback: input.feedback.length - openFeedback,
+      feedbackPerWeek: bucketByWeek(input.feedback.map((f) => ({ createdAt: f.createdAt })), now),
+    },
+  }
+}
