@@ -905,3 +905,15 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .help-sent { display: flex; flex-direction: column; gap: 4px; padding: 6px 2px; }
 .help-sent strong { font-family: var(--display); font-size: 16px; color: var(--text); }
 .help-sent span { color: var(--dim); font-size: 14px; }
+
+/* --- Route loading skeletons (shown instantly on page switch) --- */
+@keyframes ts-skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.ts-skel {
+  background: linear-gradient(90deg, var(--bg-2) 0%, var(--bg-3) 50%, var(--bg-2) 100%);
+  border-radius: 10px;
+  animation: ts-skel-pulse 1.1s ease-in-out infinite;
+}
+.ts-skel-card { border: 1px solid var(--border); border-radius: 16px; padding: 18px; display: grid; gap: 12px; }
+.ts-skel-line { height: 14px; }
+.ts-skel-stack { display: grid; gap: 14px; }
+@media (prefers-reduced-motion: reduce) { .ts-skel { animation: none; } }
