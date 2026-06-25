@@ -62,7 +62,7 @@ export default async function JournalPage() {
       )}
 
       <div className="mt-5">
-        <StatCards metrics={metrics} allTime={sums.allTime} monthNet={sums.monthNet} monthLabel={monthLabel} weekTrades={sums.weekTrades} />
+        <StatCards metrics={metrics} allTime={sums.allTime} monthNet={sums.monthNet} monthLabel={monthLabel} weekTrades={sums.weekTrades} advanced={can(tier, 'advanced_stats')} />
       </div>
 
       <div className="ts-panels mt-5">
