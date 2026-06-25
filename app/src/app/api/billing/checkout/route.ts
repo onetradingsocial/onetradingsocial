@@ -33,7 +33,12 @@ export async function POST(request: NextRequest) {
       metadata: { user_id: user.id },
     })
     customerId = customer.id
-    await supabase.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
+    const { error: persistError } = await supabase
+      .from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
+    if (persistError) {
+      console.error('[billing checkout] failed to persist stripe_customer_id', persistError)
+      return NextResponse.json({ error: 'could not save customer' }, { status: 500 })
+    }
   }
 
   const session = await stripe.checkout.sessions.create({
