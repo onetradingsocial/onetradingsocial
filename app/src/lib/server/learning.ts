@@ -2,10 +2,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/service'
 import { learningTotalXp, type LearningCompletion } from '@/lib/learning'
 
-export type CourseCard = { id: string; slug: string; title: string; summary: string | null; difficulty: string | null; lessonCount: number; completedCount: number }
+export type CourseCard = { id: string; slug: string; title: string; summary: string | null; difficulty: string | null; lessonCount: number; completedCount: number; minTier: string }
 
 export async function getCourses(supabase: SupabaseClient, userId: string): Promise<CourseCard[]> {
-  const { data: courses } = await supabase.from('courses').select('id, slug, title, summary, difficulty, ord').order('ord')
+  const { data: courses } = await supabase.from('courses').select('id, slug, title, summary, difficulty, ord, min_tier').order('ord')
   const { data: lessons } = await supabase.from('lessons').select('id, course_id')
   const { data: comps } = await supabase.from('lesson_completions').select('lesson_id').eq('user_id', userId)
   const lessonsByCourse = new Map<string, string[]>()
@@ -14,7 +14,7 @@ export async function getCourses(supabase: SupabaseClient, userId: string): Prom
   return (courses ?? []).map((c) => {
     const ids = lessonsByCourse.get(c.id) ?? []
     return { id: c.id, slug: c.slug, title: c.title, summary: c.summary, difficulty: c.difficulty,
-      lessonCount: ids.length, completedCount: ids.filter((id) => done.has(id)).length }
+      lessonCount: ids.length, completedCount: ids.filter((id) => done.has(id)).length, minTier: c.min_tier ?? 'free' }
   })
 }
 
@@ -33,13 +33,13 @@ export async function getCourseWithLessons(supabase: SupabaseClient, courseSlug:
 }
 
 export type LessonView = {
-  id: string; title: string; body: string; xpReward: number; completed: boolean; courseTitle: string
+  id: string; title: string; body: string; xpReward: number; completed: boolean; courseTitle: string; minTier: string
   questions: { id: string; prompt: string; options: { id: string; label: string }[] }[]
 }
 
 // Quiz comes from the SERVICE client and strips is_correct before returning.
 export async function getLessonForViewer(supabase: SupabaseClient, courseSlug: string, lessonSlug: string, userId: string): Promise<LessonView | null> {
-  const { data: course } = await supabase.from('courses').select('id, title').eq('slug', courseSlug).maybeSingle()
+  const { data: course } = await supabase.from('courses').select('id, title, min_tier').eq('slug', courseSlug).maybeSingle()
   if (!course) return null
   const { data: lesson } = await supabase.from('lessons')
     .select('id, title, body, xp_reward').eq('course_id', course.id).eq('slug', lessonSlug).maybeSingle()
@@ -54,7 +54,7 @@ export async function getLessonForViewer(supabase: SupabaseClient, courseSlug: s
     options: ((q.quiz_options as { id: string; label: string; ord: number }[]) ?? [])
       .sort((a, b) => a.ord - b.ord).map((o) => ({ id: o.id, label: o.label })),
   }))
-  return { id: lesson.id, title: lesson.title, body: lesson.body, xpReward: lesson.xp_reward, completed: !!comp, courseTitle: course.title, questions: mapped }
+  return { id: lesson.id, title: lesson.title, body: lesson.body, xpReward: lesson.xp_reward, completed: !!comp, courseTitle: course.title, minTier: course.min_tier ?? 'free', questions: mapped }
 }
 
 export async function getUserLearning(supabase: SupabaseClient, userId: string): Promise<{ lessonsCompleted: number; learningXp: number }> {

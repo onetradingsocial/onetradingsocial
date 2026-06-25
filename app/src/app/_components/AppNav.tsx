@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/server/admin'
+import { getTier } from '@/lib/server/entitlements'
+import { can } from '@/lib/entitlements'
 import { Brand } from './Brand'
 import { NewTradeButton } from './NewTradeButton'
 import { NavLinks } from './NavLinks'
@@ -10,9 +12,12 @@ export async function AppNav() {
   const user = await getSessionUser(supabase)
 
   let profile: { username: string; avatar_url: string | null } | null = null
+  let isPro = false
   if (user) {
     const { data } = await supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single()
     profile = data
+    const tier = await getTier(supabase, user.id)
+    isPro = can(tier, 'pro_badge')
   }
 
   return (
@@ -31,6 +36,9 @@ export async function AppNav() {
               <button type="button" className="ts-nav-icon" title="Notifications — soon" aria-label="Notifications">🔔</button>
               <button type="button" className="ts-nav-icon" title="Messages — soon" aria-label="Messages">✉</button>
               <NewTradeButton className="btn btn-primary btn-sm" />
+              {isPro
+                ? <span className="ts-pro-badge">PRO</span>
+                : <Link href="/settings/billing" className="btn btn-sm" style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px' }}>Upgrade</Link>}
               {isAdmin(user) && (
                 <Link href="/admin" className="ts-nav-icon" title="Admin" aria-label="Admin">🛡</Link>
               )}

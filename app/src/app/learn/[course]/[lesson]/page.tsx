@@ -2,6 +2,8 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { getLessonForViewer } from '@/lib/server/learning'
+import { getTier } from '@/lib/server/entitlements'
+import { TIER_RANK, type Tier } from '@/lib/entitlements'
 import { Quiz } from './Quiz'
 
 export default async function LessonPage({ params }: { params: Promise<{ course: string; lesson: string }> }) {
@@ -9,8 +11,14 @@ export default async function LessonPage({ params }: { params: Promise<{ course:
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
-  const view = await getLessonForViewer(supabase, course, lesson, user.id)
+  const [view, tier] = await Promise.all([
+    getLessonForViewer(supabase, course, lesson, user.id),
+    getTier(supabase, user.id),
+  ])
   if (!view) notFound()
+  if (TIER_RANK[tier] < TIER_RANK[(view.minTier as Tier) ?? 'free']) {
+    redirect('/settings/billing')
+  }
 
   return (
     <main className="ts-page" style={{ maxWidth: 720 }}>

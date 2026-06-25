@@ -17,7 +17,7 @@ export function CourseEditForm({ id, initial }: { id: string; initial: CourseInp
           const res = await updateCourse(id, {
             slug: String(f.get('slug') ?? ''), title: String(f.get('title') ?? ''),
             summary: String(f.get('summary') ?? ''), difficulty: String(f.get('difficulty') ?? ''),
-            ord: Number(f.get('ord') ?? 0),
+            ord: Number(f.get('ord') ?? 0), minTier: String(f.get('minTier') ?? 'free'),
           })
           if (res.error) setError(res.error); else setSaved(true)
         })
@@ -27,6 +27,14 @@ export function CourseEditForm({ id, initial }: { id: string; initial: CourseInp
       <input name="summary" defaultValue={initial.summary} placeholder="Summary" />
       <input name="difficulty" defaultValue={initial.difficulty} placeholder="Difficulty" />
       <input name="ord" type="number" defaultValue={initial.ord} min={0} aria-label="Order" />
+      <label style={{ display: 'grid', gap: 4, fontSize: 13 }}>
+        Min tier
+        <select name="minTier" defaultValue={initial.minTier ?? 'free'}>
+          <option value="free">Free</option>
+          <option value="trader">Trader</option>
+          <option value="pro">Pro</option>
+        </select>
+      </label>
       {error && <span style={{ color: 'var(--danger, #e5484d)' }}>{error}</span>}
       {saved && <span className="faint">Saved.</span>}
       <button className="btn btn-primary btn-sm" disabled={pending} type="submit">Save course</button>

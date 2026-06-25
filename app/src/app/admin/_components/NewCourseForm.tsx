@@ -19,7 +19,7 @@ export function NewCourseForm() {
           const res = await createCourse({
             slug: String(f.get('slug') ?? ''), title: String(f.get('title') ?? ''),
             summary: String(f.get('summary') ?? ''), difficulty: String(f.get('difficulty') ?? ''),
-            ord: Number(f.get('ord') ?? 0),
+            ord: Number(f.get('ord') ?? 0), minTier: String(f.get('minTier') ?? 'free'),
           })
           if (res.error) setError(res.error)
           else if (res.id) router.push(`/admin/courses/${res.id}`)
@@ -32,6 +32,14 @@ export function NewCourseForm() {
       <input name="summary" placeholder="Summary" />
       <input name="difficulty" placeholder="beginner / intermediate / advanced" />
       <input name="ord" type="number" defaultValue={0} min={0} aria-label="Order" />
+      <label style={{ display: 'grid', gap: 4, fontSize: 13 }}>
+        Min tier
+        <select name="minTier" defaultValue="free">
+          <option value="free">Free</option>
+          <option value="trader">Trader</option>
+          <option value="pro">Pro</option>
+        </select>
+      </label>
       {error && <span style={{ color: 'var(--danger, #e5484d)' }}>{error}</span>}
       <button className="btn btn-primary btn-sm" disabled={pending} type="submit">Create</button>
     </form>

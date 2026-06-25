@@ -916,4 +916,15 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-skel-card { border: 1px solid var(--border); border-radius: 16px; padding: 18px; display: grid; gap: 12px; }
 .ts-skel-line { height: 14px; }
 .ts-skel-stack { display: grid; gap: 14px; }
+
+/* ---------- Billing toggle ---------- */
+.ts-billing-toggle { display: inline-flex; gap: 4px; background: var(--faintest); border-radius: 10px; padding: 4px; }
+.ts-billing-toggle button { border: 0; background: transparent; padding: 6px 14px; border-radius: 8px; font: inherit; color: var(--faint); cursor: pointer; }
+.ts-billing-toggle button.active { background: var(--card, #fff); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 @media (prefers-reduced-motion: reduce) { .ts-skel { animation: none; } }
+
+/* ---------- Billing gate ---------- */
+.ts-stat-locked { font-size: 13px; font-weight: 700; color: var(--violet-br); text-decoration: none; }
+
+/* ---------- Pro badge ---------- */
+.ts-pro-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; color: #fff; background: var(--brand-grad); }

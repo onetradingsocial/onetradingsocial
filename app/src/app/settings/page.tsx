@@ -41,6 +41,12 @@ export default async function SettingsPage() {
       </section>
 
       <section className="ts-card mt-5">
+        <h2 className="ts-h2">Billing & plan</h2>
+        <p className="ts-sub mb-4">View your plan, upgrade, or manage your subscription.</p>
+        <a className="btn btn-ghost" href="/settings/billing">Manage plan</a>
+      </section>
+
+      <section className="ts-card mt-5">
         <h2 className="ts-h2">Session</h2>
         <p className="ts-sub mb-4">Sign out of TradingSocial on this device.</p>
         <form action="/auth/signout" method="post">

@@ -1,12 +1,15 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { RESERVED_USERNAMES } from '@/lib/username'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { StatsBar } from '@/app/journal/_components/StatsBar'
 import { FollowButton } from '@/app/_components/FollowButton'
 import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getUserXp } from '@/lib/server/xp'
+import { getTier } from '@/lib/server/entitlements'
+import { can } from '@/lib/entitlements'
 
 export default async function ProfilePage({
   params,
@@ -78,6 +81,14 @@ export default async function ProfilePage({
     profileRank = board.find((e) => e.userId === profileId)?.rank ?? null
   }
 
+  // Pro badge: use service client so cross-viewer RLS doesn't hide the owner's subscription.
+  // Only the boolean is surfaced to the UI — no subscription detail is exposed.
+  let proBadge = false
+  if (profileId) {
+    const svc = createServiceClient()
+    proBadge = can(await getTier(svc, profileId), 'pro_badge')
+  }
+
   // Derived XP/level (single source of truth; static profiles.xp/level columns are ignored).
   // publicOnly: this is a cross-viewer surface — never count the owner's private trades.
   const profileXp = profileId ? await getUserXp(supabase, profileId, { publicOnly: true }) : null
@@ -91,7 +102,10 @@ export default async function ProfilePage({
             ? <img src={profile.avatar_url} alt="" className="ts-avatar" />
             : <div className="ts-avatar ts-avatar--ph">{initial}</div>}
           <div style={{ flex: 1 }}>
-            <h1 className="ts-h1">{name}</h1>
+            <h1 className="ts-h1" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {name}
+              {proBadge && <span className="ts-pro-badge">PRO</span>}
+            </h1>
             <p className="muted" style={{ fontWeight: 600 }}>@{profile.username}</p>
           </div>
           {viewer && !isSelf && profileId && <FollowButton targetId={profileId} initialFollowing={isFollowing} />}
