@@ -3,23 +3,23 @@ import { test, expect } from '@playwright/test'
 async function signUpAndOnboard(page: import('@playwright/test').Page) {
   const stamp = Date.now()
   const username = `j_${stamp}`
-  await page.goto('/app/signup')
+  await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `j_${stamp}@tradingsocial.io`)
   await page.fill('input[name="password"]', 'password123')
   await page.check('input[name="terms"]')
   await page.click('button:has-text("Join the Beta")')
-  await expect(page).toHaveURL(/\/app\/onboarding/)
+  await expect(page).toHaveURL(/\/onboarding/)
   await page.locator('label.ts-chip', { hasText: 'forex' }).click()
   await page.fill('input[name="goal"]', 'Be consistent')
   await page.click('button:has-text("Finish")')
-  await expect(page).toHaveURL(/\/app$/)
+  await expect(page).toHaveURL('/')
   return username
 }
 
 test('log a closed trade and see it in the journal with computed R', async ({ page }) => {
   await signUpAndOnboard(page)
-  await page.goto('/app/journal')
+  await page.goto('/journal')
   await page.locator('button:has-text("Log trade")').first().click()
 
   await page.fill('input[name="entry_price"]', '1.0856')
@@ -35,7 +35,7 @@ test('log a closed trade and see it in the journal with computed R', async ({ pa
 
 test('log an open trade then close it', async ({ page }) => {
   await signUpAndOnboard(page)
-  await page.goto('/app/journal')
+  await page.goto('/journal')
   await page.locator('button:has-text("Log trade")').first().click()
   await page.fill('input[name="entry_price"]', '1.1000')
   await page.fill('input[name="stop_price"]', '1.0950')

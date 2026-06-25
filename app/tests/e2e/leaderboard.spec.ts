@@ -3,34 +3,34 @@ import { test, expect, type Page } from '@playwright/test'
 async function signUpAndOnboard(page: Page, prefix: string) {
   const stamp = Date.now() + Math.floor(Math.random() * 1000)
   const username = `${prefix}_${stamp}`
-  await page.goto('/app/signup')
+  await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `${username}@tradingsocial.io`)
   await page.fill('input[name="password"]', 'password123')
   await page.check('input[name="terms"]')
   await page.click('button:has-text("Join the Beta")')
-  await expect(page).toHaveURL(/\/app\/onboarding/)
+  await expect(page).toHaveURL(/\/onboarding/)
   await page.locator('label.ts-chip', { hasText: 'forex' }).click()
   await page.fill('input[name="goal"]', 'Be consistent')
   await page.click('button:has-text("Finish")')
-  await expect(page).toHaveURL(/\/app$/)
+  await expect(page).toHaveURL('/')
   return username
 }
 
 async function logout(page: Page) {
-  await page.goto('/app/settings')
+  await page.goto('/settings')
   await page.click('button:has-text("Log out")')
-  await expect(page).toHaveURL(/\/app\/login/)
+  await expect(page).toHaveURL(/\/login/)
 }
 
 // Sets the account balance (so money P&L computes) then logs one public winning trade
 // risking `riskPercent`. With the same +R outcome, a larger balance => larger P&L.
 async function setupAndLogWin(page: Page, balance: string) {
-  await page.goto('/app/settings')
+  await page.goto('/settings')
   await page.fill('input[name="account_balance"]', balance)
   await page.click('button:has-text("Save account")')
 
-  await page.goto('/app/journal')
+  await page.goto('/journal')
   await page.locator('button:has-text("Log trade")').first().click()
   await page.fill('input[name="risk_percent"]', '1')
   await page.fill('input[name="entry_price"]', '1.0856')
@@ -49,7 +49,7 @@ test('two traders ranked by P&L on the leaderboard', async ({ page }) => {
   const userLow = await signUpAndOnboard(page, 'lb_lo')
   await setupAndLogWin(page, '2000')  // smaller balance -> smaller P&L
 
-  await page.goto('/app/leaderboard')
+  await page.goto('/leaderboard')
 
   // Search each trader (the board is paginated and shared across runs), then read
   // the rank cell of their row. Higher P&L must earn a smaller rank number.
@@ -73,6 +73,6 @@ test('two traders ranked by P&L on the leaderboard', async ({ page }) => {
 test('nav Leaderboard link opens the page', async ({ page }) => {
   await signUpAndOnboard(page, 'lb_nav')
   await page.click('.ts-navpills a:has-text("Leaderboard")')
-  await expect(page).toHaveURL(/\/app\/leaderboard/)
+  await expect(page).toHaveURL(/\/leaderboard/)
   await expect(page.locator('h1.ts-h1')).toContainText('Leaderboard')
 })

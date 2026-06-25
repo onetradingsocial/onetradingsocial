@@ -5,15 +5,11 @@ import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { type FeedItem, type Attachment } from './feed/_components/PostCard'
 import { type TradeCard } from './feed/_components/attachments/TradeAttachment'
 import { type AttachmentType } from '@/app/actions/social'
-import { PostComposer } from './feed/_components/PostComposer'
-import { WelcomeHero } from './feed/_components/WelcomeHero'
-import { PerformanceRow } from './feed/_components/PerformanceRow'
-import { LogTradeBanner } from './feed/_components/LogTradeBanner'
-import { FeedTabs, type FeedTabItem } from './feed/_components/FeedTabs'
-import { RightRail } from './feed/_components/RightRail'
+import { type FeedTabItem } from './feed/_components/FeedTabs'
 import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getUserXp } from '@/lib/server/xp'
-import { DailyQuests } from './feed/_components/DailyQuests'
+import { HomeArena } from './feed/_components/home/HomeArena'
+import { type HomeData } from './feed/_components/home/types'
 
 const EMPTY = ['00000000-0000-0000-0000-000000000000']
 const SELECT = 'id, body, created_at, author_id, attachment_type, trade_id, author:profiles!posts_author_id_fkey(id, username, display_name, avatar_url)'
@@ -32,14 +28,12 @@ export default async function Home() {
   const [
     { data: profile },
     weekBoard,
-    allTimeBoard,
     xp,
     { data: follows },
     { data: ownTradeRows },
   ] = await Promise.all([
-    supabase.from('profiles').select('username, display_name').eq('id', user.id).single(),
+    supabase.from('profiles').select('username, display_name, avatar_url').eq('id', user.id).single(),
     getPerformanceRanking(supabase, 'week'),
-    getPerformanceRanking(supabase, 'all'),
     getUserXp(supabase, user.id),
     supabase.from('follows').select('following_id').eq('follower_id', user.id),
     supabase.from('trades')
@@ -47,26 +41,18 @@ export default async function Home() {
       .eq('user_id', user.id).order('traded_at', { ascending: false }),
   ])
   const name = profile?.display_name || profile?.username || 'trader'
-  const viewerRank = allTimeBoard.find((e) => e.userId === user.id)?.rank ?? null
-  const leaders = weekBoard.slice(0, 5).map((e) => ({ rank: e.rank, username: e.username, display_name: e.displayName, avatar_url: e.avatarUrl, pnl: e.pnl }))
+  const viewerRank = weekBoard.find((e) => e.userId === user.id)?.rank ?? null
+  const weekLeaders = weekBoard.slice(0, 5).map((e) => ({
+    rank: e.rank, userId: e.userId, username: e.username, displayName: e.displayName,
+    avatarUrl: e.avatarUrl, pnl: e.pnl, winRate: e.winRate, trades: e.trades,
+  }))
   const followingIds = (follows ?? []).map((f) => f.following_id)
   const followingSet = new Set(followingIds)
   const authorIds = [user.id, ...followingIds]
 
-  // Stage B — posts and suggested-traders both depend only on the follow graph,
-  // so fetch them together.
-  const suggestedPromise = followingIds.length < 5
-    ? supabase.from('profiles')
-        .select('id, username, display_name, avatar_url')
-        .eq('is_public', true).eq('onboarding_completed', true).neq('id', user.id)
-        .order('created_at', { ascending: false }).limit(8)
-    : Promise.resolve({ data: [] as RawAuthor[] })
-  const [{ data: primaryRaw }, { data: sug }] = await Promise.all([
-    supabase.from('posts').select(SELECT)
-      .in('author_id', authorIds).order('created_at', { ascending: false }).limit(30),
-    suggestedPromise,
-  ])
-  const suggested = (sug ?? []).filter((s) => !followingSet.has(s.id)).slice(0, 5)
+  // Stage B — posts keyed on the follow graph.
+  const { data: primaryRaw } = await supabase.from('posts').select(SELECT)
+    .in('author_id', authorIds).order('created_at', { ascending: false }).limit(30)
   let fallbackRaw: RawPost[] = []
   if ((primaryRaw?.length ?? 0) < 5) {
     const { data } = await supabase.from('posts').select(SELECT).order('created_at', { ascending: false }).limit(30)
@@ -138,22 +124,31 @@ export default async function Home() {
     status: t.status as 'open' | 'closed', outcome: t.outcome as TradeForMetrics['outcome'],
     rMultiple: t.r_multiple, pnlAmount: t.pnl_amount, tradedAt: t.traded_at, mistakeTags: [],
   })))
-  let eq = 0
-  const spark = trades.filter((t) => t.status === 'closed')
-    .sort((a, b) => a.traded_at.localeCompare(b.traded_at))
-    .map((t) => { eq += t.pnl_amount ?? 0; return eq })
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
+  const loggedToday = trades.filter((t) => Date.parse(t.traded_at) >= todayStart.getTime()).length
 
-  return (
-    <main className="ts-page ts-feed">
-      <div className="ts-feed-main">
-        <WelcomeHero name={name} streak={metrics.currentStreak} rank={viewerRank} total={allTimeBoard.length} race={leaders.slice(0, 3)} level={xp.level.level} xp={xp.totalXp} />
-        <PerformanceRow metrics={metrics} spark={spark} />
-        <LogTradeBanner />
-        <DailyQuests quests={xp.daily} />
-        <PostComposer />
-        <FeedTabs items={items} />
-      </div>
-      <RightRail suggested={suggested} recentTrades={recentTrades} leaders={leaders} />
-    </main>
-  )
+  const data: HomeData = {
+    userId: user.id,
+    name,
+    handle: profile?.username ? `@${profile.username}` : '@trader',
+    selfAvatar: profile?.avatar_url ?? null,
+    level: xp.level.level,
+    xp: xp.totalXp,
+    streak: metrics.currentStreak,
+    viewerRank,
+    totalRanked: weekBoard.length,
+    loggedToday,
+    tradeCount: trades.length,
+    metrics: {
+      winRate: metrics.winRate, avgRr: metrics.avgRr, netPnl: metrics.netPnl,
+      total: metrics.total, open: metrics.open, currentStreak: metrics.currentStreak,
+    },
+    weekLeaders,
+    recentTrades,
+    quests: xp.daily.map((q) => ({ id: q.id, label: q.label, current: q.current, target: q.target, done: q.done })),
+    feedItems: items,
+    followingIds,
+  }
+
+  return <HomeArena data={data} />
 }

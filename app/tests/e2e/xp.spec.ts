@@ -3,27 +3,27 @@ import { test, expect, type Page } from '@playwright/test'
 async function signUpAndOnboard(page: Page, prefix: string) {
   const stamp = Date.now() + Math.floor(Math.random() * 1000)
   const username = `${prefix}_${stamp}`
-  await page.goto('/app/signup')
+  await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `${username}@tradingsocial.io`)
   await page.fill('input[name="password"]', 'password123')
   await page.check('input[name="terms"]')
   await page.click('button:has-text("Join the Beta")')
-  await expect(page).toHaveURL(/\/app\/onboarding/)
+  await expect(page).toHaveURL(/\/onboarding/)
   await page.locator('label.ts-chip', { hasText: 'forex' }).click()
   await page.fill('input[name="goal"]', 'Be consistent')
   await page.click('button:has-text("Finish")')
-  await expect(page).toHaveURL(/\/app$/)
+  await expect(page).toHaveURL('/')
   return username
 }
 
 // Set the account balance, then log one public winning trade -> grants XP (base + daily quests).
 async function setupAndLogWin(page: Page, balance: string) {
-  await page.goto('/app/settings')
+  await page.goto('/settings')
   await page.fill('input[name="account_balance"]', balance)
   await page.click('button:has-text("Save account")')
 
-  await page.goto('/app/journal')
+  await page.goto('/journal')
   await page.locator('button:has-text("Log trade")').first().click()
   await page.fill('input[name="risk_percent"]', '1')
   await page.fill('input[name="entry_price"]', '1.0856')
@@ -38,7 +38,7 @@ test('achievements page shows level, quests, and badges after a trade', async ({
   await signUpAndOnboard(page, 'xp_ach')
   await setupAndLogWin(page, '10000')
 
-  await page.goto('/app/achievements')
+  await page.goto('/achievements')
   await expect(page.getByRole('heading', { name: 'Achievements' })).toBeVisible()
   // Closed one trade today -> XP earned, daily quests complete, First Trade badge earned.
   await expect(page.getByText(/XP total/)).toBeVisible()
@@ -52,7 +52,7 @@ test('leaderboard XP tab switches and renders the XP board with the trader', asy
   const user = await signUpAndOnboard(page, 'xp_lb')
   await setupAndLogWin(page, '5000')
 
-  await page.goto('/app/leaderboard')
+  await page.goto('/leaderboard')
   await page.click('.lb-seg:has-text("XP")')
   await expect(page).toHaveURL(/cat=xp/)
   await expect(page.locator('.lb-panel')).toBeVisible()
