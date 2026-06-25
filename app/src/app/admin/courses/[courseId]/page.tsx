@@ -9,7 +9,7 @@ export default async function CourseDetail({ params }: { params: Promise<{ cours
   const { courseId } = await params
   const svc = createServiceClient()
   const { data: course } = await svc.from('courses')
-    .select('id, slug, title, summary, difficulty, ord, published').eq('id', courseId).maybeSingle()
+    .select('id, slug, title, summary, difficulty, ord, published, min_tier').eq('id', courseId).maybeSingle()
   if (!course) notFound()
   const { data: lessons } = await svc.from('lessons')
     .select('id, slug, title, ord, published').eq('course_id', courseId).order('ord')
@@ -25,7 +25,7 @@ export default async function CourseDetail({ params }: { params: Promise<{ cours
       </div>
       <CourseEditForm id={course.id} initial={{
         slug: course.slug, title: course.title, summary: course.summary ?? '',
-        difficulty: course.difficulty ?? '', ord: course.ord,
+        difficulty: course.difficulty ?? '', ord: course.ord, minTier: course.min_tier ?? 'free',
       }} />
 
       <div>

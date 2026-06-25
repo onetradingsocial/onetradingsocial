@@ -19,10 +19,13 @@ export async function setFeedbackStatus(id: string, status: FeedbackStatus): Pro
   return {}
 }
 
-export type CourseInput = { slug: string; title: string; summary: string; difficulty: string; ord: number }
+export type CourseInput = { slug: string; title: string; summary: string; difficulty: string; ord: number; minTier: string }
+
+const VALID_TIERS = new Set(['free', 'trader', 'pro'])
 
 function checkCourse(input: CourseInput): string | null {
   if (!input.title.trim()) return 'Title is required.'
+  if (!VALID_TIERS.has(input.minTier)) return 'Invalid tier.'
   return validateSlug(input.slug) ?? validateNonNegInt(input.ord)
 }
 
@@ -33,7 +36,7 @@ export async function createCourse(input: CourseInput): Promise<{ id?: string; e
   const svc = createServiceClient()
   const { data, error } = await svc.from('courses').insert({
     slug: input.slug, title: input.title, summary: input.summary || null,
-    difficulty: input.difficulty || null, ord: input.ord, published: false,
+    difficulty: input.difficulty || null, ord: input.ord, published: false, min_tier: input.minTier,
   }).select('id').single()
   if (error) return { error: error.message.includes('duplicate') ? 'Slug already exists.' : 'Create failed.' }
   revalidatePath('/admin/courses')
@@ -47,7 +50,7 @@ export async function updateCourse(id: string, input: CourseInput): Promise<{ er
   const svc = createServiceClient()
   const { error } = await svc.from('courses').update({
     slug: input.slug, title: input.title, summary: input.summary || null,
-    difficulty: input.difficulty || null, ord: input.ord,
+    difficulty: input.difficulty || null, ord: input.ord, min_tier: input.minTier,
   }).eq('id', id)
   if (error) return { error: 'Update failed.' }
   revalidatePath('/admin/courses')
