@@ -29,7 +29,7 @@ export function StatCards({ metrics, allTime, monthNet, monthLabel, weekTrades, 
       <Card tone="gold" label="Overall Ranking" icon="🏆" value="#—" sub="Leaderboard soon" subTone="muted" />
       <Card tone="green" label={`Total P/L · ${monthLabel.split(' ')[0]}`} icon="💳" value={money(monthNet)} sub={`All-time ${money(allTime)}`} subTone={allTime >= 0 ? 'pos' : 'neg'} />
       <Card tone="violet" label="Win Rate" icon="✓" value={advanced ? `${(metrics.winRate * 100).toFixed(0)}%` : lockedTile} sub={`${metrics.wins}W · ${metrics.losses}L`} />
-      <Card tone="sky" label="Avg R" icon="⚖" value={advanced ? `${metrics.avgRr.toFixed(2)}R` : lockedTile} sub={Number.isFinite(pf) ? `Profit factor ${pf.toFixed(2)}` : 'Profit factor ∞'} subTone="pos" />
+      <Card tone="sky" label="Avg R" icon="⚖" value={advanced ? `${metrics.avgRr.toFixed(2)}R` : lockedTile} sub={advanced ? (Number.isFinite(pf) ? `Profit factor ${pf.toFixed(2)}` : 'Profit factor ∞') : 'Trader only'} subTone="pos" />
       <Card tone="blue" label="Total Trades" icon="▤" value={String(metrics.total)} sub={`${weekTrades} logged this week`} subTone="pos" />
     </div>
   )
