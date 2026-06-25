@@ -52,10 +52,17 @@ export function buildSeries(seed: number, n: number, trend: number) {
   return pts.map((p) => (p - min) / span)
 }
 
-export function Sparkline({ seed = 7, trend = 2, color = '#7C5CE6', fill = true, w = 120, h = 30, strokeW = 2 }:
-  { seed?: number; trend?: number; color?: string; fill?: boolean; w?: number; h?: number; strokeW?: number }) {
-  const n = 26
-  const ys = buildSeries(seed, n, trend)
+// Normalize an explicit data series to 0..1 for plotting.
+function normalize(values: number[]) {
+  const min = Math.min(...values), max = Math.max(...values), span = max - min || 1
+  return values.map((v) => (v - min) / span)
+}
+
+export function Sparkline({ seed = 7, trend = 2, color = '#7C5CE6', fill = true, w = 120, h = 30, strokeW = 2, values }:
+  { seed?: number; trend?: number; color?: string; fill?: boolean; w?: number; h?: number; strokeW?: number; values?: number[] }) {
+  // Real data when given (flat baseline if too sparse); seeded shape only when no data is passed.
+  const ys = values ? (values.length >= 2 ? normalize(values) : [0.5, 0.5]) : buildSeries(seed, 26, trend)
+  const n = ys.length
   const pad = strokeW
   const step = (w - pad * 2) / (n - 1)
   const pts = ys.map((y, i) => [pad + i * step, pad + (1 - y) * (h - pad * 2)] as const)

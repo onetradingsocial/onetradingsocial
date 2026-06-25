@@ -49,4 +49,5 @@ export type HomeData = {
   quests: HomeQuest[]
   feedItems: FeedTabItem[]
   followingIds: string[]
+  series: { equity: number[]; winRate: number[]; avgRr: number[]; count: number[] }
 }

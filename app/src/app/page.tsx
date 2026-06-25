@@ -127,6 +127,22 @@ export default async function Home() {
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
   const loggedToday = trades.filter((t) => Date.parse(t.traded_at) >= todayStart.getTime()).length
 
+  // Real sparkline series, oldest→newest closed trades.
+  const closed = trades
+    .filter((t) => t.status === 'closed' && t.r_multiple != null)
+    .sort((a, b) => a.traded_at.localeCompare(b.traded_at))
+  let cumPnl = 0, cumR = 0, cumWins = 0
+  const eqSeries: number[] = [], wrSeries: number[] = [], rrSeries: number[] = [], cntSeries: number[] = []
+  closed.forEach((t, i) => {
+    cumPnl += t.pnl_amount ?? 0
+    cumR += t.r_multiple as number
+    if ((t.r_multiple as number) > 0) cumWins += 1
+    eqSeries.push(cumPnl)
+    wrSeries.push(cumWins / (i + 1))
+    rrSeries.push(cumR / (i + 1))
+    cntSeries.push(i + 1)
+  })
+
   const data: HomeData = {
     userId: user.id,
     name,
@@ -148,6 +164,7 @@ export default async function Home() {
     quests: xp.daily.map((q) => ({ id: q.id, label: q.label, current: q.current, target: q.target, done: q.done })),
     feedItems: items,
     followingIds,
+    series: { equity: eqSeries, winRate: wrSeries, avgRr: rrSeries, count: cntSeries },
   }
 
   return <HomeArena data={data} />
