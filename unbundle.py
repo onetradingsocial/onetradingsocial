@@ -36,22 +36,22 @@ SEO_CONFIG = {
     'index.html': {
         'title': 'TradingSocial — Track. Prove. Improve your trading.',
         'description': 'Track, prove, and improve your trading with TradingSocial — the social trading journal for serious traders.',
-        'canonical': 'https://tradingsocial.com/',
+        'canonical': 'https://www.tradingsocial.io/',
     },
     'pricing.html': {
         'title': 'Pricing — TradingSocial',
         'description': 'Simple, transparent pricing for TradingSocial. Choose the plan that fits your trading goals.',
-        'canonical': 'https://tradingsocial.com/pricing',
+        'canonical': 'https://www.tradingsocial.io/pricing',
     },
     'blog.html': {
         'title': 'Blog — TradingSocial',
         'description': 'Trading insights, strategies, and platform updates from the TradingSocial team.',
-        'canonical': 'https://tradingsocial.com/blog',
+        'canonical': 'https://www.tradingsocial.io/blog',
     },
     'blog-post.html': {
         'title': 'Blog Post — TradingSocial',
         'description': 'Read the latest trading insights and strategies on TradingSocial.',
-        'canonical': 'https://tradingsocial.com/blog-post',
+        'canonical': 'https://www.tradingsocial.io/blog-post',
     },
 }
 
@@ -63,7 +63,7 @@ PAGES = [
 ]
 
 GA_ID = 'G-XXXXXXXXXX'  # Replace with your GA4 Measurement ID
-OG_IMAGE = 'https://tradingsocial.com/assets/images/og-image.png'
+OG_IMAGE = 'https://www.tradingsocial.io/assets/images/og-image.png'
 
 
 def extract_script(html: str, script_type: str) -> str | None:
@@ -101,7 +101,7 @@ def build_seo_and_ga(output_name: str) -> str:
     seo = SEO_CONFIG.get(output_name, {})
     title = _html.escape(seo.get('title', 'TradingSocial'))
     desc = _html.escape(seo.get('description', ''))
-    canonical = _html.escape(seo.get('canonical', 'https://tradingsocial.com/'))
+    canonical = _html.escape(seo.get('canonical', 'https://www.tradingsocial.io/'))
     lines = [
         f'  <!-- Google tag (gtag.js) -->',
         f'  <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>',

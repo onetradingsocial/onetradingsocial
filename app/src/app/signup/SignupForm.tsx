@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { signUp, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
 
-const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://tradingsocial.com'
+const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
 const initial: ActionState = {}
 
 export function SignupForm() {
