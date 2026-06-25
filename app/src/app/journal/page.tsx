@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { monthlyPnl, equityCurve, assetDistribution, calendarCells, periodSums, MONTHS, type JTrade } from '@/lib/journal-stats'
+import { getTier } from '@/lib/server/entitlements'
+import { JOURNAL_FREE_LIMIT, can } from '@/lib/entitlements'
 import { JournalHero } from './_components/JournalHero'
 import { StatCards } from './_components/StatCards'
 import { MonthlyPL } from './_components/MonthlyPL'
@@ -28,6 +30,11 @@ export default async function JournalPage() {
 
   const trades = (all ?? []) as JTrade[]
   const closed = trades.filter((t) => t.status === 'closed')
+
+  const tier = await getTier(supabase, user.id)
+  const unlimited = can(tier, 'journal_unlimited')
+  const visibleTrades = unlimited ? trades : trades.slice(0, JOURNAL_FREE_LIMIT)
+  const hiddenCount = trades.length - visibleTrades.length
 
   const now = new Date()
   const year = now.getFullYear(), month = now.getMonth()
@@ -78,7 +85,15 @@ export default async function JournalPage() {
       </div>
 
       <div className="mt-5">
-        <RecentTrades trades={trades} monthNet={sums.monthNet} />
+        <RecentTrades trades={visibleTrades} monthNet={sums.monthNet} />
+        {hiddenCount > 0 && (
+          <div className="ts-banner mt-3">
+            Showing your last {JOURNAL_FREE_LIMIT} trades. {hiddenCount} older{' '}
+            {hiddenCount === 1 ? 'trade is' : 'trades are'} hidden on Free — nothing is deleted.{' '}
+            <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+            to see your full history.
+          </div>
+        )}
       </div>
     </main>
   )
