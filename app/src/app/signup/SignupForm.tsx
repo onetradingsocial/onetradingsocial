@@ -5,6 +5,7 @@ import { useActionState } from 'react'
 import { signUp, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
 
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? ''
 const initial: ActionState = {}
 
 export function SignupForm() {
@@ -32,8 +33,12 @@ export function SignupForm() {
           <label className="ts-checkline">
             <input type="checkbox" name="terms" />
             <span>
-              I agree to the Terms and financial disclaimer. TradingSocial is an education and
-              performance-tracking platform and does not provide financial advice.
+              I agree to the{' '}
+              <a href={`${SITE}/terms`} target="_blank" rel="noopener noreferrer">Terms</a>{' '}
+              and{' '}
+              <a href={`${SITE}/disclaimer`} target="_blank" rel="noopener noreferrer">financial disclaimer</a>.
+              TradingSocial is an education and performance-tracking platform and does not provide
+              financial advice.
             </span>
           </label>
           {state.error && <p className="ts-error">{state.error}</p>}
