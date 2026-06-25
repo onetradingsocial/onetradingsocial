@@ -7,12 +7,11 @@ const ENV: PlanEnv = {
   STRIPE_PRICE_PRO_ANNUAL: 'price_pa',
 }
 
-const sub = (priceId: string, over: Record<string, unknown> = {}) => ({
+const sub = (priceId: string, over: Record<string, unknown> = {}, itemOver: Record<string, unknown> = {}) => ({
   id: 'sub_1',
   status: 'active',
   cancel_at_period_end: false,
-  current_period_end: 1_700_000_000,
-  items: { data: [{ price: { id: priceId } }] },
+  items: { data: [{ price: { id: priceId }, current_period_end: 1_700_000_000, ...itemOver }] },
   ...over,
 })
 
@@ -37,6 +36,6 @@ describe('subscriptionRow', () => {
     expect(subscriptionRow(sub('price_unknown'), ENV)).toBeNull()
   })
   it('handles a null current_period_end', () => {
-    expect(subscriptionRow(sub('price_tm', { current_period_end: null }), ENV)?.current_period_end).toBeNull()
+    expect(subscriptionRow(sub('price_tm', {}, { current_period_end: null }), ENV)?.current_period_end).toBeNull()
   })
 })
