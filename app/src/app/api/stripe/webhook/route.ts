@@ -28,8 +28,12 @@ async function upsertFromSubscription(
 ) {
   const row = subscriptionRow(sub as never, process.env as Record<string, string>)
   if (!row) return // unknown price -> ack, skip
-  const userId = await resolveUserId(svc, stripe, sub.customer as string)
-  if (!userId) return
+  const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
+  const userId = await resolveUserId(svc, stripe, customerId)
+  if (!userId) {
+    console.error('[stripe webhook] could not resolve user for customer', customerId, 'sub', sub.id)
+    throw new Error(`could not resolve user for customer ${customerId}`)
+  }
   await svc.from('subscriptions').upsert({ ...row, user_id: userId }, { onConflict: 'id' })
 }
 
