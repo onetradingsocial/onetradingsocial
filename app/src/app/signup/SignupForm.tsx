@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { signUp, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://tradingsocial.com'
 const initial: ActionState = {}
 
 export function SignupForm() {
@@ -34,9 +34,9 @@ export function SignupForm() {
             <input type="checkbox" name="terms" />
             <span>
               I agree to the{' '}
-              <a href={`${SITE}/terms`} target="_blank" rel="noopener noreferrer">Terms</a>{' '}
+              <a href={`${MARKETING}/terms`} target="_blank" rel="noopener noreferrer">Terms</a>{' '}
               and{' '}
-              <a href={`${SITE}/disclaimer`} target="_blank" rel="noopener noreferrer">financial disclaimer</a>.
+              <a href={`${MARKETING}/disclaimer`} target="_blank" rel="noopener noreferrer">financial disclaimer</a>.
               TradingSocial is an education and performance-tracking platform and does not provide
               financial advice.
             </span>
