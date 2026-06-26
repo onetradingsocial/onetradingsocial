@@ -982,3 +982,47 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 
 /* ---------- Pro badge ---------- */
 .ts-pro-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; color: #fff; background: var(--brand-grad); }
+
+/* Notifications */
+.ts-notif-bell { position: relative; }
+.ts-notif-badge {
+  position: absolute; top: -4px; right: -4px;
+  background: #ef4444; color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  padding: 2px 4px; border-radius: 9999px; min-width: 16px; text-align: center;
+  pointer-events: none;
+}
+.ts-notif-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 320px; max-height: 400px;
+  background: var(--ts-surface, #1a1a2e); border: 1px solid var(--ts-border, #2d2d4e);
+  border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  z-index: 50; overflow: hidden; display: flex; flex-direction: column;
+}
+.ts-notif-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--ts-border, #2d2d4e);
+}
+.ts-notif-mark-all {
+  font-size: 12px; color: var(--ts-accent, #6c63ff);
+  background: none; border: none; cursor: pointer; padding: 0;
+}
+.ts-notif-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.ts-notif-row { border-bottom: 1px solid var(--ts-border, #2d2d4e); }
+.ts-notif-row:last-child { border-bottom: none; }
+.ts-notif-unread { background: rgba(108,99,255,.08); }
+.ts-notif-row-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; text-decoration: none; color: inherit;
+}
+.ts-notif-row-link:hover { background: rgba(255,255,255,.04); }
+.ts-notif-avatar { flex-shrink: 0; width: 28px; height: 28px; }
+.ts-notif-avatar-initial {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--ts-accent, #6c63ff); color: #fff; font-size: 12px; font-weight: 700;
+}
+.ts-notif-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.ts-notif-text { font-size: 13px; line-height: 1.4; }
+.ts-notif-time { font-size: 11px; color: var(--ts-muted, #888); }
+.ts-notif-empty { padding: 24px 16px; text-align: center; color: var(--ts-muted, #888); font-size: 13px; margin: 0; }
