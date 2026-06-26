@@ -8,7 +8,7 @@ export interface InsertNotificationArgs {
   actorId: string     // who triggered
   type: NotificationType
   entityId?: string
-  entityType?: 'post' | 'comment' | 'trade'
+  entityType?: 'post' | 'comment' | 'trade' | 'conversation'
 }
 
 export async function insertNotification({
