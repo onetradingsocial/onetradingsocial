@@ -68,6 +68,10 @@ export function messageImagePublicUrl(userId: string, draftId: string, idx: numb
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${messageImageKey(userId, draftId, idx, contentType)}`
 }
 
+export function messageImagePrefix(userId: string) {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/messages/${userId}/`
+}
+
 export async function signMessageImageUpload(userId: string, draftId: string, idx: number, contentType: string) {
   const path = messageImageKey(userId, draftId, idx, contentType)
   const supabase = createServiceClient()

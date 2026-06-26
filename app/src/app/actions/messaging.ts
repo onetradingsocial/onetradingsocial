@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { validateAttachments, type Attachment } from '@/lib/messaging'
+import { messageImagePrefix } from '@/lib/storage'
 import { areMutualFollowers, getOrCreateConversation } from '@/lib/server/messaging'
 import { insertNotification } from '@/lib/notifications'
 
@@ -22,6 +23,13 @@ export async function sendMessage(
   if (text.length > 4000) return { error: 'Message is too long (4000 max).' }
   const v = validateAttachments(atts)
   if (!v.ok) return { error: v.error }
+
+  const prefix = messageImagePrefix(user.id)
+  for (const a of atts) {
+    if (a.type === 'image' && !a.url.startsWith(prefix)) {
+      return { error: 'Invalid image attachment.' }
+    }
+  }
 
   // mutual-follow gate — re-checked every send, fail closed
   const mutual = await areMutualFollowers(supabase, user.id, recipientId)
