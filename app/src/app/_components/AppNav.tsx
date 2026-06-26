@@ -9,6 +9,7 @@ import { NavLinks } from './NavLinks'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getNotifications, getUnreadCount, type Notification } from '@/lib/server/notifications'
 import { NotificationBell } from './NotificationBell'
+import { NavSearch } from './NavSearch'
 
 export async function AppNav() {
   const supabase = await createClient()
@@ -38,10 +39,7 @@ export async function AppNav() {
         {user ? (
           <>
             <NavLinks />
-            <label className="ts-nav-search">
-              <span aria-hidden>⌕</span>
-              <input placeholder="Search traders, setups, markets…" aria-label="Search" />
-            </label>
+            <NavSearch />
             <div className="ts-nav-right">
               <NotificationBell initialCount={initialNotifCount} initialItems={initialNotifItems} />
               <button type="button" className="ts-nav-icon" title="Messages — soon" aria-label="Messages">✉</button>
