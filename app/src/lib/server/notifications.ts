@@ -9,7 +9,7 @@ export type Notification = {
   actorAvatarUrl: string | null
   type: NotificationType
   entityId: string | null
-  entityType: 'post' | 'comment' | 'trade' | null
+  entityType: 'post' | 'comment' | 'trade' | 'conversation' | null
   read: boolean
   createdAt: string
 }
