@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type NotificationType = 'like' | 'comment' | 'follow' | 'post_share' | 'mention'
+export type NotificationType = 'like' | 'comment' | 'follow' | 'post_share' | 'mention' | 'message'
 
 export interface InsertNotificationArgs {
   supabase: SupabaseClient
