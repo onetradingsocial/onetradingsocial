@@ -35,16 +35,19 @@ export function NavSearch() {
     if (trimmed.length < 2) {
       setResults(EMPTY)
       setOpen(false)
+      setLoading(false)
       return
     }
     setLoading(true)
     setOpen(true)
+    let cancelled = false
     const t = setTimeout(async () => {
       const r = await search(trimmed)
+      if (cancelled) return
       setResults(r)
       setLoading(false)
     }, 250)
-    return () => clearTimeout(t)
+    return () => { cancelled = true; clearTimeout(t) }
   }, [query])
 
   // close on outside click

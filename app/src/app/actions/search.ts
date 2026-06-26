@@ -42,16 +42,16 @@ export async function search(rawQuery: string): Promise<SearchResults> {
         | null
       return { p, author }
     })
-    .filter(({ author }) => author?.is_public === true)
+    .filter((item): item is { p: typeof item.p; author: NonNullable<typeof item.author> } => item.author?.is_public === true)
     .slice(0, 5)
     .map(({ p, author }) => ({
       id: p.id,
       body: p.body,
       createdAt: p.created_at,
       author: {
-        username: author!.username,
-        displayName: author!.display_name ?? null,
-        avatarUrl: author!.avatar_url ?? null,
+        username: author.username,
+        displayName: author.display_name ?? null,
+        avatarUrl: author.avatar_url ?? null,
       },
     }))
 
