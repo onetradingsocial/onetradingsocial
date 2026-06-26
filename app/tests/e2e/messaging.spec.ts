@@ -64,7 +64,7 @@ test('mutual followers DM: live delivery + read receipt', async ({ browser }) =>
 
   // Set up listener for the server action POST response BEFORE sending
   const serverActionDone = pageA.waitForResponse(
-    (r) => r.request().method() === 'POST' && r.url().includes('localhost:3000/messages'),
+    (r) => r.request().method() === 'POST' && r.url().includes('/messages'),
     { timeout: 15000 },
   )
 
@@ -87,8 +87,23 @@ test('mutual followers DM: live delivery + read receipt', async ({ browser }) =>
   await pageB.goto(`/messages?to=${a}`)
   await pageB.waitForLoadState('load')
   await expect(pageB).toHaveURL(/\/messages/, { timeout: 5000 })
-  // B sees the incoming message (SSR-loaded)
+  // B sees the incoming message (SSR-loaded) — B is now ON the open thread with a live subscription
   await expect(pageB.locator('.ts-msg-bubble-in').filter({ hasText: body })).toBeVisible({ timeout: 10000 })
+
+  // ── REALTIME PROOF: A sends a SECOND message; B must see it WITHOUT a reload ──
+  const body2 = `rt-live-${Date.now()}`
+  // Set up listener for A's second send
+  const serverActionDone2 = pageA.waitForResponse(
+    (r) => r.request().method() === 'POST' && r.url().includes('/messages'),
+    { timeout: 15000 },
+  )
+  await pageA.fill('.ts-msg-input', body2)
+  await pageA.click('.ts-msg-send')
+  // Wait for A's optimistic bubble AND the DB write to commit
+  await expect(pageA.locator('.ts-msg-bubble-out').filter({ hasText: body2 }).first()).toBeVisible({ timeout: 10000 })
+  await serverActionDone2
+  // B must receive body2 via WebSocket push — no reload between A's send and this assertion
+  await expect(pageB.locator('.ts-msg-bubble-in').filter({ hasText: body2 })).toBeVisible({ timeout: 15000 })
 
   // A sees read receipt after B opened the thread (triggers markThreadRead → realtime UPDATE)
   await expect(pageA.locator('.ts-msg-seen')).toBeVisible({ timeout: 10000 })
