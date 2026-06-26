@@ -24,6 +24,7 @@ function notifText(n: Notification): string {
     case 'follow':     return `@${n.actorUsername} followed you`
     case 'post_share': return `@${n.actorUsername} shared a trade`
     case 'mention':    return `@${n.actorUsername} mentioned you`
+    case 'message':    return `@${n.actorUsername} sent you a message`
     default:           return `@${n.actorUsername} interacted with you`
   }
 }
@@ -31,6 +32,7 @@ function notifText(n: Notification): string {
 function notifHref(n: Notification): string {
   if (n.entityType === 'post' && n.entityId) return `/#post-${n.entityId}`
   if (n.type === 'follow') return `/${n.actorUsername}`
+  if (n.type === 'message' && n.entityId) return `/messages?c=${n.entityId}`
   return '/'
 }
 

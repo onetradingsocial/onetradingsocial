@@ -10,6 +10,7 @@ import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getUserXp } from '@/lib/server/xp'
 import { getTier } from '@/lib/server/entitlements'
 import { can } from '@/lib/entitlements'
+import { areMutualFollowers } from '@/lib/server/messaging'
 
 export default async function ProfilePage({
   params,
@@ -53,6 +54,9 @@ export default async function ProfilePage({
     }
   }
   const isSelf = !!(viewer && profileId && viewer.id === profileId)
+  const canMsg = viewer && profileId && !isSelf
+    ? await areMutualFollowers(supabase, viewer.id, profileId)
+    : false
 
   type PubTrade = {
     id: string; instrument: string; direction: string; status: string; outcome: string
@@ -109,6 +113,9 @@ export default async function ProfilePage({
             <p className="muted" style={{ fontWeight: 600 }}>@{profile.username}</p>
           </div>
           {viewer && !isSelf && profileId && <FollowButton targetId={profileId} initialFollowing={isFollowing} />}
+          {canMsg && (
+            <Link href={`/messages?to=${profile.username}`} className="btn btn-sm ts-msg-profile-btn">Message</Link>
+          )}
         </header>
 
         {profile.bio && <p className="mt-5" style={{ color: 'var(--dim)', maxWidth: '60ch' }}>{profile.bio}</p>}
