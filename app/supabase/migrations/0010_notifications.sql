@@ -19,3 +19,6 @@ alter table notifications enable row level security;
 -- Owner-select policy: users can only see their own notifications
 create policy "owner select" on notifications
   for select using (auth.uid() = user_id);
+
+-- Enable realtime subscriptions
+alter publication supabase_realtime add table notifications;
