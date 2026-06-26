@@ -882,7 +882,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .hero-cta { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 34px; flex-wrap: wrap; }
 .hero-proof { margin-top: 26px; display: flex; align-items: center; justify-content: center; gap: 14px; color: rgba(255,255,255,0.85); font-size: 13.5px; font-weight: 500; }
 .hero-proof .av-row { display: flex; }
-.av-row .av { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.9); margin-left: -10px; background: linear-gradient(140deg,#fff,#e7e3f7); }
+.av-row .av { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.9); margin-left: -10px; background: linear-gradient(140deg,#fff,#e7e3f7); overflow: hidden; }
+.av-row .av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
 .av-row .av:first-child { margin-left: 0; }
 .hero-proof .stars { color: #FFD15C; letter-spacing: 2px; font-size: 14px; }
 
@@ -1215,7 +1216,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
       <div class="hero-banner-grid"></div>
       <div class="hero-banner-noise"></div>
       <div class="hero-content">
-        <span class="chip chip--band"><span class="dot"></span>Beta is open — founding traders only</span>
+        <span class="chip chip--band"><span class="dot"></span>Beta is open</span>
         <h1 class="h1">Track. Prove.<br><em>Improve</em> your trading.</h1>
         <p class="hero-sub">The social trading journal built for transparent traders. Journal trades, track real performance, follow other traders, and compete on leaderboards that can't be faked.</p>
         <div class="hero-cta">
@@ -1223,7 +1224,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           <a class="btn btn-band-ghost btn-lg" href="#showcase">See inside the platform</a>
         </div>
         <div class="hero-proof">
-          <div class="av-row"><span class="av"></span><span class="av"></span><span class="av"></span><span class="av"></span></div>
+          <div class="av-row"><span class="av"><img src="https://lh3.googleusercontent.com/a/ACg8ocISNXDQC93pPvXQ0FptMRjH9iLuoJQpiAmvxFjUVTK6Y3asmOU=s96-c" alt="Edrian Pasaylo" loading="lazy" referrerpolicy="no-referrer"></span><span class="av"><img src="https://lh3.googleusercontent.com/a/ACg8ocIylfLKsKhC6X7Y9isWYfZ28zzHBR65UWmmtyj2tzN8ID4zcg=s96-c" alt="Oliver Hayes" loading="lazy" referrerpolicy="no-referrer"></span><span class="av"><img src="https://lh3.googleusercontent.com/a/ACg8ocL_2ycshSpKpQ_VopW2GAn9iFe_AQgSv7Zv6RG2sTOKHTdzSpEN=s96-c" alt="TradingSocial trader" loading="lazy" referrerpolicy="no-referrer"></span><span class="av"><img src="https://lh3.googleusercontent.com/a/ACg8ocIYzet7MMZGgzfl753oa4G1kEHNVA4A2v4JPm4c2gtqdu1R=s96-c" alt="Amelia Price" loading="lazy" referrerpolicy="no-referrer"></span></div>
           <span>Free to join · Build a verified profile before launch</span>
         </div>
       </div>
@@ -1244,7 +1245,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
       </div>
       <div class="bwin">
         <div class="bwin-bar"><div class="dots"><i></i><i></i><i></i></div><div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/home</div></div>
-        <img class="bwin-shot" src="/assets/images/820581948a1746148d8977b554758b57.png" alt="TradingSocial home — community feed, performance and quick journal entry">
+        <img class="bwin-shot" src="/assets/images/Dashboard.png" alt="TradingSocial dashboard — community feed, performance and quick journal entry">
       </div>
     </div>
   </div>
@@ -1403,7 +1404,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           </div>
           <div class="bwin reveal">
             <div class="bwin-bar"><div class="dots"><i></i><i></i><i></i></div><div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/home</div></div>
-            <img class="bwin-shot" src="/assets/images/820581948a1746148d8977b554758b57.png" alt="TradingSocial home page — community feed, performance and quick journal entry">
+            <img class="bwin-shot" src="/assets/images/Dashboard.png" alt="TradingSocial dashboard page — community feed, performance and quick journal entry">
           </div>
         </div>
       </div>
@@ -1422,7 +1423,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           </div>
           <div class="bwin reveal">
             <div class="bwin-bar"><div class="dots"><i></i><i></i><i></i></div><div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/journal</div></div>
-            <img class="bwin-shot" src="/assets/images/d269bc3b67c94714a3fd6b0c62a82969.png" alt="TradingSocial journal page — analytics, equity curve and trading calendar">
+            <img class="bwin-shot" src="/assets/images/Journal.png" alt="TradingSocial journal page — analytics, equity curve and trading calendar">
           </div>
         </div>
       </div>
@@ -1441,7 +1442,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           </div>
           <div class="bwin reveal">
             <div class="bwin-bar"><div class="dots"><i></i><i></i><i></i></div><div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/leaderboard</div></div>
-            <img class="bwin-shot" src="/assets/images/a423215874ca4e298560bec6b3860f41.png" alt="TradingSocial leaderboard page — top performers, daily quests and verified pros">
+            <img class="bwin-shot" src="/assets/images/Leaderboard.png" alt="TradingSocial leaderboard page — top performers, daily quests and verified pros">
           </div>
         </div>
       </div>
@@ -1547,7 +1548,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
   <div class="wrap">
     <div class="finalcta-card reveal">
       <div class="hero-banner-grid"></div>
-      <span class="eyebrow eyebrow--center" style="justify-content:center">Beta — founding traders only</span>
+      <span class="eyebrow eyebrow--center" style="justify-content:center">Beta is open</span>
       <h2 class="h2">Become one of the first traders<br>with a verified profile.</h2>
       <p class="hero-sub">Join the beta free while we build. Log your first trades, claim your handle, and lock in founding-member status before launch.</p>
       <div class="hero-cta">
