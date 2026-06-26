@@ -26,6 +26,7 @@ export async function getNotifications(
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit)
+    .offset(offset)
   return (data ?? []).map((row) => {
     const actor = (Array.isArray(row.actor) ? row.actor[0] : row.actor) as { username: string; avatar_url: string | null } | null
     return {
