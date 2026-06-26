@@ -5,6 +5,7 @@ import { AppNav } from './_components/AppNav'
 import { TradeModalProvider } from './_components/TradeModalProvider'
 import { HelpWidget } from './_components/HelpWidget'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
+import { Analytics } from '@vercel/analytics/next'
 
 const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display' })
 const body = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body' })
@@ -34,6 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
           {user && <HelpWidget />}
         </TradeModalProvider>
+        <Analytics />
       </body>
     </html>
   )
