@@ -34,6 +34,7 @@ test('follow notification appears in bell', async ({ page }) => {
   // B follows A
   await page.goto(`/${userA}`)
   await page.click('button:has-text("Follow")')
+  await expect(page.locator('button:has-text("Following")')).toBeVisible()
   await logout(page)
 
   // A logs in, checks bell
@@ -103,6 +104,7 @@ test('mark all read clears badge', async ({ page }) => {
   const userB = await signUp(page, 'mrb')
   await page.goto(`/${userA}`)
   await page.click('button:has-text("Follow")')
+  await expect(page.locator('button:has-text("Following")')).toBeVisible()
   await logout(page)
 
   await page.goto('/login')
@@ -117,7 +119,7 @@ test('mark all read clears badge', async ({ page }) => {
   await expect(page.locator('.ts-notif-badge')).not.toBeVisible()
 })
 
-test('realtime: User B bell updates when User A likes without page refresh', async ({ browser }) => {
+test('realtime: User A bell updates when User B likes, without page refresh', async ({ browser }) => {
   const ctxA: BrowserContext = await browser.newContext()
   const ctxB: BrowserContext = await browser.newContext()
   const pageA = await ctxA.newPage()
