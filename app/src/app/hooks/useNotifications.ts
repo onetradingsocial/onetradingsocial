@@ -12,10 +12,13 @@ export function useNotifications(initial: { count: number; items: Notification[]
 
   useEffect(() => {
     const supabase = createClient()
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (channel) { supabase.removeChannel(channel); channel = null }
       if (!session?.user) return
       const userId = session.user.id
-      const channel = supabase
+      channel = supabase
         .channel(`notifications:${userId}`)
         .on(
           'postgres_changes',
@@ -38,10 +41,12 @@ export function useNotifications(initial: { count: number; items: Notification[]
           },
         )
         .subscribe()
-
-      return () => { supabase.removeChannel(channel) }
     })
-    return () => { authSub.unsubscribe() }
+
+    return () => {
+      authSub.unsubscribe()
+      if (channel) supabase.removeChannel(channel)
+    }
   }, [])
 
   const markRead = useCallback(async (id: string) => {

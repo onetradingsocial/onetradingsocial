@@ -29,7 +29,7 @@ function notifText(n: Notification): string {
 }
 
 function notifHref(n: Notification): string {
-  if (n.entityType === 'post' && n.entityId) return `/feed#post-${n.entityId}`
+  if (n.entityType === 'post' && n.entityId) return `/#post-${n.entityId}`
   if (n.type === 'follow') return `/${n.actorUsername}`
   return '/'
 }
