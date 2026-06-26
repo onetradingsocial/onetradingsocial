@@ -34,6 +34,8 @@ export function MessageThread({
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages.length, peerTyping])
 
+  const lastMineIdx = messages.reduceRight<number>((found, m, i) => (found !== -1 ? found : (m.senderId === currentUserId ? i : -1)), -1)
+
   const name = peer.displayName || peer.username
   return (
     <div className="ts-msg-thread">
@@ -49,7 +51,7 @@ export function MessageThread({
       <div className="ts-msg-scroll">
         {messages.map((m, i) => {
           const mine = m.senderId === currentUserId
-          const isLastMine = mine && i === messages.length - 1
+          const isLastMine = mine && i === lastMineIdx
           return (
             <MessageBubble key={m.id} message={m} mine={mine} showSeen={isLastMine && !!m.readAt} />
           )
