@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { insertNotification, extractMentions } from '@/lib/notifications'
 
 export type SocialState = { error?: string; ok?: boolean }
 
@@ -55,6 +57,27 @@ export async function createPost(input: CreatePostInput): Promise<{ postId?: str
     if (optErr) {
       await supabase.from('posts').delete().eq('id', post.id)
       return { error: 'Could not save the poll. Try again.' }
+    }
+  }
+
+  const service = createServiceClient()
+
+  // post_share: notify followers only for trade-share posts
+  if (type === 'trade') {
+    const { data: followers } = await supabase
+      .from('follows').select('follower_id').eq('following_id', user.id)
+    for (const f of followers ?? []) {
+      await insertNotification({ supabase: service, userId: f.follower_id, actorId: user.id, type: 'post_share', entityId: post.id, entityType: 'post' })
+    }
+  }
+
+  // mention scan for all post types
+  const mentionedUsernames = extractMentions(body)
+  if (mentionedUsernames.length > 0) {
+    const { data: mentionedProfiles } = await supabase
+      .from('profiles').select('id').in('username', mentionedUsernames)
+    for (const p of mentionedProfiles ?? []) {
+      await insertNotification({ supabase: service, userId: p.id, actorId: user.id, type: 'mention', entityId: post.id, entityType: 'post' })
     }
   }
 
@@ -123,6 +146,14 @@ export async function toggleLike(postId: string): Promise<{ liked: boolean; coun
       { onConflict: 'post_id,user_id', ignoreDuplicates: true },
     )
   }
+  // fire notification only when liking (not unliking)
+  if (!existing) {
+    const { data: post } = await supabase.from('posts').select('author_id').eq('id', postId).maybeSingle()
+    if (post?.author_id) {
+      const service = createServiceClient()
+      await insertNotification({ supabase: service, userId: post.author_id, actorId: user.id, type: 'like', entityId: postId, entityType: 'post' })
+    }
+  }
   const [{ count }, { data: nowLiked }] = await Promise.all([
     supabase.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', postId),
     supabase.from('likes').select('post_id').eq('post_id', postId).eq('user_id', user.id).maybeSingle(),
@@ -151,6 +182,21 @@ export async function addComment(postId: string, body: string): Promise<SocialSt
   if (text.length > 1000) return { error: 'Comment too long.' }
   const { error } = await supabase.from('comments').insert({ post_id: postId, author_id: user.id, body: text })
   if (error) { console.error('addComment', error.message); return { error: 'Could not post your comment. Try again.' } }
+  // notify post author
+  const { data: post } = await supabase.from('posts').select('author_id').eq('id', postId).maybeSingle()
+  const service = createServiceClient()
+  if (post?.author_id) {
+    await insertNotification({ supabase: service, userId: post.author_id, actorId: user.id, type: 'comment', entityId: postId, entityType: 'post' })
+  }
+  // notify @mentions
+  const mentionedUsernames = extractMentions(text)
+  if (mentionedUsernames.length > 0) {
+    const { data: mentionedProfiles } = await supabase
+      .from('profiles').select('id').in('username', mentionedUsernames)
+    for (const p of mentionedProfiles ?? []) {
+      await insertNotification({ supabase: service, userId: p.id, actorId: user.id, type: 'mention', entityId: postId, entityType: 'post' })
+    }
+  }
   return { ok: true }
 }
 
@@ -171,6 +217,8 @@ export async function follow(targetId: string): Promise<SocialState> {
     { follower_id: user.id, following_id: targetId },
     { onConflict: 'follower_id,following_id', ignoreDuplicates: true },
   )
+  const service = createServiceClient()
+  await insertNotification({ supabase: service, userId: targetId, actorId: user.id, type: 'follow' })
   revalidatePath('/')
   return { ok: true }
 }
