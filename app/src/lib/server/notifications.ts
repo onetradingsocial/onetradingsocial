@@ -9,7 +9,7 @@ export type Notification = {
   actorAvatarUrl: string | null
   type: NotificationType
   entityId: string | null
-  entityType: 'post' | 'comment' | 'trade' | null
+  entityType: 'post' | 'comment' | 'trade' | 'conversation' | null
   read: boolean
   createdAt: string
 }
@@ -35,7 +35,7 @@ export async function getNotifications(
       actorAvatarUrl: actor?.avatar_url ?? null,
       type: row.type as NotificationType,
       entityId: row.entity_id ?? null,
-      entityType: row.entity_type ?? null,
+      entityType: (row.entity_type ?? null) as 'post' | 'comment' | 'trade' | 'conversation' | null,
       read: row.read,
       createdAt: row.created_at,
     }

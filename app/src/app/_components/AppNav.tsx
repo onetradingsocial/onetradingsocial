@@ -8,7 +8,9 @@ import { NewTradeButton } from './NewTradeButton'
 import { NavLinks } from './NavLinks'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getNotifications, getUnreadCount, type Notification } from '@/lib/server/notifications'
+import { getUnreadTotal } from '@/lib/server/messaging'
 import { NotificationBell } from './NotificationBell'
+import { MessagesBell } from './MessagesBell'
 import { NavSearch } from './NavSearch'
 
 export async function AppNav() {
@@ -19,15 +21,17 @@ export async function AppNav() {
   let isPro = false
   let initialNotifCount = 0
   let initialNotifItems: Notification[] = []
+  let initialMsgUnread = 0
   if (user) {
     const { data } = await supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single()
     profile = data
     const tier = await getTier(supabase, user.id)
     isPro = can(tier, 'pro_badge')
     const service = createServiceClient()
-    ;[initialNotifCount, initialNotifItems] = await Promise.all([
+    ;[initialNotifCount, initialNotifItems, initialMsgUnread] = await Promise.all([
       getUnreadCount(service, user.id),
       getNotifications(service, user.id),
+      getUnreadTotal(service, user.id),
     ])
   }
 
@@ -42,7 +46,7 @@ export async function AppNav() {
             <NavSearch />
             <div className="ts-nav-right">
               <NotificationBell initialCount={initialNotifCount} initialItems={initialNotifItems} />
-              <button type="button" className="ts-nav-icon" title="Messages — soon" aria-label="Messages">✉</button>
+              <MessagesBell initialCount={initialMsgUnread} />
               <NewTradeButton className="btn btn-primary btn-sm" />
               {isPro
                 ? <span className="ts-pro-badge">PRO</span>

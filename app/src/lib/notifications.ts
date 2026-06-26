@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type NotificationType = 'like' | 'comment' | 'follow' | 'post_share' | 'mention'
+export type NotificationType = 'like' | 'comment' | 'follow' | 'post_share' | 'mention' | 'message'
 
 export interface InsertNotificationArgs {
   supabase: SupabaseClient
@@ -8,7 +8,7 @@ export interface InsertNotificationArgs {
   actorId: string     // who triggered
   type: NotificationType
   entityId?: string
-  entityType?: 'post' | 'comment' | 'trade'
+  entityType?: 'post' | 'comment' | 'trade' | 'conversation'
 }
 
 export async function insertNotification({
