@@ -629,7 +629,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 @media (max-width: 720px) {
   .ts-nav-inner { padding: 10px 14px; gap: 10px; }
   .ts-navpills { display: none; }       /* nav pages move into the burger */
-  .ts-logo-text { display: none; }       /* keep logo mark only */
   .ts-mobilenav { display: block; }
   .ts-nav-right { gap: 6px; }
   .ts-nav-avatar { width: 34px; height: 34px; }
