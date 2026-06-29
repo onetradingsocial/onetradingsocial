@@ -1,43 +1,68 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { signIn, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
+import { AuthShell, EyeIcon, LockIcon } from '@/app/_components/AuthShell'
 
 const initial: ActionState = {}
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(signIn, initial)
+  const [show, setShow] = useState(false)
+
   return (
-    <div className="ts-authwrap">
-      <div className="ts-card ts-card--auth">
-        <p className="eyebrow">Welcome back</p>
-        <h1 className="ts-h1 mt-3">Log in</h1>
-        <p className="ts-sub">Track. Prove. Improve your trading.</p>
+    <AuthShell mode="login" heading="Welcome back" sub="Log in to keep tracking your edge.">
+      <GoogleButton className="fl-oauth" />
+      <div className="fl-or"><span>or</span></div>
 
-        <form action={action} className="mt-6 grid gap-3.5">
-          <label className="ts-field">
-            <span className="ts-label">Email</span>
-            <input name="email" type="email" required className="ts-input" placeholder="you@email.com" />
-          </label>
-          <label className="ts-field">
-            <span className="ts-label">Password</span>
-            <input name="password" type="password" required className="ts-input" placeholder="••••••••" />
-          </label>
-          {state.error && <p className="ts-error">{state.error}</p>}
-          <button disabled={pending} className="btn btn-primary btn-block">
-            {pending ? 'Logging in…' : 'Log in'}
-          </button>
-        </form>
+      <form action={action} className="fl-fields">
+        <div className="fl-field">
+          <label htmlFor="li-email">Email</label>
+          <span className="fl-input">
+            <input id="li-email" name="email" type="email" autoComplete="email" required placeholder="you@email.com" />
+          </span>
+        </div>
 
-        <div className="ts-or">or</div>
-        <GoogleButton />
+        <div className="fl-field">
+          <label htmlFor="li-password">Password</label>
+          <span className="fl-input">
+            <input
+              id="li-password"
+              name="password"
+              type={show ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              className="eye"
+              onClick={() => setShow((s) => !s)}
+              aria-label={show ? 'Hide password' : 'Show password'}
+            >
+              <EyeIcon off={show} />
+            </button>
+          </span>
+        </div>
 
-        <p className="ts-sub text-center mt-5">
-          New here? <Link href="/signup" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Create a profile</Link>
+        {state.error && <p className="fl-err">{state.error}</p>}
+
+        <button disabled={pending} className="fl-submit">
+          {pending ? 'Logging in…' : 'Log in'}
+        </button>
+      </form>
+
+      <div className="fl-foot">
+        <p className="fl-secure"><LockIcon /> Secured &amp; encrypted</p>
+        <p className="fl-secure" style={{ marginTop: 8, fontFamily: 'var(--body)', color: 'var(--dim)' }}>
+          New here?{' '}
+          <Link href="/signup" style={{ color: 'var(--violet-br)', fontWeight: 700, marginLeft: 4 }}>
+            Create a profile
+          </Link>
         </p>
       </div>
-    </div>
+    </AuthShell>
   )
 }
