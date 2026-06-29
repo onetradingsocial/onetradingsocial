@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { sendMessage, markThreadRead } from '@/app/actions/messaging'
+import { getThreadMessages } from '@/app/actions/messaging-read'
 import type { Message, Attachment } from '@/lib/messaging'
 
 function rowToMessage(row: Record<string, unknown>): Message {
@@ -21,8 +22,16 @@ function rowToMessage(row: Record<string, unknown>): Message {
 export function useConversation(conversationId: string, currentUserId: string, initial: Message[]) {
   const [messages, setMessages] = useState<Message[]>(initial)
 
-  // reset when switching conversations
-  useEffect(() => { setMessages(initial) }, [conversationId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Load history when the conversation changes: use server-provided `initial`
+  // if present (SSR deep-link), otherwise fetch it (opened from the rail).
+  useEffect(() => {
+    let cancelled = false
+    if (!conversationId) { setMessages(initial); return }
+    if (initial.length > 0) { setMessages(initial); return }
+    setMessages([])
+    getThreadMessages(conversationId).then((msgs) => { if (!cancelled) setMessages(msgs) })
+    return () => { cancelled = true }
+  }, [conversationId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!conversationId) return

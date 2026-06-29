@@ -112,6 +112,44 @@ test('mutual followers DM: live delivery + read receipt', async ({ browser }) =>
   await ctxB.close()
 })
 
+test('opening a conversation from the rail shows message history', async ({ browser }) => {
+  test.setTimeout(90000)
+
+  const ctxA: BrowserContext = await browser.newContext()
+  const ctxB: BrowserContext = await browser.newContext()
+  const pageA = await ctxA.newPage()
+  const pageB = await ctxB.newPage()
+
+  const a = await signUp(pageA, 'msgra')
+  const b = await signUp(pageB, 'msgrb')
+
+  await follow(pageA, b)
+  await follow(pageB, a)
+
+  // A sends a message to B (creates the conversation + a history message)
+  const body = `history-${Date.now()}`
+  await pageA.goto(`/messages?to=${b}`)
+  const sent = pageA.waitForResponse(
+    (r) => r.request().method() === 'POST' && r.url().includes('/messages'),
+    { timeout: 15000 },
+  )
+  await pageA.fill('.ts-msg-input', body)
+  await pageA.click('.ts-msg-send')
+  await expect(pageA.locator('.ts-msg-bubble-out').filter({ hasText: body }).first()).toBeVisible({ timeout: 10000 })
+  await sent
+
+  // B opens the INBOX rail (not the ?to= deep link) and clicks the conversation row.
+  // History must load via getThreadMessages fetch — this is the rail-open path.
+  await pageB.goto('/messages')
+  await pageB.waitForLoadState('load')
+  await expect(pageB.locator('.ts-msg-row').first()).toBeVisible({ timeout: 10000 })
+  await pageB.locator('.ts-msg-row').first().click()
+  await expect(pageB.locator('.ts-msg-bubble-in').filter({ hasText: body })).toBeVisible({ timeout: 10000 })
+
+  await ctxA.close()
+  await ctxB.close()
+})
+
 test('privacy guard: non-mutual cannot message', async ({ browser }) => {
   test.setTimeout(90000)
 

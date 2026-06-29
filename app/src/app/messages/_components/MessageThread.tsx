@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useConversation } from '@/app/hooks/useConversation'
 import { useTyping } from '@/app/hooks/useTyping'
-import { getThreadMessages } from '@/app/actions/messaging-read'
 import type { Message } from '@/lib/messaging'
 import { MessageBubble } from './MessageBubble'
 import { MessageComposer } from './MessageComposer'
@@ -19,17 +18,7 @@ export function MessageThread({
   peer: PeerLite
   initialMessages: Message[]
 }) {
-  const [seed, setSeed] = useState<Message[]>(initialMessages)
-  // backfill when opened from the rail (no server-provided history)
-  useEffect(() => {
-    let cancelled = false
-    if (conversationId && initialMessages.length === 0) {
-      getThreadMessages(conversationId).then((msgs) => { if (!cancelled) setSeed(msgs) })
-    }
-    return () => { cancelled = true }
-  }, [conversationId, initialMessages.length])
-
-  const { messages, send } = useConversation(conversationId ?? '', currentUserId, seed)
+  const { messages, send } = useConversation(conversationId ?? '', currentUserId, initialMessages)
   const { peerTyping, notifyTyping } = useTyping(conversationId ?? '', currentUserId)
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages.length, peerTyping])
