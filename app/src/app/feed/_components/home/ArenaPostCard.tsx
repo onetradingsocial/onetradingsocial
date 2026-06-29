@@ -37,7 +37,7 @@ function FollowChip({ targetId, initial }: { targetId: string; initial: boolean 
   const [following, setFollowing] = useState(initial)
   const [pending, start] = useTransition()
   return (
-    <button className={'h-followbtn' + (following ? ' on' : '')} disabled={pending}
+    <button className={'h-followbtn h-trade-follow' + (following ? ' on' : '')} disabled={pending}
       onClick={() => { const next = !following; setFollowing(next); start(async () => { const r = next ? await follow(targetId) : await unfollow(targetId); if ('error' in r && r.error) setFollowing(!next) }) }}>
       {following ? <><Icon name="check" size={13} /> Following</> : <><Icon name="plus" size={13} /> Follow</>}
     </button>

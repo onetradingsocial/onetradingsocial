@@ -6,6 +6,7 @@ import { can } from '@/lib/entitlements'
 import { Brand } from './Brand'
 import { NewTradeButton } from './NewTradeButton'
 import { NavLinks } from './NavLinks'
+import { MobileNav } from './MobileNav'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getNotifications, getUnreadCount, type Notification } from '@/lib/server/notifications'
 import { getUnreadTotal } from '@/lib/server/messaging'
@@ -55,6 +56,7 @@ export async function AppNav() {
                 <Link href="/admin" className="ts-nav-icon" title="Admin" aria-label="Admin">🛡</Link>
               )}
               <Link href="/settings" className="ts-nav-icon" title="Settings" aria-label="Settings">⚙</Link>
+              <MobileNav isAdmin={isAdmin(user)} isPro={isPro} />
               {profile?.username && (
                 <Link href={`/${profile.username}`} className="ts-nav-avatar" aria-label="Your profile">
                   {profile.avatar_url

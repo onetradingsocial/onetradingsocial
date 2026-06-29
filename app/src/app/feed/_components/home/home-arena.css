@@ -754,6 +754,40 @@ textarea.h-input { height: auto; min-height: 62px; padding: 10px 12px; resize: n
 }
 @media (max-width: 560px) {
   .h-main { padding: 16px 14px 48px; }
-  .h-stats { grid-template-columns: 1fr 1fr; }
+  .h-stats { grid-template-columns: 1fr; }   /* one stat per row on mobile */
   .h-trade-body { grid-template-columns: 1fr; }
+  /* arena split: let grid tracks shrink so wide rows don't blow out the width */
+  .h-arena-split, .h-arena-stand, .h-arena-race { min-width: 0; overflow: hidden; }
+  /* arena hero — tighten padding, shrink the big rank, let CTAs wrap */
+  .h-arena-stand, .h-arena-race { padding: 18px 16px; }
+  .h-rankhero { gap: 12px; }
+  .h-rankbig { font-size: 46px; }
+  .h-arena-cta { flex-wrap: wrap; }
+  .h-arena-cta .h-btn { flex: 1 1 auto; }
+  /* race rows: clamp the name/meta so a long handle can't overflow */
+  .h-vsrow { min-width: 0; }
+  .h-vsrow > div { min-width: 0; overflow: hidden; }
+  .h-vsrow b { min-width: 0; overflow: hidden; }
+  .h-vsrow b, .h-vsrow .h-mono { white-space: nowrap; text-overflow: ellipsis; }
+  /* log band: stack icon → text → meta (button last); icon centered */
+  .h-logband { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .h-logband .lb-ic { align-self: center; }
+  .h-logband .lb-meta { width: 100%; justify-content: flex-start; }
+  /* section header: title on its own line, action below */
+  .h-section-h { flex-direction: column; align-items: flex-start; gap: 6px; }
+  /* segmented control: keep on one line, scroll if it can't fit */
+  .h-segs { max-width: 100%; overflow-x: auto; }
+  .h-seg { flex: none; white-space: nowrap; padding: 0 12px; }
+  /* trade card header: clamp author name/meta, drop the follow button */
+  .h-trade-h .who { flex: 1; min-width: 0; }
+  .h-trade-h .who b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .h-trade-h .who .meta { overflow: hidden; }
+  .h-trade-h .h-trade-follow { display: none; } /* follow from the profile instead */
+  /* footer reactions can wrap rather than overflow */
+  .h-trade-f { flex-wrap: wrap; }
+}
+@media (max-width: 400px) {
+  .h-arena-stand, .h-arena-race { padding: 16px 13px; }
+  .h-rankhero { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .h-rankbig { font-size: 40px; }
 }

@@ -229,7 +229,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
         </div>
 
         <label className="ts-field mt-4"><span className="ts-label">Visibility</span>
-          <select name="is_public" className="ts-select" defaultValue={config.defaultPublic ? 'public' : 'private'} style={{ maxWidth: 200 }}>
+          <select name="is_public" className="ts-select" defaultValue={config.defaultPublic ? 'public' : 'private'}>
             <option value="public">Public</option><option value="private">Private</option></select></label>
 
         {error && <p className="ts-error mt-4">{error}</p>}

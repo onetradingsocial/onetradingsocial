@@ -102,15 +102,16 @@ export default async function Home() {
     return { type: 'none' }
   }
 
-  const items: FeedTabItem[] = merged.map((p) => {
+  const items: FeedTabItem[] = merged.flatMap((p) => {
     const author = (Array.isArray(p.author) ? p.author[0] : p.author)
+    if (!author) return []   // skip posts whose author profile is missing/unreadable
     const base: FeedItem = {
       id: p.id, body: p.body, created_at: p.created_at, author,
       likeCount: likeCount[p.id] ?? 0, commentCount: commentCount[p.id] ?? 0,
       viewerLiked: myLikeSet.has(p.id), isOwn: author.id === user.id,
       attachment: attachmentFor(p),
     }
-    return { ...base, fromFollowed: author.id === user.id || followingSet.has(author.id) }
+    return [{ ...base, fromFollowed: author.id === user.id || followingSet.has(author.id) }]
   })
 
   // Performance (own trades) — fetched in Stage A.

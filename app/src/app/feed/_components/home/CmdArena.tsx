@@ -65,7 +65,7 @@ export function CmdArena({ data, onOpenTrade }: { data: HomeData; onOpenTrade: (
             <div className="h-mono" style={{ fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--faint)', marginBottom: 8 }}>Don&apos;t break the chain</div>
             <StreakChain days={days} />
           </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+          <div className="h-arena-cta" style={{ display: 'flex', gap: 10, marginTop: 20 }}>
             <button className="h-btn h-btn-grad" onClick={onOpenTrade}><Icon name="bolt" size={16} /> Log a trade</button>
             <Link href="/journal" className="h-btn h-btn-ghost"><Icon name="journal" size={16} /> Open journal</Link>
           </div>
