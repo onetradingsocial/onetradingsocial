@@ -81,7 +81,7 @@ export default async function JournalPage() {
       </div>
 
       <div className="mt-5">
-        <TradingCalendar cells={cal} monthLabel={monthLabel} today={now.getDate()} />
+        <TradingCalendar cells={cal} monthLabel={monthLabel} today={now.getDate()} trades={trades} year={year} month={month} />
       </div>
 
       <div className="mt-5">

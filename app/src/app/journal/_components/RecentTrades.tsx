@@ -47,7 +47,7 @@ export function RecentTrades({ trades, monthNet }: { trades: JTrade[]; monthNet:
                         <div><div style={{ fontWeight: 600 }}>{t.instrument}</div><div className="faint" style={{ fontSize: 12, textTransform: 'capitalize' }}>{t.market}</div></div>
                       </div>
                     </td>
-                    <td><span className={`ts-side ${long ? 'ts-side--long' : 'ts-side--short'}`}>{long ? '↗ Long' : '↘ Short'}</span></td>
+                    <td><span className={`ts-side ${long ? 'ts-side--long' : 'ts-side--short'}`} title={long ? 'Long' : 'Short'} aria-label={long ? 'Long' : 'Short'}>{long ? '↗' : '↘'}</span></td>
                     <td className="mono">{t.entry_price}</td>
                     <td className="mono">{t.exit_price ?? '—'}</td>
                     <td className={r == null ? '' : r >= 0 ? 'ts-pos' : 'ts-neg'}>{r != null ? `${r >= 0 ? '+' : ''}${r.toFixed(1)}R` : t.planned_rr ? `1:${t.planned_rr.toFixed(1)}` : '—'}</td>

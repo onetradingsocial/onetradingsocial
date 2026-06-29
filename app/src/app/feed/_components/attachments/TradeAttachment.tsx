@@ -23,7 +23,7 @@ export function TradeAttachment({ t }: { t: TradeCard }) {
     <div className="ts-trade-att">
       <div className="ts-trade-att-head">
         <span className="sym">{t.instrument}</span>
-        <span className={`ts-side ${long ? 'ts-side--long' : 'ts-side--short'}`}>{long ? '↗ Long' : '↘ Short'}</span>
+        <span className={`ts-side ${long ? 'ts-side--long' : 'ts-side--short'}`} title={long ? 'Long' : 'Short'} aria-label={long ? 'Long' : 'Short'}>{long ? '↗' : '↘'}</span>
         <span className={`ts-badge ${t.status === 'open' ? 'ts-badge--open' : (t.r_multiple ?? 0) >= 0 ? 'ts-badge--win' : 'ts-badge--loss'}`} style={{ marginLeft: 'auto' }}>{result}</span>
       </div>
       <div className="ts-trade-att-grid">
