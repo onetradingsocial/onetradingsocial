@@ -1,0 +1,138 @@
+/* ============================================================
+   TradingSocial — Trader Profile (pf- prefix).
+   Used inside the .h-app design-system scope (home-arena.css).
+   Ported from the profile mockup; reuses .h-stat / .lb-panel / .h-w.
+   ============================================================ */
+
+/* ---------------- HERO ---------------- */
+.pf-hero { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh); overflow: hidden; }
+.pf-cover { position: relative; height: 184px; overflow: hidden; isolation: isolate;
+  background:
+    radial-gradient(60% 120% at 78% -10%, rgba(200,64,188,0.45), transparent 55%),
+    radial-gradient(55% 130% at 8% 0%, rgba(63,182,232,0.42), transparent 58%),
+    linear-gradient(120deg, #3A2474 0%, #5530C8 38%, #7C3FC4 70%, #A23CCB 100%); }
+.pf-cover .pf-blob { position: absolute; border-radius: 50%; filter: blur(46px); opacity: .85; z-index: 0; pointer-events: none; }
+.pf-cover .pf-blob.b1 { width: 260px; height: 260px; top: -120px; left: -40px; background: radial-gradient(circle, rgba(63,182,232,0.85), transparent 70%); }
+.pf-cover .pf-blob.b2 { width: 300px; height: 300px; top: -90px; right: 6%; background: radial-gradient(circle, rgba(255,122,77,0.55), transparent 70%); }
+.pf-cover .pf-blob.b3 { width: 220px; height: 220px; bottom: -150px; left: 42%; background: radial-gradient(circle, rgba(200,64,188,0.6), transparent 70%); }
+.pf-cover::before { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.16), transparent 22%), linear-gradient(0deg, rgba(21,18,30,0.30), transparent 46%); }
+.pf-cover .pf-cover-line { position: absolute; left: 0; right: 0; bottom: 0; height: 86px; z-index: 1; pointer-events: none; opacity: .9; }
+.pf-cover .h-ink-grid { z-index: 1; background-size: 38px 38px; mask-image: radial-gradient(85% 130% at 28% 0%, rgba(0,0,0,0.8), transparent 76%); }
+
+.pf-hero-body { padding: 0 26px 22px; }
+.pf-idrow { display: flex; align-items: flex-end; gap: 20px; }
+.pf-av { position: relative; margin-top: -56px; flex-shrink: 0; }
+.pf-av .pf-av-ring { display: block; padding: 4px; background: #fff; border-radius: 50%; box-shadow: var(--sh); }
+.pf-av .online { position: absolute; right: 8px; bottom: 10px; width: 22px; height: 22px; border-radius: 50%; background: var(--up); border: 4px solid #fff; }
+.pf-id { flex: 1; min-width: 0; padding-bottom: 4px; }
+.pf-name { font-family: var(--display); font-size: 27px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pf-verified { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg,#3FB6E8,#1A86B8); color: #fff; box-shadow: 0 4px 10px -3px rgba(63,182,232,0.7); }
+.pf-verified svg { width: 13px; height: 13px; }
+.pf-lvtag { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--violet-br); background: rgba(124,92,230,0.10); border: 1px solid var(--line-vio); border-radius: 7px; padding: 3px 8px; letter-spacing: 0.02em; }
+.pf-handle { font-family: var(--mono); font-size: 13px; color: var(--faint); margin-top: 3px; }
+.pf-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; }
+.pf-metaitem { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--dim); font-weight: 500; }
+.pf-metaitem svg { width: 14px; height: 14px; color: var(--faint2); }
+.pf-actions { display: flex; align-items: center; gap: 9px; padding-bottom: 4px; flex-shrink: 0; }
+.pf-iconbtn { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: var(--dim); background: var(--card); border: 1px solid var(--line-2); box-shadow: var(--sh-sm); transition: all .15s; }
+.pf-iconbtn:hover { border-color: var(--line-vio); color: var(--violet-br); transform: translateY(-1px); }
+.pf-iconbtn svg { width: 18px; height: 18px; }
+.pf-bio { font-size: 14px; color: var(--text); line-height: 1.6; margin-top: 16px; max-width: 70ch; text-wrap: pretty; }
+.pf-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.pf-social { display: flex; align-items: center; gap: 0; margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; flex-wrap: wrap; row-gap: 14px; }
+.pf-soc { display: flex; flex-direction: column; gap: 2px; padding-right: 24px; margin-right: 24px; border-right: 1px solid var(--line); }
+.pf-soc.last { border-right: none; }
+.pf-soc .n { font-family: var(--display); font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+.pf-soc .n small { font-size: 12px; font-weight: 600; color: var(--up); font-family: var(--mono); margin-left: 5px; }
+.pf-soc .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.pf-followers { display: flex; align-items: center; margin-left: auto; }
+.pf-followers .stack { display: flex; }
+.pf-followers .stack .h-av { border: 2.5px solid #fff; margin-left: -10px; }
+.pf-followers .stack .h-av:first-child { margin-left: 0; }
+.pf-followers .more { font-size: 12.5px; color: var(--dim); font-weight: 600; margin-left: 12px; }
+.pf-followers .more b { color: var(--text); }
+
+/* ---------------- PANEL helpers ---------------- */
+.pf-seg-mini { display: inline-flex; padding: 3px; background: var(--sunk); border-radius: 10px; border: 1px solid var(--line); }
+.pf-seg-mini button { height: 28px; padding: 0 12px; border-radius: 7px; font-size: 12px; font-weight: 600; color: var(--dim); transition: all .15s; }
+.pf-seg-mini button.on { background: #fff; color: var(--violet-dp); box-shadow: var(--sh-sm); }
+
+/* ---------------- EQUITY / PERFORMANCE ---------------- */
+.pf-equity { padding: 4px 18px 18px; }
+.pf-equity-chart { position: relative; height: 200px; margin: 8px 0 4px; }
+.pf-eq-yaxis { position: absolute; inset: 0; pointer-events: none; }
+.pf-eq-yaxis .gl { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line); }
+.pf-eq-yaxis .gl span { position: absolute; left: 0; top: -8px; font-family: var(--mono); font-size: 9.5px; color: var(--faint2); background: var(--card); padding-right: 6px; }
+.pf-eqstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 13px; overflow: hidden; margin-top: 16px; }
+.pf-eqstats .m { background: var(--card-2); padding: 12px 14px; }
+.pf-eqstats .m .k { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.pf-eqstats .m .v { font-family: var(--display); font-size: 19px; font-weight: 700; margin-top: 4px; letter-spacing: -0.01em; }
+
+/* ---------------- TRADING STYLE ---------------- */
+.pf-style { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
+.pf-strow { background: var(--card); padding: 16px 18px; display: flex; flex-direction: column; gap: 9px; }
+.pf-strow .lab { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+.pf-strow .lab .ic { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; background: var(--grad-soft); color: var(--violet-br); }
+.pf-strow .lab .ic svg { width: 13px; height: 13px; }
+.pf-strow .val { font-family: var(--display); font-size: 16px; font-weight: 600; letter-spacing: -0.01em; text-transform: capitalize; }
+.pf-chiprow { display: flex; flex-wrap: wrap; gap: 7px; }
+.pf-tchip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: var(--violet-dp); background: rgba(124,92,230,0.07); border: 1px solid var(--line-vio); }
+.pf-tchip.plain { color: var(--dim); background: var(--sunk); border-color: var(--line); }
+.pf-tchip .mk { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--violet-br); }
+
+/* ---------------- TRADE HISTORY ---------------- */
+.pf-hist { border-top: 1px solid var(--line); }
+.pf-hrow { display: flex; align-items: center; gap: 14px; padding: 13px 18px; border-bottom: 1px solid var(--line); transition: background .12s; }
+.pf-hrow:last-child { border-bottom: none; }
+.pf-hrow:hover { background: var(--card-2); }
+.pf-hsym { width: 44px; height: 44px; border-radius: 11px; background: var(--grad-soft); border: 1px solid var(--line-vio); display: grid; place-items: center; font-family: var(--mono); font-size: 9.5px; font-weight: 700; color: var(--violet-br); flex-shrink: 0; text-align: center; line-height: 1.15; }
+.pf-hmain { min-width: 0; flex: 1; }
+.pf-hmain .top { display: flex; align-items: center; gap: 8px; }
+.pf-hmain .pair { font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.pf-hmain .note { font-size: 12.5px; color: var(--faint); margin-top: 2px; }
+.pf-hdir { display: inline-flex; align-items: center; gap: 3px; height: 21px; padding: 0 7px; border-radius: 6px; font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.pf-hdir svg { width: 10px; height: 10px; }
+.pf-hdir.long { background: var(--up-soft); color: var(--up); }
+.pf-hdir.short { background: var(--down-soft); color: var(--down); }
+.pf-hmeta { display: flex; align-items: center; gap: 22px; flex-shrink: 0; }
+.pf-hmeta .col { text-align: right; }
+.pf-hmeta .col .k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint2); }
+.pf-hmeta .col .v { font-family: var(--mono); font-size: 13.5px; font-weight: 700; margin-top: 2px; }
+.pf-hmeta .col .v.up { color: var(--up); }
+.pf-hmeta .col .v.down { color: var(--down); }
+.pf-hmeta .col .date { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+
+/* ---------------- ACHIEVEMENTS ---------------- */
+.pf-badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 18px; }
+.pf-badge { position: relative; border-radius: 14px; border: 1px solid var(--line); background: var(--card-2); padding: 15px; display: flex; flex-direction: column; gap: 4px; transition: transform .16s, box-shadow .16s; overflow: hidden; }
+.pf-badge.earned:hover { transform: translateY(-2px); box-shadow: var(--sh); }
+.pf-badge .ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 6px; color: #fff; }
+.pf-badge .ic svg { width: 21px; height: 21px; }
+.pf-badge b { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
+.pf-badge span { font-size: 11.5px; color: var(--faint); line-height: 1.4; }
+.pf-badge.locked { background: var(--sunk); border-style: dashed; }
+.pf-badge.locked .ic { background: var(--line-2) !important; color: var(--faint2); }
+.pf-badge.locked b { color: var(--dim); }
+.pf-badge .got { position: absolute; top: 12px; right: 12px; color: var(--up); }
+.pf-badge .got svg { width: 16px; height: 16px; }
+
+/* ---------------- RAIL: instruments ---------------- */
+.pf-inst { padding: 4px 16px 14px; }
+.pf-instrow { display: flex; align-items: center; gap: 11px; padding: 9px 0; }
+.pf-instrow .pair { font-family: var(--mono); font-size: 12px; font-weight: 700; width: 66px; flex-shrink: 0; }
+.pf-instrow .barwrap { flex: 1; height: 8px; border-radius: 5px; background: var(--sunk); overflow: hidden; }
+.pf-instrow .barwrap i { display: block; height: 100%; border-radius: 5px; background: var(--grad); }
+.pf-instrow .pct { font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--dim); width: 30px; text-align: right; flex-shrink: 0; }
+
+/* ---------------- responsive ---------------- */
+@media (max-width: 1080px) {
+  .pf-badges { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .pf-idrow { flex-wrap: wrap; }
+  .pf-actions { width: 100%; }
+  .pf-style { grid-template-columns: 1fr; }
+  .pf-badges { grid-template-columns: 1fr; }
+  .pf-hmeta .col.hidem { display: none; }
+}
