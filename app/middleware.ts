@@ -1,7 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/signup', '/auth']
+// Signup-funnel steps — gated to logged-in, not-yet-onboarded users.
+const FUNNEL_PATHS = ['/onboarding', '/select-plan']
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -28,31 +29,35 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
 
-  const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p))
-  // Protected app routes that require a session. The single-segment catch-all
-  // (e.g. /alex) is a PUBLIC profile page, so it is deliberately NOT protected here.
-  const isProtected =
-    path === '/' || path.startsWith('/settings') || path.startsWith('/onboarding')
+  // Signup-funnel steps: only for a logged-in user who hasn't finished
+  // onboarding. Logged-out -> /login; already-onboarded -> / (home).
+  const isFunnel = FUNNEL_PATHS.some((p) => path.startsWith(p))
+  // Protected app routes that require a finished account. The single-segment
+  // catch-all (e.g. /alex) is a PUBLIC profile page, so it is NOT protected here.
+  const isProtected = path === '/' || path.startsWith('/settings')
 
-  // Unauthed on a protected page -> login. Public profiles + auth pages stay open.
-  if (!user && isProtected) {
+  const redirectTo = (pathname: string) => {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = pathname
     return NextResponse.redirect(url)
   }
 
-  // Authed but onboarding incomplete -> force onboarding (except onboarding/auth itself).
-  if (user && isProtected && !path.startsWith('/onboarding')) {
+  // Unauthed on any gated page -> login. Public profiles + auth pages stay open.
+  if (!user && (isProtected || isFunnel)) return redirectTo('/login')
+
+  // Authed: a single onboarding-status read drives both gates.
+  if (user && (isProtected || isFunnel)) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('onboarding_completed')
       .eq('id', user.id)
       .single()
-    if (profile && !profile.onboarding_completed) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/onboarding'
-      return NextResponse.redirect(url)
-    }
+    const completed = !!profile?.onboarding_completed
+
+    // Done with onboarding? The funnel is off-limits — send them home.
+    if (isFunnel && completed) return redirectTo('/')
+    // Still onboarding but on a protected app route? Resume the funnel.
+    if (isProtected && !completed) return redirectTo('/onboarding')
   }
 
   return response
