@@ -1536,6 +1536,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   background: radial-gradient(82% 60% at 50% -12%, rgba(85,48,200,0.16), transparent 60%);
 }
 
+/* Funnel variant (e.g. /select-plan): cover the app nav for a focused
+   full-screen step, matching the onboarding scrim. */
+.fl-stage.fl-stage--full {
+  position: fixed; inset: 0; z-index: 100; min-height: 100dvh; overflow: auto;
+  background: radial-gradient(82% 60% at 50% -12%, rgba(85,48,200,0.16), transparent 60%), var(--bg);
+}
+
 /* card shell */
 .fl-card {
   position: relative; z-index: 1; width: 100%; background: var(--card);

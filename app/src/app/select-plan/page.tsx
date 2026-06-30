@@ -14,7 +14,7 @@ export default async function SelectPlanPage() {
   if (profile?.onboarding_completed) redirect('/')
 
   return (
-    <div className="fl-stage">
+    <div className="fl-stage fl-stage--full">
       <SelectPlanForm />
     </div>
   )
