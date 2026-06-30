@@ -1,0 +1,64 @@
+/* Settings hub — two-column grid + sticky sidebar nav. Tokens from globals.css. */
+.settings-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+.settings-head { margin-bottom: 22px; }
+
+.settings-nav {
+  position: sticky; top: 84px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.settings-navlink {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 13px; border-radius: 11px;
+  font-size: 14px; font-weight: 600; color: var(--dim);
+  border: 1px solid transparent; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.settings-navlink:hover { background: var(--surface-2); color: var(--text); }
+.settings-navlink[data-active="true"] {
+  background: var(--brand-grad-soft); color: var(--violet-deep);
+  border-color: var(--border-vio);
+}
+.settings-navlink svg { flex: none; }
+
+.settings-body { display: flex; flex-direction: column; gap: 18px; }
+.settings-section { scroll-margin-top: 84px; }
+.settings-section .ts-h2 { display: flex; align-items: center; gap: 9px; }
+
+/* visibility sub-block inside the profile card */
+.settings-privacy {
+  margin-top: 22px; padding-top: 22px;
+  border-top: 1px solid var(--border);
+  scroll-margin-top: 84px;
+}
+.settings-locknote {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px;
+  font-size: 13px; color: var(--dim);
+}
+.settings-locknote a { color: var(--violet-br); font-weight: 600; }
+
+.settings-foot {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);
+}
+.settings-saved { font-size: 13.5px; font-weight: 600; color: var(--up); }
+
+.settings-readonly {
+  height: 46px; display: flex; align-items: center; padding: 0 14px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 12px; color: var(--dim); font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .settings-grid { grid-template-columns: 1fr; gap: 16px; }
+  .settings-nav {
+    position: static; flex-direction: row; overflow-x: auto;
+    gap: 6px; padding-bottom: 4px;
+  }
+  .settings-navlink { white-space: nowrap; }
+  .settings-navlink span.lab { display: inline; }
+}
