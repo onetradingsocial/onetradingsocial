@@ -32,7 +32,7 @@ export default async function Home() {
     { data: follows },
     { data: ownTradeRows },
   ] = await Promise.all([
-    supabase.from('profiles').select('username, display_name, avatar_url').eq('id', user.id).single(),
+    supabase.from('profiles').select('username, display_name, avatar_url, onboarding_completed').eq('id', user.id).single(),
     getPerformanceRanking(supabase, 'week'),
     getUserXp(supabase, user.id),
     supabase.from('follows').select('following_id').eq('follower_id', user.id),
@@ -40,6 +40,10 @@ export default async function Home() {
       .select('id, instrument, market, setup_type, status, outcome, r_multiple, pnl_amount, traded_at')
       .eq('user_id', user.id).order('traded_at', { ascending: false }),
   ])
+  // Funnel guard: anyone who hasn't finished onboarding resumes it here.
+  // Middleware also enforces this, but a null profile read there fails open,
+  // so the home route (where login lands) gates deterministically too.
+  if (!profile?.onboarding_completed) redirect('/onboarding')
   const name = profile?.display_name || profile?.username || 'trader'
   const viewerRank = weekBoard.find((e) => e.userId === user.id)?.rank ?? null
   const weekLeaders = weekBoard.slice(0, 5).map((e) => ({
