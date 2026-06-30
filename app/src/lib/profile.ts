@@ -1,3 +1,5 @@
+import type { Tier } from '@/lib/entitlements'
+
 export const EXPERIENCE_LEVELS = ['beginner', 'intermediate', 'advanced'] as const
 export const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 export const TRADING_STYLES = [
@@ -38,4 +40,11 @@ export type Profile = {
   xp: number
   level: number
   created_at: string
+}
+
+// Private profiles are a paid perk. Free tier is forced public (fail-closed);
+// paid tiers may choose. Single source of truth for the visibility gate.
+export function resolveVisibility(tier: Tier, requestedPublic: boolean): boolean {
+  if (tier === 'free') return true
+  return requestedPublic
 }
