@@ -1,5 +1,5 @@
 'use client'
-import { useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 type Tier = 'free' | 'trader' | 'pro'
 const RANK: Record<Tier, number> = { free: 0, trader: 1, pro: 2 }
@@ -80,13 +80,26 @@ export function PlanCards({ currentTier, isPaid }: { currentTier: Tier; isPaid: 
 
   const act = async (fn: () => Promise<void>) => { setBusy(true); await fn(); setBusy(false) }
 
+  // animated billing-toggle thumb — track the active option's box (mirrors /select-plan)
+  const switchRef = useRef<HTMLDivElement>(null)
+  const monthlyRef = useRef<HTMLButtonElement>(null)
+  const annualRef = useRef<HTMLButtonElement>(null)
+  const [thumb, setThumb] = useState<{ left: number; width: number }>({ left: 0, width: 0 })
+
+  useLayoutEffect(() => {
+    const el = interval === 'monthly' ? monthlyRef.current : annualRef.current
+    if (el) setThumb({ left: el.offsetLeft, width: el.offsetWidth })
+  }, [interval])
+
   return (
     <>
       <div className="ts-plan-toggle mt-6">
-        <div className="ts-billing-toggle">
-          <button type="button" className={interval === 'monthly' ? 'active' : ''} onClick={() => setBillingInterval('monthly')}>Monthly</button>
-          <button type="button" className={interval === 'annual' ? 'active' : ''} onClick={() => setBillingInterval('annual')}>Annual · save 2 months</button>
+        <div className="ts-bswitch" ref={switchRef}>
+          <span className="ts-bthumb" style={{ left: thumb.left, width: thumb.width }} />
+          <button type="button" ref={monthlyRef} className={`ts-bopt${interval === 'monthly' ? ' on' : ''}`} onClick={() => setBillingInterval('monthly')}>Monthly</button>
+          <button type="button" ref={annualRef} className={`ts-bopt${interval === 'annual' ? ' on' : ''}`} onClick={() => setBillingInterval('annual')}>Annual</button>
         </div>
+        <span className="ts-bsave">Save 2 months</span>
       </div>
 
       <div className="ts-plan-grid mt-6">
@@ -108,8 +121,6 @@ export function PlanCards({ currentTier, isPaid }: { currentTier: Tier; isPaid: 
               </div>
               <div className="pcard-billed">{billed}</div>
 
-              <PlanCta plan={p} currentTier={currentTier} interval={interval} busy={busy} act={act} />
-
               <div className="pcard-feats">
                 <span className="pcard-feats-lbl">{p.featsLabel}</span>
                 <ul>
@@ -121,6 +132,8 @@ export function PlanCards({ currentTier, isPaid }: { currentTier: Tier; isPaid: 
                   ))}
                 </ul>
               </div>
+
+              <PlanCta plan={p} currentTier={currentTier} interval={interval} busy={busy} act={act} />
             </article>
           )
         })}
