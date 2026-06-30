@@ -174,7 +174,7 @@ function StepShell(props: {
 
 const initial: ProfileState = {}
 
-export function OnboardingForm({ initialUsername, displayName }: { initialUsername: string; displayName?: string }) {
+export function OnboardingForm({ initialUsername, displayName, canGoPrivate = true }: { initialUsername: string; displayName?: string; canGoPrivate?: boolean }) {
   const [step, setStep] = useState(0) // 0 welcome, 1..4 questions, 5 reveal
   const [data, setData] = useState<Data>({ markets: [], level: '', goal: '', visibility: '' })
   const [username, setUsername] = useState(initialUsername)
@@ -334,19 +334,31 @@ export function OnboardingForm({ initialUsername, displayName }: { initialUserna
         <div className="ob-progress-top"><i style={{ width: '100%' }} /></div>
         <StepShell
           step={4} total={4} stepLabel="Step 4 of 4" data={data} xp={xp} name={name} username={username}
-          q="Public or private?" sub="Most traders go public to learn faster — but you're in control. Change this anytime from your settings."
+          q="Public or private?" sub={canGoPrivate
+            ? "Most traders go public to learn faster — but you're in control. Change this anytime from your settings."
+            : "On the free plan your profile is public so you can climb the leaderboard. Private journaling unlocks on Trader & Pro."}
           onBack={() => go(3)} onNext={() => go(5)} nextDisabled={!data.visibility} nextLabel="Create my profile"
         >
           <div className="ob-vis">
-            {OB_VIS.map((v) => (
-              <button type="button" key={v.id} className={'ob-visopt' + (data.visibility === v.id ? ' on' : '')} onClick={() => setData((d) => ({ ...d, visibility: v.id }))}>
-                <span className="v-ic"><Icon name={v.icon} size={24} /></span>
-                <b>{v.title}</b>
-                <p>{v.desc}</p>
-                <div className="v-tags">{v.tags.map((t) => <span key={t}>{t}</span>)}</div>
-                <span className="v-check"><Icon name="check" size={13} /></span>
-              </button>
-            ))}
+            {OB_VIS.map((v) => {
+              const locked = v.id === 'private' && !canGoPrivate
+              return (
+                <button
+                  type="button" key={v.id}
+                  className={'ob-visopt' + (data.visibility === v.id ? ' on' : '') + (locked ? ' locked' : '')}
+                  aria-disabled={locked}
+                  onClick={() => { if (!locked) setData((d) => ({ ...d, visibility: v.id })) }}
+                >
+                  <span className="v-ic"><Icon name={v.icon} size={24} /></span>
+                  <b>{v.title}</b>
+                  <p>{v.desc}</p>
+                  <div className="v-tags">{v.tags.map((t) => <span key={t}>{t}</span>)}</div>
+                  {locked
+                    ? <span className="ob-lock-badge"><Icon name="shield" size={11} /> Trader+</span>
+                    : <span className="v-check"><Icon name="check" size={13} /></span>}
+                </button>
+              )
+            })}
           </div>
         </StepShell>
       </div>

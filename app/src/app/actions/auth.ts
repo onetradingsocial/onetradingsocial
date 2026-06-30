@@ -28,7 +28,7 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     return { error: 'An account with this email already exists.' }
   }
 
-  redirect('/onboarding')
+  redirect('/select-plan')
 }
 
 export async function signIn(_prev: ActionState, formData: FormData): Promise<ActionState> {

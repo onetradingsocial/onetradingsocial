@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  const { tier, interval } = (await request.json().catch(() => ({}))) as {
-    tier?: Tier; interval?: Interval
+  const { tier, interval, flow } = (await request.json().catch(() => ({}))) as {
+    tier?: Tier; interval?: Interval; flow?: 'onboarding'
   }
   if ((tier !== 'trader' && tier !== 'pro') || (interval !== 'monthly' && interval !== 'annual')) {
     return NextResponse.json({ error: 'bad request' }, { status: 400 })
@@ -41,13 +41,22 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // During signup the checkout sits between the plan selector and onboarding,
+  // so on success we send the user into onboarding rather than back to billing.
+  const successUrl = flow === 'onboarding'
+    ? `${SITE}/onboarding?checkout=success`
+    : `${SITE}/settings/billing?status=success`
+  const cancelUrl = flow === 'onboarding'
+    ? `${SITE}/select-plan?checkout=cancelled`
+    : `${SITE}/settings/billing?status=cancelled`
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,
     client_reference_id: user.id,
     line_items: [{ price, quantity: 1 }],
-    success_url: `${SITE}/settings/billing?status=success`,
-    cancel_url: `${SITE}/settings/billing?status=cancelled`,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
   })
   if (!session.url) return NextResponse.json({ error: 'no session url' }, { status: 500 })
   return NextResponse.json({ url: session.url })
