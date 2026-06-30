@@ -150,12 +150,26 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   if (styles.length > 0) styleRows.push({ icon: 'target', lab: 'Market Approach', chips: styles })
   if (profile.experience_level) styleRows.push({ icon: 'shield', lab: 'Experience', val: profile.experience_level })
 
+  // Running per-metric series (ascending) so each card's sparkline reflects its data.
+  const pnlSeries = eqPoints.map((p) => p.v)
+  const winRateSeries: number[] = []
+  const avgRSeries: number[] = []
+  const countSeries: number[] = []
+  let wRun = 0, rSum = 0, rN = 0
+  asc.forEach((t, i) => {
+    if ((t.r_multiple ?? 0) > 0) wRun++
+    winRateSeries.push((wRun / (i + 1)) * 100)
+    if (t.r_multiple != null) { rSum += t.r_multiple; rN++ }
+    avgRSeries.push(rN ? rSum / rN : 0)
+    countSeries.push(i + 1)
+  })
+
   const statCards = [
-    { k: 'Overall Rank', v: profileRank ? `#${profileRank}` : 'Unranked', accent: '#E0931E', seed: 3, trend: 2 },
-    { k: 'Total P/L', v: money(metrics.netPnl, true), accent: '#12A56B', seed: 9, trend: 3 },
-    { k: 'Win Rate', v: `${Math.round(metrics.winRate * 100)}%`, accent: '#7C5CE6', seed: 5, trend: 1 },
-    { k: 'Avg R:R', v: metrics.avgRr.toFixed(1), accent: '#3FB6E8', seed: 12, trend: 2 },
-    { k: 'Total Trades', v: String(metrics.total), accent: '#C840BC', seed: 7, trend: 1 },
+    { k: 'Overall Rank', v: profileRank ? `#${profileRank}` : 'Unranked', accent: '#E0931E', data: pnlSeries },
+    { k: 'Total P/L', v: money(metrics.netPnl, true), accent: '#12A56B', data: pnlSeries },
+    { k: 'Win Rate', v: `${Math.round(metrics.winRate * 100)}%`, accent: '#7C5CE6', data: winRateSeries },
+    { k: 'Avg R:R', v: metrics.avgRr.toFixed(1), accent: '#3FB6E8', data: avgRSeries },
+    { k: 'Total Trades', v: String(metrics.total), accent: '#C840BC', data: countSeries },
   ]
 
   const history = pub.slice(0, 5)
@@ -258,7 +272,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                   <div key={s.k} className="h-stat" style={{ '--accent': s.accent } as React.CSSProperties}>
                     <div className="top"><span className="k">{s.k}</span></div>
                     <div className="v">{s.v}</div>
-                    <div className="spark"><Sparkline seed={s.seed} trend={s.trend} color={s.accent} h={28} /></div>
+                    <div className="spark"><Sparkline data={s.data} color={s.accent} h={28} /></div>
                   </div>
                 ))}
               </div>
