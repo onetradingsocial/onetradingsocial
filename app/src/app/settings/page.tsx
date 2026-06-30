@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { getTier, getSubscription } from '@/lib/server/entitlements'
 import { saveAccount } from '@/app/actions/account'
 import { Icon } from '@/app/[username]/_components/Icon'
@@ -11,7 +11,7 @@ const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as cons
 
 export default async function SettingsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
   const [{ data: profile }, tier, sub] = await Promise.all([

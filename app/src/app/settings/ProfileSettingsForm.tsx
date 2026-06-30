@@ -106,7 +106,7 @@ export function ProfileSettingsForm(props: Props) {
             <div className="ts-seg">
               <label>
                 <input type="radio" name="is_public" value="public"
-                  defaultChecked={props.isPublic} />
+                  defaultChecked={props.isPublic || !props.canGoPrivate} />
                 Public
               </label>
               <label>
@@ -123,9 +123,11 @@ export function ProfileSettingsForm(props: Props) {
             )}
           </div>
 
-          {state?.error && <p className="ts-error">{state.error}</p>}
+          <div role="status" aria-live="polite">
+            {state?.error && <p className="ts-error">{state.error}</p>}
+          </div>
 
-          <div className="settings-foot">
+          <div className="settings-foot" aria-live="polite">
             <button className="btn btn-primary" disabled={pending}>
               {pending ? 'Saving…' : 'Save changes'}
             </button>

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { validateUsername } from '@/lib/username'
 import { getTier } from '@/lib/server/entitlements'
-import { onboardingToRow, type OnboardingInput, type ExperienceLevel, resolveVisibility } from '@/lib/profile'
+import { onboardingToRow, type OnboardingInput, type ExperienceLevel, resolveVisibility, EXPERIENCE_LEVELS } from '@/lib/profile'
 
 export type ProfileState = { error?: string; ok?: boolean }
 
@@ -50,7 +50,7 @@ export async function saveProfileSettings(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const username = String(formData.get('username') ?? '')
+  const username = String(formData.get('username') ?? '').trim()
   const v = validateUsername(username)
   if (!v.ok) return { error: v.error }
 
@@ -58,6 +58,11 @@ export async function saveProfileSettings(
     const s = String(formData.get(key) ?? '').trim()
     return s.length ? s : null
   }
+
+  const requestedExperience = String(formData.get('experience_level') ?? 'beginner')
+  const experience_level: ExperienceLevel = EXPERIENCE_LEVELS.includes(requestedExperience as ExperienceLevel)
+    ? (requestedExperience as ExperienceLevel)
+    : 'beginner'
 
   const tier = await getTier(supabase, user.id)
   const requestedPublic = formData.get('is_public') === 'public'
@@ -69,7 +74,7 @@ export async function saveProfileSettings(
       display_name: clean('display_name'),
       bio: clean('bio'),
       goal: clean('goal'),
-      experience_level: String(formData.get('experience_level') ?? 'beginner'),
+      experience_level,
       main_markets: formData.getAll('main_markets').map(String),
       trading_styles: formData.getAll('trading_styles').map(String),
       is_public: resolveVisibility(tier, requestedPublic),
@@ -82,6 +87,6 @@ export async function saveProfileSettings(
   }
 
   revalidatePath('/settings')
-  revalidatePath(`/${username}`)
+  revalidatePath('/[username]', 'page')
   return { ok: true }
 }
