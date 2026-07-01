@@ -1,22 +1,24 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import { useConversation } from '@/app/hooks/useConversation'
 import { useTyping } from '@/app/hooks/useTyping'
 import type { Message } from '@/lib/messaging'
 import { MessageBubble } from './MessageBubble'
 import { MessageComposer } from './MessageComposer'
 import { TypingIndicator } from './TypingIndicator'
+import { dayLabel, isNewDay } from './format'
 
 type PeerLite = { id: string; username: string; displayName: string | null; avatarUrl: string | null }
 
 export function MessageThread({
-  currentUserId, conversationId, peer, initialMessages,
+  currentUserId, conversationId, peer, initialMessages, onBack,
 }: {
   currentUserId: string
   conversationId: string | null
   peer: PeerLite
   initialMessages: Message[]
+  onBack?: () => void
 }) {
   const { messages, send } = useConversation(conversationId ?? '', currentUserId, initialMessages)
   const { peerTyping, notifyTyping } = useTyping(conversationId ?? '', currentUserId)
@@ -29,20 +31,42 @@ export function MessageThread({
   return (
     <div className="ts-msg-thread">
       <header className="ts-msg-thread-head">
-        <span className="ts-msg-avatar">
+        {onBack && (
+          <button type="button" className="ts-msg-back" onClick={onBack} aria-label="Back to conversations">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m15 6-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+        <span className="ts-msg-avatar ts-msg-avatar-sm">
           {peer.avatarUrl
-            ? <img src={peer.avatarUrl} alt="" width={36} height={36} style={{ borderRadius: '50%' }} />
+            ? <img src={peer.avatarUrl} alt="" width={38} height={38} style={{ borderRadius: '50%' }} />
             : <span className="ts-msg-avatar-initial">{name.charAt(0).toUpperCase()}</span>}
         </span>
-        <a href={`/${peer.username}`} className="ts-msg-thread-name">{name}</a>
+        <a href={`/${peer.username}`} className="ts-msg-thread-id">
+          <span className="ts-msg-thread-name">{name}</span>
+          <span className="ts-msg-thread-handle">@{peer.username}</span>
+        </a>
       </header>
 
       <div className="ts-msg-scroll">
+        {messages.length === 0 && !peerTyping && (
+          <div className="ts-msg-thread-intro faint">
+            This is the start of your conversation with {name}.
+          </div>
+        )}
         {messages.map((m, i) => {
           const mine = m.senderId === currentUserId
           const isLastMine = mine && i === lastMineIdx
+          const prev = i > 0 ? messages[i - 1] : null
+          const newDay = isNewDay(prev?.createdAt ?? null, m.createdAt)
           return (
-            <MessageBubble key={m.id} message={m} mine={mine} showSeen={isLastMine && !!m.readAt} />
+            <Fragment key={m.id}>
+              {newDay && (
+                <div className="ts-msg-day-divider"><span>{dayLabel(m.createdAt)}</span></div>
+              )}
+              <MessageBubble message={m} mine={mine} showSeen={isLastMine && !!m.readAt} />
+            </Fragment>
           )
         })}
         {peerTyping && <TypingIndicator />}

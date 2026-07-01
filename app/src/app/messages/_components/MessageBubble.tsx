@@ -1,9 +1,11 @@
 'use client'
 
 import type { Message } from '@/lib/messaging'
+import { clock } from './format'
 
 export function MessageBubble({ message, mine, showSeen }: { message: Message; mine: boolean; showSeen: boolean }) {
   const images = message.attachments.filter((a) => a.type === 'image')
+  const time = clock(message.createdAt)
   return (
     <div className={`ts-msg-bubble-row${mine ? ' ts-msg-bubble-mine' : ''}`}>
       <div className={`ts-msg-bubble${mine ? ' ts-msg-bubble-out' : ' ts-msg-bubble-in'}`}>
@@ -21,7 +23,10 @@ export function MessageBubble({ message, mine, showSeen }: { message: Message; m
               {message.body && <span className="ts-msg-text">{message.body}</span>}
             </>}
       </div>
-      {showSeen && <span className="ts-msg-seen faint">Seen</span>}
+      <span className="ts-msg-meta">
+        {time && <span className="ts-msg-time">{time}</span>}
+        {showSeen && <span className="ts-msg-seen">Seen</span>}
+      </span>
     </div>
   )
 }

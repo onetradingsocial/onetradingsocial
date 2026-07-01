@@ -4,14 +4,23 @@ import type { ConversationListItem } from '@/lib/messaging'
 import { ConversationRow } from './ConversationRow'
 
 export function ConversationList({
-  items, activeId, onSelect,
+  items, activeId, onSelect, searching = false,
 }: {
   items: ConversationListItem[]
   activeId: string | null
   onSelect: (item: ConversationListItem) => void
+  searching?: boolean
 }) {
   if (items.length === 0) {
-    return <p className="ts-msg-rail-empty faint">No conversations yet. Visit a profile you both follow and tap &quot;Message&quot;.</p>
+    return (
+      <div className="ts-msg-rail-empty">
+        <p className="faint">
+          {searching
+            ? 'No conversations match your search.'
+            : 'No conversations yet. Visit a profile you both follow and tap “Message” to start one.'}
+        </p>
+      </div>
+    )
   }
   return (
     <div className="ts-msg-list">
