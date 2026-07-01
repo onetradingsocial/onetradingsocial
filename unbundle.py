@@ -62,7 +62,7 @@ PAGES = [
     ('blog post.html', 'blog-post.html'),
 ]
 
-GA_ID = 'G-XXXXXXXXXX'  # Replace with your GA4 Measurement ID
+GA_ID = 'G-M7NX0Y7NSC'  # GA4 Measurement ID
 OG_IMAGE = 'https://www.tradingsocial.io/assets/images/og-image.png'
 
 
