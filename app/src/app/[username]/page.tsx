@@ -9,7 +9,8 @@ import { FollowButton } from '@/app/_components/FollowButton'
 import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getUserXp } from '@/lib/server/xp'
 import { getTier } from '@/lib/server/entitlements'
-import { can } from '@/lib/entitlements'
+import { canFlag } from '@/lib/feature-flags'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { areMutualFollowers } from '@/lib/server/messaging'
 import { TradingCalendar } from '@/app/journal/_components/TradingCalendar'
 import { Icon } from './_components/Icon'
@@ -137,7 +138,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   // Pro badge (service client so cross-viewer RLS doesn't hide the owner's subscription).
   let proBadge = false
-  if (profileId) proBadge = can(await getTier(createServiceClient(), profileId), 'pro_badge')
+  if (profileId) proBadge = canFlag(await getFeatureFlags(), await getTier(createServiceClient(), profileId), 'pro_badge')
 
   const profileXp = profileId ? await getUserXp(supabase, profileId, { publicOnly: true }) : null
   const badges = profileXp?.badges ?? []
