@@ -1,5 +1,17 @@
 // app/tests/e2e/admin.spec.ts
 import { test, expect, type Page } from '@playwright/test'
+import { deleteCourseBySlug } from './utils/db'
+
+// Course created by the publish test; removed in afterEach so failed runs
+// don't leave "E2E Course" rows behind in the shared database.
+let createdCourseSlug: string | null = null
+
+test.afterEach(async () => {
+  if (createdCourseSlug) {
+    await deleteCourseBySlug(createdCourseSlug)
+    createdCourseSlug = null
+  }
+})
 
 async function signUpAndOnboard(page: Page, prefix: string, domain = 'tradingsocial.io') {
   const stamp = Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36)
@@ -29,6 +41,7 @@ test('admin can publish a new course and it appears in Learn', async ({ page }) 
 
   // Create a course
   const slug = 'e2e-' + Date.now().toString(36)
+  createdCourseSlug = slug
   await page.goto('/admin/courses')
   await page.fill('input[name="title"]', 'E2E Course')
   await page.fill('input[name="slug"]', slug)
