@@ -4,7 +4,9 @@ import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { monthlyPnl, equityCurve, assetDistribution, calendarCells, periodSums, MONTHS, type JTrade } from '@/lib/journal-stats'
 import { getTier } from '@/lib/server/entitlements'
-import { JOURNAL_FREE_LIMIT, can } from '@/lib/entitlements'
+import { JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
+import { canFlag } from '@/lib/feature-flags'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { JournalHero } from './_components/JournalHero'
 import { StatCards } from './_components/StatCards'
 import { MonthlyPL } from './_components/MonthlyPL'
@@ -32,7 +34,8 @@ export default async function JournalPage() {
   const closed = trades.filter((t) => t.status === 'closed')
 
   const tier = await getTier(supabase, user.id)
-  const unlimited = can(tier, 'journal_unlimited')
+  const flags = await getFeatureFlags()
+  const unlimited = canFlag(flags, tier, 'journal_unlimited')
   const visibleTrades = unlimited ? trades : trades.slice(0, JOURNAL_FREE_LIMIT)
   const hiddenCount = trades.length - visibleTrades.length
 
@@ -62,7 +65,7 @@ export default async function JournalPage() {
       )}
 
       <div className="mt-5">
-        <StatCards metrics={metrics} allTime={sums.allTime} monthNet={sums.monthNet} monthLabel={monthLabel} weekTrades={sums.weekTrades} advanced={can(tier, 'advanced_stats')} />
+        <StatCards metrics={metrics} allTime={sums.allTime} monthNet={sums.monthNet} monthLabel={monthLabel} weekTrades={sums.weekTrades} advanced={canFlag(flags, tier, 'advanced_stats')} />
       </div>
 
       <div className="ts-panels mt-5">

@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/server/admin'
 import { getTier } from '@/lib/server/entitlements'
-import { can } from '@/lib/entitlements'
+import { canFlag } from '@/lib/feature-flags'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { Brand } from './Brand'
 import { NewTradeButton } from './NewTradeButton'
 import { NavLinks } from './NavLinks'
@@ -27,7 +28,7 @@ export async function AppNav() {
     const { data } = await supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single()
     profile = data
     const tier = await getTier(supabase, user.id)
-    isPro = can(tier, 'pro_badge')
+    isPro = canFlag(await getFeatureFlags(), tier, 'pro_badge')
     const service = createServiceClient()
     ;[initialNotifCount, initialNotifItems, initialMsgUnread] = await Promise.all([
       getUnreadCount(service, user.id),

@@ -1,10 +1,12 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { validateSlug, validateNonNegInt, validateQuizOptions } from '@/lib/admin'
 import { sanitizeLessonHtml } from '@/lib/sanitizeHtml'
+import { isFeature, type FlagValues } from '@/lib/feature-flags'
+import { FLAGS_TAG } from '@/lib/server/feature-flags'
 
 const FEEDBACK_STATUSES = ['open', 'triaged', 'closed'] as const
 type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number]
@@ -137,5 +139,29 @@ export async function setLessonQuiz(lessonId: string, questions: QuestionInput[]
     if (optErr) return { error: 'Save failed.' }
   }
   revalidatePath('/learn')
+  return {}
+}
+
+export async function setFeatureFlag(feature: string, values: FlagValues): Promise<{ error?: string }> {
+  await requireAdmin()
+  if (!isFeature(feature)) return { error: 'Unknown feature.' }
+  const svc = createServiceClient()
+  const { error } = await svc.from('feature_flags').upsert({
+    feature, free: values.free, trader: values.trader, pro: values.pro,
+  })
+  if (error) return { error: 'Update failed.' }
+  revalidateTag(FLAGS_TAG)
+  revalidatePath('/admin/features')
+  return {}
+}
+
+export async function resetFeatureFlag(feature: string): Promise<{ error?: string }> {
+  await requireAdmin()
+  if (!isFeature(feature)) return { error: 'Unknown feature.' }
+  const svc = createServiceClient()
+  const { error } = await svc.from('feature_flags').delete().eq('feature', feature)
+  if (error) return { error: 'Reset failed.' }
+  revalidateTag(FLAGS_TAG)
+  revalidatePath('/admin/features')
   return {}
 }
