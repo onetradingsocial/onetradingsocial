@@ -6,6 +6,10 @@ import { FlagMatrix, type FlagRowView } from '../_components/FlagMatrix'
 
 export const dynamic = 'force-dynamic'
 
+/** Features with a live canFlag() call site today. Toggles on other rows
+ *  take effect automatically once their feature gets a gate. */
+const WIRED = new Set<string>(['journal_unlimited', 'advanced_stats', 'pro_badge'])
+
 export default async function AdminFeaturesPage() {
   await requireAdmin()
   const svc = createServiceClient()
@@ -18,6 +22,7 @@ export default async function AdminFeaturesPage() {
     defaultTier: FEATURE_MIN_TIER[key],
     values: flags[key] ?? defaultMatrix(key),
     defaults: defaultMatrix(key),
+    wired: WIRED.has(key),
   }))
 
   return (
@@ -26,6 +31,7 @@ export default async function AdminFeaturesPage() {
       <p className="faint mt-1">
         Per-tier access. Unchecked = that tier sees the upgrade prompt.
         Changes reach users within ~60s (cache). Reset restores the code default.
+        Rows marked &ldquo;not wired yet&rdquo; have no live gate in the app; the toggle takes effect once the feature ships.
       </p>
       <div className="ts-card mt-4">
         <FlagMatrix rows={rows} />

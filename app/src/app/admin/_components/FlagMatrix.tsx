@@ -10,6 +10,7 @@ export type FlagRowView = {
   defaultTier: string
   values: FlagValues
   defaults: FlagValues
+  wired: boolean
 }
 
 const TIERS = ['free', 'trader', 'pro'] as const
@@ -39,6 +40,7 @@ function Row({ row }: { row: FlagRowView }) {
     <tr>
       <td style={{ textTransform: 'capitalize' }}>
         {row.label} <span className="faint">(default: {row.defaultTier}+)</span>
+        {!row.wired && <span className="faint"> · not wired yet</span>}
       </td>
       {TIERS.map((t) => (
         <td key={t} style={{ textAlign: 'center' }}>
