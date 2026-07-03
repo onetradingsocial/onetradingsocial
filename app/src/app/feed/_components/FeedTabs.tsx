@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { PostCard, type FeedItem } from './PostCard'
 
-export type FeedTabItem = FeedItem & { fromFollowed: boolean }
+export type FeedTabItem = FeedItem & { fromFollowed: boolean; fromFavorite: boolean }
 
 export function FeedTabs({ items }: { items: FeedTabItem[] }) {
   const [tab, setTab] = useState<'all' | 'following'>('all')

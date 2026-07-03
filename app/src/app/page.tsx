@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
-import { assembleFeed, tally } from '@/lib/feed'
+import { assembleFeed, boostFavorites, tally } from '@/lib/feed'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { type FeedItem, type Attachment } from './feed/_components/PostCard'
 import { type TradeCard } from './feed/_components/attachments/TradeAttachment'
@@ -31,6 +31,7 @@ export default async function Home() {
     xp,
     { data: follows },
     { data: ownTradeRows },
+    { data: favRows },
   ] = await Promise.all([
     supabase.from('profiles').select('username, display_name, avatar_url, onboarding_completed').eq('id', user.id).single(),
     getPerformanceRanking(supabase, 'week'),
@@ -39,6 +40,7 @@ export default async function Home() {
     supabase.from('trades')
       .select('id, instrument, market, setup_type, status, outcome, r_multiple, pnl_amount, traded_at')
       .eq('user_id', user.id).order('traded_at', { ascending: false }),
+    supabase.from('favorites').select('favorite_id').eq('user_id', user.id),
   ])
   // Funnel guard: anyone who hasn't finished onboarding resumes it here.
   // Middleware also enforces this, but a null profile read there fails open,
@@ -53,6 +55,8 @@ export default async function Home() {
   const followingIds = (follows ?? []).map((f) => f.following_id)
   const followingSet = new Set(followingIds)
   const authorIds = [user.id, ...followingIds]
+  const favoriteIds = (favRows ?? []).map((f) => f.favorite_id)
+  const favoriteSet = new Set(favoriteIds)
 
   // Stage B — posts keyed on the follow graph.
   const { data: primaryRaw } = await supabase.from('posts').select(SELECT)
@@ -62,7 +66,7 @@ export default async function Home() {
     const { data } = await supabase.from('posts').select(SELECT).order('created_at', { ascending: false }).limit(30)
     fallbackRaw = (data ?? []) as RawPost[]
   }
-  const merged = assembleFeed((primaryRaw ?? []) as RawPost[], fallbackRaw, 30)
+  const merged = boostFavorites(assembleFeed((primaryRaw ?? []) as RawPost[], fallbackRaw, 30), favoriteSet)
   const postIds = merged.map((p) => p.id)
   const idFilter = postIds.length ? postIds : EMPTY
 
@@ -115,7 +119,7 @@ export default async function Home() {
       viewerLiked: myLikeSet.has(p.id), isOwn: author.id === user.id,
       attachment: attachmentFor(p),
     }
-    return [{ ...base, fromFollowed: author.id === user.id || followingSet.has(author.id) }]
+    return [{ ...base, fromFollowed: author.id === user.id || followingSet.has(author.id), fromFavorite: favoriteSet.has(author.id) }]
   })
 
   // Performance (own trades) — fetched in Stage A.
@@ -169,6 +173,7 @@ export default async function Home() {
     quests: xp.daily.map((q) => ({ id: q.id, label: q.label, current: q.current, target: q.target, done: q.done })),
     feedItems: items,
     followingIds,
+    favoriteIds,
     series: { equity: eqSeries, winRate: wrSeries, avgRr: rrSeries, count: cntSeries },
   }
 
