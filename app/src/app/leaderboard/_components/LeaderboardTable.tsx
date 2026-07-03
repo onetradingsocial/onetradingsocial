@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { FollowButton } from '@/app/_components/FollowButton'
+import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import { Avatar } from './Avatar'
 import { fmtPL } from './format'
 
@@ -77,11 +78,13 @@ export function LeaderboardTable({ rows, viewerId }: { rows: BoardRow[]; viewerI
                   <td><span className={'lb-rk' + (t.rank <= 3 ? ' g' + t.rank : '')}>{t.rank}</span></td>
                   <td>
                     <div className="lb-trader">
-                      <Avatar src={t.avatarUrl} name={t.displayName || t.username} size={38} ring={t.rank <= 3} />
-                      <div className="who" style={{ minWidth: 0 }}>
-                        <b>{t.displayName || t.username}{self && <span className="lb-you">You</span>}</b>
-                        <span>@{t.username}</span>
-                      </div>
+                      <TraderHoverCard userId={t.userId} username={t.username} displayName={t.displayName} avatarUrl={t.avatarUrl}>
+                        <Avatar src={t.avatarUrl} name={t.displayName || t.username} size={38} ring={t.rank <= 3} />
+                        <div className="who" style={{ minWidth: 0 }}>
+                          <b>{t.displayName || t.username}{self && <span className="lb-you">You</span>}</b>
+                          <span>@{t.username}</span>
+                        </div>
+                      </TraderHoverCard>
                     </div>
                   </td>
                   <td className="num"><span className={'lb-pl ' + (t.pnl > 0 ? 'up' : t.pnl < 0 ? 'down' : 'flat')}>{fmtPL(t.pnl)}</span></td>

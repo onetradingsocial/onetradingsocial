@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { Icon, Avatar, Sparkline } from './atoms'
+import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import { follow, unfollow } from '@/app/actions/social'
 import type { HomeData, HomeLeader, HomeRecentTrade, HomeQuest } from './types'
 
@@ -64,12 +65,16 @@ export function TopTraders({ leaders, userId }: { leaders: HomeLeader[]; userId:
       {leaders.map((t) => {
         const me = t.userId === userId
         return (
-          <Link key={t.userId} href={`/${t.username}`} className={'h-lt g' + t.rank} style={me ? { background: 'rgba(124,92,230,0.06)' } : undefined}>
+          <div key={t.userId} className={'h-lt g' + t.rank} style={me ? { background: 'rgba(124,92,230,0.06)' } : undefined}>
             <span className="rk">{t.rank}</span>
-            <Avatar seed={t.username} src={t.avatarUrl} name={t.displayName || t.username} size={34} ring={t.rank <= 3} />
-            <div className="who"><b>@{t.username}{me && <span className="h-mini-lv" style={{ marginLeft: 6 }}>You</span>}</b><span>{Math.round(t.winRate * 100)}% win · {t.trades} trades</span></div>
+            <TraderHoverCard userId={t.userId} username={t.username} displayName={t.displayName} avatarUrl={t.avatarUrl}>
+              <Link href={`/${t.username}`} style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0, flex: 1, color: 'inherit', textDecoration: 'none' }}>
+                <Avatar seed={t.username} src={t.avatarUrl} name={t.displayName || t.username} size={34} ring={t.rank <= 3} />
+                <div className="who"><b>@{t.username}{me && <span className="h-mini-lv" style={{ marginLeft: 6 }}>You</span>}</b><span>{Math.round(t.winRate * 100)}% win · {t.trades} trades</span></div>
+              </Link>
+            </TraderHoverCard>
             <div className="pl"><div className={'v ' + (t.pnl >= 0 ? 'h-up' : 'h-down')}>{money(t.pnl)}</div><div className="sub"><Sparkline seed={t.username.length + t.rank} trend={t.pnl >= 0 ? 2 : -2} color={t.pnl >= 0 ? '#12A56B' : '#E5475D'} fill={false} w={56} h={14} strokeW={1.6} /></div></div>
-          </Link>
+          </div>
         )
       })}
     </div>

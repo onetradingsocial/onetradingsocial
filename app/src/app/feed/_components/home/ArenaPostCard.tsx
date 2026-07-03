@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Icon, Avatar, TradeChart } from './atoms'
+import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import { CommentThread } from '../CommentThread'
 import { follow, unfollow, deletePost, toggleLike } from '@/app/actions/social'
 import { ImageGallery } from '../attachments/ImageGallery'
@@ -94,14 +95,16 @@ export function ArenaPostCard({ item, isFollowing }: { item: FeedTabItem; isFoll
   return (
     <article className="h-trade">
       <div className="h-trade-h">
-        <Avatar seed={a.username} src={a.avatar_url} name={a.display_name || a.username} size={40} ring />
-        <div className="who">
-          <b>
-            <Link href={`/${a.username}`}>{a.display_name || a.username}</Link>
-            {item.fromFavorite && <Icon name="star" size={13} style={{ color: 'var(--xp)', fill: 'currentColor' }} />}
-          </b>
-          <div className="meta"><span>@{a.username}</span><span>·</span><span>{timeAgo(item.created_at)}</span></div>
-        </div>
+        <TraderHoverCard userId={a.id} username={a.username} displayName={a.display_name} avatarUrl={a.avatar_url}>
+          <Avatar seed={a.username} src={a.avatar_url} name={a.display_name || a.username} size={40} ring />
+          <div className="who">
+            <b>
+              <Link href={`/${a.username}`}>{a.display_name || a.username}</Link>
+              {item.fromFavorite && <Icon name="star" size={13} style={{ color: 'var(--xp)', fill: 'currentColor' }} />}
+            </b>
+            <div className="meta"><span>@{a.username}</span><span>·</span><span>{timeAgo(item.created_at)}</span></div>
+          </div>
+        </TraderHoverCard>
         {item.isOwn
           ? <button className="h-followbtn on" onClick={() => start(async () => { await deletePost(item.id); router.refresh() })}>Delete</button>
           : <FollowChip targetId={a.id} initial={isFollowing} />}

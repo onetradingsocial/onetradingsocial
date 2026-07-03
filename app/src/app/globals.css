@@ -1899,3 +1899,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .thc-stats { display: flex; gap: 14px; margin-top: 12px; font-size: 12.5px; color: var(--dim); }
 .thc-stats b { color: var(--text); font-weight: 700; }
 .thc-loading { color: var(--faint); }
+
+.thc-actions .h-followbtn { font-size: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: transparent; cursor: pointer; }
+.thc-actions .h-followbtn.on { color: var(--dim); }
