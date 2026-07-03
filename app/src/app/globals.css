@@ -1877,3 +1877,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   .fl-step-sep { width: 18px; margin: 0 7px; }
   .fl-plan-top h1 { font-size: 25px; }
 }
+
+/* Favourite (star) toggle */
+.star-btn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--faint); cursor: pointer; transition: color .15s, border-color .15s; }
+.star-btn:hover { color: var(--xp); border-color: var(--xp); }
+.star-btn.on { color: var(--xp); border-color: var(--xp); }
+.star-btn:disabled { opacity: .6; cursor: default; }
+}

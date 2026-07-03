@@ -6,6 +6,7 @@ import { RESERVED_USERNAMES } from '@/lib/username'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { calendarCells, MONTHS, type JTrade } from '@/lib/journal-stats'
 import { FollowButton } from '@/app/_components/FollowButton'
+import { StarButton } from '@/app/_components/StarButton'
 import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getUserXp } from '@/lib/server/xp'
 import { getTier } from '@/lib/server/entitlements'
@@ -58,7 +59,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   }
 
   const viewer = await getSessionUser(supabase)
-  let followerCount = 0, followingCount = 0, isFollowing = false
+  let followerCount = 0, followingCount = 0, isFollowing = false, isFavorited = false
   let followers: { avatar_url: string | null; display_name: string | null; username: string }[] = []
   if (profileId) {
     const fc = await supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profileId)
@@ -74,9 +75,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
       .map((r) => (Array.isArray(r.follower) ? r.follower[0] : r.follower))
       .filter(Boolean) as typeof followers
     if (viewer && viewer.id !== profileId) {
-      const { data: vf } = await supabase.from('follows')
-        .select('follower_id').eq('follower_id', viewer.id).eq('following_id', profileId).maybeSingle()
+      const [{ data: vf }, { data: vfav }] = await Promise.all([
+        supabase.from('follows').select('follower_id').eq('follower_id', viewer.id).eq('following_id', profileId).maybeSingle(),
+        supabase.from('favorites').select('user_id').eq('user_id', viewer.id).eq('favorite_id', profileId).maybeSingle(),
+      ])
       isFollowing = !!vf
+      isFavorited = !!vfav
     }
   }
   const isSelf = !!(viewer && profileId && viewer.id === profileId)
@@ -225,6 +229,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                     ) : (
                       <>
                         {viewer && profileId && <FollowButton targetId={profileId} initialFollowing={isFollowing} />}
+                        {viewer && profileId && <StarButton targetId={profileId} initialFavorited={isFavorited} />}
                         {canMsg && <Link href={`/messages?to=${profile.username}`} className="h-btn h-btn-grad">Message</Link>}
                       </>
                     )}
