@@ -70,9 +70,8 @@ helper, return `SocialState`):
   2. everything else — newest first (current order preserved).
 - `FeedItem` gains `fromFavorite: boolean`; `ArenaPostCard` renders a small
   ★ badge next to the author name when set.
-- `HomeData` gains `favoriteIds: string[]` so client components (hover card
-  seeding, star states in the rail) know current state without extra fetches
-  on first paint.
+- The hover card self-fetches viewer state, so no favoriteIds seeding in
+  HomeData (amended at final review).
 
 ## Hover card — `app/src/app/_components/TraderHoverCard.tsx`
 

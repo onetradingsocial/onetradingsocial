@@ -55,8 +55,7 @@ export default async function Home() {
   const followingIds = (follows ?? []).map((f) => f.following_id)
   const followingSet = new Set(followingIds)
   const authorIds = [user.id, ...followingIds]
-  const favoriteIds = (favRows ?? []).map((f) => f.favorite_id)
-  const favoriteSet = new Set(favoriteIds)
+  const favoriteSet = new Set((favRows ?? []).map((f) => f.favorite_id))
 
   // Stage B — posts keyed on the follow graph.
   const { data: primaryRaw } = await supabase.from('posts').select(SELECT)
@@ -173,7 +172,6 @@ export default async function Home() {
     quests: xp.daily.map((q) => ({ id: q.id, label: q.label, current: q.current, target: q.target, done: q.done })),
     feedItems: items,
     followingIds,
-    favoriteIds,
     series: { equity: eqSeries, winRate: wrSeries, avgRr: rrSeries, count: cntSeries },
   }
 

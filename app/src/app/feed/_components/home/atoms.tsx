@@ -36,7 +36,7 @@ const ICONS: Record<string, ReactNode> = {
   poll: <g {...IP}><path d="M5 20V10M12 20V4M19 20v-7" /></g>,
   globe: <g {...IP}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" /></g>,
   x: <path d="M6 6l12 12M18 6L6 18" {...IP} />,
-  star: <path d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9l-5.4 2.9 1.1-6.1L3.2 9.4l6.1-.8L12 3z" {...IP} />,
+  star: <path d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9l-5.4 2.9 1.1-6.1L3.2 9.4l6.1-.8L12 3z" fill="currentColor" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" />,
 }
 
 export function Icon({ name, size = 18, style, className }: { name: string; size?: number; style?: CSSProperties; className?: string }) {

@@ -100,7 +100,7 @@ export function ArenaPostCard({ item, isFollowing }: { item: FeedTabItem; isFoll
           <div className="who">
             <b>
               <Link href={`/${a.username}`}>{a.display_name || a.username}</Link>
-              {item.fromFavorite && <Icon name="star" size={13} style={{ color: 'var(--xp)', fill: 'currentColor' }} />}
+              {item.fromFavorite && <Icon name="star" size={13} style={{ color: 'var(--xp)' }} />}
             </b>
             <div className="meta"><span>@{a.username}</span><span>·</span><span>{timeAgo(item.created_at)}</span></div>
           </div>
