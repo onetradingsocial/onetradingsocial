@@ -51,6 +51,7 @@ export function TraderHoverCard({ userId, username, displayName, avatarUrl, chil
   const [data, setData] = useState<TraderCardData | null>(null)
   const [failed, setFailed] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -86,11 +87,11 @@ export function TraderHoverCard({ userId, username, displayName, avatarUrl, chil
     if (!open) return
     const onDoc = (e: PointerEvent) => {
       const t = e.target as Node
-      if (!wrapRef.current?.contains(t) && !document.getElementById(`thc-${userId}`)?.contains(t)) setOpen(false)
+      if (!wrapRef.current?.contains(t) && !cardRef.current?.contains(t)) setOpen(false)
     }
     document.addEventListener('pointerdown', onDoc)
     return () => document.removeEventListener('pointerdown', onDoc)
-  }, [open, userId])
+  }, [open])
   useEffect(() => () => { cancelShow(); cancelHide() }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateData = (d: TraderCardData) => { cache.set(userId, d); setData(d) }
@@ -106,7 +107,7 @@ export function TraderHoverCard({ userId, username, displayName, avatarUrl, chil
       }}>
       {children}
       {open && pos && createPortal(
-        <div id={`thc-${userId}`} className="thc-card" style={{ top: pos.top, left: pos.left, width: CARD_W }}
+        <div ref={cardRef} className="thc-card" style={{ top: pos.top, left: pos.left, width: CARD_W }}
           onPointerEnter={cancelHide} onPointerLeave={(e) => { if (e.pointerType === 'mouse') scheduleHide() }}>
           <div className="thc-head">
             <Link href={`/${username}`} className="thc-id">
