@@ -50,11 +50,17 @@ export async function POST(request: NextRequest) {
     ? `${SITE}/select-plan?checkout=cancelled`
     : `${SITE}/settings/billing?status=cancelled`
 
+  // Beta promo: 76% off the annual list price (= 80% off the 12x monthly rate,
+  // since annual list already includes 2 months free). First invoice only —
+  // renewals bill at the full annual price. Remove the env var to end the promo.
+  const betaCoupon = process.env.STRIPE_COUPON_BETA_ANNUAL
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,
     client_reference_id: user.id,
     line_items: [{ price, quantity: 1 }],
+    discounts: interval === 'annual' && betaCoupon ? [{ coupon: betaCoupon }] : undefined,
     success_url: successUrl,
     cancel_url: cancelUrl,
   })

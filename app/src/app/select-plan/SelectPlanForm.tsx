@@ -50,7 +50,7 @@ const PLANS: PlanDef[] = [
   },
   {
     tier: 'trader', name: 'Trader', pip: 'trader', tag: 'Build discipline and improve faster.',
-    monthly: 30, annual: 25, billedM: 'Billed monthly', billedA: '$300 billed yearly',
+    monthly: 30, annual: 6, billedM: 'Billed monthly', billedA: '$72 first year, then $300/yr',
     featsLabel: 'Everything in Free, plus',
     feats: [
       { t: 'Unlimited journal entries' },
@@ -62,7 +62,7 @@ const PLANS: PlanDef[] = [
   },
   {
     tier: 'pro', name: 'Pro Trader', pip: 'pro', tag: 'Advanced tools for serious traders.',
-    monthly: 50, annual: 42, billedM: 'Billed monthly', billedA: '$500 billed yearly',
+    monthly: 50, annual: 10, billedM: 'Billed monthly', billedA: '$120 first year, then $500/yr',
     featsLabel: 'Everything in Trader, plus',
     feats: [
       { t: 'Advanced analytics & reporting' },
@@ -142,7 +142,7 @@ export function SelectPlanForm() {
             <button type="button" ref={monthlyRef} className={`fl-bopt${interval === 'monthly' ? ' on' : ''}`} onClick={() => setInterval('monthly')}>Monthly</button>
             <button type="button" ref={annualRef} className={`fl-bopt${interval === 'annual' ? ' on' : ''}`} onClick={() => setInterval('annual')}>Annual</button>
           </div>
-          <span className="fl-bsave">Save 2 months</span>
+          <span className="fl-bsave">Beta — 80% off yearly</span>
         </div>
       </div>
 
