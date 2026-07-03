@@ -1883,3 +1883,19 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .star-btn:hover { color: var(--xp); border-color: var(--xp); }
 .star-btn.on { color: var(--xp); border-color: var(--xp); }
 .star-btn:disabled { opacity: .6; cursor: default; }
+
+/* Trader hover card */
+.thc-wrap { display: flex; align-items: center; gap: 11px; min-width: 0; flex: 1; }
+.thc-card { position: fixed; z-index: 300; background: var(--card, #fff); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 32px rgba(20,16,41,.14); padding: 14px; }
+.thc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.thc-id { display: flex; align-items: center; gap: 10px; min-width: 0; color: inherit; text-decoration: none; }
+.thc-av { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex: none; }
+.thc-av-ph { display: inline-flex; align-items: center; justify-content: center; background: var(--sunk); color: var(--dim); font-weight: 700; }
+.thc-names { min-width: 0; }
+.thc-names b { display: block; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thc-names span { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+.thc-actions { display: flex; align-items: center; gap: 7px; flex: none; }
+.thc-star { width: 30px; height: 30px; border-radius: 8px; }
+.thc-stats { display: flex; gap: 14px; margin-top: 12px; font-size: 12.5px; color: var(--dim); }
+.thc-stats b { color: var(--text); font-weight: 700; }
+.thc-loading { color: var(--faint); }
