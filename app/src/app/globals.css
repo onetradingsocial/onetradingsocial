@@ -1883,4 +1883,3 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .star-btn:hover { color: var(--xp); border-color: var(--xp); }
 .star-btn.on { color: var(--xp); border-color: var(--xp); }
 .star-btn:disabled { opacity: .6; cursor: default; }
-}
