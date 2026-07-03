@@ -32,3 +32,30 @@ describe('timeAgo', () => {
     expect(timeAgo('2026-06-15T12:00:00Z', base)).toBe('3d')
   })
 })
+
+import { boostFavorites } from '@/lib/feed'
+
+describe('boostFavorites', () => {
+  const now = new Date('2026-07-03T12:00:00Z').getTime()
+  const p = (id: string, author: string, iso: string) => ({ id, author_id: author, created_at: iso })
+  it('lifts favourited authors\' recent posts to the top, newest first', () => {
+    const posts = [
+      p('a', 'u1', '2026-07-03T11:00:00Z'),
+      p('b', 'fav', '2026-07-03T10:00:00Z'),
+      p('c', 'u2', '2026-07-02T09:00:00Z'),
+      p('d', 'fav', '2026-07-03T11:30:00Z'),
+    ]
+    expect(boostFavorites(posts, new Set(['fav']), now).map((x) => x.id)).toEqual(['d', 'b', 'a', 'c'])
+  })
+  it('does not lift favourited posts older than 48h', () => {
+    const posts = [
+      p('a', 'u1', '2026-07-03T11:00:00Z'),
+      p('b', 'fav', '2026-07-01T11:00:00Z'), // 49h old
+    ]
+    expect(boostFavorites(posts, new Set(['fav']), now).map((x) => x.id)).toEqual(['a', 'b'])
+  })
+  it('is a no-op with no favourites', () => {
+    const posts = [p('a', 'u1', '2026-07-03T11:00:00Z'), p('b', 'u2', '2026-07-03T10:00:00Z')]
+    expect(boostFavorites(posts, new Set(), now).map((x) => x.id)).toEqual(['a', 'b'])
+  })
+})
