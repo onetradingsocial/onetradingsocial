@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { insertNotification, extractMentions } from '@/lib/notifications'
+import { getUserXp } from '@/lib/server/xp'
 
 export type SocialState = { error?: string; ok?: boolean }
 
@@ -230,4 +231,61 @@ export async function unfollow(targetId: string): Promise<SocialState> {
   await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', targetId)
   revalidatePath('/')
   return { ok: true }
+}
+
+export async function favorite(targetId: string): Promise<SocialState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+  if (targetId === user.id) return { error: "You can't favourite yourself." }
+  const { error } = await supabase.from('favorites').upsert(
+    { user_id: user.id, favorite_id: targetId },
+    { onConflict: 'user_id,favorite_id', ignoreDuplicates: true },
+  )
+  if (error) { console.error('favorite', error.message); return { error: 'Could not favourite. Try again.' } }
+  // Star implies follow. Deliberately no notification for the favourite itself
+  // (favourites are private); the follow upsert is silent too to avoid
+  // re-notifying users who were already followed.
+  await supabase.from('follows').upsert(
+    { follower_id: user.id, following_id: targetId },
+    { onConflict: 'follower_id,following_id', ignoreDuplicates: true },
+  )
+  revalidatePath('/')
+  return { ok: true }
+}
+
+export async function unfavorite(targetId: string): Promise<SocialState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+  await supabase.from('favorites').delete().eq('user_id', user.id).eq('favorite_id', targetId)
+  revalidatePath('/')
+  return { ok: true }
+}
+
+export type TraderCardData = {
+  username: string; displayName: string | null; avatarUrl: string | null
+  winRate: number; trades: number; level: number
+  viewerFollows: boolean; viewerFavorited: boolean; isSelf: boolean
+}
+
+export async function getTraderCardData(userId: string): Promise<TraderCardData | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const [{ data: profile }, { data: closed }, xp, { data: vf }, { data: vfav }] = await Promise.all([
+    supabase.from('profiles').select('username, display_name, avatar_url').eq('id', userId).maybeSingle(),
+    supabase.from('trades').select('r_multiple').eq('user_id', userId).eq('is_public', true).eq('status', 'closed'),
+    getUserXp(supabase, userId),
+    supabase.from('follows').select('follower_id').eq('follower_id', user.id).eq('following_id', userId).maybeSingle(),
+    supabase.from('favorites').select('user_id').eq('user_id', user.id).eq('favorite_id', userId).maybeSingle(),
+  ])
+  if (!profile) return null
+  const trades = closed ?? []
+  const wins = trades.filter((t) => (t.r_multiple ?? 0) > 0).length
+  return {
+    username: profile.username, displayName: profile.display_name, avatarUrl: profile.avatar_url,
+    winRate: trades.length ? wins / trades.length : 0, trades: trades.length, level: xp.level.level,
+    viewerFollows: !!vf, viewerFavorited: !!vfav, isSelf: userId === user.id,
+  }
 }
