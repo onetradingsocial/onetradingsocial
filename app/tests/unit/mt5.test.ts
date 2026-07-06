@@ -50,3 +50,31 @@ describe('parseMt5 — HTML report', () => {
     expect('error' in r).toBe(true)
   })
 })
+
+describe('parseMt5 — CSV', () => {
+  it('parses semicolon CSV with same headers', () => {
+    const r = parseMt5(load('report.csv'), 'report.csv')
+    if ('error' in r) throw new Error(r.error)
+    expect(r.deals).toHaveLength(2)
+    expect(r.deals[1]).toMatchObject({ ticket: '123457', symbol: 'GBPJPY', direction: 'short', lots: 1 })
+  })
+})
+
+describe('parseMt5 — XLSX', () => {
+  it('parses a generated xlsx with the positions layout', () => {
+    const XLSX = require('xlsx')
+    const rows = [
+      ['Positions'],
+      ['Time', 'Position', 'Symbol', 'Type', 'Volume', 'Price', 'S / L', 'T / P', 'Time', 'Price', 'Commission', 'Swap', 'Profit'],
+      ['2026.06.01 09:30:00', '123456', 'EURUSD', 'buy', '0.50', '1.08500', '1.08200', '1.09100', '2026.06.01 14:45:10', '1.09050', '-2.50', '0.00', '272.50'],
+    ]
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Report')
+    const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+    const r = parseMt5(buf, 'report.xlsx')
+    if ('error' in r) throw new Error(r.error)
+    expect(r.deals).toHaveLength(1)
+    expect(r.deals[0].ticket).toBe('123456')
+  })
+})

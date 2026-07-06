@@ -2,6 +2,8 @@
 // fully unit-testable. Three format readers (HTML/CSV/XLSX) each produce
 // string[][]; one extractor locates the Positions table and normalizes rows.
 
+import * as XLSX from 'xlsx'
+
 export type Mt5Deal = {
   ticket: string
   symbol: string
@@ -191,7 +193,9 @@ export function parseMt5(buf: ArrayBuffer, filename: string): Mt5ParseResult | {
   }
 }
 
-/** Placeholder until Task 4 — keeps parseMt5 compiling for HTML/CSV. */
-function xlsxToRows(_buf: ArrayBuffer): string[][] {
-  throw new Error('xlsx not supported yet')
+function xlsxToRows(buf: ArrayBuffer): string[][] {
+  const wb = XLSX.read(buf, { type: 'array' })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: false, defval: '' })
+  return raw.map((row) => row.map((c) => String(c ?? '').trim()))
 }
