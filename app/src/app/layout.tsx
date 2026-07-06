@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Space_Grotesk, Manrope, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { AppNav } from './_components/AppNav'
 import { TradeModalProvider } from './_components/TradeModalProvider'
 import { HelpWidget } from './_components/HelpWidget'
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {user && <HelpWidget />}
         </TradeModalProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
