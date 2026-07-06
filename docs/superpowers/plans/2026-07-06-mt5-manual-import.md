@@ -89,17 +89,17 @@ git commit -m "feat(entitlements): wire mt5_import (trader) and mt5_autosync (pr
 
 ---
 
-### Task 2: Migration 0015 — broker_deal_id + nullable stop
+### Task 2: Migration 0018 — broker_deal_id + nullable stop
 
 **Files:**
-- Create: `app/supabase/migrations/0015_mt5_import.sql`
+- Create: `app/supabase/migrations/0018_mt5_import.sql`
 
 **Interfaces:**
 - Produces: `trades.broker_deal_id text` (null for manual trades), unique index `trades_user_broker_deal_idx (user_id, broker_deal_id)`, `trades.stop_price` nullable. Task 6's upsert uses `onConflict: 'user_id,broker_deal_id'`.
 
 - [ ] **Step 1: Write the migration**
 
-Create `app/supabase/migrations/0015_mt5_import.sql`:
+Create `app/supabase/migrations/0018_mt5_import.sql`:
 
 ```sql
 -- MT5 manual import (phase 1): external dedupe key + optional stop.
@@ -136,7 +136,7 @@ Expected: `broker_deal_id | YES`, `stop_price | YES`.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add supabase/migrations/0015_mt5_import.sql
+git add supabase/migrations/0018_mt5_import.sql
 git commit -m "feat(db): broker_deal_id dedupe key, nullable stop_price for mt5 import"
 ```
 
