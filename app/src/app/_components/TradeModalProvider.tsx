@@ -10,7 +10,7 @@ import { INSTRUMENTS, pipInfo } from '@/lib/instruments'
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
 
-type Config = { accountBalance: number; defaultPublic: boolean }
+type Config = { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean }
 
 const TradeModalContext = createContext<{ open: () => void } | null>(null)
 
