@@ -1,10 +1,13 @@
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { getTier, getSubscription } from '@/lib/server/entitlements'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { canFlag } from '@/lib/feature-flags'
 import { saveAccount } from '@/app/actions/account'
 import { Icon } from '@/app/[username]/_components/Icon'
 import { SettingsNav } from './SettingsNav'
 import { ProfileSettingsForm } from './ProfileSettingsForm'
+import { BrokerCard } from './BrokerCard'
 import './settings.css'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
@@ -14,7 +17,7 @@ export default async function SettingsPage() {
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
-  const [{ data: profile }, tier, sub] = await Promise.all([
+  const [{ data: profile }, tier, sub, flags, { data: brokerRow }] = await Promise.all([
     supabase
       .from('profiles')
       .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency')
@@ -22,6 +25,12 @@ export default async function SettingsPage() {
       .single(),
     getTier(supabase, user.id),
     getSubscription(supabase, user.id),
+    getFeatureFlags(),
+    supabase
+      .from('broker_accounts')
+      .select('login, server, status, last_sync_at, sync_error')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
 
   const canGoPrivate = tier !== 'free'
@@ -96,6 +105,8 @@ export default async function SettingsPage() {
                 <button className="btn btn-ghost">Log out</button>
               </form>
             </section>
+
+            <BrokerCard row={brokerRow} canAutosync={canFlag(flags, tier, 'mt5_autosync')} />
           </div>
         </div>
       </div>
