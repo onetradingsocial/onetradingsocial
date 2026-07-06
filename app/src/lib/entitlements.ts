@@ -58,6 +58,7 @@ export type Feature =
   | 'weekly_review' | 'strategy_breakdown' | 'advanced_reporting' | 'monthly_report'
   | 'ai_insights' | 'advanced_leaderboard_filters' | 'leaderboard_placement'
   | 'premium_challenges' | 'xp_boosts' | 'priority_support' | 'early_access'
+  | 'mt5_import' | 'mt5_autosync'
 
 /** Full pricing-matrix gate. Features not yet built are still mapped so the
  *  gate is ready when the feature ships. */
@@ -68,6 +69,7 @@ export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
   learning_intermediate: 'trader',
   premium_courses: 'pro',
   pro_badge: 'pro',
+  mt5_import: 'trader',
   // Wired, enforced when built:
   saved_traders: 'trader',
   strategy_tracking: 'trader',
@@ -88,6 +90,7 @@ export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
   premium_challenges: 'pro',
   priority_support: 'pro',
   early_access: 'pro',
+  mt5_autosync: 'pro',
 }
 
 export function can(tier: Tier, feature: Feature): boolean {

@@ -44,3 +44,15 @@ describe('registry', () => {
     expect(isFeature('made_up')).toBe(false)
   })
 })
+
+describe('mt5 feature gates', () => {
+  it('mt5_import is trader+', () => {
+    expect(canFlag({}, 'free', 'mt5_import')).toBe(false)
+    expect(canFlag({}, 'trader', 'mt5_import')).toBe(true)
+    expect(canFlag({}, 'pro', 'mt5_import')).toBe(true)
+  })
+  it('mt5_autosync is pro only', () => {
+    expect(canFlag({}, 'trader', 'mt5_autosync')).toBe(false)
+    expect(canFlag({}, 'pro', 'mt5_autosync')).toBe(true)
+  })
+})
