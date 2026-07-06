@@ -1601,6 +1601,14 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
       var countEl = document.querySelector('.count');
       if (countEl) countEl.textContent = 'Showing ' + grid.length + ' articles';
 
+      // Site-wide reveal observer ran before these cards existed; observe them here
+      var rio = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { en.target.classList.add('in'); rio.unobserve(en.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      document.querySelectorAll('.featured .reveal, #postGrid .reveal').forEach(function (el) { rio.observe(el); });
+
       // Filter chips
       document.querySelectorAll('.fchip[data-cat]').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -1669,7 +1677,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
     return '<a class="featured-card reveal" href="' + href + '">' +
       cover +
       '<div class="featured-body">' +
-        '<span class="featured-eyebrow"><span class="star">★</span> Editor's pick</span>' +
+        '<span class="featured-eyebrow"><span class="star">★</span> Editor\'s pick</span>' +
         '<h2>' + esc(p.title) + '</h2>' +
         '<p>' + esc(p.excerpt) + '</p>' +
         '<div class="post-meta">' +

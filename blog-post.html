@@ -1636,6 +1636,14 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
         .sort(function (a, b) { return new Date(b.published_date) - new Date(a.published_date); })
         .slice(0, 3);
       document.getElementById('js-related').innerHTML = related.map(renderCard).join('');
+
+      // Site-wide reveal observer ran before these cards existed; observe them here
+      var rio = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { en.target.classList.add('in'); rio.unobserve(en.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      document.querySelectorAll('#js-related .reveal').forEach(function (el) { rio.observe(el); });
     })
     .catch(function () {
       var hero = document.querySelector('.article-hero .wrap');
