@@ -156,6 +156,32 @@ describe('mapDealToTrade', () => {
     expect(mapDealToTrade(deal({ netPnl: -50 }), opts).outcome).toBe('loss')
     expect(mapDealToTrade(deal({ netPnl: 0 }), opts).outcome).toBe('breakeven')
   })
+
+  it('computes risk/r-multiple for a suffixed broker symbol (catalog lookup survives suffix)', () => {
+    const row = mapDealToTrade(
+      deal({ symbol: 'GBPJPY.a', openPrice: 195.00, stopPrice: 194.70, closePrice: 195.60, netPnl: 300 }),
+      opts,
+    ) as Record<string, unknown>
+    expect(row.instrument).toBe('GBPJPY.a') // raw symbol preserved
+    expect(row.market).toBe('forex')
+    expect(row.sl_pips).toBeCloseTo(30)        // (195.00-194.70)/0.01
+    expect(row.risk_amount).toBeCloseTo(135)   // 30 pips * $9/lot * 0.5 lots
+    expect(row.r_multiple).toBeCloseTo(2.22)   // 300 / 135
+  })
+
+  it('unknown symbol with null pipValuePerLot → zero risk_amount, null r_multiple, no NaN', () => {
+    const row = mapDealToTrade(
+      deal({ symbol: 'AAPL', stopPrice: 1.082 }),
+      opts,
+    ) as Record<string, unknown>
+    expect(row.instrument).toBe('AAPL')
+    expect(row.market).toBe('stocks')
+    expect(row.risk_amount).toBe(0)
+    expect(row.r_multiple).toBeNull()
+    for (const [key, value] of Object.entries(row)) {
+      if (typeof value === 'number') expect(Number.isNaN(value), `${key} is NaN`).toBe(false)
+    }
+  })
 })
 
 describe('validateDeals', () => {

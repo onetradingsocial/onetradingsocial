@@ -257,10 +257,13 @@ export function validateDeals(input: unknown): { deals: Mt5Deal[] } | { error: s
  *  to enrich. r_multiple only when a stop exists (risk is defined). */
 export function mapDealToTrade(deal: Mt5Deal, opts: { userId: string; isPublic: boolean }): Record<string, unknown> {
   const market = inferMarket(deal.symbol)
-  // Normalize symbol: 'EURUSD' → 'EUR/USD' for instrument lookup
-  const normalizedSymbol = deal.symbol.length === 6 && /^[A-Z]{3}[A-Z]{3}$/.test(deal.symbol)
-    ? `${deal.symbol.slice(0, 3)}/${deal.symbol.slice(3)}`
-    : deal.symbol
+  // Normalize symbol for catalog lookup: strip broker suffix (e.g. 'GBPJPY.a' →
+  // 'GBPJPY'), same stripping rule as inferMarket, then insert a slash for
+  // 6-letter forex pairs ('EURUSD' → 'EUR/USD').
+  const stripped = deal.symbol.toUpperCase().replace(/[^A-Z0-9].*$/, '')
+  const normalizedSymbol = /^[A-Z]{6}$/.test(stripped)
+    ? `${stripped.slice(0, 3)}/${stripped.slice(3)}`
+    : stripped
   const { pipSize, pipValuePerLot } = pipInfo(normalizedSymbol, market)
 
   let slPips = 0
@@ -268,8 +271,10 @@ export function mapDealToTrade(deal: Mt5Deal, opts: { userId: string; isPublic: 
   let rMultiple: number | null = null
   if (deal.stopPrice != null && deal.stopPrice > 0) {
     slPips = Math.abs(deal.openPrice - deal.stopPrice) / pipSize
-    riskAmount = slPips * pipValuePerLot * deal.lots
-    if (riskAmount > 0) rMultiple = Math.round((deal.netPnl / riskAmount) * 100) / 100
+    if (pipValuePerLot != null && Number.isFinite(pipValuePerLot) && pipValuePerLot > 0) {
+      riskAmount = slPips * pipValuePerLot * deal.lots
+      if (riskAmount > 0) rMultiple = Math.round((deal.netPnl / riskAmount) * 100) / 100
+    }
   }
 
   const dirSign = deal.direction === 'long' ? 1 : -1
