@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/mt5-sync/deploy", "schedule": "0 3 * * *" },
+    { "path": "/api/mt5-sync/collect", "schedule": "30 3 * * *" }
+  ]
+}
