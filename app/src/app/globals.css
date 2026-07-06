@@ -1924,3 +1924,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 
 .thc-actions .h-followbtn { font-size: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: transparent; cursor: pointer; }
 .thc-actions .h-followbtn.on { color: var(--dim); }
+
+/* MT5 import tab */
+.ts-mt5-locked { text-align: center; padding: 32px 16px; }
+.ts-mt5-tablewrap { max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+.ts-mt5-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ts-mt5-table th { position: sticky; top: 0; background: var(--surface); text-align: left; padding: 8px 10px; font-weight: 600; }
+.ts-mt5-table td { padding: 6px 10px; border-top: 1px solid var(--border); }
+.ts-mt5-table tr[data-dupe] td { opacity: 0.45; }

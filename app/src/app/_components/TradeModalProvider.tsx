@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { createTrade, saveTradeChartUrl } from '@/app/actions/trade'
 import { computeOpen, SETUP_PRESETS, type Direction, type SizingMode } from '@/lib/trade'
 import { INSTRUMENTS, pipInfo } from '@/lib/instruments'
+import { Mt5ImportTab } from './Mt5ImportTab'
 
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
@@ -45,6 +46,7 @@ export function TradeModalProvider({ config, children }: { config: Config | null
 function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () => void; onSaved: () => void }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
+  const [tab, setTab] = useState<'manual' | 'import'>('manual')
 
   const [market, setMarket] = useState('forex')
   const [instrument, setInstrument] = useState('EUR/USD')
@@ -92,7 +94,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
 
   return (
     <div className="ts-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <form action={onSubmit} className="ts-modal ts-modal--wide">
+      <div className="ts-modal ts-modal--wide">
         <div className="ts-modal-head">
           <div className="flex items-center gap-3">
             <span className="ts-modal-icon">⚡</span>
@@ -104,6 +106,19 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
           <button type="button" className="ts-modal-close" onClick={onClose}>✕</button>
         </div>
 
+        <div className="ts-subtabs mt-4" style={{ maxWidth: 320 }}>
+          <button type="button" data-active={tab === 'manual'} onClick={() => setTab('manual')}>Manual entry</button>
+          <button type="button" data-active={tab === 'import'} onClick={() => setTab('import')}>
+            Import from MT5{!config.canMt5Import && ' 🔒'}
+          </button>
+        </div>
+
+        {tab === 'import' ? (
+          <div className="mt-4">
+            <Mt5ImportTab canImport={config.canMt5Import} onDone={onSaved} />
+          </div>
+        ) : (
+        <form action={onSubmit}>
         {/* hidden values driven by buttons */}
         <input type="hidden" name="direction" value={direction} />
         <input type="hidden" name="sizing_mode" value={sizingMode} />
@@ -240,7 +255,9 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
           </label>
           <button className="btn btn-primary" disabled={pending}>{pending ? 'Saving…' : '✓ Save Trade'}</button>
         </div>
-      </form>
+        </form>
+        )}
+      </div>
     </div>
   )
 }
