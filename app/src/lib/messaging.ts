@@ -13,20 +13,23 @@ export interface Message {
   deletedAt: string | null
 }
 
+export type ConversationStatus = 'pending' | 'accepted'
+
 export interface ConversationListItem {
   conversationId: string
   other: { id: string; username: string; displayName: string | null; avatarUrl: string | null }
   lastMessageAt: string
   preview: string
   unreadCount: number
+  status: ConversationStatus
+  requesterId: string | null
 }
+
+// How many messages the requester may send before the recipient accepts.
+export const PENDING_MESSAGE_LIMIT = 3
 
 export function orderPair(id1: string, id2: string): { userA: string; userB: string } {
   return id1 < id2 ? { userA: id1, userB: id2 } : { userA: id2, userB: id1 }
-}
-
-export function canMessage(aFollowsB: boolean, bFollowsA: boolean): boolean {
-  return aFollowsB && bFollowsA
 }
 
 export function validateAttachments(atts: Attachment[]): { ok: true } | { ok: false; error: string } {

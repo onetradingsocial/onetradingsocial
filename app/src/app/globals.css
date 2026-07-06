@@ -1006,6 +1006,18 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .learn-lesson.done .learn-tick { background: rgba(52,211,153,.15); border-color: #34d399; color: #34d399; }
 .learn-body { line-height: 1.7; }
 .learn-body p { margin: 0 0 12px; }
+.learn-body h2 { font-size: 19px; font-weight: 700; margin: 26px 0 10px; }
+.learn-body h3 { font-size: 16px; font-weight: 700; margin: 20px 0 8px; }
+.learn-body h2:first-child, .learn-body h3:first-child { margin-top: 0; }
+.learn-body ul, .learn-body ol { margin: 0 0 14px; padding-left: 22px; }
+.learn-body ul { list-style: disc; }
+.learn-body ol { list-style: decimal; }
+.learn-body li { margin: 5px 0; }
+.learn-body blockquote {
+  margin: 16px 0; padding: 10px 16px; border-left: 3px solid var(--violet-br);
+  background: rgba(107, 67, 224, 0.08); border-radius: 0 10px 10px 0; font-style: italic;
+}
+.learn-body blockquote p { margin: 0; }
 .quiz-q { border: 1px solid var(--line, rgba(255,255,255,.08)); border-radius: 12px; padding: 14px; margin-top: 14px; }
 .quiz-q.wrong { border-color: rgba(248,113,113,.6); }
 .quiz-q legend { font-weight: 700; padding: 0 6px; }
@@ -1515,6 +1527,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-msg-search-input:focus { outline: none; border-color: var(--violet); background: var(--surface); box-shadow: 0 0 0 3px rgba(124,92,230,0.12); }
 .ts-msg-search-input::-webkit-search-cancel-button { cursor: pointer; }
 .ts-msg-rail-empty { padding: 28px 22px; font-size: 13px; line-height: 1.5; text-align: center; }
+.ts-msg-tabs { display: flex; gap: 4px; margin-top: 10px; }
+.ts-msg-tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 10px; border: 1px solid transparent; background: none; border-radius: 10px; font: inherit; font-size: 13px; font-weight: 600; color: var(--faint); cursor: pointer; transition: background .14s, color .14s; }
+.ts-msg-tab:hover { background: var(--surface-2); color: var(--dim); }
+.ts-msg-tab-active { background: var(--brand-grad-soft); border-color: var(--border-vio); color: var(--violet-deep); }
 
 .ts-msg-list { overflow-y: auto; flex: 1; padding: 6px; scrollbar-width: thin; scrollbar-color: var(--border-2) transparent; }
 .ts-msg-row { position: relative; width: 100%; display: flex; gap: 11px; align-items: center; padding: 11px 12px; background: none; border: none; border-radius: 13px; cursor: pointer; text-align: left; transition: background .14s; }
@@ -1577,6 +1593,12 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-msg-typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .ts-msg-typing-dot:nth-child(3) { animation-delay: 0.4s; }
 @keyframes ts-msg-blink { 0%, 80%, 100% { opacity: 0.3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+
+/* ---- message requests ---- */
+.ts-msg-request-bar { border-top: 1px solid var(--border); padding: 14px 16px; background: var(--brand-grad-soft); display: flex; flex-direction: column; gap: 10px; }
+.ts-msg-request-text { margin: 0; font-size: 13px; line-height: 1.5; color: var(--dim); }
+.ts-msg-request-actions { display: flex; gap: 8px; }
+.ts-msg-request-note { border-top: 1px solid var(--border); padding: 8px 16px 0; font-size: 12px; text-align: center; background: var(--surface); }
 
 /* ---- composer ---- */
 .ts-msg-composer { border-top: 1px solid var(--border); padding: 12px; background: var(--surface); }

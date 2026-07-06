@@ -1,23 +1,42 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { ConversationListItem, Message } from '@/lib/messaging'
+import { useRouter } from 'next/navigation'
+import type { ConversationListItem, ConversationStatus, Message } from '@/lib/messaging'
+import { acceptMessageRequest, declineMessageRequest } from '@/app/actions/messaging'
 import { ConversationList } from './_components/ConversationList'
 import { MessageThread } from './_components/MessageThread'
 
 type PeerLite = { id: string; username: string; displayName: string | null; avatarUrl: string | null }
-type Active = { conversationId: string | null; peer: PeerLite; messages: Message[] }
+type Active = {
+  conversationId: string | null
+  peer: PeerLite
+  messages: Message[]
+  status: ConversationStatus
+  requesterId: string | null
+}
 
 export function MessagesClient({
-  currentUserId, conversations, initialActive, pendingPeer,
+  currentUserId, conversations, requests, initialActive, pendingPeer,
 }: {
   currentUserId: string
   conversations: ConversationListItem[]
-  initialActive: { conversationId: string; peer: PeerLite; messages: Message[] } | null
+  requests: ConversationListItem[]
+  initialActive: {
+    conversationId: string; peer: PeerLite; messages: Message[]
+    status: ConversationStatus; requesterId: string | null
+  } | null
   pendingPeer: PeerLite | null
 }) {
+  const router = useRouter()
   const [active, setActive] = useState<Active | null>(
-    initialActive ?? (pendingPeer ? { conversationId: null, peer: pendingPeer, messages: [] } : null),
+    initialActive
+      ?? (pendingPeer ? { conversationId: null, peer: pendingPeer, messages: [], status: 'accepted', requesterId: null } : null),
+  )
+  const [tab, setTab] = useState<'inbox' | 'requests'>(
+    initialActive && initialActive.status === 'pending' && initialActive.requesterId !== currentUserId
+      ? 'requests'
+      : 'inbox',
   )
   const [query, setQuery] = useState('')
 
@@ -26,18 +45,45 @@ export function MessagesClient({
     [conversations],
   )
 
+  const source = tab === 'requests' ? requests : conversations
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return conversations
-    return conversations.filter((c) => {
+    if (!q) return source
+    return source.filter((c) => {
       const name = (c.other.displayName || c.other.username).toLowerCase()
       return name.includes(q) || c.other.username.toLowerCase().includes(q) || c.preview.toLowerCase().includes(q)
     })
-  }, [conversations, query])
+  }, [source, query])
 
   function openConversation(item: ConversationListItem) {
-    setActive({ conversationId: item.conversationId, peer: item.other, messages: [] })
+    setActive({
+      conversationId: item.conversationId, peer: item.other, messages: [],
+      status: item.status, requesterId: item.requesterId,
+    })
   }
+
+  async function handleAccept() {
+    if (!active?.conversationId) return
+    const res = await acceptMessageRequest(active.conversationId)
+    if (!res.error) {
+      setActive((prev) => (prev ? { ...prev, status: 'accepted' } : prev))
+      setTab('inbox')
+      router.refresh()
+    }
+  }
+
+  async function handleDecline() {
+    if (!active?.conversationId) return
+    const res = await declineMessageRequest(active.conversationId)
+    if (!res.error) {
+      setActive(null)
+      router.refresh()
+    }
+  }
+
+  const requestState = active && active.status === 'pending'
+    ? (active.requesterId === currentUserId ? 'outgoing' as const : 'incoming' as const)
+    : null
 
   return (
     <div className={`ts-msg-shell${active ? ' ts-msg-shell-thread' : ''}`}>
@@ -61,12 +107,30 @@ export function MessagesClient({
               aria-label="Search conversations"
             />
           </div>
+          <div className="ts-msg-tabs" role="tablist" aria-label="Message folders">
+            <button
+              type="button" role="tab" aria-selected={tab === 'inbox'}
+              className={`ts-msg-tab${tab === 'inbox' ? ' ts-msg-tab-active' : ''}`}
+              onClick={() => setTab('inbox')}
+            >
+              Inbox
+            </button>
+            <button
+              type="button" role="tab" aria-selected={tab === 'requests'}
+              className={`ts-msg-tab${tab === 'requests' ? ' ts-msg-tab-active' : ''}`}
+              onClick={() => setTab('requests')}
+            >
+              Requests
+              {requests.length > 0 && <span className="ts-notif-badge">{requests.length > 99 ? '99+' : requests.length}</span>}
+            </button>
+          </div>
         </header>
         <ConversationList
           items={filtered}
           activeId={active?.conversationId ?? null}
           onSelect={openConversation}
           searching={query.trim().length > 0}
+          variant={tab}
         />
       </aside>
       <section className="ts-msg-pane">
@@ -78,6 +142,9 @@ export function MessagesClient({
             peer={active.peer}
             initialMessages={active.messages}
             onBack={() => setActive(null)}
+            requestState={requestState}
+            onAcceptRequest={handleAccept}
+            onDeclineRequest={handleDecline}
           />
         ) : (
           <div className="ts-msg-empty-pane">

@@ -13,14 +13,20 @@ type PeerLite = { id: string; username: string; displayName: string | null; avat
 
 export function MessageThread({
   currentUserId, conversationId, peer, initialMessages, onBack,
+  requestState = null, onAcceptRequest, onDeclineRequest,
 }: {
   currentUserId: string
   conversationId: string | null
   peer: PeerLite
   initialMessages: Message[]
   onBack?: () => void
+  requestState?: 'incoming' | 'outgoing' | null
+  onAcceptRequest?: () => void
+  onDeclineRequest?: () => void
 }) {
-  const { messages, send } = useConversation(conversationId ?? '', currentUserId, initialMessages)
+  const { messages, send } = useConversation(conversationId ?? '', currentUserId, initialMessages, {
+    suppressRead: requestState === 'incoming',
+  })
   const { peerTyping, notifyTyping } = useTyping(conversationId ?? '', currentUserId)
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages.length, peerTyping])
@@ -73,12 +79,32 @@ export function MessageThread({
         <div ref={bottomRef} />
       </div>
 
-      <MessageComposer
-        recipientId={peer.id}
-        disabled={false}
-        onTyping={notifyTyping}
-        onSend={(body, attachments) => send(body, attachments, peer.id)}
-      />
+      {requestState === 'incoming' ? (
+        <div className="ts-msg-request-bar">
+          <p className="ts-msg-request-text">
+            <strong>{name}</strong> wants to send you messages. Accept to start chatting — they won&apos;t
+            know you&apos;ve seen this until you do.
+          </p>
+          <div className="ts-msg-request-actions">
+            <button type="button" className="h-btn h-btn-grad" onClick={onAcceptRequest}>Accept</button>
+            <button type="button" className="h-btn" onClick={onDeclineRequest}>Decline</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {requestState === 'outgoing' && (
+            <div className="ts-msg-request-note faint">
+              Message request pending — {name} needs to accept before this becomes a conversation.
+            </div>
+          )}
+          <MessageComposer
+            recipientId={peer.id}
+            disabled={false}
+            onTyping={notifyTyping}
+            onSend={(body, attachments) => send(body, attachments, peer.id)}
+          />
+        </>
+      )}
     </div>
   )
 }

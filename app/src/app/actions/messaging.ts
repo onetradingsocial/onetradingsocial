@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { validateAttachments, type Attachment } from '@/lib/messaging'
+import { validateAttachments, PENDING_MESSAGE_LIMIT, type Attachment } from '@/lib/messaging'
 import { messageImagePrefix } from '@/lib/storage'
 import { areMutualFollowers, getOrCreateConversation } from '@/lib/server/messaging'
 import { insertNotification } from '@/lib/notifications'
@@ -31,10 +31,6 @@ export async function sendMessage(
     }
   }
 
-  // mutual-follow gate — re-checked every send, fail closed
-  const mutual = await areMutualFollowers(supabase, user.id, recipientId)
-  if (!mutual) return { error: 'You can only message people who follow you back.' }
-
   // validate any trade attachment belongs to the sender
   const tradeAtt = atts.find((a) => a.type === 'trade')
   if (tradeAtt && tradeAtt.type === 'trade') {
@@ -43,7 +39,34 @@ export async function sendMessage(
   }
 
   const service = createServiceClient()
-  const conversationId = await getOrCreateConversation(service, user.id, recipientId)
+
+  // mutual followers chat straight away; otherwise the first message opens a
+  // pending request the recipient must accept
+  const mutual = await areMutualFollowers(supabase, user.id, recipientId)
+  const convo = await getOrCreateConversation(service, user.id, recipientId, {
+    status: mutual ? 'accepted' : 'pending',
+    requesterId: user.id,
+  })
+  const conversationId = convo.id
+  let status = convo.status
+
+  if (status === 'pending') {
+    if (convo.requesterId === user.id) {
+      // requester is capped until the recipient accepts
+      const { count } = await service
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId)
+        .eq('sender_id', user.id)
+      if ((count ?? 0) >= PENDING_MESSAGE_LIMIT) {
+        return { error: 'Message request pending — you can send more once they accept.' }
+      }
+    } else {
+      // recipient replying to a request implicitly accepts it
+      await service.from('conversations').update({ status: 'accepted' }).eq('id', conversationId)
+      status = 'accepted'
+    }
+  }
 
   const { data: msg, error } = await service.from('messages').insert({
     conversation_id: conversationId,
@@ -55,12 +78,47 @@ export async function sendMessage(
 
   await service.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conversationId)
 
-  await insertNotification({
-    supabase: service, userId: recipientId, actorId: user.id,
-    type: 'message', entityId: conversationId, entityType: 'conversation',
-  })
+  // no notification spam for pending requests — they surface in the Requests tab
+  if (status === 'accepted') {
+    await insertNotification({
+      supabase: service, userId: recipientId, actorId: user.id,
+      type: 'message', entityId: conversationId, entityType: 'conversation',
+    })
+  }
 
   return { messageId: msg.id, conversationId }
+}
+
+export async function acceptMessageRequest(conversationId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+  const { data: c } = await supabase
+    .from('conversations').select('user_a, user_b, status, requester_id').eq('id', conversationId).maybeSingle()
+  if (!c || (c.user_a !== user.id && c.user_b !== user.id)) return { error: 'Conversation not found.' }
+  if (c.status !== 'pending') return {}
+  if (c.requester_id === user.id) return { error: 'Only the recipient can accept a request.' }
+  const service = createServiceClient()
+  const { error } = await service.from('conversations').update({ status: 'accepted' }).eq('id', conversationId)
+  if (error) return { error: 'Could not accept request.' }
+  return {}
+}
+
+export async function declineMessageRequest(conversationId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated.' }
+  const { data: c } = await supabase
+    .from('conversations').select('user_a, user_b, status, requester_id').eq('id', conversationId).maybeSingle()
+  if (!c || (c.user_a !== user.id && c.user_b !== user.id)) return { error: 'Conversation not found.' }
+  if (c.status !== 'pending') return { error: 'This conversation is already active.' }
+  if (c.requester_id === user.id) return { error: 'Only the recipient can decline a request.' }
+  // decline deletes the request (conversation + messages cascade); the
+  // requester may start a fresh request later
+  const service = createServiceClient()
+  const { error } = await service.from('conversations').delete().eq('id', conversationId)
+  if (error) return { error: 'Could not decline request.' }
+  return {}
 }
 
 export async function markThreadRead(conversationId: string): Promise<void> {

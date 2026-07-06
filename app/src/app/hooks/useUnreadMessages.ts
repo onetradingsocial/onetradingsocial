@@ -17,10 +17,15 @@ export function useUnreadMessages(initialCount: number) {
         .channel(`messages-unread:${userId}`)
         .on('postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'messages' },
-          (payload) => {
+          async (payload) => {
             const row = payload.new as Record<string, unknown>
             // RLS only delivers rows in the user's conversations; count inbound only
-            if ((row.sender_id as string) !== userId) setUnreadCount((c) => c + 1)
+            if ((row.sender_id as string) === userId) return
+            // pending requests stay out of the inbox badge (Requests tab owns them)
+            const { data: c } = await supabase
+              .from('conversations').select('status').eq('id', row.conversation_id as string).maybeSingle()
+            if (c && c.status === 'pending') return
+            setUnreadCount((c2) => c2 + 1)
           })
         .subscribe()
     })

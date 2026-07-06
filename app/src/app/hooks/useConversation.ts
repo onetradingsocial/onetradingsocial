@@ -19,7 +19,13 @@ function rowToMessage(row: Record<string, unknown>): Message {
   }
 }
 
-export function useConversation(conversationId: string, currentUserId: string, initial: Message[]) {
+export function useConversation(
+  conversationId: string,
+  currentUserId: string,
+  initial: Message[],
+  opts: { suppressRead?: boolean } = {},
+) {
+  const suppressRead = opts.suppressRead ?? false
   const [messages, setMessages] = useState<Message[]>(initial)
 
   // Load history when the conversation changes: use server-provided `initial`
@@ -43,7 +49,7 @@ export function useConversation(conversationId: string, currentUserId: string, i
         (payload) => {
           const m = rowToMessage(payload.new as Record<string, unknown>)
           setMessages((prev) => prev.some((x) => x.id === m.id) ? prev : [...prev, m])
-          if (m.senderId !== currentUserId) void markThreadRead(conversationId)
+          if (m.senderId !== currentUserId && !suppressRead) void markThreadRead(conversationId)
         })
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
@@ -52,10 +58,11 @@ export function useConversation(conversationId: string, currentUserId: string, i
           setMessages((prev) => prev.map((x) => x.id === m.id ? m : x))
         })
       .subscribe()
-    // mark inbound as read on open
-    void markThreadRead(conversationId)
+    // mark inbound as read on open (skipped for unaccepted requests — no read
+    // receipts until the recipient accepts)
+    if (!suppressRead) void markThreadRead(conversationId)
     return () => { supabase.removeChannel(channel) }
-  }, [conversationId, currentUserId])
+  }, [conversationId, currentUserId, suppressRead])
 
   const send = useCallback(async (body: string, attachments: Attachment[], recipientId: string) => {
     const optimistic: Message = {

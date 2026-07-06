@@ -1,6 +1,6 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { orderPair, summarizePreview, type Attachment, type Message, type ConversationListItem } from '@/lib/messaging'
+import { orderPair, summarizePreview, type Attachment, type Message, type ConversationListItem, type ConversationStatus } from '@/lib/messaging'
 
 type ProfileLite = { id: string; username: string; display_name: string | null; avatar_url: string | null }
 
@@ -20,26 +20,38 @@ export async function areMutualFollowers(supabase: SupabaseClient, a: string, b:
   return aFollowsB && bFollowsA
 }
 
-export async function getOrCreateConversation(service: SupabaseClient, id1: string, id2: string): Promise<string> {
+export type ConversationRow = { id: string; status: ConversationStatus; requesterId: string | null }
+
+// Finds the pair's conversation or creates one. New conversations start
+// `accepted` for mutual followers, otherwise `pending` with the sender as
+// requester (a message request the recipient must accept).
+export async function getOrCreateConversation(
+  service: SupabaseClient,
+  id1: string,
+  id2: string,
+  initial: { status: ConversationStatus; requesterId: string },
+): Promise<ConversationRow> {
   const { userA, userB } = orderPair(id1, id2)
   const { data: existing } = await service
-    .from('conversations').select('id').eq('user_a', userA).eq('user_b', userB).maybeSingle()
-  if (existing) return existing.id as string
+    .from('conversations').select('id, status, requester_id').eq('user_a', userA).eq('user_b', userB).maybeSingle()
+  if (existing) return { id: existing.id as string, status: existing.status as ConversationStatus, requesterId: existing.requester_id ?? null }
   const { data: created, error } = await service
-    .from('conversations').insert({ user_a: userA, user_b: userB }).select('id').single()
+    .from('conversations')
+    .insert({ user_a: userA, user_b: userB, status: initial.status, requester_id: initial.requesterId })
+    .select('id, status, requester_id').single()
   if (error || !created) {
     // race: another insert won; re-read
     const { data: row } = await service
-      .from('conversations').select('id').eq('user_a', userA).eq('user_b', userB).single()
-    return row!.id as string
+      .from('conversations').select('id, status, requester_id').eq('user_a', userA).eq('user_b', userB).single()
+    return { id: row!.id as string, status: row!.status as ConversationStatus, requesterId: row!.requester_id ?? null }
   }
-  return created.id as string
+  return { id: created.id as string, status: created.status as ConversationStatus, requesterId: created.requester_id ?? null }
 }
 
 export async function getConversations(supabase: SupabaseClient, userId: string): Promise<ConversationListItem[]> {
   const { data: convos } = await supabase
     .from('conversations')
-    .select('id, user_a, user_b, last_message_at, a:profiles!conversations_user_a_fkey(id,username,display_name,avatar_url), b:profiles!conversations_user_b_fkey(id,username,display_name,avatar_url)')
+    .select('id, user_a, user_b, last_message_at, status, requester_id, a:profiles!conversations_user_a_fkey(id,username,display_name,avatar_url), b:profiles!conversations_user_b_fkey(id,username,display_name,avatar_url)')
     .or(`user_a.eq.${userId},user_b.eq.${userId}`)
     .order('last_message_at', { ascending: false })
     .range(0, 49)
@@ -68,6 +80,8 @@ export async function getConversations(supabase: SupabaseClient, userId: string)
       lastMessageAt: c.last_message_at,
       preview: last ? summarizePreview({ body: last.body, attachments: (last.attachments ?? []) as Attachment[], deletedAt: last.deleted_at }) : '',
       unreadCount: count ?? 0,
+      status: (c.status ?? 'accepted') as ConversationStatus,
+      requesterId: c.requester_id ?? null,
     })
   }
   return items
@@ -108,9 +122,14 @@ export async function getMessages(
 
 export async function getUnreadTotal(supabase: SupabaseClient, userId: string): Promise<number> {
   const { data: convos, error: cErr } = await supabase
-    .from('conversations').select('id').or(`user_a.eq.${userId},user_b.eq.${userId}`)
+    .from('conversations').select('id, status, requester_id').or(`user_a.eq.${userId},user_b.eq.${userId}`)
   if (cErr || !convos || convos.length === 0) return 0
-  const ids = convos.map((c) => c.id)
+  // incoming pending requests don't count toward the inbox badge — they
+  // surface in the Requests tab instead
+  const ids = convos
+    .filter((c) => c.status !== 'pending' || c.requester_id === userId)
+    .map((c) => c.id)
+  if (ids.length === 0) return 0
   const { count, error } = await supabase
     .from('messages')
     .select('*', { count: 'exact', head: true })
@@ -125,13 +144,19 @@ export async function getConversationPeer(
   supabase: SupabaseClient,
   conversationId: string,
   userId: string,
-): Promise<{ id: string; username: string; displayName: string | null; avatarUrl: string | null } | null> {
+): Promise<{
+  id: string; username: string; displayName: string | null; avatarUrl: string | null
+  status: ConversationStatus; requesterId: string | null
+} | null> {
   const { data: c } = await supabase
     .from('conversations')
-    .select('user_a, user_b, a:profiles!conversations_user_a_fkey(id,username,display_name,avatar_url), b:profiles!conversations_user_b_fkey(id,username,display_name,avatar_url)')
+    .select('user_a, user_b, status, requester_id, a:profiles!conversations_user_a_fkey(id,username,display_name,avatar_url), b:profiles!conversations_user_b_fkey(id,username,display_name,avatar_url)')
     .eq('id', conversationId).maybeSingle()
   if (!c || (c.user_a !== userId && c.user_b !== userId)) return null
   const other = c.user_a === userId ? normProfile(c.b) : normProfile(c.a)
   if (!other) return null
-  return { id: other.id, username: other.username, displayName: other.display_name, avatarUrl: other.avatar_url }
+  return {
+    id: other.id, username: other.username, displayName: other.display_name, avatarUrl: other.avatar_url,
+    status: (c.status ?? 'accepted') as ConversationStatus, requesterId: c.requester_id ?? null,
+  }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { orderPair, canMessage, validateAttachments, summarizePreview, type Attachment } from '@/lib/messaging'
+import { orderPair, validateAttachments, summarizePreview, type Attachment } from '@/lib/messaging'
 
 describe('orderPair', () => {
   it('returns the same canonical order regardless of argument order', () => {
@@ -7,19 +7,6 @@ describe('orderPair', () => {
     const b = orderPair('bbb', 'aaa')
     expect(a).toEqual(b)
     expect(a.userA < a.userB).toBe(true)
-  })
-})
-
-describe('canMessage', () => {
-  it('allows when both follow each other', () => {
-    expect(canMessage(true, true)).toBe(true)
-  })
-  it('blocks one-way follows', () => {
-    expect(canMessage(true, false)).toBe(false)
-    expect(canMessage(false, true)).toBe(false)
-  })
-  it('blocks strangers', () => {
-    expect(canMessage(false, false)).toBe(false)
   })
 })
 

@@ -12,7 +12,6 @@ import { getUserXp } from '@/lib/server/xp'
 import { getTier } from '@/lib/server/entitlements'
 import { canFlag } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
-import { areMutualFollowers } from '@/lib/server/messaging'
 import { TradingCalendar } from '@/app/journal/_components/TradingCalendar'
 import { Icon } from './_components/Icon'
 import { Sparkline } from './_components/Sparkline'
@@ -84,7 +83,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     }
   }
   const isSelf = !!(viewer && profileId && viewer.id === profileId)
-  const canMsg = viewer && profileId && !isSelf ? await areMutualFollowers(supabase, viewer.id, profileId) : false
+  // anyone signed-in can message — non-mutual sends become message requests
+  const canMsg = !!(viewer && profileId && !isSelf)
 
   // All public closed trades — single source for stats, equity, calendar, history, instruments.
   let pub: JTrade[] = []
