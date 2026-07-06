@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { parseMt5 } from '@/lib/mt5'
+import { inferMarket, mapDealToTrade, validateDeals, parseMt5, type Mt5Deal } from '@/lib/mt5'
 
 const FIX = join(__dirname, '..', 'fixtures', 'mt5')
 const load = (name: string) => {
@@ -101,5 +101,70 @@ describe('parseMt5 — XLSX', () => {
       openPrice: 1.085, closePrice: 1.0905, commission: -2.5, swap: 0, profit: 272.5,
     })
     expect(d.netPnl).toBeCloseTo(270)
+  })
+})
+
+const deal = (over: Partial<Mt5Deal> = {}): Mt5Deal => ({
+  ticket: '123456', symbol: 'EURUSD', direction: 'long', lots: 0.5,
+  openTime: '2026-06-01T09:30:00Z', closeTime: '2026-06-01T14:45:10Z',
+  openPrice: 1.085, closePrice: 1.0905, stopPrice: 1.082, targetPrice: 1.091,
+  commission: -2.5, swap: 0, profit: 272.5, netPnl: 270,
+  ...over,
+})
+
+describe('inferMarket', () => {
+  it('classifies symbols including broker suffixes', () => {
+    expect(inferMarket('EURUSD')).toBe('forex')
+    expect(inferMarket('GBPJPY.a')).toBe('forex')
+    expect(inferMarket('XAUUSD')).toBe('commodities')
+    expect(inferMarket('BTCUSD')).toBe('crypto')
+    expect(inferMarket('US30')).toBe('indices')
+    expect(inferMarket('AAPL')).toBe('stocks')
+  })
+})
+
+describe('mapDealToTrade', () => {
+  const opts = { userId: 'u1', isPublic: true }
+
+  it('maps core fields for a closed win', () => {
+    const row = mapDealToTrade(deal(), opts)
+    expect(row).toMatchObject({
+      user_id: 'u1', broker_deal_id: '123456', instrument: 'EURUSD', market: 'forex',
+      direction: 'long', sizing_mode: 'lots', lots: 0.5,
+      entry_price: 1.085, exit_price: 1.0905, stop_price: 1.082, target_price: 1.091,
+      pnl_amount: 270, status: 'closed', outcome: 'win', is_public: true,
+      traded_at: '2026-06-01T09:30:00Z', closed_at: '2026-06-01T14:45:10Z',
+    })
+  })
+
+  it('computes risk/r-multiple when stop present', () => {
+    const row = mapDealToTrade(deal(), opts) as { sl_pips: number; risk_amount: number; r_multiple: number }
+    expect(row.sl_pips).toBeCloseTo(30)           // (1.085-1.082)/0.0001
+    expect(row.risk_amount).toBeCloseTo(150)      // 30 pips * $10/lot * 0.5
+    expect(row.r_multiple).toBeCloseTo(1.8)       // 270 / 150
+  })
+
+  it('null stop → zero sl_pips, null r_multiple, null stop_price', () => {
+    const row = mapDealToTrade(deal({ stopPrice: null, targetPrice: null }), opts) as Record<string, unknown>
+    expect(row.stop_price).toBeNull()
+    expect(row.sl_pips).toBe(0)
+    expect(row.r_multiple).toBeNull()
+    expect(row.risk_amount).toBe(0)
+  })
+
+  it('outcome from net pnl sign', () => {
+    expect(mapDealToTrade(deal({ netPnl: -50 }), opts).outcome).toBe('loss')
+    expect(mapDealToTrade(deal({ netPnl: 0 }), opts).outcome).toBe('breakeven')
+  })
+})
+
+describe('validateDeals', () => {
+  it('accepts a valid array and rejects junk', () => {
+    expect('deals' in validateDeals([deal()])).toBe(true)
+    expect('error' in validateDeals('nope')).toBe(true)
+    expect('error' in validateDeals([{ ...deal(), lots: Infinity }])).toBe(true)
+    expect('error' in validateDeals([{ ...deal(), ticket: '' }])).toBe(true)
+    expect('error' in validateDeals([{ ...deal(), direction: 'sideways' }])).toBe(true)
+    expect('error' in validateDeals(Array(501).fill(deal()))).toBe(true)
   })
 })

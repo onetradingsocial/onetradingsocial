@@ -3,6 +3,7 @@
 // string[][]; one extractor locates the Positions table and normalizes rows.
 
 import * as XLSX from 'xlsx'
+import { pipInfo } from '@/lib/instruments'
 
 export type Mt5Deal = {
   ticket: string
@@ -198,4 +199,106 @@ function xlsxToRows(buf: ArrayBuffer): string[][] {
   const ws = wb.Sheets[wb.SheetNames[0]]
   const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: false, defval: '' })
   return raw.map((row) => row.map((c) => String(c ?? '').trim()))
+}
+
+const CURRENCIES = new Set(['EUR', 'USD', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF', 'SGD', 'NOK', 'SEK', 'ZAR', 'MXN', 'PLN', 'TRY', 'CNH', 'HKD'])
+const CRYPTO = /^(BTC|ETH|XRP|LTC|SOL|ADA|DOGE|DOT|BNB|AVAX)/
+const INDICES = /^(US30|US100|US500|USTEC|NAS100|SPX|SP500|DJ30|GER30|GER40|DAX|DE40|UK100|FTSE|FRA40|EU50|JP225|JPN225|NIKKEI|HK50|AUS200)/
+const METALS = /^(XAU|XAG|XPT|XPD|XTI|XBR|GOLD|SILVER|OIL|BRENT|WTI|NGAS|UKOIL|USOIL)/
+
+/** Best-effort market class from a raw broker symbol (suffixes stripped). */
+export function inferMarket(symbol: string): string {
+  const s = symbol.toUpperCase().replace(/[^A-Z0-9].*$/, '')
+  if (METALS.test(s)) return 'commodities'
+  if (CRYPTO.test(s)) return 'crypto'
+  if (INDICES.test(s)) return 'indices'
+  if (s.length >= 6 && CURRENCIES.has(s.slice(0, 3)) && CURRENCIES.has(s.slice(3, 6))) return 'forex'
+  return 'stocks'
+}
+
+const MAX_COMMIT_ROWS = 500
+
+/** Server-side re-validation of client-echoed rows before commit. */
+export function validateDeals(input: unknown): { deals: Mt5Deal[] } | { error: string } {
+  if (!Array.isArray(input) || input.length === 0) return { error: 'Nothing to import.' }
+  if (input.length > MAX_COMMIT_ROWS) return { error: `Too many rows (max ${MAX_COMMIT_ROWS} per import).` }
+  const deals: Mt5Deal[] = []
+  for (const raw of input) {
+    if (typeof raw !== 'object' || raw == null) return { error: 'Invalid import payload.' }
+    const d = raw as Record<string, unknown>
+    const fin = (v: unknown) => typeof v === 'number' && Number.isFinite(v)
+    const finOrNull = (v: unknown) => v === null || fin(v)
+    const isoRe = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/
+    if (
+      typeof d.ticket !== 'string' || !d.ticket.trim() || d.ticket.length > 32 ||
+      typeof d.symbol !== 'string' || !d.symbol.trim() || d.symbol.length > 32 ||
+      (d.direction !== 'long' && d.direction !== 'short') ||
+      !fin(d.lots) || (d.lots as number) <= 0 ||
+      !fin(d.openPrice) || !fin(d.closePrice) || !fin(d.netPnl) ||
+      !fin(d.commission) || !fin(d.swap) || !fin(d.profit) ||
+      !finOrNull(d.stopPrice) || !finOrNull(d.targetPrice) ||
+      typeof d.openTime !== 'string' || !isoRe.test(d.openTime) ||
+      typeof d.closeTime !== 'string' || !isoRe.test(d.closeTime)
+    ) return { error: 'Invalid import payload.' }
+    deals.push({
+      ticket: d.ticket.trim(), symbol: d.symbol.trim(), direction: d.direction,
+      lots: d.lots as number, openTime: d.openTime, closeTime: d.closeTime,
+      openPrice: d.openPrice as number, closePrice: d.closePrice as number,
+      stopPrice: (d.stopPrice ?? null) as number | null,
+      targetPrice: (d.targetPrice ?? null) as number | null,
+      commission: d.commission as number, swap: d.swap as number,
+      profit: d.profit as number, netPnl: d.netPnl as number,
+    })
+  }
+  return { deals }
+}
+
+/** Mt5Deal → trades insert row. Journaling fields stay empty for the user
+ *  to enrich. r_multiple only when a stop exists (risk is defined). */
+export function mapDealToTrade(deal: Mt5Deal, opts: { userId: string; isPublic: boolean }): Record<string, unknown> {
+  const market = inferMarket(deal.symbol)
+  // Normalize symbol: 'EURUSD' → 'EUR/USD' for instrument lookup
+  const normalizedSymbol = deal.symbol.length === 6 && /^[A-Z]{3}[A-Z]{3}$/.test(deal.symbol)
+    ? `${deal.symbol.slice(0, 3)}/${deal.symbol.slice(3)}`
+    : deal.symbol
+  const { pipSize, pipValuePerLot } = pipInfo(normalizedSymbol, market)
+
+  let slPips = 0
+  let riskAmount = 0
+  let rMultiple: number | null = null
+  if (deal.stopPrice != null && deal.stopPrice > 0) {
+    slPips = Math.abs(deal.openPrice - deal.stopPrice) / pipSize
+    riskAmount = slPips * pipValuePerLot * deal.lots
+    if (riskAmount > 0) rMultiple = Math.round((deal.netPnl / riskAmount) * 100) / 100
+  }
+
+  const dirSign = deal.direction === 'long' ? 1 : -1
+  const realizedPips = ((deal.closePrice - deal.openPrice) * dirSign) / pipSize
+
+  return {
+    user_id: opts.userId,
+    broker_deal_id: deal.ticket,
+    market,
+    instrument: deal.symbol,
+    direction: deal.direction,
+    sizing_mode: 'lots',
+    lots: deal.lots,
+    risk_percent: null,
+    entry_price: deal.openPrice,
+    exit_price: deal.closePrice,
+    stop_price: deal.stopPrice,
+    target_price: deal.targetPrice,
+    risk_amount: riskAmount,
+    sl_pips: slPips,
+    tp_pips: null,
+    planned_rr: null,
+    r_multiple: rMultiple,
+    pnl_amount: deal.netPnl,
+    realized_pips: Math.round(realizedPips * 10) / 10,
+    outcome: deal.netPnl > 0 ? 'win' : deal.netPnl < 0 ? 'loss' : 'breakeven',
+    status: 'closed',
+    is_public: opts.isPublic,
+    traded_at: deal.openTime,
+    closed_at: deal.closeTime,
+  }
 }
