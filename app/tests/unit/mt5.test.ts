@@ -56,7 +56,10 @@ describe('parseMt5 — CSV', () => {
     const r = parseMt5(load('report.csv'), 'report.csv')
     if ('error' in r) throw new Error(r.error)
     expect(r.deals).toHaveLength(2)
-    expect(r.deals[1]).toMatchObject({ ticket: '123457', symbol: 'GBPJPY', direction: 'short', lots: 1 })
+    expect(r.deals[1]).toMatchObject({
+      ticket: '123457', symbol: 'GBPJPY', direction: 'short', lots: 1,
+      stopPrice: null, targetPrice: null,
+    })
   })
 })
 
@@ -76,5 +79,27 @@ describe('parseMt5 — XLSX', () => {
     if ('error' in r) throw new Error(r.error)
     expect(r.deals).toHaveLength(1)
     expect(r.deals[0].ticket).toBe('123456')
+  })
+
+  it('parses native numeric cells (real MT5 Open XML exports)', () => {
+    const XLSX = require('xlsx')
+    const rows = [
+      ['Positions'],
+      ['Time', 'Position', 'Symbol', 'Type', 'Volume', 'Price', 'S / L', 'T / P', 'Time', 'Price', 'Commission', 'Swap', 'Profit'],
+      ['2026.06.01 09:30:00', '123456', 'EURUSD', 'buy', 0.5, 1.085, 1.082, 1.091, '2026.06.01 14:45:10', 1.0905, -2.5, 0, 272.5],
+    ]
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Report')
+    const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer
+    const r = parseMt5(buf, 'report.xlsx')
+    if ('error' in r) throw new Error(r.error)
+    expect(r.deals).toHaveLength(1)
+    const d = r.deals[0]
+    expect(d).toMatchObject({
+      ticket: '123456', symbol: 'EURUSD', direction: 'long', lots: 0.5,
+      openPrice: 1.085, closePrice: 1.0905, commission: -2.5, swap: 0, profit: 272.5,
+    })
+    expect(d.netPnl).toBeCloseTo(270)
   })
 })
