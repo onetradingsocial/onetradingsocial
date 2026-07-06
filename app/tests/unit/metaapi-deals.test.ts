@@ -75,4 +75,16 @@ describe('pairDealsToTrades', () => {
   it('empty input → no trades, null cursor', () => {
     expect(pairDealsToTrades([])).toEqual({ trades: [], maxDealTime: null })
   })
+
+  it('instant scalp: OUT before IN in input array with identical timestamp still pairs', () => {
+    const t = '2026-06-01T09:30:00.000Z'
+    const { trades } = pairDealsToTrades([OUT({ time: t }), IN({ time: t })])
+    expect(trades).toHaveLength(1)
+    expect(trades[0]).toMatchObject({
+      ticket: 'd2', symbol: 'EURUSD', direction: 'long', lots: 1,
+      openPrice: 1.085, closePrice: 1.0905,
+      openTime: '2026-06-01T09:30:00Z', closeTime: '2026-06-01T09:30:00Z',
+      profit: 55, swap: -1, commission: -8,
+    })
+  })
 })

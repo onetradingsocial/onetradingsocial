@@ -40,7 +40,8 @@ export function pairDealsToTrades(deals: MetaApiDeal[]): { trades: Mt5Deal[]; ma
   const trades: Mt5Deal[] = []
   let maxTime: string | null = null
 
-  const sorted = [...deals].sort((a, b) => a.time.localeCompare(b.time))
+  const rank = (d: MetaApiDeal) => (d.entryType === 'DEAL_ENTRY_IN' ? 0 : 1)
+  const sorted = [...deals].sort((a, b) => a.time.localeCompare(b.time) || rank(a) - rank(b))
   for (const d of sorted) {
     if (!maxTime || d.time > maxTime) maxTime = d.time
 
