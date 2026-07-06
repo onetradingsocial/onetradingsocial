@@ -270,7 +270,10 @@ export function mapDealToTrade(deal: Mt5Deal, opts: { userId: string; isPublic: 
   let riskAmount = 0
   let rMultiple: number | null = null
   if (deal.stopPrice != null && deal.stopPrice > 0) {
-    slPips = Math.abs(deal.openPrice - deal.stopPrice) / pipSize
+    // Round to 1dp (same precision as realized_pips) to avoid float noise
+    // (e.g. 30.000000000001137) landing in the DB; risk math uses the
+    // rounded value for consistency with the stored sl_pips.
+    slPips = Math.round((Math.abs(deal.openPrice - deal.stopPrice) / pipSize) * 10) / 10
     if (pipValuePerLot != null && Number.isFinite(pipValuePerLot) && pipValuePerLot > 0) {
       riskAmount = slPips * pipValuePerLot * deal.lots
       if (riskAmount > 0) rMultiple = Math.round((deal.netPnl / riskAmount) * 100) / 100

@@ -12,6 +12,7 @@ export function Mt5ImportTab({ canImport, onDone }: { canImport: boolean; onDone
   const [skipped, setSkipped] = useState(0)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
+  const [inserted, setInserted] = useState<number | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   if (!canImport) {
@@ -48,7 +49,19 @@ export function Mt5ImportTab({ canImport, onDone }: { canImport: boolean; onDone
     const res = await commitMt5Import(selected)
     setPending(false)
     if (res.error) { setError(res.error); return }
-    onDone()
+    setInserted(res.inserted ?? selected.length)
+  }
+
+  if (inserted != null) {
+    return (
+      <div className="ts-mt5-locked">
+        <span style={{ fontSize: 28 }}>✓</span>
+        <p className="ts-sub" style={{ margin: '8px 0 12px' }}>
+          Imported {inserted} trade{inserted === 1 ? '' : 's'} to your journal.
+        </p>
+        <button type="button" className="btn btn-primary" onClick={onDone}>Done</button>
+      </div>
+    )
   }
 
   if (!rows) {
