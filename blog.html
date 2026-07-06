@@ -1609,6 +1609,14 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
       }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
       document.querySelectorAll('.featured .reveal, #postGrid .reveal').forEach(function (el) { rio.observe(el); });
 
+      // Chip counts from real data (grid cards; featured rendered separately)
+      document.querySelectorAll('.fchip[data-cat]').forEach(function (btn) {
+        var cat = btn.dataset.cat;
+        var n = cat === 'all' ? grid.length : grid.filter(function (p) { return catSlug(p.category) === cat; }).length;
+        var ct = btn.querySelector('.ct');
+        if (ct) ct.textContent = n;
+      });
+
       // Filter chips
       document.querySelectorAll('.fchip[data-cat]').forEach(function (btn) {
         btn.addEventListener('click', function () {
