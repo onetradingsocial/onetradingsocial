@@ -8,6 +8,7 @@ import { Icon } from '@/app/[username]/_components/Icon'
 import { SettingsNav } from './SettingsNav'
 import { ProfileSettingsForm } from './ProfileSettingsForm'
 import { BrokerCard } from './BrokerCard'
+import { CoverUploader } from '@/app/_components/CoverUploader'
 import './settings.css'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
@@ -17,10 +18,10 @@ export default async function SettingsPage() {
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
-  const [{ data: profile }, tier, sub, flags, { data: brokerRow }] = await Promise.all([
+  const [{ data: profile }, tier, sub, flags, { data: brokerRow }, { data: ownPosts }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge')
+      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id')
       .eq('id', user.id)
       .single(),
     getTier(supabase, user.id),
@@ -31,9 +32,17 @@ export default async function SettingsPage() {
       .select('login, server, status, last_sync_at, sync_error')
       .eq('user_id', user.id)
       .maybeSingle(),
+    supabase
+      .from('posts')
+      .select('id, body, attachment_type, created_at')
+      .eq('author_id', user.id)
+      .neq('attachment_type', 'poll')
+      .order('created_at', { ascending: false })
+      .limit(20),
   ])
 
   const canGoPrivate = tier !== 'free'
+  const canCreatorProfile = canFlag(flags, tier, 'creator_profile')
   const renews = sub?.currentPeriodEnd
     ? new Date(sub.currentPeriodEnd).toLocaleDateString()
     : null
@@ -64,7 +73,28 @@ export default async function SettingsPage() {
               canGoPrivate={canGoPrivate}
               customBadge={profile?.custom_badge ?? null}
               canCustomBadge={canFlag(flags, tier, 'custom_badge')}
+              canCreatorProfile={canCreatorProfile}
+              themeColor={profile?.theme_color ?? null}
+              tagline={profile?.tagline ?? ''}
+              ctaLabel={profile?.cta_label ?? ''}
+              ctaUrl={profile?.cta_url ?? ''}
+              pinnedPostId={profile?.pinned_post_id ?? null}
+              ownPosts={(ownPosts ?? []).map((p) => ({
+                id: p.id,
+                label: (p.attachment_type === 'trade' ? '[Trade] ' : p.attachment_type === 'images' ? '[Photo] ' : '') +
+                  (p.body.trim() ? p.body.trim().slice(0, 60) : new Date(p.created_at).toLocaleDateString()),
+              }))}
             />
+
+            <section id="creator-cover" className="ts-card settings-section">
+              <h2 className="ts-h2"><Icon name="image" size={18} /> Creator cover</h2>
+              <p className="ts-sub mb-5">
+                {canCreatorProfile
+                  ? 'Custom cover banner for your public profile.'
+                  : <>Custom cover is a Pro perk. <a href="/settings/billing">Upgrade</a> to set one.</>}
+              </p>
+              <CoverUploader current={profile?.cover_url ?? null} disabled={!canCreatorProfile} />
+            </section>
 
             <section id="trading" className="ts-card settings-section">
               <h2 className="ts-h2"><Icon name="chart" size={18} /> Trading account</h2>

@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { EXPERIENCE_LEVELS, MARKETS, TRADING_STYLES } from '@/lib/profile'
 import { Icon } from '@/app/[username]/_components/Icon'
 import { CUSTOM_BADGES } from '@/lib/badges'
+import { THEME_PRESETS } from '@/lib/creator-profile'
 
 type Props = {
   avatarUrl: string | null
@@ -22,6 +23,13 @@ type Props = {
   canGoPrivate: boolean
   customBadge: string | null
   canCustomBadge: boolean
+  canCreatorProfile: boolean
+  themeColor: string | null
+  tagline: string
+  ctaLabel: string
+  ctaUrl: string
+  pinnedPostId: string | null
+  ownPosts: { id: string; label: string }[]
 }
 
 export function ProfileSettingsForm(props: Props) {
@@ -31,6 +39,7 @@ export function ProfileSettingsForm(props: Props) {
   )
   const saved = state?.ok === true
   const [customBadge, setCustomBadge] = useState(props.customBadge ?? '')
+  const [themeColor, setThemeColor] = useState(props.themeColor ?? '')
 
   return (
     <>
@@ -124,6 +133,63 @@ export function ProfileSettingsForm(props: Props) {
               <p className="settings-locknote">
                 <Icon name="shield" size={14} />
                 Custom badges are a Trader+ perk. <a href="/settings/billing">Upgrade</a> to pick your flair.
+              </p>
+            )}
+          </div>
+
+          {/* Creator-style profile — Pro perk */}
+          <div id="creator-profile" className="ts-field">
+            <span className="ts-label">Creator profile</span>
+            <input type="hidden" name="theme_color" value={props.canCreatorProfile ? themeColor : ''} />
+
+            <div className="ts-chips mb-3">
+              <label className="ts-chip">
+                <input type="radio" checked={themeColor === ''} disabled={!props.canCreatorProfile}
+                  onChange={() => setThemeColor('')} />
+                Default
+              </label>
+              {THEME_PRESETS.map((t) => (
+                <label key={t.key} className="ts-chip">
+                  <input type="radio" checked={themeColor === t.key} disabled={!props.canCreatorProfile}
+                    onChange={() => setThemeColor(t.key)} />
+                  {t.label}
+                </label>
+              ))}
+            </div>
+
+            <div className="ts-grid2">
+              <label className="ts-field">
+                <span className="ts-label">Tagline</span>
+                <input name="tagline" className="ts-input" maxLength={80} disabled={!props.canCreatorProfile}
+                  defaultValue={props.tagline} placeholder="Follow my daily setups" />
+              </label>
+              <label className="ts-field">
+                <span className="ts-label">Pinned post</span>
+                <select name="pinned_post_id" className="ts-select" disabled={!props.canCreatorProfile}
+                  defaultValue={props.pinnedPostId ?? ''}>
+                  <option value="">None</option>
+                  {props.ownPosts.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                </select>
+              </label>
+            </div>
+
+            <div className="ts-grid2">
+              <label className="ts-field">
+                <span className="ts-label">CTA button label</span>
+                <input name="cta_label" className="ts-input" maxLength={24} disabled={!props.canCreatorProfile}
+                  defaultValue={props.ctaLabel} placeholder="Join my Discord" />
+              </label>
+              <label className="ts-field">
+                <span className="ts-label">CTA link</span>
+                <input name="cta_url" type="url" className="ts-input" disabled={!props.canCreatorProfile}
+                  defaultValue={props.ctaUrl} placeholder="https://…" />
+              </label>
+            </div>
+
+            {!props.canCreatorProfile && (
+              <p className="settings-locknote">
+                <Icon name="shield" size={14} />
+                Creator profile is a Pro perk. <a href="/settings/billing">Upgrade</a> for cover, theme, tagline, CTA &amp; pinned post.
               </p>
             )}
           </div>

@@ -11,6 +11,7 @@
     radial-gradient(60% 120% at 78% -10%, rgba(200,64,188,0.45), transparent 55%),
     radial-gradient(55% 130% at 8% 0%, rgba(63,182,232,0.42), transparent 58%),
     linear-gradient(120deg, #3A2474 0%, #5530C8 38%, #7C3FC4 70%, #A23CCB 100%); }
+.pf-cover-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
 .pf-cover .pf-blob { position: absolute; border-radius: 50%; filter: blur(46px); opacity: .85; z-index: 0; pointer-events: none; }
 .pf-cover .pf-blob.b1 { width: 260px; height: 260px; top: -120px; left: -40px; background: radial-gradient(circle, rgba(63,182,232,0.85), transparent 70%); }
 .pf-cover .pf-blob.b2 { width: 300px; height: 300px; top: -90px; right: 6%; background: radial-gradient(circle, rgba(255,122,77,0.55), transparent 70%); }
@@ -32,6 +33,7 @@
 .pf-lvtag { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--violet-br); background: rgba(124,92,230,0.10); border: 1px solid var(--line-vio); border-radius: 7px; padding: 3px 8px; letter-spacing: 0.02em; }
 .pf-custombadge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #fff; border-radius: 999px; padding: 4px 10px 4px 8px; letter-spacing: 0.02em; box-shadow: 0 4px 10px -3px rgba(0,0,0,0.35); }
 .pf-custombadge svg { width: 12px; height: 12px; }
+.pf-tagline { font-family: var(--display); font-weight: 700; font-size: 15px; margin-top: 8px; color: var(--violet-br); }
 .pf-handle { font-family: var(--mono); font-size: 13px; color: var(--faint); margin-top: 3px; }
 .pf-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; }
 .pf-metaitem { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--dim); font-weight: 500; }

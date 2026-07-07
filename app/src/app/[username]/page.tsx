@@ -13,6 +13,8 @@ import { getTier } from '@/lib/server/entitlements'
 import { canFlag } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { findCustomBadge } from '@/lib/badges'
+import { findTheme } from '@/lib/creator-profile'
+import { TradeAttachment, type TradeCard } from '@/app/feed/_components/attachments/TradeAttachment'
 import { TradingCalendar } from '@/app/journal/_components/TradingCalendar'
 import { Icon } from './_components/Icon'
 import { Sparkline } from './_components/Sparkline'
@@ -35,7 +37,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, created_at, custom_badge')
+    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, created_at, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id')
     .eq('username', username)
     .maybeSingle()
 
@@ -143,14 +145,47 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     if (board[0]) { leaderPnl = board[0].pnl; leaderHandle = board[0].username }
   }
 
-  // Pro badge + custom badge (service client so cross-viewer RLS doesn't hide the owner's subscription).
+  // Pro badge + custom badge + creator profile (service client so cross-viewer RLS doesn't hide the owner's subscription).
   let proBadge = false
   let customBadge = null as ReturnType<typeof findCustomBadge>
+  let creatorProfile = false
   if (profileId) {
     const flags = await getFeatureFlags()
     const ownerTier = await getTier(createServiceClient(), profileId)
     proBadge = canFlag(flags, ownerTier, 'pro_badge')
     if (canFlag(flags, ownerTier, 'custom_badge')) customBadge = findCustomBadge(profile.custom_badge)
+    creatorProfile = canFlag(flags, ownerTier, 'creator_profile')
+  }
+
+  const theme = creatorProfile ? findTheme(profile.theme_color) : null
+  const tagline = creatorProfile ? profile.tagline : null
+  const ctaLabel = creatorProfile ? profile.cta_label : null
+  const ctaUrl = creatorProfile ? profile.cta_url : null
+
+  let pinnedPost: { body: string; trade: TradeCard | null; imageUrl: string | null } | null = null
+  if (creatorProfile && profile.pinned_post_id) {
+    const { data: p } = await supabase
+      .from('posts')
+      .select('body, attachment_type, trade_id')
+      .eq('id', profile.pinned_post_id)
+      .maybeSingle()
+    if (p) {
+      let trade: TradeCard | null = null
+      let imageUrl: string | null = null
+      if (p.attachment_type === 'trade' && p.trade_id) {
+        const { data: t } = await supabase
+          .from('trades')
+          .select('instrument, direction, entry_price, stop_price, target_price, exit_price, r_multiple, pnl_amount, realized_pips, status, screenshot_url, setup_type, strategy_tags')
+          .eq('id', p.trade_id)
+          .maybeSingle()
+        trade = t as TradeCard | null
+      } else if (p.attachment_type === 'images') {
+        const { data: img } = await supabase
+          .from('post_images').select('url').eq('post_id', profile.pinned_post_id).order('ord').limit(1).maybeSingle()
+        imageUrl = img?.url ?? null
+      }
+      pinnedPost = { body: p.body, trade, imageUrl }
+    }
   }
 
   const profileXp = profileId ? await getUserXp(supabase, profileId, { publicOnly: true }) : null
@@ -198,7 +233,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             {/* ---------- HERO ---------- */}
             <div className="pf-hero h-reveal">
               <div className="pf-cover">
-                <span className="pf-blob b1" /><span className="pf-blob b2" /><span className="pf-blob b3" />
+                {creatorProfile && profile.cover_url
+                  ? <img src={profile.cover_url} alt="" className="pf-cover-img" />
+                  : <><span className="pf-blob b1" /><span className="pf-blob b2" /><span className="pf-blob b3" /></>}
                 <div className="h-ink-grid" />
                 <svg className="pf-cover-line" viewBox="0 0 1000 90" preserveAspectRatio="none">
                   <defs><linearGradient id="pfcvfill" x1="0" y1="0" x2="0" y2="1">
@@ -235,6 +272,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                     </div>
                   </div>
                   <div className="pf-actions">
+                    {!isSelf && ctaLabel && ctaUrl && (
+                      <a href={ctaUrl} target="_blank" rel="noopener noreferrer nofollow" className="h-btn"
+                        style={{ background: theme?.grad ?? 'linear-gradient(135deg,#7C5CE6,#C840BC)', color: '#fff' }}>
+                        {ctaLabel}
+                      </a>
+                    )}
                     {isSelf ? (
                       <>
                         <Link href="/settings" className="h-btn h-btn-grad"><Icon name="pencil" size={16} /> Edit profile</Link>
@@ -250,6 +293,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                   </div>
                 </div>
 
+                {tagline && (
+                  <p className="pf-tagline" style={theme ? { color: 'transparent', backgroundImage: theme.grad, WebkitBackgroundClip: 'text', backgroundClip: 'text' } : undefined}>
+                    {tagline}
+                  </p>
+                )}
                 {profile.bio && <p className="pf-bio">{profile.bio}</p>}
 
                 <div className="pf-social">
@@ -277,6 +325,18 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 </div>
               </div>
             </div>
+
+            {/* ---------- PINNED POST (creator profile, Pro perk) ---------- */}
+            {pinnedPost && (
+              <div className="lb-panel h-reveal">
+                <div className="lb-panel-h"><h2><Icon name="star" size={16} style={{ color: theme?.grad ? undefined : 'var(--xp)' }} /> Pinned</h2></div>
+                <div style={{ padding: '0 17px 17px' }}>
+                  {pinnedPost.body.trim() && <p className="h-trade-note" style={{ padding: 0, marginBottom: pinnedPost.trade || pinnedPost.imageUrl ? 12 : 0 }}>{pinnedPost.body}</p>}
+                  {pinnedPost.trade && <TradeAttachment t={pinnedPost.trade} />}
+                  {pinnedPost.imageUrl && <img src={pinnedPost.imageUrl} alt="" style={{ width: '100%', borderRadius: 12, display: 'block' }} />}
+                </div>
+              </div>
+            )}
 
             {/* ---------- LOG TRADE (self only) ---------- */}
             {isSelf && <LogTradeBand />}

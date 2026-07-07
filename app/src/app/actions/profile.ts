@@ -9,6 +9,7 @@ import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { onboardingToRow, type OnboardingInput, type ExperienceLevel, resolveVisibility, EXPERIENCE_LEVELS } from '@/lib/profile'
 import { CUSTOM_BADGES } from '@/lib/badges'
+import { THEME_PRESETS, sanitizeCtaUrl } from '@/lib/creator-profile'
 
 export type ProfileState = { error?: string; ok?: boolean }
 
@@ -70,11 +71,30 @@ export async function saveProfileSettings(
   const tier = await getTier(supabase, user.id)
   const requestedPublic = formData.get('is_public') === 'public'
 
-  const canCustomBadge = canFlag(await getFeatureFlags(), tier, 'custom_badge')
+  const flags = await getFeatureFlags()
+  const canCustomBadge = canFlag(flags, tier, 'custom_badge')
   const requestedBadge = String(formData.get('custom_badge') ?? '').trim()
   const custom_badge = canCustomBadge && CUSTOM_BADGES.some((b) => b.key === requestedBadge)
     ? requestedBadge
     : null
+
+  const canCreatorProfile = canFlag(flags, tier, 'creator_profile')
+  const requestedTheme = String(formData.get('theme_color') ?? '').trim()
+  const theme_color = canCreatorProfile && THEME_PRESETS.some((t) => t.key === requestedTheme)
+    ? requestedTheme
+    : null
+  const tagline = canCreatorProfile ? clean('tagline') : null
+  const cta_label = canCreatorProfile ? clean('cta_label') : null
+  const requestedCtaUrl = String(formData.get('cta_url') ?? '').trim()
+  const cta_url = canCreatorProfile && requestedCtaUrl ? sanitizeCtaUrl(requestedCtaUrl) : null
+
+  const requestedPinned = String(formData.get('pinned_post_id') ?? '').trim()
+  let pinned_post_id: string | null = null
+  if (canCreatorProfile && requestedPinned) {
+    const { data: owned } = await supabase
+      .from('posts').select('id').eq('id', requestedPinned).eq('author_id', user.id).maybeSingle()
+    pinned_post_id = owned?.id ?? null
+  }
 
   const { error } = await supabase
     .from('profiles')
@@ -88,6 +108,11 @@ export async function saveProfileSettings(
       trading_styles: formData.getAll('trading_styles').map(String),
       is_public: resolveVisibility(tier, requestedPublic),
       custom_badge,
+      theme_color,
+      tagline,
+      cta_label,
+      cta_url,
+      pinned_post_id,
     })
     .eq('id', user.id)
 
