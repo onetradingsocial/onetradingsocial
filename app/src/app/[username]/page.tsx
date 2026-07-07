@@ -12,6 +12,7 @@ import { getUserXp } from '@/lib/server/xp'
 import { getTier } from '@/lib/server/entitlements'
 import { canFlag } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { findCustomBadge } from '@/lib/badges'
 import { TradingCalendar } from '@/app/journal/_components/TradingCalendar'
 import { Icon } from './_components/Icon'
 import { Sparkline } from './_components/Sparkline'
@@ -34,7 +35,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, created_at')
+    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, created_at, custom_badge')
     .eq('username', username)
     .maybeSingle()
 
@@ -142,9 +143,15 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     if (board[0]) { leaderPnl = board[0].pnl; leaderHandle = board[0].username }
   }
 
-  // Pro badge (service client so cross-viewer RLS doesn't hide the owner's subscription).
+  // Pro badge + custom badge (service client so cross-viewer RLS doesn't hide the owner's subscription).
   let proBadge = false
-  if (profileId) proBadge = canFlag(await getFeatureFlags(), await getTier(createServiceClient(), profileId), 'pro_badge')
+  let customBadge = null as ReturnType<typeof findCustomBadge>
+  if (profileId) {
+    const flags = await getFeatureFlags()
+    const ownerTier = await getTier(createServiceClient(), profileId)
+    proBadge = canFlag(flags, ownerTier, 'pro_badge')
+    if (canFlag(flags, ownerTier, 'custom_badge')) customBadge = findCustomBadge(profile.custom_badge)
+  }
 
   const profileXp = profileId ? await getUserXp(supabase, profileId, { publicOnly: true }) : null
   const badges = profileXp?.badges ?? []
@@ -214,6 +221,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                     <div className="pf-name">
                       {name}
                       {proBadge && <span className="pf-verified" title="Pro"><Icon name="check" size={13} /></span>}
+                      {customBadge && (
+                        <span className="pf-custombadge" style={{ background: customBadge.grad }}>
+                          <Icon name={customBadge.icon} size={12} />{customBadge.label}
+                        </span>
+                      )}
                       {profileXp && <span className="pf-lvtag">LV {profileXp.level.level}</span>}
                     </div>
                     <div className="pf-handle">@{profile.username}</div>

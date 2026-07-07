@@ -4,8 +4,10 @@ import { useActionState } from 'react'
 import { saveProfileSettings } from '@/app/actions/profile'
 import type { ProfileState } from '@/app/actions/profile'
 import { AvatarUploader } from '@/app/_components/AvatarUploader'
+import { useState } from 'react'
 import { EXPERIENCE_LEVELS, MARKETS, TRADING_STYLES } from '@/lib/profile'
 import { Icon } from '@/app/[username]/_components/Icon'
+import { CUSTOM_BADGES } from '@/lib/badges'
 
 type Props = {
   avatarUrl: string | null
@@ -18,6 +20,8 @@ type Props = {
   styles: string[]
   isPublic: boolean
   canGoPrivate: boolean
+  customBadge: string | null
+  canCustomBadge: boolean
 }
 
 export function ProfileSettingsForm(props: Props) {
@@ -26,6 +30,7 @@ export function ProfileSettingsForm(props: Props) {
     {},
   )
   const saved = state?.ok === true
+  const [customBadge, setCustomBadge] = useState(props.customBadge ?? '')
 
   return (
     <>
@@ -96,6 +101,32 @@ export function ProfileSettingsForm(props: Props) {
             <textarea name="goal" className="ts-textarea" rows={2}
               defaultValue={props.goal} placeholder="What are you working toward?" />
           </label>
+
+          {/* Profile badge — Trader+ perk */}
+          <div className="ts-field">
+            <span className="ts-label">Profile badge</span>
+            <input type="hidden" name="custom_badge" value={props.canCustomBadge ? customBadge : ''} />
+            <div className="ts-chips">
+              <label className="ts-chip">
+                <input type="radio" checked={customBadge === ''} disabled={!props.canCustomBadge}
+                  onChange={() => setCustomBadge('')} />
+                None
+              </label>
+              {CUSTOM_BADGES.map((b) => (
+                <label key={b.key} className="ts-chip">
+                  <input type="radio" checked={customBadge === b.key} disabled={!props.canCustomBadge}
+                    onChange={() => setCustomBadge(b.key)} />
+                  <Icon name={b.icon} size={13} /> {b.label}
+                </label>
+              ))}
+            </div>
+            {!props.canCustomBadge && (
+              <p className="settings-locknote">
+                <Icon name="shield" size={14} />
+                Custom badges are a Trader+ perk. <a href="/settings/billing">Upgrade</a> to pick your flair.
+              </p>
+            )}
+          </div>
 
           {/* Privacy — folded into this form, anchored for the nav */}
           <div id="privacy" className="settings-privacy">

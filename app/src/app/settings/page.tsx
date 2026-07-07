@@ -20,7 +20,7 @@ export default async function SettingsPage() {
   const [{ data: profile }, tier, sub, flags, { data: brokerRow }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency')
+      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge')
       .eq('id', user.id)
       .single(),
     getTier(supabase, user.id),
@@ -62,6 +62,8 @@ export default async function SettingsPage() {
               styles={profile?.trading_styles ?? []}
               isPublic={profile?.is_public ?? true}
               canGoPrivate={canGoPrivate}
+              customBadge={profile?.custom_badge ?? null}
+              canCustomBadge={canFlag(flags, tier, 'custom_badge')}
             />
 
             <section id="trading" className="ts-card settings-section">

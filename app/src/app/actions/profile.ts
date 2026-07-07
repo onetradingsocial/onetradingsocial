@@ -5,7 +5,10 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { validateUsername } from '@/lib/username'
 import { getTier } from '@/lib/server/entitlements'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { canFlag } from '@/lib/feature-flags'
 import { onboardingToRow, type OnboardingInput, type ExperienceLevel, resolveVisibility, EXPERIENCE_LEVELS } from '@/lib/profile'
+import { CUSTOM_BADGES } from '@/lib/badges'
 
 export type ProfileState = { error?: string; ok?: boolean }
 
@@ -67,6 +70,12 @@ export async function saveProfileSettings(
   const tier = await getTier(supabase, user.id)
   const requestedPublic = formData.get('is_public') === 'public'
 
+  const canCustomBadge = canFlag(await getFeatureFlags(), tier, 'custom_badge')
+  const requestedBadge = String(formData.get('custom_badge') ?? '').trim()
+  const custom_badge = canCustomBadge && CUSTOM_BADGES.some((b) => b.key === requestedBadge)
+    ? requestedBadge
+    : null
+
   const { error } = await supabase
     .from('profiles')
     .update({
@@ -78,6 +87,7 @@ export async function saveProfileSettings(
       main_markets: formData.getAll('main_markets').map(String),
       trading_styles: formData.getAll('trading_styles').map(String),
       is_public: resolveVisibility(tier, requestedPublic),
+      custom_badge,
     })
     .eq('id', user.id)
 
