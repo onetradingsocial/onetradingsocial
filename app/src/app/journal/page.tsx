@@ -111,7 +111,7 @@ export default async function JournalPage() {
       </div>
 
       <div className="mt-5 flex items-center justify-end">
-        <JournalExportButtons trades={trades} canExport={canFlag(flags, tier, 'export_journal')} canReport={tier === 'pro'} />
+        <JournalExportButtons trades={trades} canExport={canFlag(flags, tier, 'export_journal')} canReport={canFlag(flags, tier, 'advanced_reporting')} />
       </div>
 
       <div className="mt-3">
