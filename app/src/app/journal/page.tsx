@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
-import { monthlyPnl, equityCurve, assetDistribution, calendarCells, periodSums, MONTHS, type JTrade } from '@/lib/journal-stats'
+import { monthlyPnl, equityCurve, assetDistribution, calendarCells, periodSums, weekSlice, MONTHS, type JTrade } from '@/lib/journal-stats'
 import { getTier } from '@/lib/server/entitlements'
 import { JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
 import { canFlag } from '@/lib/feature-flags'
@@ -15,6 +15,8 @@ import { AssetDonut } from './_components/AssetDonut'
 import { TradingCalendar } from './_components/TradingCalendar'
 import { RecentTrades } from './_components/RecentTrades'
 import { JournalExportButtons } from './_components/JournalExportButtons'
+import { WeeklyReviewCard } from './_components/WeeklyReviewCard'
+import { StrategyBreakdownCard } from './_components/StrategyBreakdownCard'
 
 export default async function JournalPage() {
   const supabase = await createClient()
@@ -53,6 +55,18 @@ export default async function JournalPage() {
   const dist = assetDistribution(trades)
   const cal = calendarCells(trades, year, month)
 
+  const canWeeklyReview = canFlag(flags, tier, 'weekly_review')
+  const asMetric = (t: JTrade): TradeForMetrics => ({
+    status: t.status as 'open' | 'closed', outcome: t.outcome as TradeForMetrics['outcome'], rMultiple: t.r_multiple,
+    pnlAmount: t.pnl_amount, tradedAt: t.traded_at, mistakeTags: [],
+  })
+  const thisWeekTrades = weekSlice(closed, 0)
+  const thisWeekMetrics = computeMetrics(thisWeekTrades.map(asMetric))
+  const lastWeekMetrics = computeMetrics(weekSlice(closed, 1).map(asMetric))
+  const weekPnls = thisWeekTrades.map((t) => t.pnl_amount ?? 0)
+  const bestTrade = weekPnls.length ? Math.max(...weekPnls) : null
+  const worstTrade = weekPnls.length ? Math.min(...weekPnls) : null
+
   return (
     <main className="ts-page">
       <JournalHero monthLabel={monthLabel} monthTrades={sums.monthTrades} monthNet={sums.monthNet} streak={metrics.currentStreak} />
@@ -67,6 +81,14 @@ export default async function JournalPage() {
 
       <div className="mt-5">
         <StatCards metrics={metrics} allTime={sums.allTime} monthNet={sums.monthNet} monthLabel={monthLabel} weekTrades={sums.weekTrades} advanced={canFlag(flags, tier, 'advanced_stats')} />
+      </div>
+
+      <div className="mt-5">
+        <WeeklyReviewCard thisWeek={thisWeekMetrics} lastWeek={lastWeekMetrics} best={bestTrade} worst={worstTrade} locked={!canWeeklyReview} />
+      </div>
+
+      <div className="mt-5">
+        <StrategyBreakdownCard closed={closed} locked={!canFlag(flags, tier, 'strategy_breakdown')} />
       </div>
 
       <div className="ts-panels mt-5">

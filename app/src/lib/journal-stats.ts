@@ -83,6 +83,24 @@ export function periodSums(closed: JTrade[], year: number, month: number) {
   return { allTime, monthNet, monthTrades, weekTrades, closedCount: closed.filter(isClosed).length }
 }
 
+/** Rolling 7-day window, weeksAgo=0 is the last 7 days, weeksAgo=1 the 7 days before that. */
+export function weekSlice(trades: JTrade[], weeksAgo: number): JTrade[] {
+  const end = Date.now() - weeksAgo * 7 * 864e5
+  const start = end - 7 * 864e5
+  return trades.filter((t) => { const ms = Date.parse(t.traded_at); return ms >= start && ms < end })
+}
+
+/** Groups closed trades by setup_type ("Other" when unset), sorted by net P/L desc. */
+export function groupBySetup(closed: JTrade[]): Record<string, JTrade[]> {
+  const groups: Record<string, JTrade[]> = {}
+  for (const t of closed) {
+    const key = t.setup_type?.trim() || 'Other'
+    groups[key] = groups[key] || []
+    groups[key].push(t)
+  }
+  return groups
+}
+
 const MARKET_COLORS: Record<string, string> = {
   crypto: '#7C5CE6', stocks: '#3FB6E8', forex: '#C840BC', indices: '#FF7A4D', commodities: '#E08A1E',
 }
