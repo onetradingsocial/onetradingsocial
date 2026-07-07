@@ -145,17 +145,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     if (board[0]) { leaderPnl = board[0].pnl; leaderHandle = board[0].username }
   }
 
-  // Pro badge + custom badge + creator profile. Service client bypasses RLS so a
-  // cross-viewer read doesn't hide the owner's subscription — but it has no
-  // authenticated user, so it can't honor the admin tier override either. When
-  // the owner is viewing their own profile, use the session client instead so
-  // admin accounts see their own Pro perks.
+  // Pro badge + custom badge + creator profile (service client so cross-viewer RLS doesn't hide the owner's subscription).
   let proBadge = false
   let customBadge = null as ReturnType<typeof findCustomBadge>
   let creatorProfile = false
   if (profileId) {
     const flags = await getFeatureFlags()
-    const ownerTier = isSelf ? await getTier(supabase, profileId) : await getTier(createServiceClient(), profileId)
+    const ownerTier = await getTier(createServiceClient(), profileId)
     proBadge = canFlag(flags, ownerTier, 'pro_badge')
     if (canFlag(flags, ownerTier, 'custom_badge')) customBadge = findCustomBadge(profile.custom_badge)
     creatorProfile = canFlag(flags, ownerTier, 'creator_profile')
