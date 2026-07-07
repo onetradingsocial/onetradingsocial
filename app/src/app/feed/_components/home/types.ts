@@ -50,4 +50,5 @@ export type HomeData = {
   feedItems: FeedTabItem[]
   followingIds: string[]
   series: { equity: number[]; winRate: number[]; avgRr: number[]; count: number[] }
+  advancedStats: boolean
 }

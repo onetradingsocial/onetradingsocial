@@ -8,6 +8,9 @@ import { type AttachmentType } from '@/app/actions/social'
 import { type FeedTabItem } from './feed/_components/FeedTabs'
 import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getUserXp } from '@/lib/server/xp'
+import { getTier } from '@/lib/server/entitlements'
+import { canFlag } from '@/lib/feature-flags'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { HomeArena } from './feed/_components/home/HomeArena'
 import { type HomeData } from './feed/_components/home/types'
 
@@ -32,6 +35,8 @@ export default async function Home() {
     { data: follows },
     { data: ownTradeRows },
     { data: favRows },
+    tier,
+    flags,
   ] = await Promise.all([
     supabase.from('profiles').select('username, display_name, avatar_url, onboarding_completed').eq('id', user.id).single(),
     getPerformanceRanking(supabase, 'week'),
@@ -41,7 +46,10 @@ export default async function Home() {
       .select('id, instrument, market, setup_type, status, outcome, r_multiple, pnl_amount, traded_at')
       .eq('user_id', user.id).order('traded_at', { ascending: false }),
     supabase.from('favorites').select('favorite_id').eq('user_id', user.id),
+    getTier(supabase, user.id),
+    getFeatureFlags(),
   ])
+  const advancedStats = canFlag(flags, tier, 'advanced_stats')
   // Funnel guard: anyone who hasn't finished onboarding resumes it here.
   // Middleware also enforces this, but a null profile read there fails open,
   // so the home route (where login lands) gates deterministically too.
@@ -173,6 +181,7 @@ export default async function Home() {
     feedItems: items,
     followingIds,
     series: { equity: eqSeries, winRate: wrSeries, avgRr: rrSeries, count: cntSeries },
+    advancedStats,
   }
 
   return <HomeArena data={data} />
