@@ -145,16 +145,18 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     if (board[0]) { leaderPnl = board[0].pnl; leaderHandle = board[0].username }
   }
 
-  // Pro badge + custom badge + creator profile (service client so cross-viewer RLS doesn't hide the owner's subscription).
+  // Pro badge + custom badge + creator profile + advanced stats (service client so cross-viewer RLS doesn't hide the owner's subscription).
   let proBadge = false
   let customBadge = null as ReturnType<typeof findCustomBadge>
   let creatorProfile = false
+  let advancedStats = false
   if (profileId) {
     const flags = await getFeatureFlags()
     const ownerTier = await getTier(createServiceClient(), profileId)
     proBadge = canFlag(flags, ownerTier, 'pro_badge')
     if (canFlag(flags, ownerTier, 'custom_badge')) customBadge = findCustomBadge(profile.custom_badge)
     creatorProfile = canFlag(flags, ownerTier, 'creator_profile')
+    advancedStats = canFlag(flags, ownerTier, 'advanced_stats')
   }
 
   const theme = creatorProfile ? findTheme(profile.theme_color) : null
@@ -214,11 +216,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   })
 
   const statCards = [
-    { k: 'Overall Rank', v: profileRank ? `#${profileRank}` : 'Unranked', accent: '#E0931E', data: pnlSeries },
-    { k: 'Total P/L', v: money(metrics.netPnl, true), accent: '#12A56B', data: pnlSeries },
-    { k: 'Win Rate', v: `${Math.round(metrics.winRate * 100)}%`, accent: '#7C5CE6', data: winRateSeries },
-    { k: 'Avg R:R', v: metrics.avgRr.toFixed(1), accent: '#3FB6E8', data: avgRSeries },
-    { k: 'Total Trades', v: String(metrics.total), accent: '#C840BC', data: countSeries },
+    { k: 'Overall Rank', v: profileRank ? `#${profileRank}` : 'Unranked', accent: '#E0931E', data: pnlSeries, locked: false },
+    { k: 'Total P/L', v: money(metrics.netPnl, true), accent: '#12A56B', data: pnlSeries, locked: false },
+    { k: 'Win Rate', v: `${Math.round(metrics.winRate * 100)}%`, accent: '#7C5CE6', data: winRateSeries, locked: !advancedStats },
+    { k: 'Avg R:R', v: metrics.avgRr.toFixed(1), accent: '#3FB6E8', data: avgRSeries, locked: !advancedStats },
+    { k: 'Total Trades', v: String(metrics.total), accent: '#C840BC', data: countSeries, locked: false },
   ]
 
   const history = pub.slice(0, 5)
@@ -351,8 +353,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 {statCards.map((s) => (
                   <div key={s.k} className="h-stat" style={{ '--accent': s.accent } as React.CSSProperties}>
                     <div className="top"><span className="k">{s.k}</span></div>
-                    <div className="v">{s.v}</div>
-                    <div className="spark"><Sparkline data={s.data} color={s.accent} h={28} /></div>
+                    {s.locked
+                      ? <div className="v"><a href="/settings/billing" className="ts-stat-locked">🔒 Trader</a></div>
+                      : <><div className="v">{s.v}</div><div className="spark"><Sparkline data={s.data} color={s.accent} h={28} /></div></>}
                   </div>
                 ))}
               </div>
