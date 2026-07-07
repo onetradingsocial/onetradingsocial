@@ -5,8 +5,13 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { insertNotification, extractMentions } from '@/lib/notifications'
 import { getUserXp } from '@/lib/server/xp'
+import { getTier } from '@/lib/server/entitlements'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { canFlag } from '@/lib/feature-flags'
 
 export type SocialState = { error?: string; ok?: boolean }
+
+const FAVORITE_GATE_ERROR = 'Favouriting traders is available on the Trader plan and above.'
 
 export type CommentItem = {
   id: string; body: string; created_at: string; isOwn: boolean
@@ -238,6 +243,8 @@ export async function favorite(targetId: string): Promise<SocialState> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
   if (targetId === user.id) return { error: "You can't favourite yourself." }
+  const tier = await getTier(supabase, user.id)
+  if (!canFlag(await getFeatureFlags(), tier, 'saved_traders')) return { error: FAVORITE_GATE_ERROR }
   const { error } = await supabase.from('favorites').upsert(
     { user_id: user.id, favorite_id: targetId },
     { onConflict: 'user_id,favorite_id', ignoreDuplicates: true },
@@ -266,19 +273,20 @@ export async function unfavorite(targetId: string): Promise<SocialState> {
 export type TraderCardData = {
   username: string; displayName: string | null; avatarUrl: string | null
   winRate: number; trades: number; level: number
-  viewerFollows: boolean; viewerFavorited: boolean; isSelf: boolean
+  viewerFollows: boolean; viewerFavorited: boolean; canFavorite: boolean; isSelf: boolean
 }
 
 export async function getTraderCardData(userId: string): Promise<TraderCardData | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const [{ data: profile }, { data: closed }, xp, { data: vf }, { data: vfav }] = await Promise.all([
+  const [{ data: profile }, { data: closed }, xp, { data: vf }, { data: vfav }, tier] = await Promise.all([
     supabase.from('profiles').select('username, display_name, avatar_url').eq('id', userId).maybeSingle(),
     supabase.from('trades').select('r_multiple').eq('user_id', userId).eq('is_public', true).eq('status', 'closed'),
     getUserXp(supabase, userId),
     supabase.from('follows').select('follower_id').eq('follower_id', user.id).eq('following_id', userId).maybeSingle(),
     supabase.from('favorites').select('user_id').eq('user_id', user.id).eq('favorite_id', userId).maybeSingle(),
+    getTier(supabase, user.id),
   ])
   if (!profile) return null
   const trades = closed ?? []
@@ -286,6 +294,8 @@ export async function getTraderCardData(userId: string): Promise<TraderCardData 
   return {
     username: profile.username, displayName: profile.display_name, avatarUrl: profile.avatar_url,
     winRate: trades.length ? wins / trades.length : 0, trades: trades.length, level: xp.level.level,
-    viewerFollows: !!vf, viewerFavorited: !!vfav, isSelf: userId === user.id,
+    viewerFollows: !!vf, viewerFavorited: !!vfav,
+    canFavorite: canFlag(await getFeatureFlags(), tier, 'saved_traders'),
+    isSelf: userId === user.id,
   }
 }

@@ -1905,6 +1905,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .star-btn:hover { color: var(--xp); border-color: var(--xp); }
 .star-btn.on { color: var(--xp); border-color: var(--xp); }
 .star-btn:disabled { opacity: .6; cursor: default; }
+.star-btn.locked { font-size: 14px; text-decoration: none; }
 
 /* Trader hover card */
 .thc-wrap { display: flex; align-items: center; gap: 11px; min-width: 0; flex: 1; }

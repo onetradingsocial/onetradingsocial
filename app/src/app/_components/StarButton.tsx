@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 import { favorite, unfavorite } from '@/app/actions/social'
 
-export function StarButton({ targetId, initialFavorited }: { targetId: string; initialFavorited: boolean }) {
+export function StarButton({ targetId, initialFavorited, canFavorite = true }:
+  { targetId: string; initialFavorited: boolean; canFavorite?: boolean }) {
   const [starred, setStarred] = useState(initialFavorited)
   const [pending, start] = useTransition()
   function toggle() {
@@ -13,6 +14,14 @@ export function StarButton({ targetId, initialFavorited }: { targetId: string; i
       const r = next ? await favorite(targetId) : await unfavorite(targetId)
       if ('error' in r && r.error) setStarred(!next)
     })
+  }
+  if (!canFavorite) {
+    return (
+      <a href="/settings/billing" className="star-btn locked" title="Favourite traders — Trader plan and above"
+        aria-label="Favourite traders — Trader plan and above">
+        🔒
+      </a>
+    )
   }
   return (
     <button type="button" className={'star-btn' + (starred ? ' on' : '')} onClick={toggle} disabled={pending}

@@ -4,3 +4,6 @@ __pycache__/
 .claire/
 .mcp.json
 skills-lock.json
+
+seed-users.md
+scripts/seed-activity.log

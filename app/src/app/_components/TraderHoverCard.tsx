@@ -28,18 +28,23 @@ function CardActions({ userId, data, onChange }: { userId: string; data: TraderC
           () => data.viewerFollows ? unfollow(userId) : follow(userId))}>
         {data.viewerFollows ? 'Following' : 'Follow'}
       </button>
-      <button className={'star-btn thc-star' + (data.viewerFavorited ? ' on' : '')} disabled={pending}
-        aria-pressed={data.viewerFavorited}
-        aria-label={data.viewerFavorited ? 'Remove from favourites' : 'Favourite this trader'}
-        onClick={() => flip(
-          // Star implies follow, so reflect that optimistically too.
-          data.viewerFavorited ? { viewerFavorited: false } : { viewerFavorited: true, viewerFollows: true },
-          () => data.viewerFavorited ? unfavorite(userId) : favorite(userId))}>
-        <svg viewBox="0 0 24 24" width={15} height={15}>
-          <path d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9l-5.4 2.9 1.1-6.1L3.2 9.4l6.1-.8L12 3z"
-            fill={data.viewerFavorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.8} strokeLinejoin="round" />
-        </svg>
-      </button>
+      {data.canFavorite
+        ? <button className={'star-btn thc-star' + (data.viewerFavorited ? ' on' : '')} disabled={pending}
+            aria-pressed={data.viewerFavorited}
+            aria-label={data.viewerFavorited ? 'Remove from favourites' : 'Favourite this trader'}
+            onClick={() => flip(
+              // Star implies follow, so reflect that optimistically too.
+              data.viewerFavorited ? { viewerFavorited: false } : { viewerFavorited: true, viewerFollows: true },
+              () => data.viewerFavorited ? unfavorite(userId) : favorite(userId))}>
+            <svg viewBox="0 0 24 24" width={15} height={15}>
+              <path d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9l-5.4 2.9 1.1-6.1L3.2 9.4l6.1-.8L12 3z"
+                fill={data.viewerFavorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.8} strokeLinejoin="round" />
+            </svg>
+          </button>
+        : <a href="/settings/billing" className="star-btn thc-star locked"
+            title="Favourite traders — Trader plan and above" aria-label="Favourite traders — Trader plan and above">
+            🔒
+          </a>}
     </div>
   )
 }

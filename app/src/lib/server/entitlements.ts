@@ -1,9 +1,24 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { tierFromSubscriptions, TIER_RANK, type Tier } from '@/lib/entitlements'
+import { parseAdminEmails, emailIsAdmin } from '@/lib/admin'
 
-/** Effective tier from the local mirror. Fails closed to 'free' on any error. */
+/** Effective tier from the local mirror. Fails closed to 'free' on any error.
+ *  Admins get the top tier ('pro') for their own account, bypassing Stripe, so
+ *  they can access every gated feature without an active subscription. The
+ *  override only applies when the queried user is the current authenticated
+ *  admin — service-client / other-user lookups (e.g. profile badges) are
+ *  unaffected. */
 export async function getTier(supabase: SupabaseClient, userId: string): Promise<Tier> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (
+    user &&
+    user.id === userId &&
+    emailIsAdmin(user.email, parseAdminEmails(process.env.ADMIN_EMAILS))
+  ) {
+    return 'pro'
+  }
+
   const { data, error } = await supabase
     .from('subscriptions').select('tier, status').eq('user_id', userId)
   if (error || !data) return 'free'
