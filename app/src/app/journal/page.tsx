@@ -14,6 +14,7 @@ import { EquityCurve } from './_components/EquityCurve'
 import { AssetDonut } from './_components/AssetDonut'
 import { TradingCalendar } from './_components/TradingCalendar'
 import { RecentTrades } from './_components/RecentTrades'
+import { JournalExportButtons } from './_components/JournalExportButtons'
 
 export default async function JournalPage() {
   const supabase = await createClient()
@@ -87,7 +88,11 @@ export default async function JournalPage() {
         <TradingCalendar cells={cal} monthLabel={monthLabel} today={now.getDate()} trades={trades} year={year} month={month} />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-5 flex items-center justify-end">
+        <JournalExportButtons trades={trades} canExport={canFlag(flags, tier, 'export_journal')} canReport={tier === 'pro'} />
+      </div>
+
+      <div className="mt-3">
         <RecentTrades trades={visibleTrades} monthNet={sums.monthNet} />
         {hiddenCount > 0 && (
           <div className="ts-banner mt-3">

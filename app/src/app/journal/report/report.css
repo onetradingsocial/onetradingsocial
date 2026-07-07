@@ -1,0 +1,19 @@
+.jr-toolbar { display: flex; justify-content: flex-end; padding: 16px 24px; }
+.jr-report { max-width: 860px; margin: 0 auto; padding: 0 24px 40px; }
+.jr-head { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 2px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }
+.jr-head h1 { font-family: var(--display); font-size: 24px; margin: 0; }
+.jr-head span { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.jr-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+.jr-stat { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.jr-stat .k { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
+.jr-stat .v { font-family: var(--display); font-size: 19px; font-weight: 700; margin-top: 4px; }
+.jr-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.jr-table th, .jr-table td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line-2); }
+.jr-table th { color: var(--faint); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .03em; }
+.jr-up { color: var(--up-ink); } .jr-down { color: var(--down-ink); }
+
+@media print {
+  .jr-toolbar { display: none; }
+  body { background: #fff; }
+  .jr-report { max-width: none; }
+}
