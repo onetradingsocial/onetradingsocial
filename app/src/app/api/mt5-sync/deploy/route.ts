@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
 import { deployAccount } from '@/lib/server/metaapi'
-import { tierFromSubscriptions } from '@/lib/entitlements'
+import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 
@@ -22,9 +22,9 @@ export async function GET(req: Request) {
 
   let deployed = 0
   for (const row of rows ?? []) {
-    const { data: subs } = await svc
-      .from('subscriptions').select('tier, status').eq('user_id', row.user_id)
-    const tier = tierFromSubscriptions(subs ?? [])
+    // getTier, not a raw subscriptions read: same gate as connectBroker,
+    // including the admin-email → pro override (admins have no sub rows).
+    const tier = await getTier(svc, row.user_id)
     if (!canFlag(flags, tier, 'mt5_autosync')) {
       await svc.from('broker_accounts')
         .update({ sync_error: 'Pro plan required for auto-sync.' }).eq('id', row.id)

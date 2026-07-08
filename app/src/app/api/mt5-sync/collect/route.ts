@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { undeployAccount, fetchDealsSince } from '@/lib/server/metaapi'
 import { pairDealsToTrades, type MetaApiDeal } from '@/lib/metaapi-deals'
 import { mapDealToTrade } from '@/lib/mt5'
-import { tierFromSubscriptions } from '@/lib/entitlements'
+import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 
@@ -30,9 +30,8 @@ export async function GET(req: Request) {
       await undeployAccount(row.metaapi_account_id)
     }
     try {
-      const { data: subs } = await svc
-        .from('subscriptions').select('tier, status').eq('user_id', row.user_id)
-      const tier = tierFromSubscriptions(subs ?? [])
+      // Same gate as connectBroker (incl. admin override) — see deploy route.
+      const tier = await getTier(svc, row.user_id)
       if (!canFlag(flags, tier, 'mt5_autosync')) { await fail('Pro plan required for auto-sync.'); continue }
 
       const since = row.last_deal_time ?? row.created_at
