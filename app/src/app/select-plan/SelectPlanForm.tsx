@@ -66,7 +66,7 @@ const PLANS: PlanDef[] = [
     monthly: 50, annual: 10, billedM: 'Billed monthly', billedA: '$120 first year, then $500/yr',
     featsLabel: 'Everything in Trader, plus',
     feats: [
-      { t: 'Automatic MT5 sync — trades land daily' },
+      { t: 'Automatic MT5 sync — every 15 minutes' },
       { t: 'Advanced analytics & reporting' },
       { t: 'Monthly downloadable reports' },
       { t: 'Premium courses & psychology' },

@@ -99,3 +99,7 @@ Thin REST wrapper (no SDK dependency — 4 endpoints), server-only, token from `
 ## Out of scope
 
 - Real-time/WebSocket sync, multi-account, MT4, open-positions view, equity curve. Manual import (Phase 1) remains the fallback for all tiers ≥ trader.
+
+## Amendment — 2026-07-08
+
+Cadence changed from daily deploy→fetch→undeploy to **always-on, sync every 15 minutes** (user decision). Accounts stay deployed permanently; collect route no longer undeploys (disconnect remains the only teardown). Crons: deploy :00/:15/:30/:45 (ensure-deployed + gate), collect :05/:20/:35/:50. Cost implication accepted: full MetaApi runtime billing per connected account. Requires Vercel Pro (Hobby crons are daily-only).

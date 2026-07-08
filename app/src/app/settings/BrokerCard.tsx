@@ -19,14 +19,14 @@ export function BrokerCard({ row, canAutosync }: { row: BrokerRow | null; canAut
     return (
       <section id="broker" className="ts-card settings-section">
         <h2 className="ts-h2"><Icon name="bolt" size={18} /> MT5 auto-sync</h2>
-        <p className="ts-sub mt-2">Connect your MT5 account and your closed trades land in the journal automatically, every day.</p>
+        <p className="ts-sub mt-2">Connect your MT5 account and your closed trades land in the journal automatically, within minutes.</p>
         <a href="/settings/billing" className="btn btn-primary mt-4">Upgrade to Pro</a>
       </section>
     )
   }
 
   if (row) {
-    const synced = row.last_sync_at ? new Date(row.last_sync_at).toLocaleString() : 'not yet — first sync runs tonight'
+    const synced = row.last_sync_at ? new Date(row.last_sync_at).toLocaleString() : 'not yet — first sync within ~20 minutes'
     return (
       <section id="broker" className="ts-card settings-section">
         <h2 className="ts-h2"><Icon name="bolt" size={18} /> MT5 auto-sync</h2>
@@ -34,7 +34,7 @@ export function BrokerCard({ row, canAutosync }: { row: BrokerRow | null; canAut
           Account <strong>{row.login}</strong> on <strong>{row.server}</strong>
           {' · '}status: {row.status}{' · '}last synced: {synced}
         </p>
-        <p className="faint mt-1" style={{ fontSize: 12 }}>Syncs daily. Trades appear each morning (UTC).</p>
+        <p className="faint mt-1" style={{ fontSize: 12 }}>Syncs every 15 minutes — closed trades appear in your journal automatically.</p>
         {row.sync_error && <p className="ts-error mt-2">{row.sync_error}</p>}
         {discErr && <p className="ts-error mt-2">{discErr}</p>}
         {confirming ? (
