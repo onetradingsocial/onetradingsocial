@@ -103,3 +103,7 @@ Thin REST wrapper (no SDK dependency — 4 endpoints), server-only, token from `
 ## Amendment — 2026-07-08
 
 Cadence changed from daily deploy→fetch→undeploy to **always-on, sync every 15 minutes** (user decision). Accounts stay deployed permanently; collect route no longer undeploys (disconnect remains the only teardown). Crons: deploy :00/:15/:30/:45 (ensure-deployed + gate), collect :05/:20/:35/:50. Cost implication accepted: full MetaApi runtime billing per connected account. Requires Vercel Pro (Hobby crons are daily-only).
+
+## Amendment 2 — 2026-07-08
+
+Cadence settled at **hourly burst** (deploy :00 → collect+undeploy :10), reverting the same-day 15-min always-on amendment. Trigger moved off Vercel crons (Hobby = daily-only) to a GitHub Actions schedule (`.github/workflows/mt5-sync.yml`, repo secret CRON_SECRET); `app/vercel.json` removed. MetaApi accounts run ~10 min/hour — roughly 1/6th of always-on billing.

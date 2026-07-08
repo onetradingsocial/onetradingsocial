@@ -1,6 +1,0 @@
-{
-  "crons": [
-    { "path": "/api/mt5-sync/deploy", "schedule": "0,15,30,45 * * * *" },
-    { "path": "/api/mt5-sync/collect", "schedule": "5,20,35,50 * * * *" }
-  ]
-}

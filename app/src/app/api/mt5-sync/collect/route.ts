@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
-import { fetchDealsSince } from '@/lib/server/metaapi'
+import { undeployAccount, fetchDealsSince } from '@/lib/server/metaapi'
 import { pairDealsToTrades, type MetaApiDeal } from '@/lib/metaapi-deals'
 import { mapDealToTrade } from '@/lib/mt5'
 import { getTier } from '@/lib/server/entitlements'
@@ -24,12 +24,12 @@ export async function GET(req: Request) {
 
   let synced = 0
   for (const row of rows ?? []) {
-    // Always-on sync (15-min crons): accounts stay deployed between runs,
-    // so failures record state but never undeploy. Disconnect is the only
-    // path that tears the MetaApi account down.
+    // Hourly burst sync (deploy :00 → collect :10): accounts run only for
+    // the window, so every exit path undeploys to stop MetaApi billing.
     const fail = async (msg: string) => {
       await svc.from('broker_accounts')
         .update({ status: 'error', sync_error: msg }).eq('id', row.id)
+      await undeployAccount(row.metaapi_account_id)
     }
     try {
       // Same gate as connectBroker (incl. admin override) — see deploy route.
@@ -52,6 +52,7 @@ export async function GET(req: Request) {
         if (upErr) { await fail(`upsert: ${upErr.message}`); continue }
       }
 
+      await undeployAccount(row.metaapi_account_id)
       await svc.from('broker_accounts').update({
         status: 'active',
         sync_error: null,
