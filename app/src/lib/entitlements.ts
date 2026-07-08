@@ -51,7 +51,7 @@ export function priceForPlan(tier: Tier, interval: Interval, env: PlanEnv): stri
 }
 
 export type Feature =
-  | 'journal_unlimited' | 'advanced_stats' | 'pro_badge' | 'custom_badge'
+  | 'journal_unlimited' | 'advanced_stats' | 'pro_badge' | 'custom_badge' | 'advanced_journal'
   | 'learning_intermediate' | 'premium_courses'
   | 'saved_traders' | 'creator_profile' | 'strategy_tracking' | 'mistake_tagging'
   | 'risk_tracking' | 'private_notes' | 'custom_templates' | 'export_journal'
@@ -65,6 +65,7 @@ export type Feature =
 export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
   // Enforced in v1 (features that exist):
   journal_unlimited: 'trader',
+  advanced_journal: 'trader',
   advanced_stats: 'trader',
   learning_intermediate: 'trader',
   premium_courses: 'pro',

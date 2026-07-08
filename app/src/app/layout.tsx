@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
-  let config: { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean } | null = null
+  let config: { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number } | null = null
   if (user) {
     const [{ data }, tier, flags] = await Promise.all([
       supabase.from('profiles').select('account_balance, is_public').eq('id', user.id).single(),
@@ -34,6 +34,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       accountBalance: data?.account_balance ?? 0,
       defaultPublic: data?.is_public ?? true,
       canMt5Import: canFlag(flags, tier, 'mt5_import'),
+      canAdvancedJournal: canFlag(flags, tier, 'advanced_journal'),
+      // Strategy tracking: Trader tags one strategy per trade, Pro is multi-strategy.
+      maxStrategyTags: canFlag(flags, tier, 'strategy_tracking') ? (tier === 'pro' ? 8 : 1) : 0,
     }
   }
 

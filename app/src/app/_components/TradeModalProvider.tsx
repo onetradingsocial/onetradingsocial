@@ -11,7 +11,7 @@ import { Mt5ImportTab } from './Mt5ImportTab'
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
 
-type Config = { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean }
+type Config = { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number }
 
 const TradeModalContext = createContext<{ open: () => void } | null>(null)
 
@@ -61,6 +61,8 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
   const [setup, setSetup] = useState('')
   const [confidence, setConfidence] = useState('')
   const [emotion, setEmotion] = useState('')
+  const [stratTags, setStratTags] = useState<string[]>([])
+  const [stratDraft, setStratDraft] = useState('')
   const [chart, setChart] = useState<File | null>(null)
   const dropRef = useRef<HTMLInputElement>(null)
 
@@ -125,6 +127,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
         <input type="hidden" name="setup_type" value={setup} />
         <input type="hidden" name="confidence" value={confidence} />
         <input type="hidden" name="emotion" value={emotion} />
+        {stratTags.map((t) => <input key={t} type="hidden" name="strategy_tags" value={t} />)}
 
         <div className="ts-grid3">
           <label className="ts-field"><span className="ts-label">Market</span>
@@ -196,44 +199,93 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
           <span className="ts-soon">soon</span>
         </div>
 
-        <div className="mt-5">
-          <span className="ts-label">Setup type</span>
-          <div className="ts-pills">
-            {SETUP_PRESETS.map((s) => (
-              <button key={s} type="button" className="ts-pill" data-active={setup === s} onClick={() => setSetup(setup === s ? '' : s)}>{s}</button>
-            ))}
-            <input className="ts-pill-input" placeholder="+ Custom" value={SETUP_PRESETS.includes(setup as typeof SETUP_PRESETS[number]) ? '' : setup} onChange={(e) => setSetup(e.target.value)} />
-          </div>
-        </div>
+        {config.canAdvancedJournal ? (
+          <>
+            <div className="mt-5">
+              <span className="ts-label">Setup type</span>
+              <div className="ts-pills">
+                {SETUP_PRESETS.map((s) => (
+                  <button key={s} type="button" className="ts-pill" data-active={setup === s} onClick={() => setSetup(setup === s ? '' : s)}>{s}</button>
+                ))}
+                <input className="ts-pill-input" placeholder="+ Custom" value={SETUP_PRESETS.includes(setup as typeof SETUP_PRESETS[number]) ? '' : setup} onChange={(e) => setSetup(e.target.value)} />
+              </div>
+            </div>
 
-        <div className="ts-grid2 mt-4">
-          <div className="ts-field"><span className="ts-label">Confidence</span>
+            <div className="ts-grid2 mt-4">
+              <div className="ts-field"><span className="ts-label">Confidence</span>
+                <div className="ts-pills">
+                  {CONFIDENCE.map(([v, l]) => (
+                    <button key={v} type="button" className="ts-pill" data-active={confidence === v} onClick={() => setConfidence(confidence === v ? '' : v)}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="ts-field"><span className="ts-label">Emotion check-in</span>
+                <div className="ts-pills">
+                  {EMOTIONS.map(([v, l, e]) => (
+                    <button key={v} type="button" className="ts-pill" data-active={emotion === v} data-kind="emotion" onClick={() => setEmotion(emotion === v ? '' : v)}>{e} {l}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="ts-banner mt-5">
+            <span>
+              🔒 The <b>advanced journal</b> — setup type, confidence, emotion check-in and chart uploads — is a Trader perk.{' '}
+              <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+              to log the full picture.
+            </span>
+          </div>
+        )}
+
+        {config.maxStrategyTags > 0 && (
+          <div className="mt-4">
+            <span className="ts-label">
+              Strategy tags{' '}
+              <span className="faint">
+                ({config.maxStrategyTags === 1 ? 'one strategy — multi-strategy is a Pro perk' : `up to ${config.maxStrategyTags}`})
+              </span>
+            </span>
             <div className="ts-pills">
-              {CONFIDENCE.map(([v, l]) => (
-                <button key={v} type="button" className="ts-pill" data-active={confidence === v} onClick={() => setConfidence(confidence === v ? '' : v)}>{l}</button>
+              {stratTags.map((t) => (
+                <button key={t} type="button" className="ts-pill" data-active
+                  onClick={() => setStratTags(stratTags.filter((x) => x !== t))}>
+                  {t} ✕
+                </button>
               ))}
+              {stratTags.length < config.maxStrategyTags && (
+                <input
+                  className="ts-pill-input"
+                  placeholder="+ Add strategy"
+                  value={stratDraft}
+                  maxLength={30}
+                  onChange={(e) => setStratDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return
+                    e.preventDefault()
+                    const v = stratDraft.trim()
+                    if (v && !stratTags.includes(v)) setStratTags([...stratTags, v])
+                    setStratDraft('')
+                  }}
+                />
+              )}
             </div>
           </div>
-          <div className="ts-field"><span className="ts-label">Emotion check-in</span>
-            <div className="ts-pills">
-              {EMOTIONS.map(([v, l, e]) => (
-                <button key={v} type="button" className="ts-pill" data-active={emotion === v} data-kind="emotion" onClick={() => setEmotion(emotion === v ? '' : v)}>{e} {l}</button>
-              ))}
-            </div>
-          </div>
-        </div>
+        )}
 
         <div className="ts-grid2 mt-4" style={{ alignItems: 'start' }}>
           <label className="ts-field"><span className="ts-label">Why are you taking this trade?</span>
             <textarea name="note" className="ts-textarea" rows={4} maxLength={280} placeholder="Add a quick note about your setup, edge, or market context…" /></label>
-          <div className="ts-field"><span className="ts-label">Attach chart <span className="faint">(optional)</span></span>
-            <button type="button" className="ts-dropzone" onClick={() => dropRef.current?.click()}>
-              <span className="ts-dropzone-icon">⬆</span>
-              <span className="ts-dropzone-main">{chart ? chart.name : 'Click to upload'}</span>
-              <span className="faint" style={{ fontSize: 12 }}>PNG, JPG up to 5MB</span>
-            </button>
-            <input ref={dropRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => setChart(e.target.files?.[0] ?? null)} />
-          </div>
+          {config.canAdvancedJournal && (
+            <div className="ts-field"><span className="ts-label">Attach chart <span className="faint">(optional)</span></span>
+              <button type="button" className="ts-dropzone" onClick={() => dropRef.current?.click()}>
+                <span className="ts-dropzone-icon">⬆</span>
+                <span className="ts-dropzone-main">{chart ? chart.name : 'Click to upload'}</span>
+                <span className="faint" style={{ fontSize: 12 }}>PNG, JPG up to 5MB</span>
+              </button>
+              <input ref={dropRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => setChart(e.target.files?.[0] ?? null)} />
+            </div>
+          )}
         </div>
 
         <div className="ts-grid2 mt-4">

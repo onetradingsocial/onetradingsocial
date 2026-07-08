@@ -2,9 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getTier } from '@/lib/server/entitlements'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { canFlag } from '@/lib/feature-flags'
 import { pipInfo } from '@/lib/instruments'
 import {
-  computeOpen, computeClose, DIRECTIONS, SIZING_MODES, CONFIDENCE_LEVELS, EMOTIONS,
+  computeOpen, computeClose, DIRECTIONS, SIZING_MODES, CONFIDENCE_LEVELS, EMOTIONS, MISTAKE_TAGS,
   type Direction, type SizingMode,
 } from '@/lib/trade'
 
@@ -65,18 +68,27 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   const isPublicRaw = formData.get('is_public')
   const isPublic = isPublicRaw == null ? (profile?.is_public ?? true) : isPublicRaw === 'public'
 
+  // Advanced-journal fields (setup/confidence/emotion) are a Trader+ perk —
+  // drop them server-side so the gate can't be bypassed with a hand-built form.
+  const [tier, flags] = await Promise.all([getTier(supabase, user.id), getFeatureFlags()])
+  const advanced = canFlag(flags, tier, 'advanced_journal')
+  // Strategy tracking: Trader one tag, Pro multi-strategy.
+  const maxStrategyTags = canFlag(flags, tier, 'strategy_tracking') ? (tier === 'pro' ? 8 : 1) : 0
+  const strategyTags = formData.getAll('strategy_tags').map(String)
+    .map((s) => s.trim()).filter(Boolean).slice(0, maxStrategyTags)
+
   const { data, error } = await supabase.from('trades').insert({
     user_id: user.id, market, instrument, direction, sizing_mode: sizingMode,
     entry_price: entry, stop_price: stop, target_price: target,
     risk_percent: riskPercent, lots, risk_amount: open.riskAmount,
     sl_pips: open.slPips, tp_pips: open.tpPips, planned_rr: open.plannedRr,
-    setup_type: String(formData.get('setup_type') ?? '') || null,
-    confidence: confidence || null,
-    emotion: emotion || null,
+    setup_type: advanced ? String(formData.get('setup_type') ?? '') || null : null,
+    confidence: advanced ? confidence || null : null,
+    emotion: advanced ? emotion || null : null,
     note: String(formData.get('note') ?? '') || null,
     is_public: isPublic,
-    mistake_tags: formData.getAll('mistake_tags').map(String),
-    strategy_tags: formData.getAll('strategy_tags').map(String),
+    mistake_tags: [],
+    strategy_tags: strategyTags,
     traded_at: tradedAt,
     ...closeFields,
   }).select('id').single()
@@ -86,7 +98,7 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   return { ok: true, tradeId: data.id }
 }
 
-export async function closeTrade(tradeId: string, exitPrice: number): Promise<TradeState> {
+export async function closeTrade(tradeId: string, exitPrice: number, mistakeTags: string[] = []): Promise<TradeState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
@@ -98,6 +110,13 @@ export async function closeTrade(tradeId: string, exitPrice: number): Promise<Tr
     .eq('id', tradeId).single()
   if (!t || t.user_id !== user.id) return { error: 'Trade not found.' }
 
+  // Mistake tagging is a Trader+ perk; only known presets are stored.
+  let mistakes: string[] = []
+  if (mistakeTags.length > 0) {
+    const canTag = canFlag(await getFeatureFlags(), await getTier(supabase, user.id), 'mistake_tagging')
+    if (canTag) mistakes = mistakeTags.filter((m) => (MISTAKE_TAGS as readonly string[]).includes(m))
+  }
+
   const { pipSize } = pipInfo(t.instrument, t.market)
   const c = computeClose({
     direction: t.direction as Direction, entry: t.entry_price, stop: t.stop_price,
@@ -106,6 +125,7 @@ export async function closeTrade(tradeId: string, exitPrice: number): Promise<Tr
   const { error } = await supabase.from('trades').update({
     status: 'closed', outcome: c.outcome, exit_price: exitPrice,
     r_multiple: c.rMultiple, pnl_amount: c.pnlAmount, realized_pips: c.realizedPips,
+    mistake_tags: mistakes,
     closed_at: new Date().toISOString(),
   }).eq('id', tradeId)
   if (error) return { error: error.message }

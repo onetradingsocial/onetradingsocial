@@ -8,7 +8,12 @@ export const dynamic = 'force-dynamic'
 
 /** Features with a live canFlag() call site today. Toggles on other rows
  *  take effect automatically once their feature gets a gate. */
-const WIRED = new Set<string>(['journal_unlimited', 'advanced_stats', 'pro_badge'])
+const WIRED = new Set<string>([
+  'journal_unlimited', 'advanced_journal', 'advanced_stats', 'pro_badge', 'custom_badge',
+  'creator_profile', 'saved_traders', 'weekly_review', 'strategy_breakdown',
+  'strategy_tracking', 'mistake_tagging',
+  'export_journal', 'advanced_reporting', 'mt5_import', 'mt5_autosync',
+])
 
 export default async function AdminFeaturesPage() {
   await requireAdmin()

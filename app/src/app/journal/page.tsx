@@ -115,7 +115,7 @@ export default async function JournalPage() {
       </div>
 
       <div className="mt-3">
-        <RecentTrades trades={visibleTrades} monthNet={sums.monthNet} />
+        <RecentTrades trades={visibleTrades} monthNet={sums.monthNet} canMistakeTag={canFlag(flags, tier, 'mistake_tagging')} />
         {hiddenCount > 0 && (
           <div className="ts-banner mt-3">
             Showing your last {JOURNAL_FREE_LIMIT} trades. {hiddenCount} older{' '}
