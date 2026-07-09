@@ -38,17 +38,19 @@ export function buildConversionBody(input: ConversionInput) {
   // conversion_id must be SHA-256 hashed to match the browser pixel, which hashes
   // it client-side. Sending it raw here would break dedup (hashed vs raw never
   // match) and double-count. Verified: pixel.js sends sha256(cid) as m.conversionId.
-  const eventMetadata: Record<string, unknown> = { conversion_id: hashSha256(input.conversionId) }
-  if (input.value != null) eventMetadata.value_decimal = input.value
-  if (input.currency) eventMetadata.currency = input.currency
-  if (input.itemCount != null) eventMetadata.item_count = input.itemCount
+  // Field names per Reddit's Events Manager "Add parameters" reference: the block
+  // is `metadata` (not event_metadata) and the amount field is `value` (decimal).
+  const metadata: Record<string, unknown> = { conversion_id: hashSha256(input.conversionId) }
+  if (input.value != null) metadata.value = input.value
+  if (input.currency) metadata.currency = input.currency
+  if (input.itemCount != null) metadata.item_count = input.itemCount
 
   const event: Record<string, unknown> = {
     event_at: input.eventAt ?? Date.now(),
     action_source: input.actionSource ?? 'website',
     type: { tracking_type: input.eventType },
     user,
-    event_metadata: eventMetadata,
+    metadata,
   }
   if (input.clickId) event.click_id = input.clickId
 

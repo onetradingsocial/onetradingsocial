@@ -32,7 +32,7 @@ describe('buildConversionBody', () => {
     expect(ev.user.email).toBe(hashSha256('test@example.com'))
     expect(ev.user.external_id).toBe(hashSha256('user-abc'))
     // conversion_id is SHA-256 hashed to match the browser pixel's hashed value.
-    expect(ev.event_metadata.conversion_id).toBe(hashSha256('cid-123'))
+    expect(ev.metadata.conversion_id).toBe(hashSha256('cid-123'))
     expect('click_id' in ev).toBe(false)
   })
 
@@ -45,8 +45,8 @@ describe('buildConversionBody', () => {
     const body = buildConversionBody({
       eventType: 'Purchase', conversionId: 'sess_1', value: 12.5, currency: 'USD', itemCount: 1,
     })
-    const meta = (body.data.events[0] as any).event_metadata
-    expect(meta.value_decimal).toBe(12.5)
+    const meta = (body.data.events[0] as any).metadata
+    expect(meta.value).toBe(12.5)
     expect(meta.currency).toBe('USD')
     expect(meta.item_count).toBe(1)
   })
