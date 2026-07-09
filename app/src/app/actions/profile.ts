@@ -1,8 +1,12 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { revalidatePath } from 'next/cache'
+import { headers, cookies } from 'next/headers'
+import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
+import { sendRedditConversion } from '@/lib/server/reddit-capi'
 import { validateUsername } from '@/lib/username'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
@@ -42,8 +46,31 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
   }
   // ?signup=1 lets the home page fire the Reddit SignUp conversion once. This is
   // the single completion signal for both the email and Google signup paths,
-  // which both converge here at onboarding completion.
-  redirect('/?signup=1')
+  // which both converge here at onboarding completion. The shared cid dedupes
+  // the browser pixel against the server-side (CAPI) SignUp below.
+  const conversionId = randomUUID()
+  const hdrs = await headers()
+  const cookieStore = await cookies()
+  const ip = hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null
+  const userAgent = hdrs.get('user-agent')
+  const clickId = cookieStore.get('rdt_cid')?.value ?? null
+  const email = user.email ?? null
+
+  // Best-effort Reddit SignUp conversion via CAPI, sent after the response so it
+  // adds no signup latency. Never throws.
+  after(async () => {
+    await sendRedditConversion({
+      eventType: 'SignUp',
+      conversionId,
+      email,
+      externalId: user.id,
+      ip,
+      userAgent,
+      clickId,
+    })
+  })
+
+  redirect(`/?signup=1&cid=${conversionId}`)
 }
 
 // Edits profile content from the settings hub. Unlike saveOnboarding it does NOT

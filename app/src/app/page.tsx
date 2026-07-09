@@ -24,9 +24,11 @@ type RawPost = { id: string; body: string; created_at: string; author_id: string
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ signup?: string }>
+  searchParams: Promise<{ signup?: string; cid?: string }>
 }) {
-  const justSignedUp = (await searchParams).signup === '1'
+  const sp = await searchParams
+  const justSignedUp = sp.signup === '1'
+  const conversionId = sp.cid
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
@@ -198,6 +200,7 @@ export default async function Home({
           event="SignUp"
           email={user.email}
           externalId={user.id}
+          conversionId={conversionId}
           requireParam="signup"
         />
       )}

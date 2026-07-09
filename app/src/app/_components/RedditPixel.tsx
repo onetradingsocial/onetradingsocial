@@ -30,12 +30,15 @@ export function RedditPixel({
   event,
   email,
   externalId,
+  conversionId,
   requireParam,
 }: {
   event: RedditEvent
   /** Advanced-matching keys. Reddit's pixel.js SHA-256 hashes these client-side. */
   email?: string | null
   externalId?: string
+  /** Dedup key shared with the server-side (CAPI) event so Reddit counts once. */
+  conversionId?: string
   /** When set, only fire if this URL query param equals "1"; then strip it so a
    *  refresh or back-nav does not double-count the conversion. */
   requireParam?: string
@@ -45,6 +48,7 @@ export function RedditPixel({
       const params = new URLSearchParams(window.location.search)
       if (params.get(requireParam) !== '1') return
       params.delete(requireParam)
+      params.delete('cid')
       const qs = params.toString()
       window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''))
     }
@@ -57,8 +61,8 @@ export function RedditPixel({
     if (email) keys.email = email
     if (externalId) keys.externalId = externalId
     rdt('init', PIXEL_ID, Object.keys(keys).length ? keys : undefined)
-    rdt('track', event)
-  }, [event, email, externalId, requireParam])
+    rdt('track', event, conversionId ? { conversionId } : undefined)
+  }, [event, email, externalId, conversionId, requireParam])
 
   return null
 }
