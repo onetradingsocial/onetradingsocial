@@ -13,6 +13,7 @@ import { canFlag } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { HomeArena } from './feed/_components/home/HomeArena'
 import { type HomeData } from './feed/_components/home/types'
+import { RedditPixel } from './_components/RedditPixel'
 
 const EMPTY = ['00000000-0000-0000-0000-000000000000']
 const SELECT = 'id, body, created_at, author_id, attachment_type, trade_id, author:profiles!posts_author_id_fkey(id, username, display_name, avatar_url)'
@@ -20,7 +21,12 @@ const SELECT = 'id, body, created_at, author_id, attachment_type, trade_id, auth
 type RawAuthor = { id: string; username: string; display_name: string | null; avatar_url: string | null }
 type RawPost = { id: string; body: string; created_at: string; author_id: string; attachment_type: AttachmentType; trade_id: string | null; author: RawAuthor | RawAuthor[] }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ signup?: string }>
+}) {
+  const justSignedUp = (await searchParams).signup === '1'
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
@@ -184,5 +190,17 @@ export default async function Home() {
     advancedStats,
   }
 
-  return <HomeArena data={data} />
+  return (
+    <>
+      <HomeArena data={data} />
+      {justSignedUp && (
+        <RedditPixel
+          event="SignUp"
+          email={user.email}
+          externalId={user.id}
+          requireParam="signup"
+        />
+      )}
+    </>
+  )
 }

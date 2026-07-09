@@ -40,7 +40,10 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
     if (error.code === '23505') return { error: 'That username is already taken.' }
     return { error: error.message }
   }
-  redirect('/')
+  // ?signup=1 lets the home page fire the Reddit SignUp conversion once. This is
+  // the single completion signal for both the email and Google signup paths,
+  // which both converge here at onboarding completion.
+  redirect('/?signup=1')
 }
 
 // Edits profile content from the settings hub. Unlike saveOnboarding it does NOT
