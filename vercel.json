@@ -28,6 +28,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/blog/:slug", "destination": "/blog-post.html" }
+    { "source": "/blog/:slug", "destination": "/blog-post" }
   ]
 }
