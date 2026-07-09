@@ -1,9 +1,10 @@
 'use client'
 
-import { createContext, useContext, useState, useMemo, useRef, useCallback } from 'react'
+import { createContext, useContext, useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { createTrade, saveTradeChartUrl } from '@/app/actions/trade'
+import { listTradeTemplates, saveTradeTemplate, type TradeTemplate } from '@/app/actions/templates'
 import { computeOpen, SETUP_PRESETS, type Direction, type SizingMode } from '@/lib/trade'
 import { INSTRUMENTS, pipInfo } from '@/lib/instruments'
 import { Mt5ImportTab } from './Mt5ImportTab'
@@ -11,7 +12,7 @@ import { Mt5ImportTab } from './Mt5ImportTab'
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
 
-type Config = { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean }
+type Config = { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean }
 
 const TradeModalContext = createContext<{ open: () => void } | null>(null)
 
@@ -66,6 +67,28 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
   const [chart, setChart] = useState<File | null>(null)
   const dropRef = useRef<HTMLInputElement>(null)
 
+  const [templates, setTemplates] = useState<TradeTemplate[]>([])
+  const [saveTpl, setSaveTpl] = useState(false)
+  const [tplName, setTplName] = useState('')
+  useEffect(() => {
+    if (!config.canTemplates) return
+    listTradeTemplates().then((r) => { if (r.templates) setTemplates(r.templates) })
+  }, [config.canTemplates])
+
+  function applyTemplate(id: string) {
+    const t = templates.find((x) => x.id === id)
+    if (!t) return
+    const p = t.payload
+    if (p.market) setMarket(p.market)
+    if (p.instrument) setInstrument(p.instrument)
+    if (p.direction === 'long' || p.direction === 'short') setDirection(p.direction)
+    if (p.sizing_mode === 'risk_percent' || p.sizing_mode === 'lots') setSizingMode(p.sizing_mode)
+    if (p.risk_percent) setRiskPercent(p.risk_percent)
+    if (p.lots) setLots(p.lots)
+    if (p.setup_type) setSetup(p.setup_type)
+    if (p.strategy_tags) setStratTags(p.strategy_tags.slice(0, config.maxStrategyTags))
+  }
+
   const preview = useMemo(() => {
     const e = Number(entry), s = Number(stop), t = target ? Number(target) : null
     if (!entry || !stop || !Number.isFinite(e) || !Number.isFinite(s)) return null
@@ -82,6 +105,12 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
     setPending(true); setError('')
     const res = await createTrade({}, formData)
     if (res.error) { setError(res.error); setPending(false); return }
+    if (config.canTemplates && saveTpl && tplName.trim()) {
+      await saveTradeTemplate(tplName, {
+        market, instrument, direction, sizing_mode: sizingMode,
+        risk_percent: riskPercent, lots, setup_type: setup, strategy_tags: stratTags,
+      })
+    }
     if (chart && res.tradeId) {
       const ct = chart.type === 'image/png' ? 'image/png' : 'image/jpeg'
       const supabase = createClient()
@@ -128,6 +157,15 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
         <input type="hidden" name="confidence" value={confidence} />
         <input type="hidden" name="emotion" value={emotion} />
         {stratTags.map((t) => <input key={t} type="hidden" name="strategy_tags" value={t} />)}
+
+        {config.canTemplates && templates.length > 0 && (
+          <label className="ts-field mb-4"><span className="ts-label">Start from template</span>
+            <select className="ts-select" defaultValue="" onChange={(e) => applyTemplate(e.target.value)}>
+              <option value="">— none —</option>
+              {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </label>
+        )}
 
         <div className="ts-grid3">
           <label className="ts-field"><span className="ts-label">Market</span>
@@ -312,9 +350,21 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
         {error && <p className="ts-error mt-4">{error}</p>}
 
         <div className="ts-modal-foot mt-5">
-          <label className="ts-checkline" style={{ alignItems: 'center' }}>
-            <input type="checkbox" disabled /> <span className="faint">Save as template <span className="ts-soon">soon</span></span>
-          </label>
+          {config.canTemplates ? (
+            <label className="ts-checkline" style={{ alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={saveTpl} onChange={(e) => setSaveTpl(e.target.checked)} />
+              <span className="faint">Save as template</span>
+              {saveTpl && (
+                <input className="ts-input" style={{ width: 160, padding: '6px 10px', fontSize: 13 }}
+                  placeholder="Template name" value={tplName} maxLength={40}
+                  onChange={(e) => setTplName(e.target.value)} />
+              )}
+            </label>
+          ) : (
+            <label className="ts-checkline" style={{ alignItems: 'center' }} title="Custom templates are a Pro perk">
+              <input type="checkbox" disabled /> <span className="faint">Save as template 🔒 <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Pro</a></span>
+            </label>
+          )}
           <button className="btn btn-primary" disabled={pending}>{pending ? 'Saving…' : '✓ Save Trade'}</button>
         </div>
         </form>
