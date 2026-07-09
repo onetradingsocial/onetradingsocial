@@ -3,6 +3,7 @@ import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
 import { subscriptionRow } from '@/lib/billing-webhook'
+import { sendRedditConversion } from '@/lib/server/reddit-capi'
 
 export const runtime = 'nodejs'
 
@@ -59,6 +60,19 @@ export async function POST(request: NextRequest) {
         if (session.subscription) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string)
           await upsertFromSubscription(svc, stripe, sub)
+
+          // Best-effort Reddit Purchase conversion. session.id as conversion_id
+          // makes webhook retries idempotent on Reddit's side. Never throws.
+          const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
+          const userId = await resolveUserId(svc, stripe, customerId)
+          await sendRedditConversion({
+            eventType: 'Purchase',
+            conversionId: session.id,
+            email: session.customer_details?.email ?? null,
+            externalId: userId ?? undefined,
+            value: session.amount_total != null ? session.amount_total / 100 : undefined,
+            currency: session.currency ? session.currency.toUpperCase() : undefined,
+          })
         }
         break
       }
