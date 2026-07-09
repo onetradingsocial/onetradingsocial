@@ -76,6 +76,7 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   const maxStrategyTags = canFlag(flags, tier, 'strategy_tracking') ? (tier === 'pro' ? 8 : 1) : 0
   const strategyTags = formData.getAll('strategy_tags').map(String)
     .map((s) => s.trim()).filter(Boolean).slice(0, maxStrategyTags)
+  const canPrivateNotes = canFlag(flags, tier, 'private_notes')
 
   const { data, error } = await supabase.from('trades').insert({
     user_id: user.id, market, instrument, direction, sizing_mode: sizingMode,
@@ -85,7 +86,7 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
     setup_type: advanced ? String(formData.get('setup_type') ?? '') || null : null,
     confidence: advanced ? confidence || null : null,
     emotion: advanced ? emotion || null : null,
-    note: String(formData.get('note') ?? '') || null,
+    note: canPrivateNotes ? String(formData.get('note') ?? '') || null : null,
     is_public: isPublic,
     mistake_tags: [],
     strategy_tags: strategyTags,

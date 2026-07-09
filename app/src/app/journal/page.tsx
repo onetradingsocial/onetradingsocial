@@ -17,6 +17,7 @@ import { RecentTrades } from './_components/RecentTrades'
 import { JournalExportButtons } from './_components/JournalExportButtons'
 import { WeeklyReviewCard } from './_components/WeeklyReviewCard'
 import { StrategyBreakdownCard } from './_components/StrategyBreakdownCard'
+import { RiskTrackingCard, type RiskTrade } from './_components/RiskTrackingCard'
 
 export default async function JournalPage() {
   const supabase = await createClient()
@@ -25,7 +26,7 @@ export default async function JournalPage() {
 
   const { data: all } = await supabase
     .from('trades')
-    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, traded_at')
+    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, traded_at, risk_percent, risk_amount')
     .eq('user_id', user.id)
     .order('traded_at', { ascending: false })
 
@@ -89,6 +90,10 @@ export default async function JournalPage() {
 
       <div className="mt-5">
         <StrategyBreakdownCard closed={closed} locked={!canFlag(flags, tier, 'strategy_breakdown')} />
+      </div>
+
+      <div className="mt-5">
+        <RiskTrackingCard trades={(all ?? []) as unknown as RiskTrade[]} locked={!canFlag(flags, tier, 'risk_tracking')} />
       </div>
 
       <div className="ts-panels mt-5">

@@ -11,7 +11,7 @@ import { Mt5ImportTab } from './Mt5ImportTab'
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
 
-type Config = { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number }
+type Config = { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean }
 
 const TradeModalContext = createContext<{ open: () => void } | null>(null)
 
@@ -274,8 +274,18 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
         )}
 
         <div className="ts-grid2 mt-4" style={{ alignItems: 'start' }}>
-          <label className="ts-field"><span className="ts-label">Why are you taking this trade?</span>
-            <textarea name="note" className="ts-textarea" rows={4} maxLength={280} placeholder="Add a quick note about your setup, edge, or market context…" /></label>
+          {config.canPrivateNotes ? (
+            <label className="ts-field"><span className="ts-label">Why are you taking this trade? <span className="faint">(private)</span></span>
+              <textarea name="note" className="ts-textarea" rows={4} maxLength={280} placeholder="Add a quick note about your setup, edge, or market context…" /></label>
+          ) : (
+            <div className="ts-field"><span className="ts-label">Why are you taking this trade?</span>
+              <p className="faint" style={{ fontSize: 12.5, marginTop: 6 }}>
+                🔒 Private journal notes are a Trader perk.{' '}
+                <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+                to write them.
+              </p>
+            </div>
+          )}
           {config.canAdvancedJournal && (
             <div className="ts-field"><span className="ts-label">Attach chart <span className="faint">(optional)</span></span>
               <button type="button" className="ts-dropzone" onClick={() => dropRef.current?.click()}>
