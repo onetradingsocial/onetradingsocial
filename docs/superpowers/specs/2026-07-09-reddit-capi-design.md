@@ -74,19 +74,19 @@ Responsibilities:
 - Short fetch timeout (e.g. 3s via AbortController) so a slow Reddit endpoint
   can't hang a webhook.
 
-**Payload shape** (base from Reddit's template; exact v3 field names —
-`event_type` vs `type`, `user` sub-fields, `event_metadata.conversion_id` —
-VERIFIED against Reddit's live API docs at implementation time before first
-POST):
+**Payload shape** (confirmed against Reddit's Events Manager template + connector
+mapping docs — the field is `type` not `event_type`; `click_id` is base-level;
+`conversion_id` lives under `event_metadata`; match keys under `user`):
 
 ```jsonc
 {
   "data": {
+    "test_mode": false,                          // true during build to validate without recording
     "events": [{
       "event_at": 1730000000000,               // ms epoch, <7 days old
       "action_source": "website",
-      "event_type": { "tracking_type": "SignUp" },
-      "click_id": "<rdt_cid or omit>",
+      "type": { "tracking_type": "SignUp" },   // "Purchase" for the paid event
+      "click_id": "<rdt_cid or omit>",         // base-level; Reddit auto-parses rdt_cid if omitted
       "user": {
         "email": "<sha256 hex>",
         "external_id": "<sha256 hex>",
@@ -98,6 +98,9 @@ POST):
   }
 }
 ```
+
+Purchase adds `event_metadata.value` / `currency` / `item_count` from the Stripe
+session (amount_total / currency).
 
 ### 2. SignUp — dual-fire with dedup
 
@@ -170,10 +173,10 @@ Real value: `app/.env.local` (local) + Vercel env (Production, optional Preview)
 2. Generate the **Conversion Access Token** and paste it into Vercel env +
    `.env.local`. Claude never handles the token value.
 
-## Open items to verify at implementation time
+## Verification during build
 
-- Exact v3 payload field names (`event_type`/`type`, `user` fields,
-  `conversion_id` location) against Reddit's current API reference.
-- Browser `rdt('track', event, { conversionId })` option name (`conversionId`
-  vs `conversion_id`) against Reddit pixel docs — the beacon showed
-  `m.conversionId=`.
+- Use `test_mode: true` on the first live POSTs to validate the payload against
+  Reddit without recording real conversions; flip off once confirmed.
+- Confirm the browser `rdt('track', event, { conversionId })` option name
+  against Reddit pixel docs — the beacon showed `m.conversionId=`, so
+  `conversionId` (camelCase) is expected.
