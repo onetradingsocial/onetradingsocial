@@ -40,6 +40,7 @@ export async function getPerformanceRanking(
     .in('id', aggs.map((a) => a.userId))
     .eq('is_public', true)
     .eq('onboarding_completed', true)
+    .eq('leaderboard_optout', false)
   const pmap = new Map((profs ?? []).map((p) => [p.id, p]))
 
   // Attach join date so equal scores tie-break by who joined first.

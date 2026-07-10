@@ -117,6 +117,7 @@ export async function getXpRanking(supabase: SupabaseClient, period: Period, now
     .in('id', scored.map((s) => s.userId))
     .eq('is_public', true)
     .eq('onboarding_completed', true)
+    .eq('leaderboard_optout', false)
   const pmap = new Map((profs ?? []).map((p) => [p.id, p]))
 
   const visible = scored

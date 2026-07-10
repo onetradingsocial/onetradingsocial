@@ -118,6 +118,10 @@ export async function saveProfileSettings(
   const requestedCtaUrl = String(formData.get('cta_url') ?? '').trim()
   const cta_url = canCreatorProfile && requestedCtaUrl ? sanitizeCtaUrl(requestedCtaUrl) : null
 
+  // Leaderboard placement is a Pro perk — non-entitled users always stay listed.
+  const canPlacement = canFlag(flags, tier, 'leaderboard_placement')
+  const leaderboard_optout = canPlacement && formData.get('leaderboard_optout') === '1'
+
   const requestedPinned = String(formData.get('pinned_post_id') ?? '').trim()
   let pinned_post_id: string | null = null
   if (canCreatorProfile && requestedPinned) {
@@ -143,6 +147,7 @@ export async function saveProfileSettings(
       cta_label,
       cta_url,
       pinned_post_id,
+      leaderboard_optout,
     })
     .eq('id', user.id)
 

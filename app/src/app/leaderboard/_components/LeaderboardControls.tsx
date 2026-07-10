@@ -16,7 +16,7 @@ const SORTS = [
   { key: 'trades', label: 'Sort: Trades' },
 ] as const
 
-export function LeaderboardControls({ period, sort, cat }: { period: string; sort: string; cat: string }) {
+export function LeaderboardControls({ period, sort, cat, canAdvFilters = true }: { period: string; sort: string; cat: string; canAdvFilters?: boolean }) {
   const router = useRouter()
   const sp = useSearchParams()
   const push = (next: Record<string, string>) => {
@@ -32,14 +32,19 @@ export function LeaderboardControls({ period, sort, cat }: { period: string; sor
           <button key={p.key} className={'lb-seg' + (period === p.key ? ' on' : '')} onClick={() => push({ period: p.key })}>{p.label}</button>
         ))}
       </div>
-      {cat !== 'xp' && (
+      {cat !== 'xp' && (canAdvFilters ? (
         <div className="lb-metric">
           <select value={sort} onChange={(e) => push({ sort: e.target.value })}>
             {SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
           <span className="chev" aria-hidden>▾</span>
         </div>
-      )}
+      ) : (
+        <a href="/settings/billing" className="lb-metric" title="Advanced leaderboard filters are a Trader perk"
+          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--dim)' }}>
+          🔒 Sort filters <span style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Trader</span>
+        </a>
+      ))}
     </div>
   )
 }

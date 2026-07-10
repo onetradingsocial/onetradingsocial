@@ -29,6 +29,8 @@ type Props = {
   ctaLabel: string
   ctaUrl: string
   pinnedPostId: string | null
+  leaderboardOptout: boolean
+  canLeaderboardPlacement: boolean
   ownPosts: { id: string; label: string }[]
 }
 
@@ -218,6 +220,22 @@ export function ProfileSettingsForm(props: Props) {
                 Private journaling is a paid perk. <a href="/settings/billing">Upgrade</a> to go solo.
               </p>
             )}
+
+            {/* Leaderboard placement — Pro perk */}
+            <div className="ts-field mt-4">
+              <span className="ts-label">Leaderboard placement</span>
+              <label className="ts-chip" style={{ alignSelf: 'flex-start' }}>
+                <input type="checkbox" name="leaderboard_optout" value="1"
+                  defaultChecked={props.leaderboardOptout} disabled={!props.canLeaderboardPlacement} />
+                Hide me from public leaderboards
+              </label>
+              {!props.canLeaderboardPlacement && (
+                <p className="settings-locknote">
+                  <Icon name="shield" size={14} />
+                  Placement options are a Pro perk. <a href="/settings/billing">Upgrade</a> to control your visibility.
+                </p>
+              )}
+            </div>
           </div>
 
           <div role="status" aria-live="polite">

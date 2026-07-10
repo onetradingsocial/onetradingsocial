@@ -2,6 +2,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { getPerformanceRanking } from '@/lib/server/ranking'
+import { getTier } from '@/lib/server/entitlements'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { canFlag } from '@/lib/feature-flags'
 import { getXpRanking, getUserXp } from '@/lib/server/xp'
 import type { Period as XpPeriod } from '@/lib/xp'
 import type { Period, PerfSort } from '@/lib/leaderboard'
@@ -21,11 +24,16 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   const cat = (['performance', 'xp'].includes(sp.cat ?? '') ? sp.cat : 'performance') as 'performance' | 'xp'
   const allowedPeriods = cat === 'xp' ? ['week', 'month', 'all'] : ['day', 'week', 'month', 'all']
   const period = (allowedPeriods.includes(sp.period ?? '') ? sp.period : 'week') as Period
-  const sort = (['pnl', 'winRate', 'avgR', 'trades'].includes(sp.sort ?? '') ? sp.sort : 'pnl') as PerfSort
+  const requestedSort = (['pnl', 'winRate', 'avgR', 'trades'].includes(sp.sort ?? '') ? sp.sort : 'pnl') as PerfSort
 
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
+
+  // Advanced filters (sorting beyond P/L) are Trader+ — coerce to pnl for Free.
+  const [tier, flags] = await Promise.all([getTier(supabase, user.id), getFeatureFlags()])
+  const canAdvFilters = canFlag(flags, tier, 'advanced_leaderboard_filters')
+  const sort: PerfSort = canAdvFilters ? requestedSort : 'pnl'
 
   return (
     <main className="ts-page ts-feed lb-app">
@@ -36,7 +44,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
         </div></header>
 
         <LeaderboardTabs cat={cat} />
-        <LeaderboardControls period={period} sort={sort} cat={cat} />
+        <LeaderboardControls period={period} sort={sort} cat={cat} canAdvFilters={canAdvFilters} />
 
         {cat === 'performance'
           ? <PerformanceBoard supabase={supabase} period={period} sort={sort} userId={user.id} />

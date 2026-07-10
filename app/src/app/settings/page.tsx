@@ -21,7 +21,7 @@ export default async function SettingsPage() {
   const [{ data: profile }, tier, sub, flags, { data: brokerRow }, { data: ownPosts }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id')
+      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id, leaderboard_optout')
       .eq('id', user.id)
       .single(),
     getTier(supabase, user.id),
@@ -79,6 +79,8 @@ export default async function SettingsPage() {
               ctaLabel={profile?.cta_label ?? ''}
               ctaUrl={profile?.cta_url ?? ''}
               pinnedPostId={profile?.pinned_post_id ?? null}
+              leaderboardOptout={profile?.leaderboard_optout ?? false}
+              canLeaderboardPlacement={canFlag(flags, tier, 'leaderboard_placement')}
               ownPosts={(ownPosts ?? []).map((p) => ({
                 id: p.id,
                 label: (p.attachment_type === 'trade' ? '[Trade] ' : p.attachment_type === 'images' ? '[Photo] ' : '') +
