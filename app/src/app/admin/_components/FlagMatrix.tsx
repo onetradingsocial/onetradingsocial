@@ -11,9 +11,13 @@ export type FlagRowView = {
   values: FlagValues
   defaults: FlagValues
   wired: boolean
+  note?: string | null
 }
 
+export type FlagGroup = { title: string; rows: FlagRowView[] }
+
 const TIERS = ['free', 'trader', 'pro'] as const
+const TIER_TINT: Record<string, string> = { free: 'var(--faint)', trader: 'var(--violet-br)', pro: '#E0931E' }
 
 function Row({ row }: { row: FlagRowView }) {
   const [values, setValues] = useState(row.values)
@@ -37,21 +41,35 @@ function Row({ row }: { row: FlagRowView }) {
   })
 
   return (
-    <tr>
-      <td style={{ textTransform: 'capitalize' }}>
-        {row.label} <span className="faint">(default: {row.defaultTier}+)</span>
-        {!row.wired && <span className="faint"> · not wired yet</span>}
+    <tr style={pending ? { opacity: 0.55 } : undefined}>
+      <td>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>{row.label}</span>
+          <span className="ts-chip2" style={{ fontSize: 10.5, padding: '2px 8px', color: TIER_TINT[row.defaultTier] }}>
+            {row.defaultTier}+
+          </span>
+          {!row.wired && (
+            <span className="ts-chip2" style={{ fontSize: 10.5, padding: '2px 8px' }} title={row.note ?? 'No live canFlag() gate yet — toggle takes effect when the feature ships'}>
+              {row.note ?? 'not wired yet'}
+            </span>
+          )}
+          {!isDefault && (
+            <span title="Differs from code default"
+              style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--violet-br)', display: 'inline-block' }} />
+          )}
+        </div>
       </td>
       {TIERS.map((t) => (
         <td key={t} style={{ textAlign: 'center' }}>
           <input type="checkbox" checked={values[t]} disabled={pending}
             aria-label={`${row.label} — ${t}`}
+            style={{ width: 17, height: 17, accentColor: 'var(--violet-br)', cursor: pending ? 'wait' : 'pointer' }}
             onChange={(e) => toggle(t, e.target.checked)} />
         </td>
       ))}
-      <td>
+      <td style={{ textAlign: 'right' }}>
         {!isDefault && (
-          <button type="button" className="btn btn-sm" disabled={pending} onClick={reset}>
+          <button type="button" className="btn btn-ghost btn-sm" disabled={pending} onClick={reset}>
             Reset
           </button>
         )}
@@ -60,19 +78,33 @@ function Row({ row }: { row: FlagRowView }) {
   )
 }
 
-export function FlagMatrix({ rows }: { rows: FlagRowView[] }) {
+export function FlagMatrix({ groups }: { groups: FlagGroup[] }) {
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-      <thead>
-        <tr style={{ textAlign: 'left' }}>
-          <th>Feature</th>
-          <th style={{ textAlign: 'center' }}>Free</th>
-          <th style={{ textAlign: 'center' }}>Trader</th>
-          <th style={{ textAlign: 'center' }}>Pro</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>{rows.map((r) => <Row key={r.key} row={r} />)}</tbody>
-    </table>
+    <>
+      {groups.map((g) => (
+        <div key={g.title} className="ts-card mt-4" style={{ paddingTop: 14 }}>
+          <p className="eyebrow" style={{ marginBottom: 4 }}>{g.title}</p>
+          <table className="ts-table" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col />
+              <col style={{ width: 76 }} />
+              <col style={{ width: 76 }} />
+              <col style={{ width: 76 }} />
+              <col style={{ width: 90 }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th style={{ textAlign: 'center' }}>Free</th>
+                <th style={{ textAlign: 'center' }}>Trader</th>
+                <th style={{ textAlign: 'center' }}>Pro</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>{g.rows.map((r) => <Row key={r.key} row={r} />)}</tbody>
+          </table>
+        </div>
+      ))}
+    </>
   )
 }
