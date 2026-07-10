@@ -3,9 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { gradeQuiz, type QuizAnswers } from '@/lib/learning'
+import { getTier } from '@/lib/server/entitlements'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { canFlag } from '@/lib/feature-flags'
+import { gradeQuiz, learningStreakDays, streakBoostPct, type QuizAnswers, type LearningCompletion } from '@/lib/learning'
 
-export type QuizResult = { passed: boolean; wrongQuestionIds: string[]; xpAwarded: number; error?: string }
+export type QuizResult = { passed: boolean; wrongQuestionIds: string[]; xpAwarded: number; bonusXp?: number; error?: string }
 
 export async function submitQuiz(lessonId: string, answers: QuizAnswers): Promise<QuizResult> {
   const supabase = await createClient()
@@ -30,11 +33,26 @@ export async function submitQuiz(lessonId: string, answers: QuizAnswers): Promis
   const { data: existing } = await svc.from('lesson_completions')
     .select('id').eq('user_id', user.id).eq('lesson_id', lessonId).maybeSingle()
   let xpAwarded = 0
+  let bonusXp = 0
   if (!existing) {
-    await svc.from('lesson_completions').insert({ user_id: user.id, lesson_id: lessonId })
-    xpAwarded = lesson.xp_reward
+    // XP boost for learning streaks (Trader+): bonus scales with the
+    // consecutive-day streak this completion extends, stored on the row so
+    // the grant persists into every XP read.
+    const canBoost = canFlag(await getFeatureFlags(), await getTier(supabase, user.id), 'xp_boosts')
+    if (canBoost) {
+      const { data: prior } = await svc.from('lesson_completions')
+        .select('completed_at').eq('user_id', user.id)
+      const completions = [
+        ...((prior ?? []) as LearningCompletion[]),
+        { completed_at: new Date().toISOString(), xp_reward: 0 }, // today's completion-in-flight
+      ]
+      const streak = learningStreakDays(completions, Date.now())
+      bonusXp = Math.round(lesson.xp_reward * streakBoostPct(streak) / 100)
+    }
+    await svc.from('lesson_completions').insert({ user_id: user.id, lesson_id: lessonId, bonus_xp: bonusXp })
+    xpAwarded = lesson.xp_reward + bonusXp
   }
   revalidatePath('/learn')
   revalidatePath('/achievements')
-  return { passed: true, wrongQuestionIds: [], xpAwarded }
+  return { passed: true, wrongQuestionIds: [], xpAwarded, bonusXp }
 }

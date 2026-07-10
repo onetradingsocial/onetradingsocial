@@ -3,17 +3,25 @@ import { createClient, getSessionUser } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { getCourses, getUserLearning } from '@/lib/server/learning'
 import { getTier } from '@/lib/server/entitlements'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { canFlag } from '@/lib/feature-flags'
 import { TIER_RANK, type Tier } from '@/lib/entitlements'
+import { learningStreakDays, streakBoostPct } from '@/lib/learning'
 
 export default async function LearnPage() {
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
-  const [courses, tier, learning] = await Promise.all([
+  const [courses, tier, learning, flags] = await Promise.all([
     getCourses(supabase, user.id),
     getTier(supabase, user.id),
     getUserLearning(supabase, user.id),
+    getFeatureFlags(),
   ])
+
+  const canBoost = canFlag(flags, tier, 'xp_boosts')
+  const streak = learningStreakDays(learning.completions, Date.now())
+  const boostPct = streakBoostPct(streak)
 
   const totalLessons = courses.reduce((s, c) => s + c.lessonCount, 0)
   const totalDone = courses.reduce((s, c) => s + c.completedCount, 0)
@@ -53,6 +61,16 @@ export default async function LearnPage() {
               <span className="k">XP earned</span>
             </div>
           </div>
+          <p className="mt-3" style={{ fontSize: 13 }}>
+            {canBoost ? (
+              boostPct > 0
+                ? <span style={{ color: 'var(--up-ink)', fontWeight: 700 }}>⚡ XP boost active: +{boostPct}% on lessons ({streak}-day streak)</span>
+                : <span className="faint">⚡ Learn on consecutive days to boost lesson XP — +10% per day, up to +60%.</span>
+            ) : (
+              <span className="faint">🔒 XP boosts for learning streaks are a Trader perk.{' '}
+                <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</Link> to earn up to +60%.</span>
+            )}
+          </p>
         </div>
       </section>
 

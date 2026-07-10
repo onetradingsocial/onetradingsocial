@@ -57,12 +57,12 @@ export async function getLessonForViewer(supabase: SupabaseClient, courseSlug: s
   return { id: lesson.id, title: lesson.title, body: lesson.body, xpReward: lesson.xp_reward, completed: !!comp, courseTitle: course.title, minTier: course.min_tier ?? 'free', questions: mapped }
 }
 
-export async function getUserLearning(supabase: SupabaseClient, userId: string): Promise<{ lessonsCompleted: number; learningXp: number }> {
-  const { data } = await supabase.from('lesson_completions').select('completed_at, lessons(xp_reward)').eq('user_id', userId)
+export async function getUserLearning(supabase: SupabaseClient, userId: string): Promise<{ lessonsCompleted: number; learningXp: number; completions: LearningCompletion[] }> {
+  const { data } = await supabase.from('lesson_completions').select('completed_at, bonus_xp, lessons(xp_reward)').eq('user_id', userId)
   const completions: LearningCompletion[] = (data ?? []).map((r) => {
     const l = r.lessons as { xp_reward: number } | { xp_reward: number }[] | null
     const xp = Array.isArray(l) ? (l[0]?.xp_reward ?? 0) : (l?.xp_reward ?? 0)
-    return { completed_at: r.completed_at as string, xp_reward: xp }
+    return { completed_at: r.completed_at as string, xp_reward: xp + ((r.bonus_xp as number) ?? 0) }
   })
-  return { lessonsCompleted: completions.length, learningXp: learningTotalXp(completions) }
+  return { lessonsCompleted: completions.length, learningXp: learningTotalXp(completions), completions }
 }

@@ -6,16 +6,17 @@ import {
 } from '@/lib/xp'
 import { learningTotalXp, learningWindowXp, type LearningCompletion } from '@/lib/learning'
 
-// A user's lesson completions joined to each lesson's xp_reward.
+// A user's lesson completions joined to each lesson's xp_reward (+ any
+// streak-boost bonus granted at completion time).
 async function fetchCompletions(supabase: SupabaseClient, userId: string): Promise<LearningCompletion[]> {
   const { data } = await supabase
     .from('lesson_completions')
-    .select('completed_at, lessons(xp_reward)')
+    .select('completed_at, bonus_xp, lessons(xp_reward)')
     .eq('user_id', userId)
   return (data ?? []).map((r) => {
     const l = r.lessons as { xp_reward: number } | { xp_reward: number }[] | null
     const xp = Array.isArray(l) ? (l[0]?.xp_reward ?? 0) : (l?.xp_reward ?? 0)
-    return { completed_at: r.completed_at as string, xp_reward: xp }
+    return { completed_at: r.completed_at as string, xp_reward: xp + ((r.bonus_xp as number) ?? 0) }
   })
 }
 
@@ -90,11 +91,11 @@ export async function getXpRanking(supabase: SupabaseClient, period: Period, now
 
   const { data: compRows } = await supabase
     .from('lesson_completions')
-    .select('user_id, completed_at, lessons(xp_reward)')
+    .select('user_id, completed_at, bonus_xp, lessons(xp_reward)')
   const learnByUser = new Map<string, LearningCompletion[]>()
   for (const r of compRows ?? []) {
     const l = r.lessons as { xp_reward: number } | { xp_reward: number }[] | null
-    const xp = Array.isArray(l) ? (l[0]?.xp_reward ?? 0) : (l?.xp_reward ?? 0)
+    const xp = (Array.isArray(l) ? (l[0]?.xp_reward ?? 0) : (l?.xp_reward ?? 0)) + ((r.bonus_xp as number) ?? 0)
     const uid = r.user_id as string
     const arr = learnByUser.get(uid) ?? []
     arr.push({ completed_at: r.completed_at as string, xp_reward: xp })
