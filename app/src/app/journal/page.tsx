@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
-import { monthlyPnl, equityCurve, assetDistribution, calendarCells, periodSums, weekSlice, MONTHS, type JTrade } from '@/lib/journal-stats'
+import { monthlyPnl, equityCurve, assetDistribution, calendarCells, periodSums, weekSlice, monthSlice, monthLabel as monthLabelFor, MONTHS, type JTrade } from '@/lib/journal-stats'
 import { getTier } from '@/lib/server/entitlements'
 import { JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
 import { canFlag } from '@/lib/feature-flags'
@@ -18,6 +18,7 @@ import { JournalExportButtons } from './_components/JournalExportButtons'
 import { WeeklyReviewCard } from './_components/WeeklyReviewCard'
 import { StrategyBreakdownCard } from './_components/StrategyBreakdownCard'
 import { RiskTrackingCard, type RiskTrade } from './_components/RiskTrackingCard'
+import { MonthlyReportCard } from './_components/MonthlyReportCard'
 
 export default async function JournalPage() {
   const supabase = await createClient()
@@ -68,6 +69,12 @@ export default async function JournalPage() {
   const bestTrade = weekPnls.length ? Math.max(...weekPnls) : null
   const worstTrade = weekPnls.length ? Math.min(...weekPnls) : null
 
+  const thisMonthClosed = monthSlice(closed, 0)
+  const lastMonthClosed = monthSlice(closed, 1)
+  const monthInstCounts: Record<string, number> = {}
+  for (const t of thisMonthClosed) monthInstCounts[t.instrument] = (monthInstCounts[t.instrument] ?? 0) + 1
+  const topMonthInstrument = Object.entries(monthInstCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+
   return (
     <main className="ts-page">
       <JournalHero monthLabel={monthLabel} monthTrades={sums.monthTrades} monthNet={sums.monthNet} streak={metrics.currentStreak} />
@@ -86,6 +93,10 @@ export default async function JournalPage() {
 
       <div className="mt-5">
         <WeeklyReviewCard thisWeek={thisWeekMetrics} lastWeek={lastWeekMetrics} best={bestTrade} worst={worstTrade} locked={!canWeeklyReview} />
+      </div>
+
+      <div className="mt-5">
+        <MonthlyReportCard thisMonth={thisMonthClosed} lastMonth={lastMonthClosed} label={monthLabelFor(0)} topInstrument={topMonthInstrument} locked={!canFlag(flags, tier, 'monthly_report')} />
       </div>
 
       <div className="mt-5">

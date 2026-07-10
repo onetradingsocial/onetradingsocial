@@ -90,6 +90,21 @@ export function weekSlice(trades: JTrade[], weeksAgo: number): JTrade[] {
   return trades.filter((t) => { const ms = Date.parse(t.traded_at); return ms >= start && ms < end })
 }
 
+/** Trades in a given calendar month. monthsAgo=0 is the current month, 1 the prior month. */
+export function monthSlice(trades: JTrade[], monthsAgo: number): JTrade[] {
+  const now = new Date()
+  const target = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1)
+  const y = target.getFullYear(), m = target.getMonth()
+  return trades.filter((t) => { const d = new Date(t.traded_at); return d.getFullYear() === y && d.getMonth() === m })
+}
+
+/** Label like "July 2026" for monthsAgo back from now. */
+export function monthLabel(monthsAgo: number): string {
+  const now = new Date()
+  const d = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1)
+  return `${['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()]} ${d.getFullYear()}`
+}
+
 /** Groups closed trades by setup_type ("Other" when unset), sorted by net P/L desc. */
 export function groupBySetup(closed: JTrade[]): Record<string, JTrade[]> {
   const groups: Record<string, JTrade[]> = {}

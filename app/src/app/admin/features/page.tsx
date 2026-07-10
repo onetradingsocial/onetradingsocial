@@ -12,6 +12,7 @@ const WIRED = new Set<string>([
   'journal_unlimited', 'advanced_journal', 'advanced_stats', 'pro_badge', 'custom_badge',
   'creator_profile', 'saved_traders', 'weekly_review', 'strategy_breakdown',
   'strategy_tracking', 'mistake_tagging', 'risk_tracking', 'private_notes', 'custom_templates',
+  'monthly_report',
   'export_journal', 'advanced_reporting', 'mt5_import', 'mt5_autosync',
 ])
 
