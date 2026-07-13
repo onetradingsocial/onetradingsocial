@@ -48,6 +48,7 @@ export type HomeData = {
   recentTrades: HomeRecentTrade[]
   quests: HomeQuest[]
   feedItems: FeedTabItem[]
+  feedHasMore: boolean
   followingIds: string[]
   series: { equity: number[]; winRate: number[]; avgRr: number[]; count: number[] }
   advancedStats: boolean
