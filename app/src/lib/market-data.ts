@@ -63,3 +63,71 @@ export class TtlCache<T> {
     this.map.set(key, { value, freshUntil: now + freshMs, expiresAt: now + freshMs + staleMs })
   }
 }
+
+const TD_BASE = 'https://api.twelvedata.com'
+const US_EXCHANGES = new Set(['NASDAQ', 'NYSE', 'AMEX', 'NYSE ARCA', 'ARCA', 'BATS', 'OTC'])
+
+type TdSearchRow = {
+  symbol?: string
+  instrument_name?: string
+  exchange?: string
+  instrument_type?: string
+}
+
+export async function searchSymbols(
+  q: string,
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<MarketSearchResult[]> {
+  const staticHits = searchStatic(q)
+  if (!apiKey) return staticHits
+  try {
+    const url = `${TD_BASE}/symbol_search?symbol=${encodeURIComponent(q.trim())}&outputsize=30&apikey=${apiKey}`
+    const res = await fetchImpl(url)
+    if (!res.ok) return staticHits
+    const json = (await res.json()) as { data?: TdSearchRow[] }
+    const rows = Array.isArray(json?.data) ? json.data : []
+    const apiHits: MarketSearchResult[] = []
+    for (const row of rows) {
+      if (!row.symbol) continue
+      const market = mapInstrumentType(row.instrument_type ?? '', row.symbol)
+      // Free tier only quotes US stock listings; skip foreign listings to
+      // avoid offering symbols the quote endpoint will reject.
+      if (market === 'stocks' && !US_EXCHANGES.has((row.exchange ?? '').toUpperCase())) continue
+      apiHits.push({
+        symbol: row.symbol.toUpperCase(),
+        name: row.instrument_name ?? row.symbol,
+        market,
+        exchange: row.exchange || undefined,
+      })
+    }
+    return mergeSearchResults(staticHits, apiHits)
+  } catch {
+    return staticHits
+  }
+}
+
+export async function fetchQuote(
+  symbol: string,
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<MarketQuote | { error: 'not_found' | 'rate_limited' | 'unavailable' }> {
+  if (!apiKey) return { error: 'unavailable' }
+  const sym = symbol.trim().toUpperCase()
+  const proxy = INDEX_PROXIES[sym]
+  const target = proxy ?? sym
+  try {
+    const res = await fetchImpl(`${TD_BASE}/price?symbol=${encodeURIComponent(target)}&apikey=${apiKey}`)
+    const json = (await res.json().catch(() => null)) as { price?: string; code?: number } | null
+    if (json && typeof json.price === 'string') {
+      const price = Number(json.price)
+      if (Number.isFinite(price)) {
+        return proxy ? { symbol: sym, price, at: Date.now(), proxy } : { symbol: sym, price, at: Date.now() }
+      }
+    }
+    if (res.status === 429 || json?.code === 429) return { error: 'rate_limited' }
+    return { error: 'not_found' }
+  } catch {
+    return { error: 'unavailable' }
+  }
+}
