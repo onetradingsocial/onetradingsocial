@@ -43,9 +43,11 @@ export async function POST(request: NextRequest) {
 
   // During signup the checkout sits between the plan selector and onboarding,
   // so on success we send the user into onboarding rather than back to billing.
+  // tier/interval ride along so the landing page can attach a value to the
+  // ad-pixel Subscribe event; the pixel component strips them after firing.
   const successUrl = flow === 'onboarding'
-    ? `${SITE}/onboarding?checkout=success`
-    : `${SITE}/settings/billing?status=success`
+    ? `${SITE}/onboarding?checkout=success&tier=${tier}&interval=${interval}`
+    : `${SITE}/settings/billing?status=success&tier=${tier}&interval=${interval}`
   const cancelUrl = flow === 'onboarding'
     ? `${SITE}/select-plan?checkout=cancelled`
     : `${SITE}/settings/billing?status=cancelled`

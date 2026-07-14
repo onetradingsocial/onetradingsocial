@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Tier, Interval } from '@/lib/entitlements'
+import { trackMeta } from '@/app/_components/MetaPixel'
 
 /* ───────────────── icons ───────────────── */
 const CHK: ReactNode = (
@@ -100,6 +101,7 @@ export function SelectPlanForm() {
       router.push('/onboarding')
       return
     }
+    trackMeta('InitiateCheckout', { content_name: `${selected}_${interval}` })
     const res = await fetch('/api/billing/checkout', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

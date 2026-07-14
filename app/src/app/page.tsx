@@ -11,6 +11,7 @@ import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { HomeArena } from './feed/_components/home/HomeArena'
 import { type HomeData } from './feed/_components/home/types'
 import { RedditPixel } from './_components/RedditPixel'
+import { MetaPixel } from './_components/MetaPixel'
 
 const FEED_INITIAL_LIMIT = 30
 
@@ -136,6 +137,16 @@ export default async function Home({
   return (
     <>
       <HomeArena data={data} />
+      {justSignedUp && (
+        // MetaPixel must render before RedditPixel: both gate on ?signup=1 and
+        // effects run in document order — RedditPixel strips the param when done.
+        <MetaPixel
+          event="CompleteRegistration"
+          email={user.email}
+          externalId={user.id}
+          requireParam="signup"
+        />
+      )}
       {justSignedUp && (
         <RedditPixel
           event="SignUp"

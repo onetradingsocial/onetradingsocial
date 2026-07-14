@@ -1,5 +1,6 @@
 'use client'
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { trackMeta } from '@/app/_components/MetaPixel'
 
 type Tier = 'free' | 'trader' | 'pro'
 const RANK: Record<Tier, number> = { free: 0, trader: 1, pro: 2 }
@@ -169,7 +170,10 @@ function PlanCta({ plan, currentTier, interval, busy, act }: {
   if (RANK[plan.tier] > RANK[currentTier]) {
     return (
       <button className={`btn pcard-cta ${plan.tier === 'trader' ? 'btn-primary' : 'btn-ghost'}`} disabled={busy}
-        onClick={() => act(() => post('/api/billing/checkout', { tier: plan.tier, interval }))}>
+        onClick={() => {
+          trackMeta('InitiateCheckout', { content_name: `${plan.tier}_${interval}` })
+          return act(() => post('/api/billing/checkout', { tier: plan.tier, interval }))
+        }}>
         Upgrade to {plan.name}
       </button>
     )
