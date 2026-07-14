@@ -9,6 +9,7 @@ import { computeOpen, SETUP_PRESETS, type Direction, type SizingMode } from '@/l
 import { pipInfo } from '@/lib/instruments'
 import { InstrumentCombobox } from './InstrumentCombobox'
 import { Mt5ImportTab } from './Mt5ImportTab'
+import { LivePriceChip } from './LivePriceChip'
 
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
@@ -202,7 +203,9 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
             )}
           </div>
           <label className="ts-field"><span className="ts-label">Entry price</span>
-            <input name="entry_price" className="ts-input ts-input--lg" value={entry} onChange={(e) => setEntry(e.target.value)} inputMode="decimal" placeholder="0.00000" /></label>
+            <input name="entry_price" className="ts-input ts-input--lg" value={entry} onChange={(e) => setEntry(e.target.value)} inputMode="decimal" placeholder="0.00000" />
+            <LivePriceChip symbol={instrument} onUse={setEntry} />
+          </label>
         </div>
 
         <div className="ts-grid2 mt-4">

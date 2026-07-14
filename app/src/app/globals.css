@@ -1957,3 +1957,21 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   padding: 2px 6px; border-radius: 99px; background: var(--brand-grad-soft);
   color: var(--violet-deep);
 }
+
+/* Live price chip (trade modal entry field) */
+.ts-pricechip {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;
+  padding: 3px 8px; border-radius: 99px; font-size: 12px; font-weight: 600;
+  background: var(--brand-grad-soft); color: var(--violet-deep);
+  width: fit-content;
+}
+.ts-pricechip-dot {
+  width: 6px; height: 6px; border-radius: 99px; background: #22c55e;
+}
+.ts-pricechip-dot[data-loading='true'] { background: #f59e0b; }
+.ts-pricechip-proxy { font-weight: 500; opacity: 0.7; font-size: 11px; }
+.ts-pricechip-use, .ts-pricechip-refresh {
+  border: 0; background: transparent; cursor: pointer; font: inherit;
+  color: var(--violet-br); font-weight: 700; padding: 0 2px;
+}
+.ts-pricechip-use:hover, .ts-pricechip-refresh:hover { text-decoration: underline; }
