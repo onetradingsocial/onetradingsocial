@@ -126,7 +126,11 @@ export async function fetchQuote(
       }
     }
     if (res.status === 429 || json?.code === 429) return { error: 'rate_limited' }
-    return { error: 'not_found' }
+    // not_found only when the provider explicitly rejected the symbol; any
+    // outage/parse failure (non-ok status, unparseable or empty body) degrades
+    // to unavailable so callers can distinguish "bad symbol" from "try later".
+    if (res.ok && json && typeof json.code === 'number') return { error: 'not_found' }
+    return { error: 'unavailable' }
   } catch {
     return { error: 'unavailable' }
   }

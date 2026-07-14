@@ -158,4 +158,11 @@ describe('fetchQuote', () => {
     const boom = (async () => { throw new Error('net') }) as unknown as typeof fetch
     expect(await fetchQuote('EUR/USD', 'key', boom)).toEqual({ error: 'unavailable' })
   })
+  it('maps 5xx with non-JSON body to unavailable', async () => {
+    const f = (async () => new Response('oops', { status: 500 })) as unknown as typeof fetch
+    expect(await fetchQuote('EUR/USD', 'key', f)).toEqual({ error: 'unavailable' })
+  })
+  it('maps 200 body missing price and code to unavailable', async () => {
+    expect(await fetchQuote('EUR/USD', 'key', fakeFetch({}))).toEqual({ error: 'unavailable' })
+  })
 })
