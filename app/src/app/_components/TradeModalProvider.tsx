@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { createTrade, saveTradeChartUrl } from '@/app/actions/trade'
 import { listTradeTemplates, saveTradeTemplate, type TradeTemplate } from '@/app/actions/templates'
 import { computeOpen, SETUP_PRESETS, type Direction, type SizingMode } from '@/lib/trade'
-import { INSTRUMENTS, pipInfo } from '@/lib/instruments'
+import { pipInfo } from '@/lib/instruments'
+import { InstrumentCombobox } from './InstrumentCombobox'
 import { Mt5ImportTab } from './Mt5ImportTab'
 
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
@@ -174,8 +175,11 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
             </select>
           </label>
           <label className="ts-field"><span className="ts-label">Instrument</span>
-            <input name="instrument" className="ts-input" value={instrument} list="instlist" onChange={(e) => setInstrument(e.target.value)} />
-            <datalist id="instlist">{INSTRUMENTS.map((i) => <option key={i.symbol} value={i.symbol}>{i.name}</option>)}</datalist>
+            <InstrumentCombobox
+              value={instrument}
+              onChange={setInstrument}
+              onSelect={(r) => { setInstrument(r.symbol); setMarket(r.market) }}
+            />
           </label>
           <div className="ts-field"><span className="ts-label">Direction</span>
             <div className="ts-toggle">
