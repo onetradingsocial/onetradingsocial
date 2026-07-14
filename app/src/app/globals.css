@@ -1946,14 +1946,14 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   display: flex; align-items: center; gap: 8px; padding: 7px 10px;
   border-radius: 7px; cursor: pointer; font-size: 13px;
 }
-.ts-combobox-list li[data-active='true'] { background: var(--violet-soft, #f3efff); }
+.ts-combobox-list li[data-active='true'] { background: var(--brand-grad-soft); color: var(--violet-deep); }
 .ts-combobox-sym { font-weight: 700; white-space: nowrap; }
 .ts-combobox-name {
   flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  color: var(--muted, #6b7280); font-size: 12px;
+  color: var(--dim); font-size: 12px;
 }
 .ts-combobox-badge {
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-  padding: 2px 6px; border-radius: 99px; background: var(--violet-soft, #f3efff);
-  color: var(--violet-deep, #5b21b6);
+  padding: 2px 6px; border-radius: 99px; background: var(--brand-grad-soft);
+  color: var(--violet-deep);
 }
