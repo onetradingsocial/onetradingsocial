@@ -57,6 +57,8 @@ export function InstrumentCombobox({ value, onChange, onSelect }: {
         autoComplete="off"
         role="combobox"
         aria-expanded={open}
+        aria-controls="inst-listbox"
+        aria-activedescendant={open && results.length ? `inst-opt-${active}` : undefined}
         onFocus={() => { setOpen(true); query(value) }}
         onBlur={() => setOpen(false)}
         onChange={(e) => { onChange(e.target.value); setOpen(true); query(e.target.value) }}
@@ -69,10 +71,11 @@ export function InstrumentCombobox({ value, onChange, onSelect }: {
         }}
       />
       {open && results.length > 0 && (
-        <ul className="ts-combobox-list" role="listbox">
+        <ul className="ts-combobox-list" role="listbox" id="inst-listbox">
           {results.map((r, i) => (
             <li
               key={`${r.symbol}-${r.exchange ?? ''}`}
+              id={`inst-opt-${i}`}
               role="option"
               aria-selected={i === active}
               data-active={i === active}

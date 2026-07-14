@@ -15,13 +15,13 @@ export function LivePriceChip({ symbol, onUse }: { symbol: string; onUse: (price
   const [loading, setLoading] = useState(false)
   const seq = useRef(0)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (fresh = false) => {
     const s = symbol.trim().toUpperCase()
     const id = ++seq.current
     if (!s) { setQuote(null); return }
     setLoading(true)
     try {
-      const res = await fetch(`/api/market/quote?symbol=${encodeURIComponent(s)}`)
+      const res = await fetch(`/api/market/quote?symbol=${encodeURIComponent(s)}`, fresh ? { cache: 'no-store' } : undefined)
       const json = res.ok ? ((await res.json()) as { quote?: Quote }) : null
       if (id !== seq.current) return
       setQuote(json?.quote && Number.isFinite(json.quote.price) ? json.quote : null)
@@ -34,7 +34,7 @@ export function LivePriceChip({ symbol, onUse }: { symbol: string; onUse: (price
 
   // Debounce: waits out fast symbol changes (typing) before spending a quote credit.
   useEffect(() => {
-    const t = setTimeout(load, 500)
+    const t = setTimeout(() => load(), 500)
     return () => clearTimeout(t)
   }, [load])
 
@@ -49,7 +49,7 @@ export function LivePriceChip({ symbol, onUse }: { symbol: string; onUse: (price
           Use
         </button>
       )}
-      <button type="button" className="ts-pricechip-refresh" onClick={load} title="Refresh price">↻</button>
+      <button type="button" className="ts-pricechip-refresh" onClick={() => load(true)} aria-label="Refresh price" title="Refresh price">↻</button>
     </span>
   )
 }
