@@ -3,17 +3,19 @@ import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
 
 /**
- * Hourly error watchdog (Sprint 1, row 49). Counts error signals from the last
- * hour and raises a system_alert when a threshold trips. Deduped: one open
- * alert per kind per window. Optionally forwards to ALERT_WEBHOOK_URL
- * (Discord/Slack-compatible JSON) so alerts reach the team without polling
- * the admin dashboard.
+ * Daily error watchdog (Sprint 1, row 49) — Vercel Hobby allows only daily
+ * crons, so the window is 24h. Counts error signals and raises a system_alert
+ * when a threshold trips. Deduped: one open alert per kind per window.
+ * Optionally forwards to ALERT_WEBHOOK_URL (Discord/Slack-compatible JSON)
+ * so alerts reach the team without polling the admin dashboard.
  */
+
+const WINDOW_HOURS = 24
 
 const RULES: { kind: string; event: string; threshold: number; label: string }[] = [
   { kind: 'client_error', event: 'client_error', threshold: 3, label: 'client errors' },
   { kind: 'import_failed', event: 'import_failed', threshold: 3, label: 'failed MT5 imports' },
-  { kind: 'not_found', event: 'not_found', threshold: 20, label: '404 hits' },
+  { kind: 'not_found', event: 'not_found', threshold: 50, label: '404 hits' },
 ]
 
 export async function GET(req: NextRequest) {
@@ -22,7 +24,7 @@ export async function GET(req: NextRequest) {
   }
 
   const svc = createServiceClient()
-  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const since = new Date(Date.now() - WINDOW_HOURS * 60 * 60 * 1000).toISOString()
   const raised: string[] = []
 
   for (const rule of RULES) {
@@ -42,7 +44,7 @@ export async function GET(req: NextRequest) {
       .limit(1)
     if (existing && existing.length > 0) continue
 
-    const message = `${count} ${rule.label} in the last hour (threshold ${rule.threshold})`
+    const message = `${count} ${rule.label} in the last ${WINDOW_HOURS}h (threshold ${rule.threshold})`
     await svc.from('system_alerts').insert({ kind: rule.kind, message, count: count ?? 0 })
     raised.push(message)
   }
