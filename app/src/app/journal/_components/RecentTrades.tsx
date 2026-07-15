@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { CloseTradeModal } from './CloseTradeModal'
 import { marketColor, instrumentBadge, type JTrade } from '@/lib/journal-stats'
+import { VerificationBadge } from '@/app/_components/VerificationBadge'
+import { tradeLevel } from '@/lib/verification'
 
 const FILTERS = [['all', 'All'], ['wins', 'Wins'], ['losses', 'Losses'], ['crypto', 'Crypto'], ['forex', 'Forex'], ['stocks', 'Stocks']] as const
 
@@ -44,7 +46,13 @@ export function RecentTrades({ trades, monthNet, canMistakeTag = false }: { trad
                     <td>
                       <div className="ts-inst">
                         <span className="ts-inst-badge" style={{ background: marketColor(t.market) }}>{instrumentBadge(t.instrument)}</span>
-                        <div><div style={{ fontWeight: 600 }}>{t.instrument}</div><div className="faint" style={{ fontSize: 12, textTransform: 'capitalize' }}>{t.market}</div></div>
+                        <div>
+                          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {t.instrument}
+                            <VerificationBadge level={tradeLevel(t.source)} short />
+                          </div>
+                          <div className="faint" style={{ fontSize: 12, textTransform: 'capitalize' }}>{t.market}</div>
+                        </div>
                       </div>
                     </td>
                     <td><span className={`ts-side ${long ? 'ts-side--long' : 'ts-side--short'}`} title={long ? 'Long' : 'Short'} aria-label={long ? 'Long' : 'Short'}>{long ? '↗' : '↘'}</span></td>

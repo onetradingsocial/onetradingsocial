@@ -1333,7 +1333,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-M7NX0Y7NSC');
+    // Internal traffic opt-out: visit any page with ?internal=1 once per browser.
+    try {
+      if (new URLSearchParams(location.search).get('internal') === '1') localStorage.setItem('ts_internal', '1');
+      if (localStorage.getItem('ts_internal') === '1') gtag('set', 'traffic_type', 'internal');
+    } catch (e) {}
+    // Cross-domain linker: keep sessions intact into app.tradingsocial.io.
+    gtag('config', 'G-M7NX0Y7NSC', { linker: { domains: ['tradingsocial.io', 'app.tradingsocial.io'] } });
   </script>
   <!-- Reddit Pixel -->
   <script>

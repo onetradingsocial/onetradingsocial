@@ -1,10 +1,12 @@
-export const FEEDBACK_TYPES = ['bug', 'feedback', 'feature', 'other'] as const
+export const FEEDBACK_TYPES = ['bug', 'feedback', 'feature', 'verification', 'account', 'other'] as const
 export type FeedbackType = (typeof FEEDBACK_TYPES)[number]
 
 export const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
   bug: 'Bug',
   feedback: 'Feedback',
   feature: 'Feature request',
+  verification: 'Verification issue',
+  account: 'Account issue',
   other: 'Other',
 }
 

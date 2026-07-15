@@ -45,7 +45,7 @@ export async function GET(req: Request) {
         const { data: profile } = await svc
           .from('profiles').select('is_public').eq('id', row.user_id).single()
         const mapped = trades.map((t) =>
-          mapDealToTrade(t, { userId: row.user_id, isPublic: profile?.is_public ?? true }))
+          mapDealToTrade(t, { userId: row.user_id, isPublic: profile?.is_public ?? true, source: 'broker' }))
         const { error: upErr } = await svc
           .from('trades')
           .upsert(mapped, { onConflict: 'user_id,broker_deal_id', ignoreDuplicates: true })

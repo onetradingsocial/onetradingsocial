@@ -1,4 +1,5 @@
 import type { Metrics } from '@/lib/trade'
+import { TrackOnMount } from '@/app/_components/TrackOnMount'
 
 function money(n: number, sign = false) {
   const abs = `$${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
@@ -37,6 +38,7 @@ export function WeeklyReviewCard({ thisWeek, lastWeek, best, worst, locked }: {
 
   return (
     <div className="ts-card">
+      <TrackOnMount event="weekly_review_viewed" />
       <div className="flex items-center justify-between">
         <h2 className="ts-h2">Weekly performance review</h2>
         <span className="faint" style={{ fontSize: 12 }}>Last 7 days vs the 7 before</span>

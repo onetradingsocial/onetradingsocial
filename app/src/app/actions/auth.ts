@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { validateUsername } from '@/lib/username'
+import { trackServer } from '@/lib/server/track'
 
 export type ActionState = { error?: string }
 
@@ -27,6 +28,8 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   if (data.user && data.user.identities && data.user.identities.length === 0) {
     return { error: 'An account with this email already exists.' }
   }
+
+  if (data.user) await trackServer('signup_completed', { id: data.user.id, email }, { method: 'email' })
 
   redirect('/select-plan')
 }

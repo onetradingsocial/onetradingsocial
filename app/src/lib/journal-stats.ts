@@ -13,6 +13,7 @@ export type JTrade = {
   setup_type: string | null
   strategy_tags: string[]
   traded_at: string
+  source?: 'manual' | 'statement' | 'broker' | null
 }
 
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

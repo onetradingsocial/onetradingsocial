@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo, useRef, useActionState, type ReactNode } from 'react'
+import { useState, useMemo, useRef, useEffect, useActionState, type ReactNode } from 'react'
 import { saveOnboarding, type ProfileState } from '@/app/actions/profile'
+import { track } from '@/lib/track'
 
 /* ───────────────── icons (subset of the home design system) ───────────────── */
 const IP = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
@@ -61,7 +62,32 @@ const OB_VIS: { id: string; icon: IconName; title: string; desc: string; tags: s
   { id: 'private', icon: 'shield', title: 'Private', desc: 'Journal solo. Your stats stay between you and your charts.', tags: ['Solo journal', 'Hidden stats'] },
 ]
 
-type Data = { markets: string[]; level: string; goal: string; visibility: string }
+type Data = { markets: string[]; level: string; goal: string; visibility: string; accountType: string; connect: string }
+
+// Data-connection step: how the user will get trades into the journal.
+const OB_CONNECT: { id: string; icon: IconName; title: string; desc: string; tag: string }[] = [
+  { id: 'broker', icon: 'bolt', title: 'Connect MT5 broker', desc: 'Auto-sync closed trades straight from your broker. Highest verification level.', tag: 'Broker connected' },
+  { id: 'statement', icon: 'book', title: 'Upload MT5 statement', desc: 'Import your trade history from an MT5 report file in one go.', tag: 'Statement imported' },
+  { id: 'manual', icon: 'target', title: 'Log trades manually', desc: 'Type trades in as you take them. Under 60 seconds per trade.', tag: 'Self-reported' },
+]
+
+// First personalised insight (sample, shown on the reveal screen).
+const OB_INSIGHTS: Record<string, string> = {
+  consistency: 'Traders who journal at least 90% of their trades cut repeated mistakes roughly in half within 8 weeks.',
+  funded: 'Most failed prop challenges break the daily-drawdown rule, not the profit target — your journal will flag risk breaches per trade.',
+  fulltime: 'Full-time consistency starts with knowing your numbers: expectancy, average R and best session — all computed from your first 10 logged trades.',
+  learn: 'Your first weekly review will show win rate, profit factor and your most expensive mistake — most traders are surprised by which one it is.',
+  grow: 'Compounding rewards consistency: your equity curve and drawdown chart unlock after your first logged trades.',
+  audience: 'Verified results build followings — broker-synced trades carry a badge everywhere your profile appears.',
+}
+
+// Account-type labels (trust system): displayed on profile + leaderboards.
+const OB_ACCOUNT_TYPES = [
+  { id: 'live', label: 'Live' },
+  { id: 'demo', label: 'Demo' },
+  { id: 'prop', label: 'Prop firm' },
+  { id: 'competition', label: 'Competition' },
+] as const
 
 /* ───────────────── small helpers ───────────────── */
 function Dots({ step, total }: { step: number; total: number }) {
@@ -133,6 +159,8 @@ function IdentityCard({ data, xp, name, username }: { data: Data; xp: number; na
             value={goal && goal.title} />
           <Row icon={vis ? vis.icon : 'globe'} k="Profile" filled={!!vis} empty="Public or private"
             value={vis && vis.title + ' profile'} />
+          <Row icon="bolt" k="Trade data" filled={!!data.connect} empty="Pick a data source"
+            value={OB_CONNECT.find((c) => c.id === data.connect)?.tag} />
         </div>
       </div>
 
@@ -175,11 +203,31 @@ function StepShell(props: {
 const initial: ProfileState = {}
 
 export function OnboardingForm({ initialUsername, displayName, canGoPrivate = true }: { initialUsername: string; displayName?: string; canGoPrivate?: boolean }) {
-  const [step, setStep] = useState(0) // 0 welcome, 1..4 questions, 5 reveal
-  const [data, setData] = useState<Data>({ markets: [], level: '', goal: '', visibility: '' })
+  const [step, setStep] = useState(0) // 0 welcome, 1..5 questions, 6 reveal
+  const [data, setData] = useState<Data>({ markets: [], level: '', goal: '', visibility: '', accountType: '', connect: '' })
   const [username, setUsername] = useState(initialUsername)
   const [state, action, pending] = useActionState(saveOnboarding, initial)
   const formRef = useRef<HTMLFormElement>(null)
+
+  // Resume later: progress persists per browser. Restored after mount so SSR
+  // markup stays deterministic (no hydration mismatch).
+  const restored = useRef(false)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('ts_onboarding')
+      if (raw) {
+        const saved = JSON.parse(raw) as { step?: number; data?: Partial<Data>; username?: string }
+        if (saved.data) setData((d) => ({ ...d, ...saved.data }))
+        if (saved.username) setUsername((u) => u || saved.username || '')
+        if (typeof saved.step === 'number' && saved.step > 0) setStep(saved.step)
+      }
+    } catch { /* corrupt state -> start fresh */ }
+    restored.current = true
+  }, [])
+  useEffect(() => {
+    if (!restored.current) return
+    try { localStorage.setItem('ts_onboarding', JSON.stringify({ step, data, username })) } catch { /* full/blocked */ }
+  }, [step, data, username])
 
   const name = displayName?.trim() || username.trim() || 'trader'
   const usernameReady = username.trim().length >= 3
@@ -197,7 +245,12 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
   const toggleMarket = (id: string) =>
     setData((d) => ({ ...d, markets: d.markets.includes(id) ? d.markets.filter((m) => m !== id) : [...d.markets, id] }))
 
-  const go = (n: number) => setStep(n)
+  // Abandonment analytics: record every step reached so the funnel dashboard
+  // can show exactly where users stop.
+  const go = (n: number) => {
+    setStep(n)
+    track('onboarding_step', { step: n })
+  }
 
   const lvl = OB_LEVELS.find((l) => l.id === data.level)
   const goal = OB_GOALS.find((g) => g.id === data.goal)
@@ -211,10 +264,16 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
       {data.markets.map((m) => <input key={m} type="hidden" name="main_markets" value={m} />)}
       <input type="hidden" name="goal" value={goal?.title ?? ''} />
       <input type="hidden" name="is_public" value={data.visibility === 'public' ? 'public' : 'private'} />
+      <input type="hidden" name="account_type" value={data.accountType} />
     </form>
   )
 
-  const submit = () => formRef.current?.requestSubmit()
+  const submit = () => {
+    // Funnel: record which data-connection path was chosen at completion.
+    track('onboarding_step', { step: 6, connect: data.connect })
+    try { localStorage.removeItem('ts_onboarding') } catch { /* non-fatal */ }
+    formRef.current?.requestSubmit()
+  }
 
   /* ---------- WELCOME ---------- */
   if (step === 0) {
@@ -244,7 +303,7 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
           </div>
           <div className="ob-hero-cta">
             <button type="button" className="ob-next" onClick={() => go(1)} disabled={!usernameReady}>Build my identity <Icon name="arrowRight" size={17} /></button>
-            <div className="ob-hero-meta"><span>Takes about 30 seconds</span><span className="dot" /><span>4 questions</span><span className="dot" /><span>+90 XP</span></div>
+            <div className="ob-hero-meta"><span>Takes about a minute</span><span className="dot" /><span>5 questions</span><span className="dot" /><span>+90 XP</span></div>
           </div>
         </div>
       </div>
@@ -256,9 +315,9 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
     return (
       <div className="ob-card">
         {hiddenForm}
-        <div className="ob-progress-top"><i style={{ width: '25%' }} /></div>
+        <div className="ob-progress-top"><i style={{ width: '20%' }} /></div>
         <StepShell
-          step={1} total={4} stepLabel="Step 1 of 4" data={data} xp={xp} name={name} username={username}
+          step={1} total={5} stepLabel="Step 1 of 5" data={data} xp={xp} name={name} username={username}
           q="What do you trade?" sub="Pick every market you're active in. We'll tune your feed and match you with traders who run the same instruments."
           onBack={() => go(0)} onNext={() => go(2)} nextDisabled={data.markets.length === 0}
         >
@@ -281,9 +340,9 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
     return (
       <div className="ob-card">
         {hiddenForm}
-        <div className="ob-progress-top"><i style={{ width: '50%' }} /></div>
+        <div className="ob-progress-top"><i style={{ width: '40%' }} /></div>
         <StepShell
-          step={2} total={4} stepLabel="Step 2 of 4" data={data} xp={xp} name={name} username={username}
+          step={2} total={5} stepLabel="Step 2 of 5" data={data} xp={xp} name={name} username={username}
           q="What's your experience level?" sub="This sets your starting rank and the depth of insight we surface. You can always level up as you log trades."
           onBack={() => go(1)} onNext={() => go(3)} nextDisabled={!data.level}
         >
@@ -306,9 +365,9 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
     return (
       <div className="ob-card">
         {hiddenForm}
-        <div className="ob-progress-top"><i style={{ width: '75%' }} /></div>
+        <div className="ob-progress-top"><i style={{ width: '60%' }} /></div>
         <StepShell
-          step={3} total={4} stepLabel="Step 3 of 4" data={data} xp={xp} name={name} username={username}
+          step={3} total={5} stepLabel="Step 3 of 5" data={data} xp={xp} name={name} username={username}
           q="What's your main goal?" sub="Pick the one that matters most right now. Your quests, streaks and reminders will all aim at this."
           onBack={() => go(2)} onNext={() => go(4)} nextDisabled={!data.goal}
         >
@@ -331,13 +390,13 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
     return (
       <div className="ob-card">
         {hiddenForm}
-        <div className="ob-progress-top"><i style={{ width: '100%' }} /></div>
+        <div className="ob-progress-top"><i style={{ width: '80%' }} /></div>
         <StepShell
-          step={4} total={4} stepLabel="Step 4 of 4" data={data} xp={xp} name={name} username={username}
+          step={4} total={5} stepLabel="Step 4 of 5" data={data} xp={xp} name={name} username={username}
           q="Public or private?" sub={canGoPrivate
             ? "Most traders go public to learn faster — but you're in control. Change this anytime from your settings."
             : "On the free plan your profile is public so you can climb the leaderboard. Private journaling unlocks on Trader & Pro."}
-          onBack={() => go(3)} onNext={() => go(5)} nextDisabled={!data.visibility} nextLabel="Create my profile"
+          onBack={() => go(3)} onNext={() => go(5)} nextDisabled={!data.visibility}
         >
           <div className="ob-vis">
             {OB_VIS.map((v) => {
@@ -360,6 +419,51 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
               )
             })}
           </div>
+
+          {/* Account-type label — shown beside results so demo is never mistaken for live. */}
+          <div style={{ marginTop: 18 }}>
+            <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 8 }}>
+              What kind of account do you trade? <span style={{ color: 'var(--faint)' }}>(shown next to your results)</span>
+            </p>
+            <div className="ts-chips">
+              {OB_ACCOUNT_TYPES.map((t) => (
+                <button
+                  key={t.id} type="button"
+                  className="ts-chip"
+                  aria-pressed={data.accountType === t.id}
+                  style={data.accountType === t.id ? { borderColor: 'var(--violet)', color: 'var(--violet-deep)', fontWeight: 700 } : undefined}
+                  onClick={() => setData((d) => ({ ...d, accountType: d.accountType === t.id ? '' : t.id }))}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </StepShell>
+      </div>
+    )
+  }
+
+  /* ---------- Q5 · DATA CONNECTION ---------- */
+  if (step === 5) {
+    return (
+      <div className="ob-card">
+        {hiddenForm}
+        <div className="ob-progress-top"><i style={{ width: '100%' }} /></div>
+        <StepShell
+          step={5} total={5} stepLabel="Step 5 of 5" data={data} xp={xp} name={name} username={username}
+          q="How will you add your trades?" sub="Pick your starting method — you can add the others later. Broker-synced and imported trades carry a verification badge everywhere."
+          onBack={() => go(4)} onNext={() => go(6)} nextDisabled={!data.connect} nextLabel="Create my profile"
+        >
+          <div className="ob-goals">
+            {OB_CONNECT.map((c) => (
+              <button type="button" key={c.id} className={'ob-goal' + (data.connect === c.id ? ' on' : '')} onClick={() => setData((d) => ({ ...d, connect: c.id }))}>
+                <span className="g-ic"><Icon name={c.icon} size={20} /></span>
+                <b>{c.title}</b>
+                <span>{c.desc}</span>
+              </button>
+            ))}
+          </div>
         </StepShell>
       </div>
     )
@@ -368,6 +472,8 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
   /* ---------- REVEAL ---------- */
   const pickedMarkets = OB_MARKETS.filter((m) => data.markets.includes(m.id))
   const confettiCols = ['#7C5CE6', '#C840BC', '#FF7A4D', '#3FB6E8', '#34D399', '#FFD27A']
+  const insight = OB_INSIGHTS[data.goal] ?? OB_INSIGHTS.consistency
+  const connect = OB_CONNECT.find((c) => c.id === data.connect)
 
   return (
     <div className="ob-card">
@@ -406,7 +512,20 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
             ))}
             {goal && <span className="ob-reveal-tag"><Icon name={goal.icon} size={14} /> {goal.title}</span>}
             {vis && <span className="ob-reveal-tag"><Icon name={vis.icon} size={14} /> {vis.title}</span>}
+            {connect && <span className="ob-reveal-tag"><Icon name={connect.icon} size={14} /> {connect.tag}</span>}
           </div>
+        </div>
+
+        {/* First personalised insight — a taste of what the journal computes. */}
+        <div style={{
+          maxWidth: 520, margin: '18px auto 0', textAlign: 'left', display: 'flex', gap: 10,
+          padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)',
+        }}>
+          <span style={{ flexShrink: 0, marginTop: 2 }}><Icon name="sparkle" size={16} /></span>
+          <span style={{ fontSize: 13.5, lineHeight: 1.55 }}>
+            <b style={{ display: 'block', marginBottom: 2 }}>Your first insight</b>
+            {insight}
+          </span>
         </div>
 
         {state.error && <p className="ts-error" style={{ marginTop: 22 }}>{state.error} — <button type="button" onClick={() => go(0)} style={{ color: 'inherit', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>edit handle</button></p>}

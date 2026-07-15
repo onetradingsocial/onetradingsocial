@@ -21,6 +21,18 @@ export async function setFeedbackStatus(id: string, status: FeedbackStatus): Pro
   return {}
 }
 
+export async function ackSystemAlert(id: number): Promise<{ error?: string }> {
+  const admin = await requireAdmin()
+  const svc = createServiceClient()
+  const { error } = await svc
+    .from('system_alerts')
+    .update({ acked: true, acked_by: admin.id, acked_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) return { error: 'Update failed.' }
+  revalidatePath('/admin')
+  return {}
+}
+
 export type CourseInput = { slug: string; title: string; summary: string; difficulty: string; ord: number; minTier: string }
 
 const VALID_TIERS = new Set(['free', 'trader', 'pro'])

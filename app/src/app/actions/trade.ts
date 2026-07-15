@@ -6,6 +6,7 @@ import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { pipInfo } from '@/lib/instruments'
+import { trackServer } from '@/lib/server/track'
 import {
   computeOpen, computeClose, DIRECTIONS, SIZING_MODES, CONFIDENCE_LEVELS, EMOTIONS, MISTAKE_TAGS,
   type Direction, type SizingMode,
@@ -95,6 +96,12 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   }).select('id').single()
 
   if (error) return { error: error.message }
+
+  // Funnel: first_trade_logged is the activation event.
+  const { count } = await supabase
+    .from('trades').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
+  await trackServer(count === 1 ? 'first_trade_logged' : 'trade_logged', user, { market, source: 'manual' })
+
   revalidatePath('/journal')
   return { ok: true, tradeId: data.id }
 }

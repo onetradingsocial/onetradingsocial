@@ -1,4 +1,6 @@
 import { CloseTradeModal } from './CloseTradeModal'
+import { VerificationBadge } from '@/app/_components/VerificationBadge'
+import { tradeLevel, type TradeSource } from '@/lib/verification'
 
 type Row = {
   id: string
@@ -14,6 +16,7 @@ type Row = {
   setup_type: string | null
   strategy_tags: string[]
   traded_at: string
+  source?: TradeSource | null
 }
 
 export function TradeRow({ t }: { t: Row }) {
@@ -22,7 +25,10 @@ export function TradeRow({ t }: { t: Row }) {
   return (
     <tr>
       <td>
-        <div style={{ fontWeight: 600 }}>{t.instrument}</div>
+        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+          {t.instrument}
+          <VerificationBadge level={tradeLevel(t.source)} short />
+        </div>
         <div className="faint" style={{ fontSize: 12, textTransform: 'capitalize' }}>{t.direction}</div>
       </td>
       <td>{t.entry_price}</td>

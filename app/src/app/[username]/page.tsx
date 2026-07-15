@@ -16,6 +16,8 @@ import { findCustomBadge } from '@/lib/badges'
 import { findTheme } from '@/lib/creator-profile'
 import { TradeAttachment, type TradeCard } from '@/app/feed/_components/attachments/TradeAttachment'
 import { TradingCalendar } from '@/app/journal/_components/TradingCalendar'
+import { VerificationBadge, AccountTypeBadge } from '@/app/_components/VerificationBadge'
+import { profileLevel, sourceMix, type SourceCounts, type BrokerStatus, type AccountType } from '@/lib/verification'
 import { Icon } from './_components/Icon'
 import { Sparkline } from './_components/Sparkline'
 import { ProfileEquity, type EqPoint } from './_components/ProfileEquity'
@@ -37,7 +39,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, created_at, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id')
+    .select('username, display_name, bio, avatar_url, experience_level, main_markets, trading_styles, created_at, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id, account_type')
     .eq('username', username)
     .maybeSingle()
 
@@ -96,11 +98,31 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   if (idRow) {
     const { data } = await supabase
       .from('trades')
-      .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, traded_at')
+      .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, traded_at, source')
       .eq('user_id', idRow.id).eq('is_public', true).eq('status', 'closed')
       .order('traded_at', { ascending: false })
     pub = (data ?? []) as JTrade[]
   }
+
+  // Verification status: per-source mix of public trades + broker connection state.
+  const srcCounts: SourceCounts = { manual: 0, statement: 0, broker: 0 }
+  for (const t of pub) srcCounts[(t.source ?? 'manual') as keyof SourceCounts] += 1
+  let brokerStatus: BrokerStatus = null
+  let lastSyncAt: string | null = null
+  if (profileId) {
+    const { data: ba } = await createServiceClient()
+      .from('broker_accounts').select('status, last_sync_at').eq('user_id', profileId).maybeSingle()
+    brokerStatus = (ba?.status ?? null) as BrokerStatus
+    lastSyncAt = ba?.last_sync_at ?? null
+  }
+  const verification = profileLevel(srcCounts, brokerStatus)
+  const mix = sourceMix(srcCounts)
+  const verifiedTrades = pub.filter((t) => t.source === 'statement' || t.source === 'broker')
+  const verifiedDays = new Set(verifiedTrades.map((t) => t.traded_at.slice(0, 10))).size
+  const verificationStart = verifiedTrades.length
+    ? verifiedTrades.reduce((m, t) => (t.traded_at < m ? t.traded_at : m), verifiedTrades[0].traded_at)
+    : null
+  const accountType = (profile.account_type ?? null) as AccountType | null
 
   const metrics = computeMetrics(pub.map((t): TradeForMetrics => ({
     status: 'closed', outcome: t.outcome as TradeForMetrics['outcome'], rMultiple: t.r_multiple,
@@ -268,6 +290,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                       {profileXp && <span className="pf-lvtag">LV {profileXp.level.level}</span>}
                     </div>
                     <div className="pf-handle">@{profile.username}</div>
+                    <div className="pf-meta" style={{ marginBottom: 6 }}>
+                      <VerificationBadge level={verification} />
+                      <AccountTypeBadge type={accountType} short={false} />
+                    </div>
                     <div className="pf-meta">
                       {profileRank && <span className="pf-metaitem"><Icon name="trophy" size={14} /> Rank #{profileRank}</span>}
                       <span className="pf-metaitem"><Icon name="clock" size={14} /> Joined {new Date(profile.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span>
@@ -325,6 +351,23 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                     </div>
                   )}
                 </div>
+
+                {/* Verification confidence: source mix beats a bare green tick. */}
+                {pub.length > 0 && (
+                  <div className="pf-verify">
+                    <div className="pf-verify-bar" aria-hidden="true">
+                      {mix.broker > 0 && <span className="seg seg-broker" style={{ width: `${mix.broker}%` }} />}
+                      {mix.statement > 0 && <span className="seg seg-statement" style={{ width: `${mix.statement}%` }} />}
+                      {mix.manual > 0 && <span className="seg seg-manual" style={{ width: `${mix.manual}%` }} />}
+                    </div>
+                    <span className="pf-verify-stats">
+                      {mix.broker}% broker-synced · {mix.statement}% statement-imported · {mix.manual}% manual
+                      {verifiedDays > 0 && <> · {verifiedDays} verified day{verifiedDays === 1 ? '' : 's'}</>}
+                      {verificationStart && <> · verified since {new Date(verificationStart).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</>}
+                      {lastSyncAt && <> · last sync {new Date(lastSyncAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</>}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

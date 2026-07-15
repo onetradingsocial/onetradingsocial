@@ -5,7 +5,10 @@ import { Analytics } from '@vercel/analytics/next'
 import { AppNav } from './_components/AppNav'
 import { TradeModalProvider } from './_components/TradeModalProvider'
 import { HelpWidget } from './_components/HelpWidget'
+import { GoogleAnalytics } from './_components/GoogleAnalytics'
+import { PageViewTracker } from './_components/PageViewTracker'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/server/admin'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
@@ -24,12 +27,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   let config: { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean } | null = null
+  let internalTraffic = false
   if (user) {
     const [{ data }, tier, flags] = await Promise.all([
-      supabase.from('profiles').select('account_balance, is_public').eq('id', user.id).single(),
+      supabase.from('profiles').select('account_balance, is_public, is_internal').eq('id', user.id).single(),
       getTier(supabase, user.id),
       getFeatureFlags(),
     ])
+    internalTraffic = isAdmin(user) || (data?.is_internal ?? false)
     config = {
       accountBalance: data?.account_balance ?? 0,
       defaultPublic: data?.is_public ?? true,
@@ -51,6 +56,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {user && <HelpWidget />}
         </TradeModalProvider>
         <Analytics />
+        <GoogleAnalytics isInternal={internalTraffic} />
+        <PageViewTracker />
       </body>
     </html>
   )

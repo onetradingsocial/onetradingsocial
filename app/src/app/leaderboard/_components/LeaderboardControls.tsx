@@ -16,7 +16,18 @@ const SORTS = [
   { key: 'trades', label: 'Sort: Trades' },
 ] as const
 
-export function LeaderboardControls({ period, sort, cat, canAdvFilters = true }: { period: string; sort: string; cat: string; canAdvFilters?: boolean }) {
+// Verification filters: rank by evidence quality, not just results.
+const VERIFY = [
+  { key: 'all', label: 'Verify: All' },
+  { key: 'broker', label: 'Broker-connected' },
+  { key: 'statement', label: 'Statement-imported' },
+  { key: 'self', label: 'Self-reported' },
+  { key: 'live', label: 'Live accounts' },
+  { key: 'demo', label: 'Demo accounts' },
+  { key: 'prop', label: 'Prop-firm' },
+] as const
+
+export function LeaderboardControls({ period, sort, cat, verify = 'all', canAdvFilters = true }: { period: string; sort: string; cat: string; verify?: string; canAdvFilters?: boolean }) {
   const router = useRouter()
   const sp = useSearchParams()
   const push = (next: Record<string, string>) => {
@@ -32,6 +43,14 @@ export function LeaderboardControls({ period, sort, cat, canAdvFilters = true }:
           <button key={p.key} className={'lb-seg' + (period === p.key ? ' on' : '')} onClick={() => push({ period: p.key })}>{p.label}</button>
         ))}
       </div>
+      {cat !== 'xp' && (
+        <div className="lb-metric">
+          <select value={verify} onChange={(e) => push({ verify: e.target.value })} aria-label="Verification filter">
+            {VERIFY.map((v) => <option key={v.key} value={v.key}>{v.label}</option>)}
+          </select>
+          <span className="chev" aria-hidden>▾</span>
+        </div>
+      )}
       {cat !== 'xp' && (canAdvFilters ? (
         <div className="lb-metric">
           <select value={sort} onChange={(e) => push({ sort: e.target.value })}>

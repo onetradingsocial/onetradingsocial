@@ -27,7 +27,7 @@ export default async function JournalPage() {
 
   const { data: all } = await supabase
     .from('trades')
-    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, traded_at, risk_percent, risk_amount')
+    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, traded_at, risk_percent, risk_amount, source')
     .eq('user_id', user.id)
     .order('traded_at', { ascending: false })
 

@@ -1,6 +1,7 @@
 // app/src/app/admin/analytics/page.tsx
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAnalytics } from '@/lib/server/analytics'
+import { getFunnelDashboard } from '@/lib/server/funnel'
 import { TrendBars } from './_components/TrendBars'
 import { CompletionsList } from './_components/CompletionsList'
 
@@ -26,11 +27,74 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 const grid2 = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 } as const
 
+function FunnelBar({ rows }: { rows: { step: string; count: number }[] }) {
+  const max = Math.max(1, ...rows.map((r) => r.count))
+  return (
+    <div className="ts-card" style={{ display: 'grid', gap: 10 }}>
+      {rows.map((r, i) => {
+        const prev = i > 0 ? rows[i - 1].count : null
+        const conv = prev && prev > 0 ? Math.round((r.count / prev) * 100) : null
+        return (
+          <div key={r.step} style={{ display: 'grid', gap: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <span>{r.step}</span>
+              <span className="faint">{r.count}{conv != null && ` · ${conv}%`}</span>
+            </div>
+            <div style={{ height: 8, borderRadius: 999, background: 'var(--surface-3)', overflow: 'hidden' }}>
+              <i style={{ display: 'block', height: '100%', width: `${(r.count / max) * 100}%`, background: 'var(--brand-grad)' }} />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default async function AnalyticsPage() {
   const supabase = createServiceClient()
-  const d = await getAnalytics(supabase)
+  const [d, f] = await Promise.all([getAnalytics(supabase), getFunnelDashboard(supabase)])
   return (
     <div style={{ display: 'grid', gap: 28 }}>
+      <Section title="Core funnel (30 days, internal traffic excluded)">
+        <FunnelBar rows={f.funnel} />
+        {f.onboardingSteps.length > 0 && (
+          <div className="ts-card">
+            <span className="faint" style={{ fontSize: 13 }}>Onboarding step reach (abandonment)</span>
+            <div className="mt-3" style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+              {f.onboardingSteps.map((s) => (
+                <span key={s.step} style={{ fontSize: 14 }}>Step {s.step}: <strong>{s.count}</strong></span>
+              ))}
+            </div>
+          </div>
+        )}
+      </Section>
+
+      <Section title="Lifecycle">
+        <div style={grid2}>
+          {f.lifecycle.map((l) => <Stat key={l.status} label={l.status} value={l.count} />)}
+        </div>
+      </Section>
+
+      <Section title="Errors (30 days)">
+        <div style={grid2}>
+          <Stat label="404 hits" value={f.notFound30d} />
+          <Stat label="Client errors" value={f.clientErrors30d} />
+        </div>
+        {f.topBrokenPaths.length > 0 && (
+          <div className="ts-card">
+            <span className="faint" style={{ fontSize: 13 }}>Top broken paths</span>
+            <div className="mt-3" style={{ display: 'grid', gap: 6 }}>
+              {f.topBrokenPaths.map((p) => (
+                <div key={p.path} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <code style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.path}</code>
+                  <span className="faint">{p.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Section>
+
       <Section title="Growth">
         <div style={grid2}>
           <Stat label="Total users" value={d.growth.totalUsers} />

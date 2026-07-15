@@ -6,6 +6,7 @@ import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { parseMt5, validateDeals, mapDealToTrade, type Mt5Deal } from '@/lib/mt5'
+import { trackServer } from '@/lib/server/track'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const MAX_BYTES = 5 * 1024 * 1024
@@ -62,13 +63,17 @@ export async function commitMt5Import(deals: Mt5Deal[]): Promise<Mt5CommitState>
     .from('profiles').select('is_public').eq('id', user.id).single()
   const isPublic = profile?.is_public ?? true
 
-  const rows = valid.deals.map((d) => mapDealToTrade(d, { userId: user.id, isPublic }))
+  const rows = valid.deals.map((d) => mapDealToTrade(d, { userId: user.id, isPublic, source: 'statement' }))
   const { data, error } = await supabase
     .from('trades')
     .upsert(rows, { onConflict: 'user_id,broker_deal_id', ignoreDuplicates: true })
     .select('id')
-  if (error) return { error: error.message }
+  if (error) {
+    await trackServer('import_failed', user, { method: 'statement', reason: error.message.slice(0, 200) })
+    return { error: error.message }
+  }
 
+  await trackServer('trade_imported', user, { method: 'statement', inserted: data?.length ?? 0 })
   revalidatePath('/journal')
   return { inserted: data?.length ?? 0 }
 }

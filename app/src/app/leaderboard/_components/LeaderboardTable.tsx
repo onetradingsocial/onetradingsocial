@@ -5,6 +5,8 @@ import { FollowButton } from '@/app/_components/FollowButton'
 import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import { Avatar } from './Avatar'
 import { fmtPL } from './format'
+import { VerificationBadge, AccountTypeBadge } from '@/app/_components/VerificationBadge'
+import type { VerificationLevel, AccountType } from '@/lib/verification'
 
 export type BoardRow = {
   rank: number
@@ -16,6 +18,8 @@ export type BoardRow = {
   winRate: number // 0..1
   avgR: number
   trades: number
+  verification?: VerificationLevel
+  accountType?: AccountType | null
 }
 
 const PAGE_SIZE = 8
@@ -82,7 +86,11 @@ export function LeaderboardTable({ rows, viewerId }: { rows: BoardRow[]; viewerI
                         <Avatar src={t.avatarUrl} name={t.displayName || t.username} size={38} ring={t.rank <= 3} />
                         <div className="who" style={{ minWidth: 0 }}>
                           <b>{t.displayName || t.username}{self && <span className="lb-you">You</span>}</b>
-                          <span>@{t.username}</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            @{t.username}
+                            {t.verification && <VerificationBadge level={t.verification} short linked={false} />}
+                            {t.accountType && <AccountTypeBadge type={t.accountType} />}
+                          </span>
                         </div>
                       </TraderHoverCard>
                     </div>

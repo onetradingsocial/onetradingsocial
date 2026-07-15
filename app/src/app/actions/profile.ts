@@ -7,6 +7,7 @@ import { headers, cookies } from 'next/headers'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { sendRedditConversion } from '@/lib/server/reddit-capi'
+import { trackServer } from '@/lib/server/track'
 import { validateUsername } from '@/lib/username'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
@@ -35,9 +36,14 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
     is_public: formData.get('is_public') === 'public',
   }
 
+  const requestedType = String(formData.get('account_type') ?? '').trim()
+  const account_type = (['live', 'demo', 'prop', 'competition'] as const).includes(requestedType as never)
+    ? requestedType
+    : null
+
   const { error } = await supabase
     .from('profiles')
-    .update(onboardingToRow(input))
+    .update({ ...onboardingToRow(input), account_type })
     .eq('id', user.id)
 
   if (error) {
@@ -48,6 +54,11 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
   // the single completion signal for both the email and Google signup paths,
   // which both converge here at onboarding completion. The shared cid dedupes
   // the browser pixel against the server-side (CAPI) SignUp below.
+  await trackServer('onboarding_completed', user, {
+    markets: input.main_markets.join(','),
+    experience: input.experience_level,
+  })
+
   const conversionId = randomUUID()
   const hdrs = await headers()
   const cookieStore = await cookies()
@@ -98,6 +109,11 @@ export async function saveProfileSettings(
     ? (requestedExperience as ExperienceLevel)
     : 'beginner'
 
+  const requestedAccountType = String(formData.get('account_type') ?? '').trim()
+  const account_type = (['live', 'demo', 'prop', 'competition'] as const).includes(requestedAccountType as never)
+    ? requestedAccountType
+    : null
+
   const tier = await getTier(supabase, user.id)
   const requestedPublic = formData.get('is_public') === 'public'
 
@@ -140,6 +156,7 @@ export async function saveProfileSettings(
       experience_level,
       main_markets: formData.getAll('main_markets').map(String),
       trading_styles: formData.getAll('trading_styles').map(String),
+      account_type,
       is_public: resolveVisibility(tier, requestedPublic),
       custom_badge,
       theme_color,

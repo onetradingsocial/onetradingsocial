@@ -255,7 +255,10 @@ export function validateDeals(input: unknown): { deals: Mt5Deal[] } | { error: s
 
 /** Mt5Deal → trades insert row. Journaling fields stay empty for the user
  *  to enrich. r_multiple only when a stop exists (risk is defined). */
-export function mapDealToTrade(deal: Mt5Deal, opts: { userId: string; isPublic: boolean }): Record<string, unknown> {
+export function mapDealToTrade(
+  deal: Mt5Deal,
+  opts: { userId: string; isPublic: boolean; source?: 'statement' | 'broker' },
+): Record<string, unknown> {
   const market = inferMarket(deal.symbol)
   // Normalize symbol for catalog lookup: strip broker suffix (e.g. 'GBPJPY.a' →
   // 'GBPJPY'), same stripping rule as inferMarket, then insert a slash for
@@ -286,6 +289,8 @@ export function mapDealToTrade(deal: Mt5Deal, opts: { userId: string; isPublic: 
   return {
     user_id: opts.userId,
     broker_deal_id: deal.ticket,
+    // Verification level: file/statement upload vs live MetaApi sync.
+    source: opts.source ?? 'statement',
     market,
     instrument: deal.symbol,
     direction: deal.direction,

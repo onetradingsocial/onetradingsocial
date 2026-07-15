@@ -8,7 +8,15 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
 
-    gtag('config', 'G-M7NX0Y7NSC');
+    // Internal traffic opt-out: visit any page with ?internal=1 once per browser.
+    try {
+      if (new URLSearchParams(location.search).get('internal') === '1') localStorage.setItem('ts_internal', '1');
+      if (localStorage.getItem('ts_internal') === '1') gtag('set', 'traffic_type', 'internal');
+    } catch (e) {}
+    // Cross-domain linker: keep sessions intact into app.tradingsocial.io.
+    gtag('config', 'G-M7NX0Y7NSC', { linker: { domains: ['tradingsocial.io', 'app.tradingsocial.io'] } });
+    // 404 diagnostics: which URL broke and which page linked to it.
+    gtag('event', 'not_found', { broken_path: location.pathname + location.search, referrer: document.referrer || '(direct)' });
   </script>
   <!-- Reddit Pixel -->
   <script>

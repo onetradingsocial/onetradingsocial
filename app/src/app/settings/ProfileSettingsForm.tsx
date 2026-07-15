@@ -6,6 +6,7 @@ import type { ProfileState } from '@/app/actions/profile'
 import { AvatarUploader } from '@/app/_components/AvatarUploader'
 import { useState } from 'react'
 import { EXPERIENCE_LEVELS, MARKETS, TRADING_STYLES } from '@/lib/profile'
+import { ACCOUNT_TYPE_LABELS, type AccountType } from '@/lib/verification'
 import { Icon } from '@/app/[username]/_components/Icon'
 import { CUSTOM_BADGES } from '@/lib/badges'
 import { THEME_PRESETS } from '@/lib/creator-profile'
@@ -21,6 +22,7 @@ type Props = {
   styles: string[]
   isPublic: boolean
   canGoPrivate: boolean
+  accountType: string | null
   customBadge: string | null
   canCustomBadge: boolean
   canCreatorProfile: boolean
@@ -73,13 +75,24 @@ export function ProfileSettingsForm(props: Props) {
               defaultValue={props.bio} placeholder="A line about how you trade." />
           </label>
 
-          <label className="ts-field" style={{ maxWidth: 260 }}>
-            <span className="ts-label">Experience</span>
-            <select name="experience_level" className="ts-select"
-              defaultValue={props.experience || 'beginner'}>
-              {EXPERIENCE_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
-          </label>
+          <div className="ts-grid2">
+            <label className="ts-field" style={{ maxWidth: 260 }}>
+              <span className="ts-label">Experience</span>
+              <select name="experience_level" className="ts-select"
+                defaultValue={props.experience || 'beginner'}>
+                {EXPERIENCE_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </label>
+            <label className="ts-field" style={{ maxWidth: 260 }}>
+              <span className="ts-label">Account type</span>
+              <select name="account_type" className="ts-select" defaultValue={props.accountType ?? ''}>
+                <option value="">Not specified</option>
+                {(Object.keys(ACCOUNT_TYPE_LABELS) as AccountType[]).map((t) => (
+                  <option key={t} value={t}>{ACCOUNT_TYPE_LABELS[t]}</option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           <div className="ts-field">
             <span className="ts-label">Main markets</span>

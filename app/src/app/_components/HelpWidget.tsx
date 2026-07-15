@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { submitFeedback } from '@/app/actions/feedback'
 import { FEEDBACK_TYPES, FEEDBACK_TYPE_LABELS, FEEDBACK_MAX, type FeedbackType } from '@/lib/feedback'
+import { track } from '@/lib/track'
 
 export function HelpWidget() {
   const [open, setOpen] = useState(false)
@@ -35,7 +36,16 @@ export function HelpWidget() {
   function send() {
     setError(null)
     start(async () => {
-      const r = await submitFeedback({ type, message, pageUrl: window.location.href })
+      const w = window.innerWidth
+      const r = await submitFeedback({
+        type,
+        message,
+        pageUrl: window.location.href,
+        meta: {
+          device: w < 768 ? 'mobile' : w < 1100 ? 'tablet' : 'desktop',
+          viewport: `${window.innerWidth}x${window.innerHeight}`,
+        },
+      })
       if (r.error) { setError(r.error); return }
       setSent(true)
       setMessage('')
@@ -90,7 +100,7 @@ export function HelpWidget() {
         className="help-fab"
         aria-label="Help and feedback"
         aria-expanded={open}
-        onClick={() => (open ? setOpen(false) : (reset(), setOpen(true)))}
+        onClick={() => (open ? setOpen(false) : (reset(), setOpen(true), track('feedback_opened')))}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />

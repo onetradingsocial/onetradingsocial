@@ -21,7 +21,7 @@ export default async function SettingsPage() {
   const [{ data: profile }, tier, sub, flags, { data: brokerRow }, { data: ownPosts }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id, leaderboard_optout')
+      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id, leaderboard_optout, account_type')
       .eq('id', user.id)
       .single(),
     getTier(supabase, user.id),
@@ -71,6 +71,7 @@ export default async function SettingsPage() {
               styles={profile?.trading_styles ?? []}
               isPublic={profile?.is_public ?? true}
               canGoPrivate={canGoPrivate}
+              accountType={profile?.account_type ?? null}
               customBadge={profile?.custom_badge ?? null}
               canCustomBadge={canFlag(flags, tier, 'custom_badge')}
               canCreatorProfile={canCreatorProfile}
