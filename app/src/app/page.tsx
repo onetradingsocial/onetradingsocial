@@ -12,6 +12,9 @@ import { HomeArena } from './feed/_components/home/HomeArena'
 import { type HomeData } from './feed/_components/home/types'
 import { RedditPixel } from './_components/RedditPixel'
 import { MetaPixel } from './_components/MetaPixel'
+import { OnboardingChecklist, type ChecklistItem } from './_components/OnboardingChecklist'
+import { MicroSurvey } from './_components/MicroSurvey'
+import { createServiceClient } from '@/lib/supabase/service'
 
 const FEED_INITIAL_LIMIT = 30
 
@@ -40,12 +43,12 @@ export default async function Home({
     tier,
     flags,
   ] = await Promise.all([
-    supabase.from('profiles').select('username, display_name, avatar_url, onboarding_completed').eq('id', user.id).single(),
+    supabase.from('profiles').select('username, display_name, avatar_url, onboarding_completed, main_markets, created_at').eq('id', user.id).single(),
     getPerformanceRanking(supabase, 'week'),
     getUserXp(supabase, user.id),
     supabase.from('follows').select('following_id').eq('follower_id', user.id),
     supabase.from('trades')
-      .select('id, instrument, market, setup_type, status, outcome, r_multiple, pnl_amount, traded_at')
+      .select('id, instrument, market, setup_type, status, outcome, r_multiple, pnl_amount, traded_at, strategy_tags')
       .eq('user_id', user.id).order('traded_at', { ascending: false }),
     supabase.from('favorites').select('favorite_id').eq('user_id', user.id),
     getTier(supabase, user.id),
@@ -134,8 +137,36 @@ export default async function Home({
     advancedStats,
   }
 
+  // Onboarding checklist (row 14): computed from real data, shown until done.
+  const [{ count: lessonCount }, { count: reviewViews }] = await Promise.all([
+    supabase.from('lesson_completions').select('lesson_id', { count: 'exact', head: true }).eq('user_id', user.id),
+    createServiceClient().from('analytics_events').select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id).eq('event', 'weekly_review_viewed'),
+  ])
+  const checklist: ChecklistItem[] = [
+    { key: 'photo', label: 'Add a profile photo', done: !!profile?.avatar_url, href: '/settings' },
+    { key: 'markets', label: 'Pick your markets', done: (profile?.main_markets ?? []).length > 0, href: '/settings' },
+    { key: 'trade', label: 'Log or import your first trade', done: trades.length > 0, href: '/journal' },
+    { key: 'strategy', label: 'Tag your first strategy', done: trades.some((t) => (t.strategy_tags ?? []).length > 0 || t.setup_type), href: '/journal' },
+    { key: 'review', label: 'Read your weekly review', done: (reviewViews ?? 0) > 0, href: '/journal' },
+    { key: 'follows', label: 'Follow 3 traders', done: followingIds.length >= 3, href: '/leaderboard' },
+    { key: 'lesson', label: 'Finish your first lesson', done: (lessonCount ?? 0) > 0, href: '/learn' },
+  ]
+
+  const dayOld = profile?.created_at ? (Date.now() - Date.parse(profile.created_at)) / 864e5 : 0
+
   return (
     <>
+      <OnboardingChecklist items={checklist} />
+      {dayOld >= 7 && (
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <MicroSurvey
+            surveyKey="day_7"
+            question="What's stopping you from using TradingSocial more often?"
+            options={['Nothing — I use it daily', 'Takes too long to log trades', 'Missing a feature I need', 'Not sure what it does for me']}
+          />
+        </div>
+      )}
       <HomeArena data={data} />
       {justSignedUp && (
         // MetaPixel must render before RedditPixel: both gate on ?signup=1 and

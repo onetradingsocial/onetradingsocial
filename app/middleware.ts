@@ -60,6 +60,13 @@ export async function middleware(request: NextRequest) {
     if (isProtected && !completed) return redirectTo('/onboarding')
   }
 
+  // Acquisition attribution (Sprint 2, row 40): first campaign/ref code wins
+  // and sticks for 30 days, so the eventual signup can be attributed.
+  const ref = request.nextUrl.searchParams.get('ref') || request.nextUrl.searchParams.get('utm_source')
+  if (ref && !request.cookies.get('ts_ref')) {
+    response.cookies.set('ts_ref', ref.slice(0, 64), { maxAge: 60 * 60 * 24 * 30, path: '/' })
+  }
+
   return response
 }
 

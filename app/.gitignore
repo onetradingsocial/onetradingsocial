@@ -7,3 +7,5 @@ test-results
 # Bubble page exports kept locally as visual reference only
 *offline*.html
 tsconfig.tsbuildinfo
+.vercel
+.env*

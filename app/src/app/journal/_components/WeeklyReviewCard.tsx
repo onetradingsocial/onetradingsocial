@@ -1,5 +1,6 @@
 import type { Metrics } from '@/lib/trade'
 import { TrackOnMount } from '@/app/_components/TrackOnMount'
+import { MicroSurvey } from '@/app/_components/MicroSurvey'
 
 function money(n: number, sign = false) {
   const abs = `$${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
@@ -17,8 +18,10 @@ function Delta({ value, suffix = '', good = true }: { value: number; suffix?: st
   )
 }
 
-export function WeeklyReviewCard({ thisWeek, lastWeek, best, worst, locked }: {
+export function WeeklyReviewCard({ thisWeek, lastWeek, best, worst, locked, interactive = true }: {
   thisWeek: Metrics; lastWeek: Metrics; best: number | null; worst: number | null; locked: boolean
+  /** false on the public demo page: no tracking, no survey */
+  interactive?: boolean
 }) {
   if (locked) {
     return (
@@ -38,7 +41,7 @@ export function WeeklyReviewCard({ thisWeek, lastWeek, best, worst, locked }: {
 
   return (
     <div className="ts-card">
-      <TrackOnMount event="weekly_review_viewed" />
+      {interactive && <TrackOnMount event="weekly_review_viewed" />}
       <div className="flex items-center justify-between">
         <h2 className="ts-h2">Weekly performance review</h2>
         <span className="faint" style={{ fontSize: 12 }}>Last 7 days vs the 7 before</span>
@@ -70,6 +73,13 @@ export function WeeklyReviewCard({ thisWeek, lastWeek, best, worst, locked }: {
           <div className="ts-bigcard-sub faint">this week</div>
         </div>
       </div>
+      {interactive && thisWeek.total > 0 && (
+        <MicroSurvey
+          surveyKey="first_weekly_report"
+          question="Did this report reveal anything useful?"
+          options={['Yes, genuinely', 'Somewhat', 'Not really']}
+        />
+      )}
     </div>
   )
 }

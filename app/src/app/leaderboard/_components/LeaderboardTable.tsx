@@ -35,7 +35,14 @@ export function LeaderboardTable({ rows, viewerId }: { rows: BoardRow[]; viewerI
   }, [query, rows])
 
   if (rows.length === 0) {
-    return <div className="lb-panel lb-empty">No ranked trades in this window yet — log public trades to climb.</div>
+    return (
+      <div className="lb-panel lb-empty">
+        <p style={{ margin: 0 }}>No ranked trades in this window (or filter) yet.</p>
+        <p style={{ margin: '8px 0 0' }}>
+          Public closed trades rank automatically — <a href="/journal" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>log a trade</a> (takes under a minute) or widen the verification filter above.
+        </p>
+      </div>
+    )
   }
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))

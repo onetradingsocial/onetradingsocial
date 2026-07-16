@@ -75,6 +75,32 @@ export default async function AnalyticsPage() {
         </div>
       </Section>
 
+      <Section title="Signups by source">
+        <div className="ts-card" style={{ display: 'grid', gap: 6 }}>
+          {f.sources.map((s) => (
+            <div key={s.source} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <code>{s.source}</code><span className="faint">{s.count}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Feature adoption (activated users)">
+        <div className="ts-card" style={{ display: 'grid', gap: 10 }}>
+          {f.adoption.map((a) => (
+            <div key={a.feature} style={{ display: 'grid', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span>{a.feature}</span>
+                <span className="faint">{a.users} · {a.pct}%</span>
+              </div>
+              <div style={{ height: 6, borderRadius: 999, background: 'var(--surface-3)', overflow: 'hidden' }}>
+                <i style={{ display: 'block', height: '100%', width: `${a.pct}%`, background: 'var(--brand-grad)' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       <Section title="Errors (30 days)">
         <div style={grid2}>
           <Stat label="404 hits" value={f.notFound30d} />

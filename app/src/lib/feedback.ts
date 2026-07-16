@@ -14,12 +14,16 @@ export const FEEDBACK_MAX = 2000
 
 export type FeedbackInput = { type: string; message: string }
 
+// 'survey' is submitted programmatically by MicroSurvey, never listed in the
+// widget dropdown — hence valid for storage but absent from FEEDBACK_TYPES.
+const STORABLE_TYPES = [...FEEDBACK_TYPES, 'survey'] as const
+
 /** Validate + normalize a submission. Pure, so it can be unit-tested and shared by the server action. */
 export function validateFeedback(input: FeedbackInput):
-  | { ok: true; type: FeedbackType; message: string }
+  | { ok: true; type: FeedbackType | 'survey'; message: string }
   | { ok: false; error: string } {
   const type = input.type as FeedbackType
-  if (!FEEDBACK_TYPES.includes(type)) return { ok: false, error: 'Pick a valid type.' }
+  if (!(STORABLE_TYPES as readonly string[]).includes(type)) return { ok: false, error: 'Pick a valid type.' }
 
   const message = (input.message ?? '').trim()
   if (!message) return { ok: false, error: 'Write a message first.' }

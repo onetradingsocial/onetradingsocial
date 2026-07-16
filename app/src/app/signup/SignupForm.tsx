@@ -129,6 +129,10 @@ export function SignupForm() {
           <Link href="/login" style={{ color: 'var(--violet-br)', fontWeight: 700, marginLeft: 4 }}>
             Log in
           </Link>
+          {' '}· Not ready?{' '}
+          <Link href="/demo" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>
+            Explore the demo journal
+          </Link>
         </p>
       </div>
     </AuthShell>

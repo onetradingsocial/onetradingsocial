@@ -41,9 +41,17 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
     ? requestedType
     : null
 
+  // Attribution fallback for the Google-OAuth path (email signups already set
+  // this in signUp): campaign cookie -> profile, first value wins.
+  const refCookie = (await cookies()).get('ts_ref')?.value ?? null
+
   const { error } = await supabase
     .from('profiles')
-    .update({ ...onboardingToRow(input), account_type })
+    .update({
+      ...onboardingToRow(input),
+      account_type,
+      ...(refCookie ? { acquisition_source: refCookie.slice(0, 64) } : {}),
+    })
     .eq('id', user.id)
 
   if (error) {

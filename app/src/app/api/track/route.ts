@@ -27,6 +27,25 @@ const ALLOWED = new Set([
 
 const MAX_PROPS_BYTES = 2048
 
+// Naive per-instance rate limit (security hardening, row 52): 60 events/min
+// per client. Serverless instances reset this map on cold start — good enough
+// to blunt runaway loops and casual abuse without external infra.
+const RATE_WINDOW_MS = 60_000
+const RATE_MAX = 60
+const hits = new Map<string, { count: number; start: number }>()
+
+function rateLimited(key: string): boolean {
+  const now = Date.now()
+  const h = hits.get(key)
+  if (!h || now - h.start > RATE_WINDOW_MS) {
+    hits.set(key, { count: 1, start: now })
+    if (hits.size > 5000) hits.clear() // cap memory on long-lived instances
+    return false
+  }
+  h.count += 1
+  return h.count > RATE_MAX
+}
+
 export async function POST(req: NextRequest) {
   let body: {
     event?: string
@@ -45,6 +64,10 @@ export async function POST(req: NextRequest) {
 
   const event = typeof body.event === 'string' ? body.event : ''
   if (!ALLOWED.has(event)) return NextResponse.json({ error: 'unknown event' }, { status: 400 })
+
+  const rlKey = (typeof body.anonId === 'string' && body.anonId) ||
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  if (rateLimited(rlKey)) return NextResponse.json({ error: 'rate limited' }, { status: 429 })
 
   const props = body.props && typeof body.props === 'object' ? body.props : {}
   if (JSON.stringify(props).length > MAX_PROPS_BYTES) {

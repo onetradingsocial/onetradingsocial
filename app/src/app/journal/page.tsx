@@ -18,6 +18,8 @@ import { JournalExportButtons } from './_components/JournalExportButtons'
 import { WeeklyReviewCard } from './_components/WeeklyReviewCard'
 import { StrategyBreakdownCard } from './_components/StrategyBreakdownCard'
 import { RiskTrackingCard, type RiskTrade } from './_components/RiskTrackingCard'
+import { JournalEmptyState } from './_components/JournalEmptyState'
+import { MicroSurvey } from '@/app/_components/MicroSurvey'
 import { MonthlyReportCard } from './_components/MonthlyReportCard'
 
 export default async function JournalPage() {
@@ -75,6 +77,17 @@ export default async function JournalPage() {
   for (const t of thisMonthClosed) monthInstCounts[t.instrument] = (monthInstCounts[t.instrument] ?? 0) + 1
   const topMonthInstrument = Object.entries(monthInstCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
 
+  // Rich empty state (row 13): first-run journal shows the three data paths
+  // and a sample insight instead of a wall of zeroed cards.
+  if (trades.length === 0) {
+    return (
+      <main className="ts-page">
+        <JournalHero monthLabel={monthLabel} monthTrades={0} monthNet={0} streak={0} />
+        <JournalEmptyState canImport={canFlag(flags, tier, 'mt5_import')} />
+      </main>
+    )
+  }
+
   return (
     <main className="ts-page">
       <JournalHero monthLabel={monthLabel} monthTrades={sums.monthTrades} monthNet={sums.monthNet} streak={metrics.currentStreak} />
@@ -90,6 +103,15 @@ export default async function JournalPage() {
       <div className="mt-5">
         <StatCards metrics={metrics} allTime={sums.allTime} monthNet={sums.monthNet} monthLabel={monthLabel} weekTrades={sums.weekTrades} advanced={canFlag(flags, tier, 'advanced_stats')} />
       </div>
+
+      {/* Micro-survey (row 27): fresh journals only — asked once per browser. */}
+      {trades.length <= 3 && (
+        <MicroSurvey
+          surveyKey="first_trade"
+          question="How easy was it to log this trade?"
+          options={['Very easy', 'OK', 'Clunky']}
+        />
+      )}
 
       <div className="mt-5">
         <WeeklyReviewCard thisWeek={thisWeekMetrics} lastWeek={lastWeekMetrics} best={bestTrade} worst={worstTrade} locked={!canWeeklyReview} />

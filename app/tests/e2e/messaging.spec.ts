@@ -10,9 +10,12 @@ async function signUp(page: Page, prefix: string) {
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `${username}@${DOMAIN}`)
   await page.fill('input[name="password"]', 'password123')
-  await page.check('input[name="terms"]')
+  await page.locator('label.fl-terms .fl-check').click()
+  await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')
-  // Onboarding multi-step flow (4 steps + reveal)
+  await expect(page).toHaveURL(/\/select-plan/, { timeout: 15000 })
+  await page.click('button:has-text("Continue with Free")')
+  // Onboarding multi-step flow (5 steps + reveal)
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 15000 })
   // Step 0 — welcome → "Build my identity"
   await page.click('button:has-text("Build my identity")')
@@ -25,10 +28,13 @@ async function signUp(page: Page, prefix: string) {
   // Step 3 — goal → pick Build consistency, then Continue
   await page.click('button:has-text("Build consistency")')
   await page.click('button:has-text("Continue")')
-  // Step 4 — visibility → pick Public, then "Create my profile"
+  // Step 4 — visibility + account type → pick Public, then Continue
   await page.click('button:has-text("Public")')
+  await page.click('button:has-text("Continue")')
+  // Step 5 — data connection → manual logging, then "Create my profile"
+  await page.click('button:has-text("Log trades manually")')
   await page.click('button:has-text("Create my profile")')
-  // Step 5 — reveal → "Enter TradingSocial"
+  // Reveal → "Enter TradingSocial"
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
   return username

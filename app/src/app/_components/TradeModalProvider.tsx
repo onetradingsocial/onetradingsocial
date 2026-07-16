@@ -50,6 +50,9 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [tab, setTab] = useState<'manual' | 'import'>('manual')
+  // Quick mode (default): the 60-second capture — market, direction, prices,
+  // size, date, strategy. Detailed keeps the full risk/psychology workflow.
+  const [quick, setQuick] = useState(true)
 
   const [market, setMarket] = useState('forex')
   const [instrument, setInstrument] = useState('EUR/USD')
@@ -139,11 +142,19 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
           <button type="button" className="ts-modal-close" onClick={onClose}>✕</button>
         </div>
 
-        <div className="ts-subtabs mt-4" style={{ maxWidth: 320 }}>
-          <button type="button" data-active={tab === 'manual'} onClick={() => setTab('manual')}>Manual entry</button>
-          <button type="button" data-active={tab === 'import'} onClick={() => setTab('import')}>
-            Import from MT5{!config.canMt5Import && ' 🔒'}
-          </button>
+        <div className="mt-4" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="ts-subtabs" style={{ maxWidth: 320 }}>
+            <button type="button" data-active={tab === 'manual'} onClick={() => setTab('manual')}>Manual entry</button>
+            <button type="button" data-active={tab === 'import'} onClick={() => setTab('import')}>
+              Import from MT5{!config.canMt5Import && ' 🔒'}
+            </button>
+          </div>
+          {tab === 'manual' && (
+            <div className="ts-subtabs" style={{ maxWidth: 220 }}>
+              <button type="button" data-active={quick} onClick={() => setQuick(true)}>⚡ Quick</button>
+              <button type="button" data-active={!quick} onClick={() => setQuick(false)}>Detailed</button>
+            </div>
+          )}
         </div>
 
         {tab === 'import' ? (
@@ -154,7 +165,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
         <form action={onSubmit}>
         {/* hidden values driven by buttons */}
         <input type="hidden" name="direction" value={direction} />
-        <input type="hidden" name="sizing_mode" value={sizingMode} />
+        <input type="hidden" name="sizing_mode" value={quick ? 'lots' : sizingMode} />
         <input type="hidden" name="setup_type" value={setup} />
         <input type="hidden" name="confidence" value={confidence} />
         <input type="hidden" name="emotion" value={emotion} />
@@ -190,6 +201,32 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
           </div>
         </div>
 
+        {quick ? (
+          <>
+            {/* Quick capture: everything else is optional or added later. */}
+            <div className="ts-grid2 mt-4">
+              <label className="ts-field"><span className="ts-label">Entry price</span>
+                <input name="entry_price" className="ts-input ts-input--lg" value={entry} onChange={(e) => setEntry(e.target.value)} inputMode="decimal" placeholder="0.00000" />
+                <LivePriceChip symbol={instrument} onUse={setEntry} />
+              </label>
+              <label className="ts-field"><span className="ts-label">Exit price <span className="faint">(blank = still open)</span></span>
+                <input name="exit_price" className="ts-input ts-input--lg" value={exit} onChange={(e) => setExit(e.target.value)} inputMode="decimal" placeholder="0.00000" />
+              </label>
+            </div>
+            <div className="ts-grid2 mt-4">
+              <label className="ts-field"><span className="ts-label">Position size (lots)</span>
+                <input name="lots" className="ts-input" value={lots} onChange={(e) => setLots(e.target.value)} inputMode="decimal" placeholder="1.0" />
+              </label>
+              <label className="ts-field"><span className="ts-label">Trade date <span className="faint">(optional)</span></span>
+                <input name="traded_at" type="datetime-local" className="ts-input" />
+              </label>
+            </div>
+            <p className="faint mt-3" style={{ fontSize: 12.5 }}>
+              Want stop loss, R:R, risk sizing, setup and psychology? Switch to <b>Detailed</b> — or add them later by editing the trade.
+            </p>
+          </>
+        ) : (
+        <>
         <div className="ts-grid2 mt-4">
           <div className="ts-field"><span className="ts-label">Risk % / Lot Size</span>
             <div className="ts-subtabs">
@@ -282,6 +319,8 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
             </span>
           </div>
         )}
+        </>
+        )}
 
         {config.maxStrategyTags > 0 && (
           <div className="mt-4">
@@ -318,6 +357,8 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
           </div>
         )}
 
+        {!quick && (
+        <>
         <div className="ts-grid2 mt-4" style={{ alignItems: 'start' }}>
           {config.canPrivateNotes ? (
             <label className="ts-field"><span className="ts-label">Why are you taking this trade? <span className="faint">(private)</span></span>
@@ -349,6 +390,8 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
           <label className="ts-field"><span className="ts-label">Exit price <span className="faint">(fills to close now)</span></span>
             <input name="exit_price" className="ts-input" value={exit} onChange={(e) => setExit(e.target.value)} inputMode="decimal" placeholder="leave blank to keep open" /></label>
         </div>
+        </>
+        )}
 
         <label className="ts-field mt-4"><span className="ts-label">Visibility</span>
           <select name="is_public" className="ts-select" defaultValue={config.defaultPublic ? 'public' : 'private'}>

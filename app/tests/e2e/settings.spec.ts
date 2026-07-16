@@ -29,10 +29,13 @@ async function signUpAndOnboard(page: Page, prefix: string) {
   // Step 3 — goal → pick Build consistency, then Continue
   await page.click('button:has-text("Build consistency")')
   await page.click('button:has-text("Continue")')
-  // Step 4 — visibility → pick Public, then "Create my profile"
+  // Step 4 — visibility + account type → pick Public, then Continue
   await page.click('button:has-text("Public")')
+  await page.click('button:has-text("Continue")')
+  // Step 5 — data connection → manual logging, then "Create my profile"
+  await page.click('button:has-text("Log trades manually")')
   await page.click('button:has-text("Create my profile")')
-  // Step 5 — reveal → "Enter TradingSocial"
+  // Reveal → "Enter TradingSocial"
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
   return { username }

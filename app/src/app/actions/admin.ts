@@ -21,6 +21,21 @@ export async function setFeedbackStatus(id: string, status: FeedbackStatus): Pro
   return {}
 }
 
+const FEEDBACK_CATEGORIES = new Set([
+  'bug', 'confusing_ux', 'missing_feature', 'performance',
+  'verification', 'pricing', 'trust', 'education',
+])
+
+export async function setFeedbackCategory(id: string, category: string | null): Promise<{ error?: string }> {
+  await requireAdmin()
+  if (category !== null && !FEEDBACK_CATEGORIES.has(category)) return { error: 'Bad category.' }
+  const svc = createServiceClient()
+  const { error } = await svc.from('feedback').update({ category }).eq('id', id)
+  if (error) return { error: 'Update failed.' }
+  revalidatePath('/admin/feedback')
+  return {}
+}
+
 export async function ackSystemAlert(id: number): Promise<{ error?: string }> {
   const admin = await requireAdmin()
   const svc = createServiceClient()

@@ -11,7 +11,7 @@ export type SubmitFeedbackInput = {
   type: string
   message: string
   pageUrl?: string | null
-  meta?: { device?: string; viewport?: string; console?: string }
+  meta?: { device?: string; viewport?: string; console?: string; survey?: string }
 }
 
 export async function submitFeedback(input: SubmitFeedbackInput): Promise<FeedbackState> {
@@ -31,6 +31,7 @@ export async function submitFeedback(input: SubmitFeedbackInput): Promise<Feedba
   if (input.meta?.device) meta.device = String(input.meta.device).slice(0, 16)
   if (input.meta?.viewport) meta.viewport = String(input.meta.viewport).slice(0, 24)
   if (input.meta?.console) meta.console = String(input.meta.console).slice(0, 500)
+  if (input.meta?.survey) meta.survey = String(input.meta.survey).slice(0, 40)
 
   const { error } = await supabase.from('feedback').insert({
     user_id: user.id,

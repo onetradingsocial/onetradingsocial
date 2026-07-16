@@ -40,7 +40,12 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   const lots = num(formData.get('lots'))
 
   if (!instrument) return { error: 'Instrument is required.' }
-  if (entry == null || stop == null) return { error: 'Entry and stop are required.' }
+  if (entry == null) return { error: 'Entry is required.' }
+  // Quick entry (<60s) allows skipping the stop, but then risk-% sizing has
+  // nothing to size against — lots become mandatory.
+  if (stop == null && (sizingMode !== 'lots' || lots == null || lots <= 0)) {
+    return { error: 'Without a stop loss, enter your position size in lots.' }
+  }
   if (!(DIRECTIONS as readonly string[]).includes(direction)) return { error: 'Invalid direction.' }
   if (!(SIZING_MODES as readonly string[]).includes(sizingMode)) return { error: 'Invalid sizing mode.' }
   const confidence = String(formData.get('confidence') ?? '')
@@ -49,19 +54,41 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   if (emotion && !(EMOTIONS as readonly string[]).includes(emotion)) return { error: 'Invalid emotion.' }
 
   const { pipSize, pipValuePerLot } = pipInfo(instrument, market)
-  const open = computeOpen({
-    direction, entry, stop, target, pipSize, sizingMode,
-    riskPercent, lots, accountBalance: profile?.account_balance ?? 0, pipValuePerLot,
-  })
-  if ('error' in open) return { error: open.error }
 
+  // Stop-less quick entry mirrors the MT5-import math: no risk figures, P/L
+  // straight from pip movement × lot size. With a stop, the full model runs.
+  let open: { slPips: number; tpPips: number | null; plannedRr: number | null; riskAmount: number }
   let closeFields: Record<string, unknown> = { status: 'open', outcome: 'open' }
-  if (exit != null) {
-    const c = computeClose({ direction, entry, stop, exit, pipSize, riskAmount: open.riskAmount })
-    closeFields = {
-      status: 'closed', outcome: c.outcome, exit_price: exit,
-      r_multiple: c.rMultiple, pnl_amount: c.pnlAmount, realized_pips: c.realizedPips,
-      closed_at: new Date().toISOString(),
+  if (stop == null) {
+    open = { slPips: 0, tpPips: null, plannedRr: null, riskAmount: 0 }
+    if (exit != null) {
+      const dirSign = direction === 'long' ? 1 : -1
+      const realizedPips = Math.round(((exit - entry) * dirSign / pipSize) * 10) / 10
+      const pnl = pipValuePerLot != null && Number.isFinite(pipValuePerLot)
+        ? Math.round(realizedPips * pipValuePerLot * (lots ?? 0) * 100) / 100
+        : null
+      const byPips = realizedPips > 0 ? 'win' : realizedPips < 0 ? 'loss' : 'breakeven'
+      closeFields = {
+        status: 'closed', exit_price: exit, realized_pips: realizedPips,
+        pnl_amount: pnl, r_multiple: null,
+        outcome: pnl != null ? (pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'breakeven') : byPips,
+        closed_at: new Date().toISOString(),
+      }
+    }
+  } else {
+    const computed = computeOpen({
+      direction, entry, stop, target, pipSize, sizingMode,
+      riskPercent, lots, accountBalance: profile?.account_balance ?? 0, pipValuePerLot,
+    })
+    if ('error' in computed) return { error: computed.error }
+    open = computed
+    if (exit != null) {
+      const c = computeClose({ direction, entry, stop, exit, pipSize, riskAmount: open.riskAmount })
+      closeFields = {
+        status: 'closed', outcome: c.outcome, exit_price: exit,
+        r_multiple: c.rMultiple, pnl_amount: c.pnlAmount, realized_pips: c.realizedPips,
+        closed_at: new Date().toISOString(),
+      }
     }
   }
 

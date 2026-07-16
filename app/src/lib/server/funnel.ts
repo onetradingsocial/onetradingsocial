@@ -8,6 +8,10 @@ export type FunnelDashboard = {
   onboardingSteps: { step: number; count: number }[]
   // Lifecycle snapshot from DB truth (independent of event volume).
   lifecycle: { status: string; count: number }[]
+  // Signups per campaign/ref code (row 40).
+  sources: { source: string; count: number }[]
+  // Feature adoption: % of activated users touching each feature (row 48).
+  adoption: { feature: string; users: number; pct: number }[]
   // Ops signals from events.
   notFound30d: number
   clientErrors30d: number
@@ -67,7 +71,7 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
   // Lifecycle snapshot from source-of-truth tables (excludes internal profiles).
   const { data: profs } = await svc
     .from('profiles')
-    .select('id, created_at, onboarding_completed')
+    .select('id, created_at, onboarding_completed, acquisition_source')
     .eq('is_internal', false)
   const profiles = profs ?? []
   const ids = profiles.map((p) => p.id)
@@ -107,6 +111,45 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
     }
   }
 
+  // Signups by campaign / ref code.
+  const srcCounts = new Map<string, number>()
+  for (const p of profiles) {
+    const s = (p as { acquisition_source?: string | null }).acquisition_source || '(direct/unknown)'
+    srcCounts.set(s, (srcCounts.get(s) ?? 0) + 1)
+  }
+
+  // Feature adoption among activated users (≥1 trade). Table presence beats
+  // event volume for features that predate event tracking.
+  const activatedIds = profiles.filter((p) => (tradesByUser.get(p.id) ?? []).length > 0).map((p) => p.id)
+  const activatedSet = new Set(activatedIds)
+  const denom = Math.max(1, activatedIds.length)
+  const countUsers = async (table: string, col: string) => {
+    const { data } = await svc.from(table).select(col).limit(20000)
+    const rows = (data ?? []) as unknown as Record<string, string>[]
+    return new Set(rows.map((r) => r[col]).filter((id) => activatedSet.has(id))).size
+  }
+  const [brokerUsers, learnUsers, postUsers, msgUsers, noteRows, mistakeRows, reviewRows] = await Promise.all([
+    countUsers('broker_accounts', 'user_id'),
+    countUsers('lesson_completions', 'user_id'),
+    countUsers('posts', 'author_id'),
+    countUsers('messages', 'sender_id'),
+    svc.from('trades').select('user_id').not('note', 'is', null).limit(20000),
+    svc.from('trades').select('user_id').neq('mistake_tags', '{}').limit(20000),
+    svc.from('analytics_events').select('user_id').eq('event', 'weekly_review_viewed').limit(20000),
+  ])
+  const distinctIn = (rows: { user_id: string | null }[] | null) =>
+    new Set((rows ?? []).map((r) => r.user_id).filter((id): id is string => !!id && activatedSet.has(id))).size
+  const adoption = [
+    { feature: 'Journal (≥1 trade)', users: activatedIds.length, pct: 100 },
+    { feature: 'Broker connection', users: brokerUsers, pct: Math.round((brokerUsers / denom) * 100) },
+    { feature: 'Weekly review', users: distinctIn(reviewRows.data), pct: Math.round((distinctIn(reviewRows.data) / denom) * 100) },
+    { feature: 'Learning', users: learnUsers, pct: Math.round((learnUsers / denom) * 100) },
+    { feature: 'Feed posts', users: postUsers, pct: Math.round((postUsers / denom) * 100) },
+    { feature: 'Messages', users: msgUsers, pct: Math.round((msgUsers / denom) * 100) },
+    { feature: 'Trade notes', users: distinctIn(noteRows.data), pct: Math.round((distinctIn(noteRows.data) / denom) * 100) },
+    { feature: 'Mistake tags', users: distinctIn(mistakeRows.data), pct: Math.round((distinctIn(mistakeRows.data) / denom) * 100) },
+  ]
+
   const [nf, ce] = await Promise.all([eventCount('not_found'), eventCount('client_error')])
   const { data: nfRows } = await svc
     .from('analytics_events')
@@ -142,6 +185,8 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
       { status: 'Churned (30d+ idle)', count: churned },
       { status: 'Paid', count: paidIds.size },
     ],
+    sources: [...srcCounts.entries()].sort((a, b) => b[1] - a[1]).map(([source, count]) => ({ source, count })),
+    adoption,
     notFound30d: nf,
     clientErrors30d: ce,
     topBrokenPaths: [...pathCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)

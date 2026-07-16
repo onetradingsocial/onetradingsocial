@@ -1,7 +1,9 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { validateUsername } from '@/lib/username'
 import { trackServer } from '@/lib/server/track'
 
@@ -29,7 +31,16 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     return { error: 'An account with this email already exists.' }
   }
 
-  if (data.user) await trackServer('signup_completed', { id: data.user.id, email }, { method: 'email' })
+  if (data.user) {
+    // Attribution: the campaign/ref code captured by middleware sticks to the
+    // profile at signup (service client: the trigger-created row is ours).
+    const ref = (await cookies()).get('ts_ref')?.value ?? null
+    if (ref) {
+      await createServiceClient().from('profiles')
+        .update({ acquisition_source: ref.slice(0, 64) }).eq('id', data.user.id)
+    }
+    await trackServer('signup_completed', { id: data.user.id, email }, { method: 'email', source: ref })
+  }
 
   redirect('/select-plan')
 }
