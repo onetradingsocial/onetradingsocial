@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { validateUsername } from '@/lib/username'
 import { trackServer } from '@/lib/server/track'
+import { attributeReferral } from '@/lib/server/referral'
 
 export type ActionState = { error?: string }
 
@@ -36,8 +37,11 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     // profile at signup (service client: the trigger-created row is ours).
     const ref = (await cookies()).get('ts_ref')?.value ?? null
     if (ref) {
-      await createServiceClient().from('profiles')
+      const svc = createServiceClient()
+      await svc.from('profiles')
         .update({ acquisition_source: ref.slice(0, 64) }).eq('id', data.user.id)
+      // The same cookie doubles as a referral code when it matches one.
+      await attributeReferral(svc, data.user.id, ref)
     }
     await trackServer('signup_completed', { id: data.user.id, email }, { method: 'email', source: ref })
   }

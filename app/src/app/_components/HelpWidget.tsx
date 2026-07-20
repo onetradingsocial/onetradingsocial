@@ -94,6 +94,7 @@ export function HelpWidget() {
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, fontSize: 12.5 }}>
                 <a href="/feature-board" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Feature board</a>
                 <a href="/changelog" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>What&apos;s new</a>
+                <a href="/referrals" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Refer a trader</a>
               </div>
             </>
           )}

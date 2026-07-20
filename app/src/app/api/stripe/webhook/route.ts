@@ -4,6 +4,7 @@ import { getStripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
 import { subscriptionRow } from '@/lib/billing-webhook'
 import { sendRedditConversion } from '@/lib/server/reddit-capi'
+import { markReferralPaid } from '@/lib/server/referral'
 
 export const runtime = 'nodejs'
 
@@ -36,6 +37,13 @@ async function upsertFromSubscription(
     throw new Error(`could not resolve user for customer ${customerId}`)
   }
   await svc.from('subscriptions').upsert({ ...row, user_id: userId }, { onConflict: 'id' })
+
+  // Referral funnel (row 39): a live subscription promotes the referral to
+  // 'paid'. Best-effort — never fail the webhook over bookkeeping.
+  const status = (row as { status?: string }).status
+  if (status === 'active' || status === 'trialing') {
+    try { await markReferralPaid(svc, userId) } catch { /* ignore */ }
+  }
 }
 
 export async function POST(request: NextRequest) {

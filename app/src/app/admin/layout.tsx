@@ -15,6 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link className="ts-nav-link" href="/admin/cohorts">Cohorts</Link>
         <Link className="ts-nav-link" href="/admin/verification">Verification</Link>
         <Link className="ts-nav-link" href="/admin/interviews">Interviews</Link>
+        <Link className="ts-nav-link" href="/admin/referrals">Referrals</Link>
         <Link className="ts-nav-link" href="/admin/feedback">Feedback</Link>
         <Link className="ts-nav-link" href="/admin/courses">Courses</Link>
         <Link className="ts-nav-link" href="/admin/features">Features</Link>

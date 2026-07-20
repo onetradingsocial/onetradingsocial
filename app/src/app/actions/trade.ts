@@ -9,6 +9,8 @@ import { pipInfo } from '@/lib/instruments'
 import { trackServer } from '@/lib/server/track'
 import { insertSystemNotification } from '@/lib/notifications'
 import { analyzeCompliance, hasAnyRule } from '@/lib/rules'
+import { markReferralActivated } from '@/lib/server/referral'
+import { createServiceClient } from '@/lib/supabase/service'
 import {
   computeOpen, computeClose, DIRECTIONS, SIZING_MODES, CONFIDENCE_LEVELS, EMOTIONS, MISTAKE_TAGS,
   type Direction, type SizingMode,
@@ -130,6 +132,18 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   const { count } = await supabase
     .from('trades').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
   await trackServer(count === 1 ? 'first_trade_logged' : 'trade_logged', user, { market, source: 'manual' })
+
+  // Referrals reward activation, not signups (row 39): the first logged trade
+  // is what promotes a referral and notifies the referrer.
+  if (count === 1) {
+    try {
+      const svc = createServiceClient()
+      const referrerId = await markReferralActivated(svc, user.id)
+      if (referrerId) {
+        await insertSystemNotification({ supabase: svc, userId: referrerId, type: 'goal_completed' })
+      }
+    } catch { /* referral bookkeeping never blocks logging a trade */ }
+  }
 
   revalidatePath('/journal')
   return { ok: true, tradeId: data.id }
