@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -17,6 +18,8 @@ import { findTheme } from '@/lib/creator-profile'
 import { TradeAttachment, type TradeCard } from '@/app/feed/_components/attachments/TradeAttachment'
 import { TradingCalendar } from '@/app/journal/_components/TradingCalendar'
 import { VerificationBadge, AccountTypeBadge } from '@/app/_components/VerificationBadge'
+import { ReportButton } from '@/app/_components/ReportButton'
+import { ShareCardButton } from '@/app/_components/ShareCardButton'
 import { profileLevel, sourceMix, type SourceCounts, type BrokerStatus, type AccountType } from '@/lib/verification'
 import { Icon } from './_components/Icon'
 import { Sparkline } from './_components/Sparkline'
@@ -30,6 +33,33 @@ const BADGE_GRAD: Record<string, string> = {
   trades: 'linear-gradient(135deg,#7C5CE6,#C840BC)', level: 'linear-gradient(135deg,#3FB6E8,#1A86B8)',
   questStreak: 'linear-gradient(135deg,#FF7A4D,#E0931E)', winStreak: 'linear-gradient(135deg,#12A56B,#3FB6E8)',
   lessons: 'linear-gradient(135deg,#FFE08A,#E3A92B)',
+}
+
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.tradingsocial.io'
+
+// SEO metadata (Sprint 4, row 38): unique title/description, OG share image,
+// canonical URL. Only public, onboarded profiles are indexable.
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params
+  if ((RESERVED_USERNAMES as readonly string[]).includes(username.toLowerCase())) return {}
+  const supabase = await createClient()
+  const { data: p } = await supabase
+    .from('profiles').select('username, display_name, bio, is_public, onboarding_completed')
+    .eq('username', username).maybeSingle()
+  if (!p || !p.is_public || !p.onboarding_completed) {
+    return { title: 'Trader profile — TradingSocial', robots: { index: false, follow: false } }
+  }
+  const name = p.display_name || p.username
+  const title = `${name} (@${p.username}) — verified trading track record`
+  const description = p.bio?.trim() || `See ${name}'s verified trading performance on TradingSocial — win rate, R multiples and profit factor computed from logged trades.`
+  const url = `${SITE}/${p.username}`
+  const image = `${SITE}/api/og/profile/${p.username}`
+  return {
+    title, description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: 'profile', images: [{ url: image, width: 1200, height: 630 }] },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
+  }
 }
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
@@ -248,8 +278,26 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const history = pub.slice(0, 5)
   const monthLabel = `${MONTHS[month]} ${year}`
 
+  // Structured data (row 38): only emit for indexable public profiles.
+  const jsonLd = profile && idRow ? {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    mainEntity: {
+      '@type': 'Person',
+      name,
+      alternateName: `@${profile.username}`,
+      url: `${SITE}/${profile.username}`,
+      ...(profile.avatar_url ? { image: profile.avatar_url } : {}),
+      ...(profile.bio ? { description: profile.bio } : {}),
+    },
+  } : null
+
   return (
     <div className="h-app">
+      {jsonLd && (
+        // Escape `<` so a bio/name containing `</script>` can't break out (XSS).
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+      )}
       <div className="h-main">
         <div className="h-grid">
           <div className="h-col" style={{ gap: 22 }}>
@@ -309,6 +357,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                     {isSelf ? (
                       <>
                         <Link href="/settings" className="h-btn h-btn-grad"><Icon name="pencil" size={16} /> Edit profile</Link>
+                        <ShareCardButton username={profile.username} />
                         <Link href="/settings" className="pf-iconbtn" title="Settings"><Icon name="sliders" size={18} /></Link>
                       </>
                     ) : (
@@ -320,6 +369,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                     )}
                   </div>
                 </div>
+                {viewer && !isSelf && (
+                  <div style={{ marginTop: 6 }}><ReportButton username={profile.username} /></div>
+                )}
 
                 {tagline && (
                   <p className="pf-tagline" style={theme ? { color: 'transparent', backgroundImage: theme.grad, WebkitBackgroundClip: 'text', backgroundClip: 'text' } : undefined}>

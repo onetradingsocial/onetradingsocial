@@ -36,6 +36,28 @@ export async function setFeedbackCategory(id: string, category: string | null): 
   return {}
 }
 
+const FR_STATUSES = new Set(['under_review', 'planned', 'in_progress', 'released', 'not_planned'])
+
+export async function setFeatureStatus(id: number, status: string): Promise<{ error?: string }> {
+  await requireAdmin()
+  if (!FR_STATUSES.has(status)) return { error: 'Bad status.' }
+  const svc = createServiceClient()
+  const { error } = await svc.from('feature_requests').update({ status }).eq('id', id)
+  if (error) return { error: 'Update failed.' }
+  revalidatePath('/feature-board')
+  return {}
+}
+
+export async function setTradeReportStatus(id: number, status: string): Promise<{ error?: string }> {
+  await requireAdmin()
+  if (!['open', 'reviewing', 'actioned', 'dismissed'].includes(status)) return { error: 'Bad status.' }
+  const svc = createServiceClient()
+  const { error } = await svc.from('trade_reports').update({ status }).eq('id', id)
+  if (error) return { error: 'Update failed.' }
+  revalidatePath('/admin/verification')
+  return {}
+}
+
 export async function ackSystemAlert(id: number): Promise<{ error?: string }> {
   const admin = await requireAdmin()
   const svc = createServiceClient()

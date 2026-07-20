@@ -17,7 +17,25 @@ function relativeTime(iso: string): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
+const SYSTEM_TEXT: Record<string, string> = {
+  weekly_report: 'Your weekly review is ready',
+  import_done: 'Your trade import finished',
+  sync_failed: 'Broker sync failed — reconnect to keep verifying',
+  goal_completed: 'You hit a process goal 🎯',
+  rule_breach: 'A trade broke one of your rules',
+  new_learning: 'New learning material for you',
+}
+
+const SYSTEM_ICON: Record<string, string> = {
+  weekly_report: '📊', import_done: '📥', sync_failed: '⚠️', goal_completed: '🎯', rule_breach: '🚩', new_learning: '📚',
+}
+
+function isSystem(n: Notification): boolean {
+  return n.type in SYSTEM_TEXT
+}
+
 function notifText(n: Notification): string {
+  if (isSystem(n)) return SYSTEM_TEXT[n.type]
   switch (n.type) {
     case 'like':       return `@${n.actorUsername} liked your post`
     case 'comment':    return `@${n.actorUsername} commented on your post`
@@ -30,6 +48,10 @@ function notifText(n: Notification): string {
 }
 
 function notifHref(n: Notification): string {
+  if (n.type === 'weekly_report' || n.type === 'rule_breach' || n.type === 'import_done') return '/journal'
+  if (n.type === 'sync_failed') return '/settings#broker'
+  if (n.type === 'goal_completed') return '/journal'
+  if (n.type === 'new_learning') return '/learn'
   if (n.entityType === 'post' && n.entityId) return `/#post-${n.entityId}`
   if (n.type === 'follow') return `/${n.actorUsername}`
   if (n.type === 'message' && n.entityId) return `/messages?c=${n.entityId}`
@@ -107,9 +129,11 @@ export function NotificationBell({
                     className="ts-notif-row-link"
                   >
                     <span className="ts-notif-avatar">
-                      {n.actorAvatarUrl
-                        ? <img src={n.actorAvatarUrl} alt="" width={28} height={28} style={{ borderRadius: '50%' }} />
-                        : <span className="ts-notif-avatar-initial">{(n.actorUsername[0] ?? '?').toUpperCase()}</span>
+                      {isSystem(n)
+                        ? <span className="ts-notif-avatar-initial" aria-hidden>{SYSTEM_ICON[n.type]}</span>
+                        : n.actorAvatarUrl
+                          ? <img src={n.actorAvatarUrl} alt="" width={28} height={28} style={{ borderRadius: '50%' }} />
+                          : <span className="ts-notif-avatar-initial">{(n.actorUsername[0] ?? '?').toUpperCase()}</span>
                       }
                     </span>
                     <span className="ts-notif-body">

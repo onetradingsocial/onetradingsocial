@@ -12,7 +12,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <nav className="ts-nav-links mt-3" style={{ gap: 16 }}>
         <Link className="ts-nav-link" href="/admin">Home</Link>
         <Link className="ts-nav-link" href="/admin/analytics">Analytics</Link>
+        <Link className="ts-nav-link" href="/admin/cohorts">Cohorts</Link>
         <Link className="ts-nav-link" href="/admin/verification">Verification</Link>
+        <Link className="ts-nav-link" href="/admin/interviews">Interviews</Link>
         <Link className="ts-nav-link" href="/admin/feedback">Feedback</Link>
         <Link className="ts-nav-link" href="/admin/courses">Courses</Link>
         <Link className="ts-nav-link" href="/admin/features">Features</Link>

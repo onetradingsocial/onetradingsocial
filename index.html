@@ -1561,6 +1561,61 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
   </div>
 </section>
 
+<!-- ============================ PROOF ============================ -->
+<section class="section" id="proof" style="background:var(--bg-2); border-block:1px solid var(--border)">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow eyebrow--center" style="justify-content:center">Real numbers</span>
+      <h2 class="h2">Built in the open, with real traders.</h2>
+      <p class="lead">No inflated vanity metrics — these update live from the platform. Internal and test accounts are excluded.</p>
+    </div>
+
+    <div class="proof-stats reveal" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:760px;margin:0 auto 8px">
+      <div class="proof-stat" style="text-align:center;padding:22px 14px;background:var(--surface);border:1px solid var(--border);border-radius:16px">
+        <div id="stat-trades" style="font-family:var(--display);font-size:34px;font-weight:700">—</div>
+        <div style="color:var(--dim);font-size:13.5px;margin-top:4px">Trades journaled</div>
+      </div>
+      <div class="proof-stat" style="text-align:center;padding:22px 14px;background:var(--surface);border:1px solid var(--border);border-radius:16px">
+        <div id="stat-users" style="font-family:var(--display);font-size:34px;font-weight:700">—</div>
+        <div style="color:var(--dim);font-size:13.5px;margin-top:4px">Active beta traders</div>
+      </div>
+      <div class="proof-stat" style="text-align:center;padding:22px 14px;background:var(--surface);border:1px solid var(--border);border-radius:16px">
+        <div id="stat-lessons" style="font-family:var(--display);font-size:34px;font-weight:700">—</div>
+        <div style="color:var(--dim);font-size:13.5px;margin-top:4px">Lessons completed</div>
+      </div>
+    </div>
+
+    <div class="reveal" style="max-width:760px;margin:34px auto 0;padding:22px 24px;background:var(--surface);border:1px solid var(--border);border-radius:16px">
+      <h4 style="margin:0 0 8px">Why we built TradingSocial</h4>
+      <p style="color:var(--dim);line-height:1.65;margin:0">
+        Most traders judge themselves on screenshots and memory. We wanted a place where your track record is
+        computed from trades you actually logged — verifiable, honest, and useful for getting better. Every
+        feature is aimed at discipline over hype: journal, review, learn, repeat.
+      </p>
+    </div>
+
+    <div class="reveal" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin:26px auto 0">
+      <img src="/assets/images/Journal.png" alt="TradingSocial journal with analytics" style="width:100%;border:1px solid var(--border);border-radius:14px" loading="lazy">
+      <img src="/assets/images/Dashboard.png" alt="TradingSocial dashboard" style="width:100%;border:1px solid var(--border);border-radius:14px" loading="lazy">
+      <img src="/assets/images/Leaderboard.png" alt="TradingSocial leaderboard" style="width:100%;border:1px solid var(--border);border-radius:14px" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<script>
+  // Live proof stats from the app API. Fails silently -> dashes stay.
+  (function () {
+    fetch('https://app.tradingsocial.io/api/stats').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d) return;
+      var fmt = function (n) { return (n || 0).toLocaleString(); };
+      var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+      set('stat-trades', fmt(d.tradesJournaled));
+      set('stat-users', fmt(d.activeBetaUsers));
+      set('stat-lessons', fmt(d.lessonsCompleted));
+    }).catch(function () {});
+  })();
+</script>
+
 <!-- ============================ BETA CTA ============================ -->
 <section class="section finalcta" id="beta">
   <div class="wrap">

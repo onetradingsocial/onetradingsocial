@@ -8,6 +8,8 @@ import { Icon } from '@/app/[username]/_components/Icon'
 import { SettingsNav } from './SettingsNav'
 import { ProfileSettingsForm } from './ProfileSettingsForm'
 import { BrokerCard } from './BrokerCard'
+import { DangerZone } from './DangerZone'
+import { NotificationPrefs } from './NotificationPrefs'
 import { CoverUploader } from '@/app/_components/CoverUploader'
 import './settings.css'
 
@@ -21,7 +23,7 @@ export default async function SettingsPage() {
   const [{ data: profile }, tier, sub, flags, { data: brokerRow }, { data: ownPosts }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id, leaderboard_optout, account_type')
+      .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id, leaderboard_optout, account_type, notification_prefs')
       .eq('id', user.id)
       .single(),
     getTier(supabase, user.id),
@@ -142,6 +144,10 @@ export default async function SettingsPage() {
             </section>
 
             <BrokerCard row={brokerRow} canAutosync={canFlag(flags, tier, 'mt5_autosync')} />
+
+            <NotificationPrefs initial={(profile?.notification_prefs ?? {}) as Record<string, boolean>} />
+
+            <DangerZone username={profile?.username ?? ''} />
           </div>
         </div>
       </div>

@@ -7,6 +7,8 @@ import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { pipInfo } from '@/lib/instruments'
 import { trackServer } from '@/lib/server/track'
+import { insertSystemNotification } from '@/lib/notifications'
+import { analyzeCompliance, hasAnyRule } from '@/lib/rules'
 import {
   computeOpen, computeClose, DIRECTIONS, SIZING_MODES, CONFIDENCE_LEVELS, EMOTIONS, MISTAKE_TAGS,
   type Direction, type SizingMode,
@@ -141,7 +143,7 @@ export async function closeTrade(tradeId: string, exitPrice: number, mistakeTags
 
   const { data: t } = await supabase
     .from('trades')
-    .select('market, instrument, direction, entry_price, stop_price, risk_amount, user_id')
+    .select('market, instrument, direction, entry_price, stop_price, risk_amount, planned_rr, risk_percent, traded_at, user_id')
     .eq('id', tradeId).single()
   if (!t || t.user_id !== user.id) return { error: 'Trade not found.' }
 
@@ -164,6 +166,28 @@ export async function closeTrade(tradeId: string, exitPrice: number, mistakeTags
     closed_at: new Date().toISOString(),
   }).eq('id', tradeId)
   if (error) return { error: error.message }
+
+  // Rule breach notification (row 31): evaluate this trade against the user's
+  // rules; if it broke one, let them know. Best-effort, never fails the close.
+  try {
+    const { data: r } = await supabase.from('trading_rules').select('*').eq('user_id', user.id).maybeSingle()
+    if (r) {
+      const rules = {
+        maxTradesPerDay: r.max_trades_per_day, minRr: r.min_rr, maxRiskPercent: r.max_risk_percent,
+        requireStop: r.require_stop, session: r.session, noTradeAfterLosses: r.no_trade_after_losses,
+      }
+      if (hasAnyRule(rules)) {
+        const res = analyzeCompliance(rules, [{
+          tradedAt: t.traded_at, plannedRr: t.planned_rr, riskPercent: t.risk_percent,
+          hasStop: t.stop_price != null, rMultiple: c.rMultiple, pnlAmount: c.pnlAmount,
+        }])
+        if (res.broken > 0) {
+          await insertSystemNotification({ supabase, userId: user.id, type: 'rule_breach' })
+        }
+      }
+    }
+  } catch { /* notifications never block the close */ }
+
   revalidatePath('/journal')
   return { ok: true }
 }

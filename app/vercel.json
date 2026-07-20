@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/error-alert", "schedule": "0 0 * * *" }
+    { "path": "/api/cron/error-alert", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/lifecycle-emails", "schedule": "0 13 * * *" }
   ]
 }

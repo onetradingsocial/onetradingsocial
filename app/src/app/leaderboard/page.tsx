@@ -17,15 +17,16 @@ import { YourStanding } from './_components/YourStanding'
 
 const PERIOD_LABEL: Record<Period, string> = { day: 'today', week: 'this week', month: 'this month', all: 'all time' }
 
-type Search = { cat?: string; period?: string; sort?: string; verify?: string }
+type Search = { cat?: string; period?: string; sort?: string; verify?: string; minTrades?: string }
 
 export default async function LeaderboardPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams
   const cat = (['performance', 'xp'].includes(sp.cat ?? '') ? sp.cat : 'performance') as 'performance' | 'xp'
   const allowedPeriods = cat === 'xp' ? ['week', 'month', 'all'] : ['day', 'week', 'month', 'all']
   const period = (allowedPeriods.includes(sp.period ?? '') ? sp.period : 'week') as Period
-  const requestedSort = (['pnl', 'winRate', 'avgR', 'trades'].includes(sp.sort ?? '') ? sp.sort : 'pnl') as PerfSort
+  const requestedSort = (['pnl', 'winRate', 'avgR', 'trades', 'expectancy', 'profitFactor', 'consistency', 'riskAdjusted'].includes(sp.sort ?? '') ? sp.sort : 'pnl') as PerfSort
   const verify = (['all', 'broker', 'statement', 'self', 'live', 'demo', 'prop'].includes(sp.verify ?? '') ? sp.verify : 'all') as VerifyFilter
+  const minTrades = (['0', '10', '30', '50'].includes(sp.minTrades ?? '') ? Number(sp.minTrades) : 0)
 
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
@@ -45,10 +46,10 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
         </div></header>
 
         <LeaderboardTabs cat={cat} />
-        <LeaderboardControls period={period} sort={sort} cat={cat} verify={verify} canAdvFilters={canAdvFilters} />
+        <LeaderboardControls period={period} sort={sort} cat={cat} verify={verify} minTrades={String(minTrades)} canAdvFilters={canAdvFilters} />
 
         {cat === 'performance'
-          ? <PerformanceBoard supabase={supabase} period={period} sort={sort} verify={verify} userId={user.id} />
+          ? <PerformanceBoard supabase={supabase} period={period} sort={sort} verify={verify} minTrades={minTrades} userId={user.id} />
           : <XpBoard supabase={supabase} period={period} userId={user.id} />}
       </div>
 
@@ -59,11 +60,12 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   )
 }
 
-async function PerformanceBoard({ supabase, period, sort, verify, userId }: { supabase: Awaited<ReturnType<typeof createClient>>; period: Period; sort: PerfSort; verify: VerifyFilter; userId: string }) {
-  const entries = await getPerformanceRanking(supabase, period, sort, verify)
+async function PerformanceBoard({ supabase, period, sort, verify, minTrades, userId }: { supabase: Awaited<ReturnType<typeof createClient>>; period: Period; sort: PerfSort; verify: VerifyFilter; minTrades: number; userId: string }) {
+  const entries = await getPerformanceRanking(supabase, period, sort, verify, minTrades)
   const rows: BoardRow[] = entries.map((e) => ({
     rank: e.rank, userId: e.userId, username: e.username, displayName: e.displayName, avatarUrl: e.avatarUrl,
     pnl: e.pnl, winRate: e.winRate, avgR: e.avgR, trades: e.trades,
+    expectancy: e.expectancy, profitFactor: e.profitFactor,
     verification: e.verification, accountType: e.accountType,
   }))
   return (

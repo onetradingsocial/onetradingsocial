@@ -28,7 +28,7 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
 
 export default async function VerificationReviewPage() {
   const svc = createServiceClient()
-  const [suspicious, { data: brokers }, { data: failedImports }, { data: edits }] = await Promise.all([
+  const [suspicious, { data: brokers }, { data: failedImports }, { data: edits }, { data: reports }] = await Promise.all([
     getSuspiciousAccounts(svc),
     svc.from('broker_accounts')
       .select('user_id, login, server, status, last_sync_at, sync_error, created_at, profiles(username)')
@@ -41,18 +41,52 @@ export default async function VerificationReviewPage() {
       .select('user_id, trade_id, action, changed_fields, created_at')
       .eq('action', 'updated')
       .order('created_at', { ascending: false }).limit(25),
+    svc.from('trade_reports')
+      .select('id, reporter_id, reported_user_id, reason, detail, status, created_at')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false }).limit(50),
   ])
 
-  const userIds = [...new Set([...(failedImports ?? []).map((f) => f.user_id), ...(edits ?? []).map((e) => e.user_id)])].filter(Boolean) as string[]
+  const userIds = [...new Set([
+    ...(failedImports ?? []).map((f) => f.user_id),
+    ...(edits ?? []).map((e) => e.user_id),
+    ...(reports ?? []).map((r) => r.reported_user_id),
+    ...(reports ?? []).map((r) => r.reporter_id),
+  ])].filter(Boolean) as string[]
   const { data: profs } = userIds.length
     ? await svc.from('profiles').select('id, username').in('id', userIds)
     : { data: [] as { id: string; username: string }[] }
   const uname = new Map((profs ?? []).map((p) => [p.id, p.username]))
 
+  const REASON_LABEL: Record<string, string> = {
+    suspicious_performance: 'Suspicious performance', misleading_claims: 'Misleading claims',
+    impersonation: 'Impersonation', manipulated_screenshots: 'Manipulated screenshots',
+    spam: 'Spam', advice_violation: 'Advice violation',
+  }
+
   const pendingOrBroken = (brokers ?? []).filter((b) => b.status !== 'active')
 
   return (
     <div style={{ display: 'grid', gap: 28 }}>
+      <Section title="User reports" sub="Filed by traders against profiles — review and action or dismiss.">
+        {(reports ?? []).length === 0 ? (
+          <p className="faint">No open reports. ✓</p>
+        ) : (
+          <div className="ts-card" style={{ display: 'grid', gap: 8 }}>
+            {(reports ?? []).map((r) => (
+              <div key={r.id} style={{ display: 'grid', gap: 3, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                  <span className="v-badge vb-failed">{REASON_LABEL[r.reason] ?? r.reason}</span>
+                  <Link href={`/${uname.get(r.reported_user_id ?? '') ?? ''}`} style={{ fontWeight: 700 }}>@{uname.get(r.reported_user_id ?? '') ?? 'unknown'}</Link>
+                  <span className="faint" style={{ fontSize: 12 }}>reported by @{uname.get(r.reporter_id) ?? 'unknown'} · {new Date(r.created_at).toLocaleString()}</span>
+                </div>
+                {r.detail && <p style={{ fontSize: 13, margin: 0 }}>{r.detail}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
       <Section title="Suspicious accounts" sub="Heuristics over all non-internal accounts — review before acting, nothing is auto-punished.">
         {suspicious.length === 0 ? (
           <p className="faint">Nothing flagged. ✓</p>

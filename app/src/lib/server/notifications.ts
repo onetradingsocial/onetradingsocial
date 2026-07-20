@@ -4,7 +4,7 @@ import type { NotificationType } from '@/lib/notifications'
 
 export type Notification = {
   id: string
-  actorId: string
+  actorId: string | null
   actorUsername: string
   actorAvatarUrl: string | null
   type: NotificationType

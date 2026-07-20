@@ -12,8 +12,10 @@ describe('aggregatePerformance', () => {
     const m = aggregatePerformance([
       t('u1', 100, 2, 'win'), t('u1', -50, -1, 'loss'), t('u2', 30, 1.5, 'win'),
     ])
-    expect(m.get('u1')).toEqual({ userId: 'u1', pnl: 50, wins: 1, losses: 1, winRate: 0.5, avgR: 0.5, trades: 2 })
-    expect(m.get('u2')).toEqual({ userId: 'u2', pnl: 30, wins: 1, losses: 0, winRate: 1, avgR: 1.5, trades: 1 })
+    // toMatchObject: aggregatePerformance also returns extended methodology
+    // metrics (expectancy, profitFactor, drawdown, consistency, riskAdjusted).
+    expect(m.get('u1')).toMatchObject({ userId: 'u1', pnl: 50, wins: 1, losses: 1, winRate: 0.5, avgR: 0.5, trades: 2, expectancy: 0.5 })
+    expect(m.get('u2')).toMatchObject({ userId: 'u2', pnl: 30, wins: 1, losses: 0, winRate: 1, avgR: 1.5, trades: 1 })
   })
   it('treats null pnl/r as zero and ignores non win/loss outcomes in wins/losses', () => {
     const a = aggregatePerformance([t('u1', null as unknown as number, null as unknown as number, 'breakeven')]).get('u1')!

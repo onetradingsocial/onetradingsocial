@@ -13,7 +13,18 @@ const SORTS = [
   { key: 'pnl', label: 'Sort: Total P/L' },
   { key: 'winRate', label: 'Sort: Win rate' },
   { key: 'avgR', label: 'Sort: Avg R:R' },
+  { key: 'expectancy', label: 'Sort: Expectancy' },
+  { key: 'profitFactor', label: 'Sort: Profit factor' },
+  { key: 'riskAdjusted', label: 'Sort: Risk-adjusted' },
+  { key: 'consistency', label: 'Sort: Consistency' },
   { key: 'trades', label: 'Sort: Trades' },
+] as const
+
+const MIN_TRADES = [
+  { key: '0', label: 'Any sample' },
+  { key: '10', label: 'Min 10 trades' },
+  { key: '30', label: 'Min 30 trades' },
+  { key: '50', label: 'Min 50 trades' },
 ] as const
 
 // Verification filters: rank by evidence quality, not just results.
@@ -27,7 +38,7 @@ const VERIFY = [
   { key: 'prop', label: 'Prop-firm' },
 ] as const
 
-export function LeaderboardControls({ period, sort, cat, verify = 'all', canAdvFilters = true }: { period: string; sort: string; cat: string; verify?: string; canAdvFilters?: boolean }) {
+export function LeaderboardControls({ period, sort, cat, verify = 'all', minTrades = '0', canAdvFilters = true }: { period: string; sort: string; cat: string; verify?: string; minTrades?: string; canAdvFilters?: boolean }) {
   const router = useRouter()
   const sp = useSearchParams()
   const push = (next: Record<string, string>) => {
@@ -47,6 +58,14 @@ export function LeaderboardControls({ period, sort, cat, verify = 'all', canAdvF
         <div className="lb-metric">
           <select value={verify} onChange={(e) => push({ verify: e.target.value })} aria-label="Verification filter">
             {VERIFY.map((v) => <option key={v.key} value={v.key}>{v.label}</option>)}
+          </select>
+          <span className="chev" aria-hidden>▾</span>
+        </div>
+      )}
+      {cat !== 'xp' && canAdvFilters && (
+        <div className="lb-metric">
+          <select value={minTrades} onChange={(e) => push({ minTrades: e.target.value })} aria-label="Minimum sample size">
+            {MIN_TRADES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
           </select>
           <span className="chev" aria-hidden>▾</span>
         </div>

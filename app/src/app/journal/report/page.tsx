@@ -4,20 +4,25 @@ import { getTier } from '@/lib/server/entitlements'
 import { canFlag } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
+import Link from 'next/link'
 import { monthlyPnl, equityCurve, assetDistribution, groupBySetup, type JTrade } from '@/lib/journal-stats'
+import { profileLevel, VERIFICATION_LABELS, type SourceCounts } from '@/lib/verification'
 import { MonthlyPL } from '../_components/MonthlyPL'
 import { EquityCurve } from '../_components/EquityCurve'
 import { AssetDonut } from '../_components/AssetDonut'
 import { PrintButton } from './PrintButton'
 import './report.css'
 
-function money(n: number | null, sign = false) {
-  if (n == null) return '—'
-  const abs = `$${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-  return n < 0 ? `−${abs}` : sign ? `+${abs}` : abs
-}
+export default async function JournalReportPage({ searchParams }: { searchParams: Promise<{ private?: string }> }) {
+  // Privacy mode (row 23): hide currency, show R multiples / percentages only.
+  const hideMoney = (await searchParams).private === '1'
+  const money = (n: number | null, sign = false) => {
+    if (n == null) return '—'
+    if (hideMoney) return '•••'
+    const abs = `$${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+    return n < 0 ? `−${abs}` : sign ? `+${abs}` : abs
+  }
 
-export default async function JournalReportPage() {
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
@@ -39,11 +44,21 @@ export default async function JournalReportPage() {
 
   const { data: all } = await supabase
     .from('trades')
-    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, traded_at')
+    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, mistake_tags, source, traded_at')
     .eq('user_id', user.id)
     .order('traded_at', { ascending: false })
 
-  const trades = (all ?? []) as JTrade[]
+  const trades = (all ?? []) as (JTrade & { mistake_tags: string[] | null; source: string | null })[]
+
+  // Verification level for this account (row 23).
+  const counts: SourceCounts = { manual: 0, statement: 0, broker: 0 }
+  for (const t of trades) counts[(t.source ?? 'manual') as keyof SourceCounts]++
+  const verification = VERIFICATION_LABELS[profileLevel(counts, null)]
+
+  // Mistake summary (row 23).
+  const mistakeCounts = new Map<string, number>()
+  for (const t of trades) for (const m of t.mistake_tags ?? []) mistakeCounts.set(m, (mistakeCounts.get(m) ?? 0) + 1)
+  const topMistakes = [...mistakeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
   const asMetric = (t: JTrade): TradeForMetrics => ({
     status: t.status as 'open' | 'closed', outcome: t.outcome as TradeForMetrics['outcome'], rMultiple: t.r_multiple,
     pnlAmount: t.pnl_amount, tradedAt: t.traded_at, mistakeTags: [],
@@ -63,11 +78,16 @@ export default async function JournalReportPage() {
 
   return (
     <main>
-      <div className="jr-toolbar"><PrintButton /></div>
+      <div className="jr-toolbar" style={{ display: 'flex', gap: 10 }}>
+        <PrintButton />
+        <Link className="btn btn-sm" href={hideMoney ? '/journal/report' : '/journal/report?private=1'}>
+          {hideMoney ? 'Show currency' : 'Hide currency ($)'}
+        </Link>
+      </div>
       <div className="jr-report">
         <div className="jr-head">
           <h1>Trading journal report</h1>
-          <span>{profile?.display_name ?? profile?.username} · Generated {generated}</span>
+          <span>{profile?.display_name ?? profile?.username} · {verification} · Generated {generated}</span>
         </div>
 
         <div className="jr-stats">
@@ -112,6 +132,18 @@ export default async function JournalReportPage() {
                   <td>{m.profitFactor === Infinity ? '∞' : m.profitFactor.toFixed(2)}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        )}
+
+        <h2 className="jr-h2">Mistakes</h2>
+        {topMistakes.length === 0 ? (
+          <p className="faint mb-4">No mistakes tagged — or none logged yet.</p>
+        ) : (
+          <table className="jr-table" style={{ marginBottom: 24 }}>
+            <thead><tr><th>Mistake</th><th>Times tagged</th></tr></thead>
+            <tbody>
+              {topMistakes.map(([tag, n]) => <tr key={tag}><td>{tag}</td><td>{n}</td></tr>)}
             </tbody>
           </table>
         )}

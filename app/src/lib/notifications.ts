@@ -1,6 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type NotificationType = 'like' | 'comment' | 'follow' | 'post_share' | 'mention' | 'message'
+export type NotificationType =
+  | 'like' | 'comment' | 'follow' | 'post_share' | 'mention' | 'message'
+  // System (no actor) — Sprint 4, row 31:
+  | 'weekly_report' | 'import_done' | 'sync_failed' | 'goal_completed' | 'rule_breach' | 'new_learning'
+
+// System notification types have no actor and are addressed to the user directly.
+export const SYSTEM_NOTIF_TYPES = [
+  'weekly_report', 'import_done', 'sync_failed', 'goal_completed', 'rule_breach', 'new_learning',
+] as const
 
 export interface InsertNotificationArgs {
   supabase: SupabaseClient
@@ -34,6 +42,24 @@ export async function insertNotification({
     type,
     entity_id: entityId ?? null,
     entity_type: entityType ?? null,
+  })
+}
+
+// System notification (no actor). Respects the recipient's notification_prefs
+// (a type set to false is suppressed). Safe to call from server routes/actions.
+export async function insertSystemNotification(args: {
+  supabase: SupabaseClient
+  userId: string
+  type: (typeof SYSTEM_NOTIF_TYPES)[number]
+  entityId?: string
+  entityType?: 'post' | 'comment' | 'trade' | 'conversation'
+}): Promise<void> {
+  const { supabase, userId, type, entityId, entityType } = args
+  const { data: prof } = await supabase.from('profiles').select('notification_prefs').eq('id', userId).maybeSingle()
+  const prefs = (prof?.notification_prefs ?? {}) as Record<string, boolean>
+  if (prefs[type] === false) return // opted out
+  await supabase.from('notifications').insert({
+    user_id: userId, actor_id: null, type, entity_id: entityId ?? null, entity_type: entityType ?? null,
   })
 }
 

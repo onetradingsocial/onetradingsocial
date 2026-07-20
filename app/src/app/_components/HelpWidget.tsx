@@ -91,6 +91,10 @@ export function HelpWidget() {
               <button type="button" className="btn btn-primary btn-block" onClick={send} disabled={pending || !message.trim()}>
                 {pending ? 'Sending…' : 'Send'}
               </button>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, fontSize: 12.5 }}>
+                <a href="/feature-board" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Feature board</a>
+                <a href="/changelog" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>What&apos;s new</a>
+              </div>
             </>
           )}
         </div>

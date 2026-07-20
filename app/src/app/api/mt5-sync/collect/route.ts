@@ -7,6 +7,7 @@ import { mapDealToTrade } from '@/lib/mt5'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
+import { insertSystemNotification } from '@/lib/notifications'
 
 export const maxDuration = 60
 
@@ -30,6 +31,8 @@ export async function GET(req: Request) {
       await svc.from('broker_accounts')
         .update({ status: 'error', sync_error: msg }).eq('id', row.id)
       await undeployAccount(row.metaapi_account_id)
+      // Notify the owner their verification is at risk (row 31).
+      await insertSystemNotification({ supabase: svc, userId: row.user_id, type: 'sync_failed' })
     }
     try {
       // Same gate as connectBroker (incl. admin override) — see deploy route.
@@ -46,10 +49,14 @@ export async function GET(req: Request) {
           .from('profiles').select('is_public').eq('id', row.user_id).single()
         const mapped = trades.map((t) =>
           mapDealToTrade(t, { userId: row.user_id, isPublic: profile?.is_public ?? true, source: 'broker' }))
-        const { error: upErr } = await svc
+        const { data: inserted, error: upErr } = await svc
           .from('trades')
           .upsert(mapped, { onConflict: 'user_id,broker_deal_id', ignoreDuplicates: true })
+          .select('id')
         if (upErr) { await fail(`upsert: ${upErr.message}`); continue }
+        if ((inserted?.length ?? 0) > 0) {
+          await insertSystemNotification({ supabase: svc, userId: row.user_id, type: 'import_done' })
+        }
       }
 
       await undeployAccount(row.metaapi_account_id)

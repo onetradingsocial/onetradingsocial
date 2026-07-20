@@ -21,6 +21,19 @@ import { RiskTrackingCard, type RiskTrade } from './_components/RiskTrackingCard
 import { JournalEmptyState } from './_components/JournalEmptyState'
 import { MicroSurvey } from '@/app/_components/MicroSurvey'
 import { MonthlyReportCard } from './_components/MonthlyReportCard'
+import { RulesCard } from './_components/RulesCard'
+import { MistakeAnalysisCard } from './_components/MistakeAnalysisCard'
+import { getTradingRules } from '@/app/actions/rules'
+import { analyzeCompliance, hasAnyRule, EMPTY_RULES, type RuleTrade } from '@/lib/rules'
+import { computeWeeklyDetail } from '@/lib/weekly'
+import { generateInsights } from '@/lib/insights'
+import { InsightCards } from './_components/InsightCards'
+import { EmotionCard } from './_components/EmotionCard'
+import { GoalsCard } from './_components/GoalsCard'
+import { getGoalsWithProgress } from '@/lib/server/goals'
+import { createServiceClient } from '@/lib/supabase/service'
+import { computeStreaks } from '@/lib/streaks'
+import { StreaksCard } from './_components/StreaksCard'
 
 export default async function JournalPage() {
   const supabase = await createClient()
@@ -29,7 +42,7 @@ export default async function JournalPage() {
 
   const { data: all } = await supabase
     .from('trades')
-    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, traded_at, risk_percent, risk_amount, source')
+    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, stop_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, mistake_tags, emotion, traded_at, risk_percent, risk_amount, source')
     .eq('user_id', user.id)
     .order('traded_at', { ascending: false })
 
@@ -60,6 +73,66 @@ export default async function JournalPage() {
   const cal = calendarCells(trades, year, month)
 
   const canWeeklyReview = canFlag(flags, tier, 'weekly_review')
+
+  // Trading rules + compliance (rows 18/19). Rules gate on the same flag as
+  // rule compliance; evaluate over closed trades that carry an r_multiple.
+  const canRules = canFlag(flags, tier, 'trading_rules')
+  const rules = canRules ? (await getTradingRules()) ?? EMPTY_RULES : EMPTY_RULES
+  const ruleTrades: RuleTrade[] = (all ?? [])
+    .filter((t) => t.status === 'closed' && t.r_multiple != null)
+    .map((t) => ({
+      tradedAt: t.traded_at,
+      plannedRr: t.planned_rr,
+      riskPercent: t.risk_percent,
+      hasStop: t.stop_price != null,
+      rMultiple: t.r_multiple,
+      pnlAmount: t.pnl_amount,
+    }))
+  const compliance = canRules && hasAnyRule(rules) && ruleTrades.length > 0
+    ? analyzeCompliance(rules, ruleTrades)
+    : null
+
+  // Process goals (row 24) — available to all tiers.
+  const goals = await getGoalsWithProgress(
+    createServiceClient(), user.id,
+    (all ?? []).map((t) => ({
+      traded_at: t.traded_at, planned_rr: t.planned_rr, risk_percent: t.risk_percent,
+      stop_price: t.stop_price, r_multiple: t.r_multiple, status: t.status, mistake_tags: t.mistake_tags,
+    })),
+    rules,
+  )
+
+  // Meaningful streaks (row 34): process-based day sets.
+  const svcForStreaks = createServiceClient()
+  const [{ data: reviewEvents }, { data: lessonRows }] = await Promise.all([
+    svcForStreaks.from('analytics_events').select('created_at').eq('user_id', user.id).eq('event', 'weekly_review_viewed').limit(2000),
+    svcForStreaks.from('lesson_completions').select('completed_at').eq('user_id', user.id).limit(2000),
+  ])
+  const dayKey = (iso: string) => iso.slice(0, 10)
+  const closedByDay = new Map<string, { total: number; clean: number }>()
+  for (const t of (all ?? []).filter((t) => t.status === 'closed')) {
+    const d = dayKey(t.traded_at)
+    const e = closedByDay.get(d) ?? { total: 0, clean: 0 }
+    e.total++
+    if ((t.mistake_tags ?? []).length === 0) e.clean++
+    closedByDay.set(d, e)
+  }
+  const streaks = computeStreaks({
+    journalDays: [...new Set((all ?? []).map((t) => dayKey(t.traded_at)))],
+    reviewDays: [...new Set((reviewEvents ?? []).map((r) => dayKey(r.created_at)))],
+    compliantDays: [...closedByDay.entries()].filter(([, e]) => e.total > 0 && e.clean === e.total).map(([d]) => d),
+    learningDays: [...new Set((lessonRows ?? []).map((r) => dayKey(r.completed_at)))],
+    todayKey: new Date().toISOString().slice(0, 10),
+  })
+
+  // Personalised insights (row 22) — Pro tier (ai_insights flag).
+  const canInsights = canFlag(flags, tier, 'ai_insights')
+  const insights = canInsights
+    ? generateInsights((all ?? []).filter((t) => t.status === 'closed').map((t) => ({
+        rMultiple: t.r_multiple, pnlAmount: t.pnl_amount, tradedAt: t.traded_at,
+        setupType: t.setup_type, strategyTags: t.strategy_tags ?? [], mistakeTags: t.mistake_tags ?? [],
+      })))
+    : []
   const asMetric = (t: JTrade): TradeForMetrics => ({
     status: t.status as 'open' | 'closed', outcome: t.outcome as TradeForMetrics['outcome'], rMultiple: t.r_multiple,
     pnlAmount: t.pnl_amount, tradedAt: t.traded_at, mistakeTags: [],
@@ -67,6 +140,16 @@ export default async function JournalPage() {
   const thisWeekTrades = weekSlice(closed, 0)
   const thisWeekMetrics = computeMetrics(thisWeekTrades.map(asMetric))
   const lastWeekMetrics = computeMetrics(weekSlice(closed, 1).map(asMetric))
+
+  // Enriched weekly detail (row 17): needs mistake_tags, which JTrade omits,
+  // so pull from the raw rows filtered to this week's closed trades.
+  const weekIds = new Set(thisWeekTrades.map((t) => t.id))
+  const weeklyDetail = canWeeklyReview
+    ? computeWeeklyDetail((all ?? []).filter((t) => weekIds.has(t.id)).map((t) => ({
+        rMultiple: t.r_multiple, pnlAmount: t.pnl_amount, tradedAt: t.traded_at,
+        strategyTags: t.strategy_tags ?? [], setupType: t.setup_type, mistakeTags: t.mistake_tags ?? [],
+      })))
+    : null
   const weekPnls = thisWeekTrades.map((t) => t.pnl_amount ?? 0)
   const bestTrade = weekPnls.length ? Math.max(...weekPnls) : null
   const worstTrade = weekPnls.length ? Math.min(...weekPnls) : null
@@ -114,11 +197,35 @@ export default async function JournalPage() {
       )}
 
       <div className="mt-5">
-        <WeeklyReviewCard thisWeek={thisWeekMetrics} lastWeek={lastWeekMetrics} best={bestTrade} worst={worstTrade} locked={!canWeeklyReview} />
+        <InsightCards insights={insights} locked={!canInsights} />
+      </div>
+
+      <div className="mt-5">
+        <WeeklyReviewCard thisWeek={thisWeekMetrics} lastWeek={lastWeekMetrics} best={bestTrade} worst={worstTrade} detail={weeklyDetail} locked={!canWeeklyReview} />
       </div>
 
       <div className="mt-5">
         <MonthlyReportCard thisMonth={thisMonthClosed} lastMonth={lastMonthClosed} label={monthLabelFor(0)} topInstrument={topMonthInstrument} locked={!canFlag(flags, tier, 'monthly_report')} />
+      </div>
+
+      <div className="mt-5">
+        <RulesCard rules={rules} compliance={compliance} locked={!canRules} />
+      </div>
+
+      <div className="mt-5">
+        <StreaksCard streaks={streaks} />
+      </div>
+
+      <div className="mt-5">
+        <GoalsCard goals={goals} />
+      </div>
+
+      <div className="mt-5">
+        <MistakeAnalysisCard trades={(all ?? []).filter((t) => t.status === 'closed')} locked={!canFlag(flags, tier, 'mistake_tagging')} />
+      </div>
+
+      <div className="mt-5">
+        <EmotionCard trades={(all ?? []).filter((t) => t.status === 'closed').map((t) => ({ emotion: t.emotion, rMultiple: t.r_multiple, pnlAmount: t.pnl_amount }))} locked={!canFlag(flags, tier, 'advanced_journal')} />
       </div>
 
       <div className="mt-5">

@@ -15,6 +15,11 @@ export type RankedEntry = {
   winRate: number
   avgR: number
   trades: number
+  expectancy: number
+  profitFactor: number
+  maxDrawdownR: number
+  consistency: number
+  riskAdjusted: number
   verification: VerificationLevel
   accountType: AccountType | null
 }
@@ -35,6 +40,7 @@ export async function getPerformanceRanking(
   period: Period,
   sort: PerfSort = 'pnl',
   verify: VerifyFilter = 'all',
+  minTrades = 0,
 ): Promise<RankedEntry[]> {
   const cutoff = windowStart(period, Date.now())
   let q = supabase
@@ -74,12 +80,14 @@ export async function getPerformanceRanking(
   const visible = aggs
     .filter((a) => pmap.has(a.userId))
     .map((a) => ({ ...a, joinedAt: Date.parse(pmap.get(a.userId)!.created_at) }))
-  return rankPerformance(visible, sort).map((r) => {
+  return rankPerformance(visible, sort, minTrades).map((r) => {
     const p = pmap.get(r.userId)!
     return {
       rank: r.rank, userId: r.userId,
       username: p.username, displayName: p.display_name, avatarUrl: p.avatar_url,
       pnl: r.pnl, winRate: r.winRate, avgR: r.avgR, trades: r.trades,
+      expectancy: r.expectancy, profitFactor: r.profitFactor, maxDrawdownR: r.maxDrawdownR,
+      consistency: r.consistency, riskAdjusted: r.riskAdjusted,
       verification: profileLevel(counts.get(r.userId) ?? { manual: 0, statement: 0, broker: 0 }, null),
       accountType: (p.account_type ?? null) as AccountType | null,
     }

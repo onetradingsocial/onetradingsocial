@@ -18,6 +18,8 @@ export type BoardRow = {
   winRate: number // 0..1
   avgR: number
   trades: number
+  expectancy?: number
+  profitFactor?: number
   verification?: VerificationLevel
   accountType?: AccountType | null
 }
@@ -76,6 +78,8 @@ export function LeaderboardTable({ rows, viewerId }: { rows: BoardRow[]; viewerI
               <th className="num">Total P/L</th>
               <th className="num col-hide">Win rate</th>
               <th className="num col-hide">Avg R:R</th>
+              <th className="num col-hide">Expectancy</th>
+              <th className="num col-hide">Profit factor</th>
               <th className="num col-hide">Trades</th>
               <th className="num">Action</th>
             </tr>
@@ -110,6 +114,8 @@ export function LeaderboardTable({ rows, viewerId }: { rows: BoardRow[]; viewerI
                     </span>
                   </td>
                   <td className="num col-hide"><span className="lb-cellnum">{t.avgR.toFixed(2)}:1</span></td>
+                  <td className="num col-hide"><span className="lb-cellnum">{t.expectancy != null ? `${t.expectancy >= 0 ? '+' : ''}${t.expectancy.toFixed(2)}R` : '—'}</span></td>
+                  <td className="num col-hide"><span className="lb-cellnum">{t.profitFactor == null ? '—' : t.profitFactor === Infinity ? '∞' : t.profitFactor.toFixed(2)}</span></td>
                   <td className="num col-hide"><span className="lb-cellnum muted">{t.trades}</span></td>
                   <td className="num">
                     {self ? <span className="lb-act self">You</span> : <FollowButton targetId={t.userId} initialFollowing={false} />}
@@ -118,7 +124,7 @@ export function LeaderboardTable({ rows, viewerId }: { rows: BoardRow[]; viewerI
               )
             })}
             {slice.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: '34px 0', color: 'var(--faint)' }}>No traders match “{query}”.</td></tr>
+              <tr><td colSpan={9} style={{ textAlign: 'center', padding: '34px 0', color: 'var(--faint)' }}>No traders match “{query}”.</td></tr>
             )}
           </tbody>
         </table>

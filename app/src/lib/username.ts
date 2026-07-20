@@ -3,7 +3,7 @@ export const RESERVED_USERNAMES = [
   'auth', 'api', 'admin', 'journal', 'leaderboard', 'feed', 'home',
   'profile', 'u', 'static', '_next', 'assets', 'favicon',
   'error', 'not-found', 'loading', 'verification', 'learn', 'messages',
-  'achievements', 'select-plan', 'demo',
+  'achievements', 'select-plan', 'demo', 'feature-board', 'changelog', 'for',
 ] as const
 
 export type UsernameResult = { ok: true } | { ok: false; error: string }

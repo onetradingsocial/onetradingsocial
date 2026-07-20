@@ -55,7 +55,7 @@ export type Feature =
   | 'learning_intermediate' | 'premium_courses'
   | 'saved_traders' | 'creator_profile' | 'strategy_tracking' | 'mistake_tagging'
   | 'risk_tracking' | 'private_notes' | 'custom_templates' | 'export_journal'
-  | 'weekly_review' | 'strategy_breakdown' | 'advanced_reporting' | 'monthly_report'
+  | 'weekly_review' | 'strategy_breakdown' | 'advanced_reporting' | 'monthly_report' | 'trading_rules'
   | 'ai_insights' | 'advanced_leaderboard_filters' | 'leaderboard_placement'
   | 'premium_challenges' | 'xp_boosts' | 'priority_support' | 'early_access'
   | 'mt5_import' | 'mt5_autosync'
@@ -79,6 +79,7 @@ export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
   risk_tracking: 'trader',
   private_notes: 'trader',
   weekly_review: 'trader',
+  trading_rules: 'trader',
   advanced_leaderboard_filters: 'trader',
   xp_boosts: 'trader',
   export_journal: 'trader',

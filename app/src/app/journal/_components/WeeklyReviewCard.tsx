@@ -1,4 +1,5 @@
 import type { Metrics } from '@/lib/trade'
+import type { WeeklyDetail } from '@/lib/weekly'
 import { TrackOnMount } from '@/app/_components/TrackOnMount'
 import { MicroSurvey } from '@/app/_components/MicroSurvey'
 
@@ -18,8 +19,10 @@ function Delta({ value, suffix = '', good = true }: { value: number; suffix?: st
   )
 }
 
-export function WeeklyReviewCard({ thisWeek, lastWeek, best, worst, locked, interactive = true }: {
+export function WeeklyReviewCard({ thisWeek, lastWeek, best, worst, detail = null, locked, interactive = true }: {
   thisWeek: Metrics; lastWeek: Metrics; best: number | null; worst: number | null; locked: boolean
+  /** enriched summary (strategy/session/mistake/drawdown + continue/change) */
+  detail?: WeeklyDetail | null
   /** false on the public demo page: no tracking, no survey */
   interactive?: boolean
 }) {
@@ -73,6 +76,47 @@ export function WeeklyReviewCard({ thisWeek, lastWeek, best, worst, locked, inte
           <div className="ts-bigcard-sub faint">this week</div>
         </div>
       </div>
+
+      {detail && (
+        <>
+          <div className="ts-compute mt-4">
+            <div className="ts-compute-cell"><div className="k">Profit factor</div>
+              <div className="v">{thisWeek.profitFactor === Infinity ? '∞' : thisWeek.profitFactor.toFixed(2)}</div></div>
+            <div className="ts-compute-div" />
+            <div className="ts-compute-cell"><div className="k">Avg winner / loser</div>
+              <div className="v">{detail.avgWinner.toFixed(1)}R / {detail.avgLoser.toFixed(1)}R</div></div>
+            <div className="ts-compute-div" />
+            <div className="ts-compute-cell"><div className="k">Max drawdown</div>
+              <div className="v ts-neg">{detail.maxDrawdownR.toFixed(1)}R</div></div>
+          </div>
+
+          <div className="ts-grid3 mt-4">
+            <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px' }}>
+              <div className="faint" style={{ fontSize: 12 }}>Best strategy</div>
+              <div style={{ fontWeight: 700, marginTop: 3 }}>{detail.bestStrategy ? `${detail.bestStrategy.name} · ${money(detail.bestStrategy.pnl, true)}` : '—'}</div>
+            </div>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px' }}>
+              <div className="faint" style={{ fontSize: 12 }}>Best session</div>
+              <div style={{ fontWeight: 700, marginTop: 3 }}>{detail.bestSession ? `${detail.bestSession.name} · ${money(detail.bestSession.pnl, true)}` : '—'}</div>
+            </div>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px' }}>
+              <div className="faint" style={{ fontSize: 12 }}>Most expensive mistake</div>
+              <div style={{ fontWeight: 700, marginTop: 3 }}>{detail.worstMistake ? `${detail.worstMistake.tag} · ${money(detail.worstMistake.cost)}` : 'None tagged'}</div>
+            </div>
+          </div>
+
+          <div className="ts-grid2 mt-4">
+            <div style={{ borderRadius: 12, padding: '12px 14px', background: 'var(--up-soft)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--up)' }}>✓ Continue</div>
+              <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{detail.continueMsg}</p>
+            </div>
+            <div style={{ borderRadius: 12, padding: '12px 14px', background: 'var(--down-soft)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--down)' }}>△ Change</div>
+              <p style={{ margin: '4px 0 0', fontSize: 13.5 }}>{detail.changeMsg}</p>
+            </div>
+          </div>
+        </>
+      )}
       {interactive && thisWeek.total > 0 && (
         <MicroSurvey
           surveyKey="first_weekly_report"
