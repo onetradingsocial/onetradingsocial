@@ -1,4 +1,5 @@
 import type { FeedTabItem } from '../FeedTabs'
+import type { Recommendation } from '@/lib/recommend'
 
 export type HomeLeader = {
   rank: number
@@ -52,4 +53,6 @@ export type HomeData = {
   followingIds: string[]
   series: { equity: number[]; winRate: number[]; avgRr: number[]; count: number[] }
   advancedStats: boolean
+  /** Personalised trader suggestions for the rail (row 35). */
+  recommendations: Recommendation[]
 }

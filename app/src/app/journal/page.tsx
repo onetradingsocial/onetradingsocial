@@ -35,6 +35,8 @@ import { getGoalsWithProgress } from '@/lib/server/goals'
 import { createServiceClient } from '@/lib/supabase/service'
 import { computeStreaks } from '@/lib/streaks'
 import { StreaksCard } from './_components/StreaksCard'
+import { getComparison } from '@/lib/server/compare'
+import { ComparisonCard } from './_components/ComparisonCard'
 
 export default async function JournalPage() {
   const supabase = await createClient()
@@ -125,6 +127,9 @@ export default async function JournalPage() {
     learningDays: [...new Set((lessonRows ?? []).map((r) => dayKey(r.completed_at)))],
     todayKey: new Date().toISOString().slice(0, 10),
   })
+
+  // Trader comparison (row 36): own history + anonymised peer benchmark.
+  const comparison = await getComparison(createServiceClient(), user.id)
 
   // Personalised insights (row 22) — Pro tier (ai_insights flag).
   const canInsights = canFlag(flags, tier, 'ai_insights')
@@ -241,6 +246,10 @@ export default async function JournalPage() {
           <RulesCard rules={rules} compliance={compliance} locked={false} />
         </div>
       )}
+
+      <div className="mt-5">
+        <ComparisonCard data={comparison} />
+      </div>
 
       <div className="mt-5">
         <StreaksCard streaks={streaks} />

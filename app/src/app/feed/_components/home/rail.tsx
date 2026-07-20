@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 import { Icon, Avatar, Sparkline } from './atoms'
 import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import { follow, unfollow } from '@/app/actions/social'
+import { SuggestedTraders } from '@/app/_components/SuggestedTraders'
 import type { HomeData, HomeLeader, HomeRecentTrade, HomeQuest } from './types'
 
 const money = (n: number | null) => n == null ? '—' : `${n >= 0 ? '+' : '−'}$${Math.abs(Math.round(n)).toLocaleString()}`
@@ -126,6 +127,7 @@ export function Rail({ data }: { data: HomeData }) {
   return (
     <aside className="h-rail">
       <TraderOfWeek leader={leader} isSelf={leader?.userId === data.userId} isFollowing={leader ? followingSet.has(leader.userId) : false} />
+      <SuggestedTraders recs={data.recommendations} />
       <TopTraders leaders={data.weekLeaders} userId={data.userId} />
       <Quests quests={data.quests} />
       <RecentTrades trades={data.recentTrades} />

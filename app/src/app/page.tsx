@@ -14,6 +14,9 @@ import { RedditPixel } from './_components/RedditPixel'
 import { MetaPixel } from './_components/MetaPixel'
 import { OnboardingChecklist, type ChecklistItem } from './_components/OnboardingChecklist'
 import { MicroSurvey } from './_components/MicroSurvey'
+import { SuggestedTraders } from './_components/SuggestedTraders'
+import { getRecommendedTraders } from '@/lib/server/recommend'
+import { rankFeedByAffinity } from '@/lib/recommend'
 import { createServiceClient } from '@/lib/supabase/service'
 
 const FEED_INITIAL_LIMIT = 30
@@ -73,10 +76,18 @@ export default async function Home({
   // Stage B — posts keyed on the follow graph.
   const { data: primaryRaw } = await supabase.from('posts').select(FEED_POST_SELECT)
     .in('author_id', authorIds).order('created_at', { ascending: false }).limit(FEED_INITIAL_LIMIT)
+  // Personalised recommendations (row 35): suggested traders for the rail, and
+  // affinity scores used to rank the discovery (fallback) portion of the feed
+  // so it isn't just "whoever posted most recently".
+  const svcRec = createServiceClient()
+  const recommendations = await getRecommendedTraders(svcRec, user.id, { limit: 5 })
+  const affinity = new Map(recommendations.map((r) => [r.userId, r.score]))
+
   let fallbackRaw: RawPost[] = []
   if ((primaryRaw?.length ?? 0) < 5) {
     const { data } = await supabase.from('posts').select(FEED_POST_SELECT).order('created_at', { ascending: false }).limit(FEED_INITIAL_LIMIT)
-    fallbackRaw = (data ?? []) as RawPost[]
+    // Discovery posts get affinity-ranked; followed-author posts stay as-is.
+    fallbackRaw = rankFeedByAffinity((data ?? []) as RawPost[], affinity)
   }
   const merged = boostFavorites(assembleFeed((primaryRaw ?? []) as RawPost[], fallbackRaw, FEED_INITIAL_LIMIT), favoriteSet)
   const items = await hydrateFeedPosts(supabase, user.id, merged, followingSet, favoriteSet)
@@ -135,6 +146,7 @@ export default async function Home({
     followingIds,
     series: { equity: eqSeries, winRate: wrSeries, avgRr: rrSeries, count: cntSeries },
     advancedStats,
+    recommendations,
   }
 
   // Onboarding checklist (row 14): computed from real data, shown until done.
