@@ -157,16 +157,20 @@ export default async function Home({
 
   return (
     <>
-      <OnboardingChecklist items={checklist} />
-      {dayOld >= 7 && (
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <MicroSurvey
-            surveyKey="day_7"
-            question="What's stopping you from using TradingSocial more often?"
-            options={['Nothing — I use it daily', 'Takes too long to log trades', 'Missing a feature I need', 'Not sure what it does for me']}
-          />
-        </div>
-      )}
+      {/* Band sits above the .h-app shell, so it must repaint the arena
+          background itself or a white seam shows above the home page. */}
+      <div className="h-prelude">
+        <OnboardingChecklist items={checklist} />
+        {dayOld >= 7 && (
+          <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+            <MicroSurvey
+              surveyKey="day_7"
+              question="What's stopping you from using TradingSocial more often?"
+              options={['Nothing — I use it daily', 'Takes too long to log trades', 'Missing a feature I need', 'Not sure what it does for me']}
+            />
+          </div>
+        )}
+      </div>
       <HomeArena data={data} />
       {justSignedUp && (
         // MetaPixel must render before RedditPixel: both gate on ?signup=1 and
