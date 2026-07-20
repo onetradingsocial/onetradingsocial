@@ -55,6 +55,16 @@ export default async function AnalyticsPage() {
   const [d, f] = await Promise.all([getAnalytics(supabase), getFunnelDashboard(supabase)])
   return (
     <div style={{ display: 'grid', gap: 28 }}>
+      {/* Row 44: state the exclusion explicitly — an invisible filter is a
+          filter nobody trusts. */}
+      <div className="ts-card" style={{ padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <span className="v-badge vb-broker">Internal traffic excluded</span>
+        <span className="faint" style={{ fontSize: 12.5 }}>
+          Every figure below counts genuine users only — admins, the team, seeded demo accounts
+          and automated test signups are filtered out.
+        </span>
+      </div>
+
       <Section title="Core funnel (30 days, internal traffic excluded)">
         <FunnelBar rows={f.funnel} />
         {f.onboardingSteps.length > 0 && (

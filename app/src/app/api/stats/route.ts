@@ -22,19 +22,25 @@ export function OPTIONS() {
 export async function GET() {
   try {
     const svc = createServiceClient()
-    const [{ count: tradesJournaled }, { data: realUsers }, { count: publicTraders }, { count: lessonsDone }] =
-      await Promise.all([
-        svc.from('trades').select('id', { count: 'exact', head: true }),
-        svc.from('profiles').select('id').eq('is_internal', false).eq('onboarding_completed', true),
-        svc.from('profiles').select('id', { count: 'exact', head: true })
-          .eq('is_internal', false).eq('is_public', true).eq('onboarding_completed', true),
-        svc.from('lesson_completions').select('lesson_id', { count: 'exact', head: true }),
-      ])
+
+    // Every figure here is public-facing proof, so it must count GENUINE users
+    // only — no seeded demo accounts, no e2e test signups, no team accounts.
+    // Counting internal activity here would be manufacturing social proof.
+    const { data: realProfiles } = await svc
+      .from('profiles').select('id, is_public, onboarding_completed').eq('is_internal', false)
+    const real = realProfiles ?? []
+    const realIds = real.map((p) => p.id)
+    const idFilter = realIds.length ? realIds : ['00000000-0000-0000-0000-000000000000']
+
+    const [{ count: tradesJournaled }, { count: lessonsDone }] = await Promise.all([
+      svc.from('trades').select('id', { count: 'exact', head: true }).in('user_id', idFilter),
+      svc.from('lesson_completions').select('lesson_id', { count: 'exact', head: true }).in('user_id', idFilter),
+    ])
 
     return NextResponse.json({
       tradesJournaled: tradesJournaled ?? 0,
-      activeBetaUsers: (realUsers ?? []).length,
-      publicTraders: publicTraders ?? 0,
+      activeBetaUsers: real.filter((p) => p.onboarding_completed).length,
+      publicTraders: real.filter((p) => p.is_public && p.onboarding_completed).length,
       lessonsCompleted: lessonsDone ?? 0,
       updatedAt: new Date().toISOString(),
     }, { headers: CORS })

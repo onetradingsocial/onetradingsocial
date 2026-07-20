@@ -6,21 +6,29 @@ export async function getAnalytics(
   supabase: SupabaseClient,
   now: Date = new Date(),
 ): Promise<AnalyticsDashboard> {
-  const [profiles, trades, closedPublic, posts, comments, likes, completions, lessons, feedback] =
+  // Exclude internal + test traffic (row 44). Without this the dashboard is
+  // dominated by Playwright e2e signups and seeded demo accounts.
+  const { data: realProfiles } = await supabase
+    .from('profiles').select('id, created_at').eq('is_internal', false)
+  const realIds = (realProfiles ?? []).map((p) => p.id)
+  // PostgREST needs a non-empty list; a sentinel UUID matches nothing.
+  const idFilter = realIds.length ? realIds : ['00000000-0000-0000-0000-000000000000']
+
+  const [trades, closedPublic, posts, comments, likes, completions, lessons, feedback] =
     await Promise.all([
-      supabase.from('profiles').select('created_at'),
-      supabase.from('trades').select('user_id, created_at'),
-      supabase.from('trades').select('user_id, created_at').eq('is_public', true).eq('status', 'closed'),
-      supabase.from('posts').select('author_id, created_at'),
-      supabase.from('comments').select('author_id, created_at'),
-      supabase.from('likes').select('user_id, created_at'),
-      supabase.from('lesson_completions').select('user_id, completed_at, lessons(courses(title))'),
+      supabase.from('trades').select('user_id, created_at').in('user_id', idFilter),
+      supabase.from('trades').select('user_id, created_at').eq('is_public', true).eq('status', 'closed').in('user_id', idFilter),
+      supabase.from('posts').select('author_id, created_at').in('author_id', idFilter),
+      supabase.from('comments').select('author_id, created_at').in('author_id', idFilter),
+      supabase.from('likes').select('user_id, created_at').in('user_id', idFilter),
+      supabase.from('lesson_completions').select('user_id, completed_at, lessons(courses(title))').in('user_id', idFilter),
       supabase.from('lessons').select('id', { count: 'exact', head: true }).eq('published', true),
-      supabase.from('feedback').select('created_at, status'),
+      supabase.from('feedback').select('created_at, status').in('user_id', idFilter),
     ])
 
   const data = <T,>(r: { data: T[] | null }): T[] => r.data ?? []
   const completionRows = data<any>(completions)
+  const profiles = { data: realProfiles }
 
   return buildDashboard(
     {
