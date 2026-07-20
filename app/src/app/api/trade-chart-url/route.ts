@@ -4,6 +4,12 @@ import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { signTradeChartUpload, tradeChartPublicUrl } from '@/lib/storage'
+import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
+
+// Signed upload URLs are the main storage-abuse vector, so they are throttled
+// well above normal human use but far below what a script would want.
+const UPLOAD_MAX = 30
+const UPLOAD_WINDOW = 60_000
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -15,6 +21,10 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  const rl = rateLimit(clientKey(request, user.id), UPLOAD_MAX, UPLOAD_WINDOW)
+  if (!rl.ok) return tooMany(rl.retryAfter)
+
   // Confirm ownership
   const { data: t } = await supabase.from('trades').select('user_id').eq('id', tradeId).single()
   if (!t || t.user_id !== user.id) return NextResponse.json({ error: 'not found' }, { status: 404 })

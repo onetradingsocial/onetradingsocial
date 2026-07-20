@@ -2,8 +2,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { priceForPlan, type Tier, type Interval } from '@/lib/entitlements'
+import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
 
 export const runtime = 'nodejs'
+
+// Each call creates a Stripe customer/session; nobody legitimately needs more
+// than a handful a minute.
+const CHECKOUT_MAX = 10
+const CHECKOUT_WINDOW = 60_000
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -11,6 +17,9 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  const rl = rateLimit(clientKey(request, user.id), CHECKOUT_MAX, CHECKOUT_WINDOW)
+  if (!rl.ok) return tooMany(rl.retryAfter)
 
   const { tier, interval, flow } = (await request.json().catch(() => ({}))) as {
     tier?: Tier; interval?: Interval; flow?: 'onboarding'

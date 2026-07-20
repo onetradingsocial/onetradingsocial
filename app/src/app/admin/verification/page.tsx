@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getSuspiciousAccounts } from '@/lib/server/suspicion'
+import { ReportStatus } from '../_components/ReportStatus'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,6 +80,7 @@ export default async function VerificationReviewPage() {
                   <span className="v-badge vb-failed">{REASON_LABEL[r.reason] ?? r.reason}</span>
                   <Link href={`/${uname.get(r.reported_user_id ?? '') ?? ''}`} style={{ fontWeight: 700 }}>@{uname.get(r.reported_user_id ?? '') ?? 'unknown'}</Link>
                   <span className="faint" style={{ fontSize: 12 }}>reported by @{uname.get(r.reporter_id) ?? 'unknown'} · {new Date(r.created_at).toLocaleString()}</span>
+                  <span style={{ marginLeft: 'auto' }}><ReportStatus id={r.id} status={r.status} /></span>
                 </div>
                 {r.detail && <p style={{ fontSize: 13, margin: 0 }}>{r.detail}</p>}
               </div>
