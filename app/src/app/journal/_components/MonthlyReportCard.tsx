@@ -25,17 +25,8 @@ function Delta({ value, suffix = '', good = true }: { value: number; suffix?: st
 export function MonthlyReportCard({ thisMonth, lastMonth, label, topInstrument, locked }: {
   thisMonth: JTrade[]; lastMonth: JTrade[]; label: string; topInstrument: string | null; locked: boolean
 }) {
-  if (locked) {
-    return (
-      <div className="ts-card">
-        <h2 className="ts-h2">Monthly trader report</h2>
-        <p className="ts-sub mt-2">
-          Pro perk: a month-over-month recap — trades, net P/L, win rate, and your most-traded instrument.{' '}
-          <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a> to unlock it.
-        </p>
-      </div>
-    )
-  }
+  // Locked cards render nothing — LockedFeatures lists them once at the page foot.
+  if (locked) return null
 
   const tm = computeMetrics(thisMonth.map(asMetric))
   const lm = computeMetrics(lastMonth.map(asMetric))

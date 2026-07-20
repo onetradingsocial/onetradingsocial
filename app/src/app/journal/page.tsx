@@ -28,6 +28,7 @@ import { analyzeCompliance, hasAnyRule, EMPTY_RULES, type RuleTrade } from '@/li
 import { computeWeeklyDetail } from '@/lib/weekly'
 import { generateInsights } from '@/lib/insights'
 import { InsightCards } from './_components/InsightCards'
+import { LockedFeatures } from './_components/LockedFeatures'
 import { EmotionCard } from './_components/EmotionCard'
 import { GoalsCard } from './_components/GoalsCard'
 import { getGoalsWithProgress } from '@/lib/server/goals'
@@ -160,6 +161,27 @@ export default async function JournalPage() {
   for (const t of thisMonthClosed) monthInstCounts[t.instrument] = (monthInstCounts[t.instrument] ?? 0) + 1
   const topMonthInstrument = Object.entries(monthInstCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
 
+  // Gate flags for the cards that hide themselves when locked. Rather than
+  // stacking eight upsell cards down a free user's journal, the locked ones
+  // render nothing and get named once in a collapsed strip at the foot.
+  const canMonthlyReport = canFlag(flags, tier, 'monthly_report')
+  const canMistakes = canFlag(flags, tier, 'mistake_tagging')
+  const canEmotion = canFlag(flags, tier, 'advanced_journal')
+  const canStrategy = canFlag(flags, tier, 'strategy_breakdown')
+  const canRisk = canFlag(flags, tier, 'risk_tracking')
+  const lockedFeatures = ([
+    [canInsights, 'Personalised insights', 'Pro'],
+    [canWeeklyReview, 'Weekly performance review', 'Trader+'],
+    [canMonthlyReport, 'Monthly trader report', 'Pro'],
+    [canRules, 'Trading rules', 'Trader+'],
+    [canMistakes, 'Mistake analysis', 'Trader+'],
+    [canEmotion, 'Emotional state', 'Trader+'],
+    [canStrategy, 'Strategy breakdown', 'Pro'],
+    [canRisk, 'Risk management', 'Trader+'],
+  ] as const)
+    .filter(([allowed]) => !allowed)
+    .map(([, name, planTier]) => ({ name, tier: planTier }))
+
   // Rich empty state (row 13): first-run journal shows the three data paths
   // and a sample insight instead of a wall of zeroed cards.
   if (trades.length === 0) {
@@ -196,21 +218,29 @@ export default async function JournalPage() {
         />
       )}
 
-      <div className="mt-5">
-        <InsightCards insights={insights} locked={!canInsights} />
-      </div>
+      {canInsights && (
+        <div className="mt-5">
+          <InsightCards insights={insights} locked={false} />
+        </div>
+      )}
 
-      <div className="mt-5">
-        <WeeklyReviewCard thisWeek={thisWeekMetrics} lastWeek={lastWeekMetrics} best={bestTrade} worst={worstTrade} detail={weeklyDetail} locked={!canWeeklyReview} />
-      </div>
+      {canWeeklyReview && (
+        <div className="mt-5">
+          <WeeklyReviewCard thisWeek={thisWeekMetrics} lastWeek={lastWeekMetrics} best={bestTrade} worst={worstTrade} detail={weeklyDetail} locked={false} />
+        </div>
+      )}
 
-      <div className="mt-5">
-        <MonthlyReportCard thisMonth={thisMonthClosed} lastMonth={lastMonthClosed} label={monthLabelFor(0)} topInstrument={topMonthInstrument} locked={!canFlag(flags, tier, 'monthly_report')} />
-      </div>
+      {canMonthlyReport && (
+        <div className="mt-5">
+          <MonthlyReportCard thisMonth={thisMonthClosed} lastMonth={lastMonthClosed} label={monthLabelFor(0)} topInstrument={topMonthInstrument} locked={false} />
+        </div>
+      )}
 
-      <div className="mt-5">
-        <RulesCard rules={rules} compliance={compliance} locked={!canRules} />
-      </div>
+      {canRules && (
+        <div className="mt-5">
+          <RulesCard rules={rules} compliance={compliance} locked={false} />
+        </div>
+      )}
 
       <div className="mt-5">
         <StreaksCard streaks={streaks} />
@@ -220,21 +250,29 @@ export default async function JournalPage() {
         <GoalsCard goals={goals} />
       </div>
 
-      <div className="mt-5">
-        <MistakeAnalysisCard trades={(all ?? []).filter((t) => t.status === 'closed')} locked={!canFlag(flags, tier, 'mistake_tagging')} />
-      </div>
+      {canMistakes && (
+        <div className="mt-5">
+          <MistakeAnalysisCard trades={(all ?? []).filter((t) => t.status === 'closed')} locked={false} />
+        </div>
+      )}
 
-      <div className="mt-5">
-        <EmotionCard trades={(all ?? []).filter((t) => t.status === 'closed').map((t) => ({ emotion: t.emotion, rMultiple: t.r_multiple, pnlAmount: t.pnl_amount }))} locked={!canFlag(flags, tier, 'advanced_journal')} />
-      </div>
+      {canEmotion && (
+        <div className="mt-5">
+          <EmotionCard trades={(all ?? []).filter((t) => t.status === 'closed').map((t) => ({ emotion: t.emotion, rMultiple: t.r_multiple, pnlAmount: t.pnl_amount }))} locked={false} />
+        </div>
+      )}
 
-      <div className="mt-5">
-        <StrategyBreakdownCard closed={closed} locked={!canFlag(flags, tier, 'strategy_breakdown')} />
-      </div>
+      {canStrategy && (
+        <div className="mt-5">
+          <StrategyBreakdownCard closed={closed} locked={false} />
+        </div>
+      )}
 
-      <div className="mt-5">
-        <RiskTrackingCard trades={(all ?? []) as unknown as RiskTrade[]} locked={!canFlag(flags, tier, 'risk_tracking')} />
-      </div>
+      {canRisk && (
+        <div className="mt-5">
+          <RiskTrackingCard trades={(all ?? []) as unknown as RiskTrade[]} locked={false} />
+        </div>
+      )}
 
       <div className="ts-panels mt-5">
         <div className="ts-card">
@@ -270,6 +308,12 @@ export default async function JournalPage() {
           </div>
         )}
       </div>
+
+      {lockedFeatures.length > 0 && (
+        <div className="mt-5">
+          <LockedFeatures items={lockedFeatures} />
+        </div>
+      )}
     </main>
   )
 }

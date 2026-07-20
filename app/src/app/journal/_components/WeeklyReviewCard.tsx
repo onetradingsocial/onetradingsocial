@@ -26,17 +26,8 @@ export function WeeklyReviewCard({ thisWeek, lastWeek, best, worst, detail = nul
   /** false on the public demo page: no tracking, no survey */
   interactive?: boolean
 }) {
-  if (locked) {
-    return (
-      <div className="ts-card">
-        <h2 className="ts-h2">Weekly performance review</h2>
-        <p className="ts-sub mt-2">
-          Trader+ perk: a week-over-week recap of your trades, P/L, win rate, and best/worst trade.{' '}
-          <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a> to unlock it.
-        </p>
-      </div>
-    )
-  }
+  // Locked cards render nothing — LockedFeatures lists them once at the page foot.
+  if (locked) return null
 
   const dPnl = thisWeek.netPnl - lastWeek.netPnl
   const dTrades = thisWeek.total - lastWeek.total

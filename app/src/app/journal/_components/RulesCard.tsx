@@ -15,17 +15,8 @@ export function RulesCard({ rules, compliance, locked }: {
   const [editing, setEditing] = useState(false)
   const [state, action, pending] = useActionState<RulesState, FormData>(saveTradingRules, {})
 
-  if (locked) {
-    return (
-      <div className="ts-card">
-        <h2 className="ts-h2">Trading rules</h2>
-        <p className="ts-sub mt-2">
-          Define your rules — max trades/day, minimum R:R, session, max risk — and see what breaking them costs.{' '}
-          <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a> to unlock.
-        </p>
-      </div>
-    )
-  }
+  // Locked cards render nothing — LockedFeatures lists them once at the page foot.
+  if (locked) return null
 
   const total = compliance ? compliance.followed + compliance.broken : 0
   const followPct = total ? Math.round((compliance!.followed / total) * 100) : 0

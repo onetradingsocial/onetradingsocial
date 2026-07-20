@@ -14,17 +14,8 @@ function money(n: number) {
 const RISK_LIMIT_PCT = 2
 
 export function RiskTrackingCard({ trades, locked }: { trades: RiskTrade[]; locked: boolean }) {
-  if (locked) {
-    return (
-      <div className="ts-card">
-        <h2 className="ts-h2">Risk management</h2>
-        <p className="ts-sub mt-2">
-          Trader+ perk: average risk per trade, largest exposure, and over-risk flags across your journal.{' '}
-          <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a> to track it.
-        </p>
-      </div>
-    )
-  }
+  // Locked cards render nothing — LockedFeatures lists them once at the page foot.
+  if (locked) return null
 
   const withPct = trades.filter((t) => t.risk_percent != null)
   const withAmt = trades.filter((t) => t.risk_amount != null && t.risk_amount > 0)

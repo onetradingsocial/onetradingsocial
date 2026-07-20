@@ -11,17 +11,8 @@ const EPS = 1e-9
  * causation into noise.
  */
 export function EmotionCard({ trades, locked }: { trades: EmotionTrade[]; locked: boolean }) {
-  if (locked) {
-    return (
-      <div className="ts-card">
-        <h2 className="ts-h2">Emotional state</h2>
-        <p className="ts-sub mt-2">
-          Capture how you felt before a trade and see how it correlates with results.{' '}
-          <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a> to unlock.
-        </p>
-      </div>
-    )
-  }
+  // Locked cards render nothing — LockedFeatures lists them once at the page foot.
+  if (locked) return null
 
   const closed = trades.filter((t) => t.emotion && t.rMultiple != null)
   const rows = EMOTIONS.map((e) => {

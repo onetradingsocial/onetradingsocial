@@ -18,17 +18,8 @@ function money(n: number) {
  * dated history). Tags are captured on trade close (Trader+).
  */
 export function MistakeAnalysisCard({ trades, locked }: { trades: MistakeTrade[]; locked: boolean }) {
-  if (locked) {
-    return (
-      <div className="ts-card">
-        <h2 className="ts-h2">Mistake analysis</h2>
-        <p className="ts-sub mt-2">
-          Tag mistakes when you close a trade, then see what each one costs you.{' '}
-          <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a> to unlock.
-        </p>
-      </div>
-    )
-  }
+  // Locked cards render nothing — LockedFeatures lists them once at the page foot.
+  if (locked) return null
 
   const closed = trades.filter((t) => t.r_multiple != null)
   const tagged = closed.filter((t) => (t.mistake_tags ?? []).length > 0)

@@ -2,17 +2,8 @@ import type { Insight } from '@/lib/insights'
 
 /** Personalised insight cards (Sprint 4, row 22). Each shows its sample size. */
 export function InsightCards({ insights, locked }: { insights: Insight[]; locked: boolean }) {
-  if (locked) {
-    return (
-      <div className="ts-card">
-        <h2 className="ts-h2">Personalised insights</h2>
-        <p className="ts-sub mt-2">
-          Statistically-grounded insights about your sessions, setups and streaks.{' '}
-          <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a> to unlock.
-        </p>
-      </div>
-    )
-  }
+  // Locked cards render nothing — LockedFeatures lists them once at the page foot.
+  if (locked) return null
 
   return (
     <div className="ts-card">

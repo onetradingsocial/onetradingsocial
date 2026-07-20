@@ -12,17 +12,8 @@ const asMetric = (t: JTrade): TradeForMetrics => ({
 })
 
 export function StrategyBreakdownCard({ closed, locked }: { closed: JTrade[]; locked: boolean }) {
-  if (locked) {
-    return (
-      <div className="ts-card">
-        <h2 className="ts-h2">Strategy performance breakdown</h2>
-        <p className="ts-sub mt-2">
-          Pro perk: win rate, net P/L, and profit factor broken down by setup/strategy tag.{' '}
-          <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a> to unlock it.
-        </p>
-      </div>
-    )
-  }
+  // Locked cards render nothing — LockedFeatures lists them once at the page foot.
+  if (locked) return null
 
   const rows = Object.entries(groupBySetup(closed))
     .map(([setup, trades]) => ({ setup, m: computeMetrics(trades.map(asMetric)) }))
