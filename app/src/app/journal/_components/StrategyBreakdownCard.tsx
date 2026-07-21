@@ -25,23 +25,25 @@ export function StrategyBreakdownCard({ closed, locked }: { closed: JTrade[]; lo
       {rows.length === 0 ? (
         <p className="faint mt-3">Log closed trades with a setup type to see this breakdown.</p>
       ) : (
-        <table className="ts-table mt-3">
-          <thead>
-            <tr><th>Setup</th><th>Trades</th><th>Win rate</th><th>Net P/L</th><th>Avg R</th><th>Profit factor</th></tr>
-          </thead>
-          <tbody>
-            {rows.map(({ setup, m }) => (
-              <tr key={setup}>
-                <td>{setup}</td>
-                <td>{m.total}</td>
-                <td>{Math.round(m.winRate * 100)}%</td>
-                <td className={m.netPnl >= 0 ? 'ts-pos' : 'ts-neg'}>{money(m.netPnl, true)}</td>
-                <td>{m.avgRr.toFixed(2)}</td>
-                <td>{m.profitFactor === Infinity ? '∞' : m.profitFactor.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="ts-table mt-3">
+            <thead>
+              <tr><th>Setup</th><th>Trades</th><th>Win rate</th><th>Net P/L</th><th>Avg R</th><th>Profit factor</th></tr>
+            </thead>
+            <tbody>
+              {rows.map(({ setup, m }) => (
+                <tr key={setup}>
+                  <td>{setup}</td>
+                  <td>{m.total}</td>
+                  <td>{Math.round(m.winRate * 100)}%</td>
+                  <td className={m.netPnl >= 0 ? 'ts-pos' : 'ts-neg'}>{money(m.netPnl, true)}</td>
+                  <td>{m.avgRr.toFixed(2)}</td>
+                  <td>{m.profitFactor === Infinity ? '∞' : m.profitFactor.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )
