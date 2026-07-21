@@ -2179,3 +2179,30 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   .ad-stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
   .ad-head h1 { font-size: 22px; }
 }
+
+/* ---------- skeletons ---------- */
+/* Placeholders mirror the real chrome (panel borders, head bar, row rhythm)
+   so the swap to real content shifts nothing. Only the text bones shimmer. */
+.ad-skel {
+  display: block; border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface-2) 37%, var(--surface-3) 63%);
+  background-size: 400% 100%;
+  animation: ad-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes ad-shimmer {
+  from { background-position: 100% 50%; }
+  to   { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ad-skel { animation: none; background: var(--surface-3); }
+}
+.ad-skel--text { height: 11px; }
+.ad-skel--head { height: 26px; border-radius: 8px; }
+.ad-skel--pill { height: 18px; border-radius: 999px; }
+.ad-skel--bar  { height: 7px; border-radius: 999px; }
+
+/* the skeleton page fades in only if the wait is long enough to notice,
+   so fast responses never flash a placeholder */
+.ad-skel-page { animation: ad-skel-in .01s linear .18s backwards; }
+@keyframes ad-skel-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ad-skel-page { animation: none; } }
