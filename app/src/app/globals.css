@@ -2206,3 +2206,47 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ad-skel-page { animation: ad-skel-in .01s linear .18s backwards; }
 @keyframes ad-skel-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .ad-skel-page { animation: none; } }
+
+/* ---------- trend chart (axes + plot) ----------
+   Text lives in HTML, never in the stretched SVG, so labels stay upright and
+   crisp at any width. The SVG holds bars and gridlines only. */
+.ad-chart {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 9px; row-gap: 6px;
+}
+/* y axis: ticks pinned to the same fractions the gridlines use */
+.ad-chart-y {
+  grid-column: 1; grid-row: 1;
+  display: flex; flex-direction: column; justify-content: space-between;
+  align-items: flex-end; text-align: right;
+}
+.ad-chart-y span {
+  font-family: var(--mono); font-size: 10px; line-height: 1;
+  color: var(--faintest); font-variant-numeric: tabular-nums;
+}
+.ad-chart-plot { grid-column: 2; grid-row: 1; position: relative; }
+.ad-chart-plot svg { display: block; width: 100%; }
+.ad-chart-grid line { stroke: var(--border); stroke-width: 1; }
+.ad-chart-base line { stroke: var(--border-2); stroke-width: 1; }
+.ad-chart-bar { fill: var(--violet); opacity: 0.42; transition: opacity .14s; }
+.ad-chart-bar--last { fill: var(--violet-deep); opacity: 1; }
+.ad-chart-plot:hover .ad-chart-bar { opacity: 0.28; }
+.ad-chart-plot .ad-chart-bar:hover { opacity: 1; fill: var(--violet-br); }
+/* x axis: one cell per bucket, thinned labels stay centred under their bar */
+.ad-chart-x { grid-column: 2; grid-row: 2; display: grid; }
+.ad-chart-x span {
+  font-family: var(--mono); font-size: 10px; line-height: 1.2;
+  color: var(--faintest); text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ad-chart-peak {
+  position: absolute; transform: translate(-50%, -100%);
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: var(--violet-deep); font-variant-numeric: tabular-nums;
+  pointer-events: none; white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .ad-chart-x span { font-size: 9px; }
+}
