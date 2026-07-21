@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react'
 import { ackSystemAlert } from '@/app/actions/admin'
+import { When } from './ui'
 
 export type AlertRow = {
   id: number
@@ -16,27 +17,26 @@ export function AlertsPanel({ alerts }: { alerts: AlertRow[] }) {
   const [pending, start] = useTransition()
   if (alerts.length === 0) return null
   return (
-    <div className="ts-card" style={{ gridColumn: '1 / -1', borderColor: 'rgba(229,71,93,0.4)' }}>
-      <span className="faint" style={{ fontSize: 13 }}>⚠ Open alerts</span>
-      <div className="mt-3" style={{ display: 'grid', gap: 8 }}>
-        {alerts.map((a) => (
-          <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 14 }}>
-              <code style={{ fontSize: 12, marginRight: 8 }}>{a.kind}</code>
-              {a.message}
-              <span className="faint" style={{ fontSize: 12, marginLeft: 8 }}>
-                {new Date(a.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </span>
+    <div className="ad-panel ad-panel--danger">
+      <div className="ad-panel-head">
+        <span className="t">⚠ Open alerts</span>
+        <span className="r"><span className="v-badge vb-failed">{alerts.length}</span></span>
+      </div>
+      {alerts.map((a) => (
+        <div key={a.id} className="ad-row">
+          <code className="ad-kv">{a.kind}</code>
+          <span style={{ minWidth: 0 }}>{a.message}</span>
+          <When iso={a.created_at} short />
+          <span className="sp">
             <button
-              type="button" className="btn" disabled={pending}
+              type="button" className="btn btn-ghost btn-sm" disabled={pending}
               onClick={() => start(async () => { await ackSystemAlert(a.id) })}
             >
               Acknowledge
             </button>
-          </div>
-        ))}
-      </div>
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

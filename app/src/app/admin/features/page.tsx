@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { FEATURE_MIN_TIER, type Feature } from '@/lib/entitlements'
 import { FEATURE_KEYS, defaultMatrix, flagsFromRows, type FlagRow } from '@/lib/feature-flags'
 import { FlagMatrix, type FlagGroup, type FlagRowView } from '../_components/FlagMatrix'
+import { PageHead } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,16 +59,13 @@ export default async function AdminFeaturesPage() {
   const wiredCount = FEATURE_KEYS.filter((k) => WIRED.has(k)).length
 
   return (
-    <section>
-      <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 10 }}>
-        <h2 className="ts-h2">Feature flags</h2>
-        <span className="ts-chip2">{wiredCount} of {FEATURE_KEYS.length} wired</span>
-      </div>
-      <p className="faint mt-1">
-        Per-tier access, grouped to mirror the pricing table. Unchecked = that tier sees the upgrade prompt.
-        Changes reach users within ~60s (cache). Reset restores the code default.
-      </p>
+    <>
+      <PageHead
+        title="Feature flags"
+        sub="Per-tier access, grouped to mirror the pricing table. Unchecked = that tier sees the upgrade prompt. Changes reach users within ~60s (cache); Reset restores the code default."
+        right={<span className="ts-chip2">{wiredCount} of {FEATURE_KEYS.length} wired</span>}
+      />
       <FlagMatrix groups={groups} />
-    </section>
+    </>
   )
 }

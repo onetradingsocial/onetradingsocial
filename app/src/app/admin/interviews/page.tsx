@@ -2,6 +2,7 @@
 // want to talk to — engaged, broker-connected, or churned-after-engaging — with
 // a mailto invite. Read-only over service-role data.
 import { createServiceClient } from '@/lib/supabase/service'
+import { Empty, PageHead, Panel, Section } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ function InviteLink({ email, username }: { email: string | null; username: strin
   if (!email) return <span className="faint">no email</span>
   const subject = encodeURIComponent('Quick chat about your TradingSocial experience?')
   const body = encodeURIComponent(`Hi @${username},\n\nWe're talking to a few early traders about what's working and what isn't. Would you be up for a 15-minute call?\n\nThanks,\nThe TradingSocial team`)
-  return <a href={`mailto:${email}?subject=${subject}&body=${body}`} className="btn btn-sm">Invite</a>
+  return <a href={`mailto:${email}?subject=${subject}&body=${body}`} className="btn btn-ghost btn-sm">Invite</a>
 }
 
 export default async function InterviewsPage() {
@@ -57,25 +58,30 @@ export default async function InterviewsPage() {
   ]
 
   return (
-    <div style={{ display: 'grid', gap: 24 }}>
-      {groups.map((g) => {
-        const list = rows.filter((r) => r.seg === g.seg)
-        return (
-          <section key={g.seg} style={{ display: 'grid', gap: 10 }}>
-            <div><h2 className="ts-h2">{g.label} <span className="faint" style={{ fontSize: 13, fontWeight: 400 }}>· {g.hint}</span></h2></div>
-            {list.length === 0 ? <p className="faint">None.</p> : (
-              <div className="ts-card" style={{ display: 'grid', gap: 8 }}>
-                {list.map((r) => (
-                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                    <span>@{r.username} <span className="faint" style={{ fontSize: 12 }}>· {r.trades} trades</span></span>
-                    <InviteLink email={r.email} username={r.username} />
+    <>
+      <PageHead
+        title="Interviews"
+        sub="Users worth talking to, segmented by behaviour. Invite opens a pre-written mail in your client — nothing is sent from here."
+      />
+
+      <div className="ad-stack">
+        {groups.map((g) => {
+          const list = rows.filter((r) => r.seg === g.seg)
+          return (
+            <Section key={g.seg} title={g.label} sub={g.hint} right={<span className="v-badge">{list.length}</span>}>
+              <Panel flush>
+                {list.length === 0 ? <Empty>No users in this segment.</Empty> : list.map((r) => (
+                  <div key={r.id} className="ad-row">
+                    <span style={{ fontWeight: 600 }}>@{r.username}</span>
+                    <span className="faint" style={{ fontSize: 12 }}>{r.trades} trades</span>
+                    <span className="sp"><InviteLink email={r.email} username={r.username} /></span>
                   </div>
                 ))}
-              </div>
-            )}
-          </section>
-        )
-      })}
-    </div>
+              </Panel>
+            </Section>
+          )
+        })}
+      </div>
+    </>
   )
 }

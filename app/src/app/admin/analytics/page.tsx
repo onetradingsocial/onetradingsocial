@@ -4,175 +4,143 @@ import { getAnalytics } from '@/lib/server/analytics'
 import { getFunnelDashboard } from '@/lib/server/funnel'
 import { TrendBars } from './_components/TrendBars'
 import { CompletionsList } from './_components/CompletionsList'
+import { Meter, PageHead, Panel, Section, Stat, Stats } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
 
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="ts-card" style={{ display: 'grid', gap: 6 }}>
-      <span className="faint" style={{ fontSize: 13 }}>{label}</span>
-      <strong style={{ fontSize: 28 }}>{value}</strong>
-    </div>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ display: 'grid', gap: 12 }}>
-      <h2 className="ts-h2">{title}</h2>
-      {children}
-    </section>
-  )
-}
-
-const grid2 = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 } as const
-
-function FunnelBar({ rows }: { rows: { step: string; count: number }[] }) {
+function FunnelBars({ rows }: { rows: { step: string; count: number }[] }) {
   const max = Math.max(1, ...rows.map((r) => r.count))
   return (
-    <div className="ts-card" style={{ display: 'grid', gap: 10 }}>
+    <Panel title="Signup → activation">
       {rows.map((r, i) => {
         const prev = i > 0 ? rows[i - 1].count : null
         const conv = prev && prev > 0 ? Math.round((r.count / prev) * 100) : null
         return (
-          <div key={r.step} style={{ display: 'grid', gap: 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-              <span>{r.step}</span>
-              <span className="faint">{r.count}{conv != null && ` · ${conv}%`}</span>
-            </div>
-            <div style={{ height: 8, borderRadius: 999, background: 'var(--surface-3)', overflow: 'hidden' }}>
-              <i style={{ display: 'block', height: '100%', width: `${(r.count / max) * 100}%`, background: 'var(--brand-grad)' }} />
-            </div>
-          </div>
+          <Meter
+            key={r.step}
+            label={r.step}
+            note={conv != null ? `${r.count} · ${conv}%` : r.count}
+            pct={(r.count / max) * 100}
+          />
         )
       })}
-    </div>
+    </Panel>
   )
 }
 
 export default async function AnalyticsPage() {
   const supabase = createServiceClient()
   const [d, f] = await Promise.all([getAnalytics(supabase), getFunnelDashboard(supabase)])
+
   return (
-    <div style={{ display: 'grid', gap: 28 }}>
-      {/* Row 44: state the exclusion explicitly — an invisible filter is a
-          filter nobody trusts. */}
-      <div className="ts-card" style={{ padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <span className="v-badge vb-broker">Internal traffic excluded</span>
-        <span className="faint" style={{ fontSize: 12.5 }}>
-          Every figure below counts genuine users only — admins, the team, seeded demo accounts
-          and automated test signups are filtered out.
-        </span>
-      </div>
+    <>
+      <PageHead
+        title="Analytics"
+        sub="Product health over the last 30 days. Every figure counts genuine users only — admins, the team, seeded demo accounts and automated test signups are filtered out."
+        right={<span className="v-badge vb-broker">Internal excluded</span>}
+      />
 
-      <Section title="Core funnel (30 days, internal traffic excluded)">
-        <FunnelBar rows={f.funnel} />
-        {f.onboardingSteps.length > 0 && (
-          <div className="ts-card">
-            <span className="faint" style={{ fontSize: 13 }}>Onboarding step reach (abandonment)</span>
-            <div className="mt-3" style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-              {f.onboardingSteps.map((s) => (
-                <span key={s.step} style={{ fontSize: 14 }}>Step {s.step}: <strong>{s.count}</strong></span>
-              ))}
-            </div>
-          </div>
-        )}
-      </Section>
-
-      <Section title="Lifecycle">
-        <div style={grid2}>
-          {f.lifecycle.map((l) => <Stat key={l.status} label={l.status} value={l.count} />)}
-        </div>
-      </Section>
-
-      <Section title="Signups by source">
-        <div className="ts-card" style={{ display: 'grid', gap: 6 }}>
-          {f.sources.map((s) => (
-            <div key={s.source} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-              <code>{s.source}</code><span className="faint">{s.count}</span>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Feature adoption (activated users)">
-        <div className="ts-card" style={{ display: 'grid', gap: 10 }}>
-          {f.adoption.map((a) => (
-            <div key={a.feature} style={{ display: 'grid', gap: 4 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span>{a.feature}</span>
-                <span className="faint">{a.users} · {a.pct}%</span>
+      <div className="ad-stack">
+        <Section title="Core funnel" sub="Each bar is measured against the step above it — the sharpest drop is where to spend the next sprint.">
+          <FunnelBars rows={f.funnel} />
+          {f.onboardingSteps.length > 0 && (
+            <Panel title="Onboarding step reach">
+              <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap' }}>
+                {f.onboardingSteps.map((s) => (
+                  <span key={s.step} style={{ fontSize: 13.5 }}>
+                    <span className="faint">Step {s.step}</span>{' '}
+                    <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{s.count}</strong>
+                  </span>
+                ))}
               </div>
-              <div style={{ height: 6, borderRadius: 999, background: 'var(--surface-3)', overflow: 'hidden' }}>
-                <i style={{ display: 'block', height: '100%', width: `${a.pct}%`, background: 'var(--brand-grad)' }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
+            </Panel>
+          )}
+        </Section>
 
-      <Section title="Errors (30 days)">
-        <div style={grid2}>
-          <Stat label="404 hits" value={f.notFound30d} />
-          <Stat label="Client errors" value={f.clientErrors30d} />
-        </div>
-        {f.topBrokenPaths.length > 0 && (
-          <div className="ts-card">
-            <span className="faint" style={{ fontSize: 13 }}>Top broken paths</span>
-            <div className="mt-3" style={{ display: 'grid', gap: 6 }}>
+        <Section title="Lifecycle">
+          <Stats>
+            {f.lifecycle.map((l) => <Stat key={l.status} label={l.status} value={l.count} />)}
+          </Stats>
+        </Section>
+
+        <Section title="Acquisition">
+          <Panel title="Signups by source" flush>
+            {f.sources.map((s) => (
+              <div key={s.source} className="ad-row">
+                <code className="ad-kv">{s.source}</code>
+                <span className="sp faint" style={{ fontVariantNumeric: 'tabular-nums' }}>{s.count}</span>
+              </div>
+            ))}
+          </Panel>
+        </Section>
+
+        <Section title="Feature adoption" sub="Share of activated users who have used each feature at least once.">
+          <Panel>
+            {f.adoption.map((a) => (
+              <Meter key={a.feature} label={a.feature} note={`${a.users} · ${a.pct}%`} pct={a.pct} />
+            ))}
+          </Panel>
+        </Section>
+
+        <Section title="Errors">
+          <Stats>
+            <Stat label="404 hits" value={f.notFound30d} tone={f.notFound30d > 0 ? 'warn' : undefined} />
+            <Stat label="Client errors" value={f.clientErrors30d} tone={f.clientErrors30d > 0 ? 'warn' : undefined} />
+          </Stats>
+          {f.topBrokenPaths.length > 0 && (
+            <Panel title="Top broken paths" flush>
               {f.topBrokenPaths.map((p) => (
-                <div key={p.path} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <code style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.path}</code>
-                  <span className="faint">{p.count}</span>
+                <div key={p.path} className="ad-row">
+                  <code className="ad-kv" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.path}</code>
+                  <span className="sp faint" style={{ fontVariantNumeric: 'tabular-nums' }}>{p.count}</span>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-      </Section>
+            </Panel>
+          )}
+        </Section>
 
-      <Section title="Growth">
-        <div style={grid2}>
-          <Stat label="Total users" value={d.growth.totalUsers} />
-          <Stat label="New (7d)" value={d.growth.new7d} />
-          <Stat label="New (30d)" value={d.growth.new30d} />
-        </div>
-        <TrendBars title="Signups / week" data={d.growth.signupsPerWeek} />
-      </Section>
+        <Section title="Growth">
+          <Stats>
+            <Stat label="Total users" value={d.growth.totalUsers} tone="accent" />
+            <Stat label="New (7d)" value={d.growth.new7d} />
+            <Stat label="New (30d)" value={d.growth.new30d} />
+          </Stats>
+          <TrendBars title="Signups / week" data={d.growth.signupsPerWeek} />
+        </Section>
 
-      <Section title="Engagement">
-        <div style={grid2}>
-          <Stat label="Active users (7d)" value={d.engagement.active7d} />
-          <Stat label="Active users (30d)" value={d.engagement.active30d} />
-          <Stat label="Trades logged" value={d.engagement.totalTrades} />
-        </div>
-        <TrendBars title="Trades / week" data={d.engagement.tradesPerWeek} />
-        <TrendBars title="Posts / week" data={d.engagement.postsPerWeek} />
-        <TrendBars title="Social actions / week" data={d.engagement.socialPerWeek} />
-      </Section>
+        <Section title="Engagement">
+          <Stats>
+            <Stat label="Active users (7d)" value={d.engagement.active7d} />
+            <Stat label="Active users (30d)" value={d.engagement.active30d} />
+            <Stat label="Trades logged" value={d.engagement.totalTrades} />
+          </Stats>
+          <TrendBars title="Trades / week" data={d.engagement.tradesPerWeek} />
+          <TrendBars title="Posts / week" data={d.engagement.postsPerWeek} />
+          <TrendBars title="Social actions / week" data={d.engagement.socialPerWeek} />
+        </Section>
 
-      <Section title="Content">
-        <div style={grid2}>
-          <Stat label="Course completions" value={d.content.totalCompletions} />
-          <Stat label="Published lessons" value={d.content.publishedLessons} />
-          <Stat label="Leaderboard participants" value={d.content.leaderboardParticipants} />
-        </div>
-        <TrendBars title="Completions / week" data={d.content.completionsPerWeek} />
-        <div className="ts-card">
-          <span className="faint" style={{ fontSize: 13 }}>Top courses</span>
-          <div className="mt-3"><CompletionsList rows={d.content.topCourses} /></div>
-        </div>
-      </Section>
+        <Section title="Content">
+          <Stats>
+            <Stat label="Course completions" value={d.content.totalCompletions} />
+            <Stat label="Published lessons" value={d.content.publishedLessons} />
+            <Stat label="Leaderboard participants" value={d.content.leaderboardParticipants} />
+          </Stats>
+          <TrendBars title="Completions / week" data={d.content.completionsPerWeek} />
+          <Panel title="Top courses">
+            <CompletionsList rows={d.content.topCourses} />
+          </Panel>
+        </Section>
 
-      <Section title="Ops">
-        <div style={grid2}>
-          <Stat label="Feedback total" value={d.ops.totalFeedback} />
-          <Stat label="Open" value={d.ops.openFeedback} />
-          <Stat label="Triaged" value={d.ops.triagedFeedback} />
-          <Stat label="Resolved" value={d.ops.closedFeedback} />
-        </div>
-        <TrendBars title="Feedback / week" data={d.ops.feedbackPerWeek} />
-      </Section>
-    </div>
+        <Section title="Ops">
+          <Stats>
+            <Stat label="Feedback total" value={d.ops.totalFeedback} />
+            <Stat label="Open" value={d.ops.openFeedback} tone={d.ops.openFeedback > 0 ? 'warn' : undefined} />
+            <Stat label="Triaged" value={d.ops.triagedFeedback} />
+            <Stat label="Resolved" value={d.ops.closedFeedback} />
+          </Stats>
+          <TrendBars title="Feedback / week" data={d.ops.feedbackPerWeek} />
+        </Section>
+      </div>
+    </>
   )
 }

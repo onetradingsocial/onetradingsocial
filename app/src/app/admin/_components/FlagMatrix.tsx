@@ -80,10 +80,10 @@ function Row({ row }: { row: FlagRowView }) {
 
 export function FlagMatrix({ groups }: { groups: FlagGroup[] }) {
   return (
-    <>
+    <div style={{ display: 'grid', gap: 14 }}>
       {groups.map((g) => (
-        <div key={g.title} className="ts-card mt-4" style={{ paddingTop: 14 }}>
-          <p className="eyebrow" style={{ marginBottom: 4 }}>{g.title}</p>
+        <div key={g.title} className="ad-panel">
+          <div className="ad-panel-head"><span className="t">{g.title}</span></div>
           <table className="ts-table" style={{ tableLayout: 'fixed' }}>
             <colgroup>
               <col />
@@ -105,6 +105,6 @@ export function FlagMatrix({ groups }: { groups: FlagGroup[] }) {
           </table>
         </div>
       ))}
-    </>
+    </div>
   )
 }

@@ -20,8 +20,8 @@ export function FeedbackCategory({ id, category }: { id: string; category: strin
   const [pending, start] = useTransition()
   return (
     <select
-      className="ts-select"
-      style={{ width: 'auto', fontSize: 12.5, padding: '4px 26px 4px 8px' }}
+      className="ts-select ad-select"
+      aria-label="Feedback category"
       value={value}
       disabled={pending}
       onChange={(e) => {

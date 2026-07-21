@@ -10,8 +10,7 @@ export function NewCourseForm() {
   const [pending, start] = useTransition()
   return (
     <form
-      className="ts-card mt-4"
-      style={{ display: 'grid', gap: 8 }}
+      className="ad-panel"
       onSubmit={(e) => {
         e.preventDefault()
         const f = new FormData(e.currentTarget)
@@ -26,22 +25,45 @@ export function NewCourseForm() {
         })
       }}
     >
-      <strong>New course</strong>
-      <input name="title" placeholder="Title" required />
-      <input name="slug" placeholder="slug-like-this" required />
-      <input name="summary" placeholder="Summary" />
-      <input name="difficulty" placeholder="beginner / intermediate / advanced" />
-      <input name="ord" type="number" defaultValue={0} min={0} aria-label="Order" />
-      <label style={{ display: 'grid', gap: 4, fontSize: 13 }}>
-        Min tier
-        <select name="minTier" defaultValue="free">
-          <option value="free">Free</option>
-          <option value="trader">Trader</option>
-          <option value="pro">Pro</option>
-        </select>
-      </label>
-      {error && <span style={{ color: 'var(--danger, #e5484d)' }}>{error}</span>}
-      <button className="btn btn-primary btn-sm" disabled={pending} type="submit">Create</button>
+      <div className="ad-panel-head"><span className="t">New course</span></div>
+      <div className="ad-panel-body">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          <label className="ts-field">
+            <span className="ts-label">Title</span>
+            <input className="ts-input" name="title" placeholder="Risk management basics" required />
+          </label>
+          <label className="ts-field">
+            <span className="ts-label">Slug</span>
+            <input className="ts-input" name="slug" placeholder="slug-like-this" required />
+          </label>
+          <label className="ts-field" style={{ gridColumn: '1 / -1' }}>
+            <span className="ts-label">Summary</span>
+            <input className="ts-input" name="summary" placeholder="One sentence shown on the hub card" />
+          </label>
+          <label className="ts-field">
+            <span className="ts-label">Difficulty</span>
+            <input className="ts-input" name="difficulty" placeholder="beginner / intermediate / advanced" />
+          </label>
+          <label className="ts-field">
+            <span className="ts-label">Order</span>
+            <input className="ts-input" name="ord" type="number" defaultValue={0} min={0} />
+          </label>
+          <label className="ts-field">
+            <span className="ts-label">Min tier</span>
+            <select className="ts-select" name="minTier" defaultValue="free">
+              <option value="free">Free</option>
+              <option value="trader">Trader</option>
+              <option value="pro">Pro</option>
+            </select>
+          </label>
+        </div>
+        {error && <span style={{ color: 'var(--down)', fontSize: 13 }}>{error}</span>}
+        <div>
+          <button className="btn btn-primary btn-sm" disabled={pending} type="submit">
+            {pending ? 'Creating…' : 'Create course'}
+          </button>
+        </div>
+      </div>
     </form>
   )
 }

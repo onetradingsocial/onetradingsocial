@@ -16,8 +16,8 @@ export function ReportStatus({ id, status }: { id: number; status: string }) {
   const [pending, start] = useTransition()
   return (
     <select
-      className="ts-select"
-      style={{ width: 'auto', fontSize: 12, padding: '3px 24px 3px 8px' }}
+      className="ts-select ad-select"
+      aria-label="Report status"
       value={value}
       disabled={pending}
       onChange={(e) => {

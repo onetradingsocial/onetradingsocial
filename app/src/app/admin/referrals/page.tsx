@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import { rewardsFor } from '@/lib/referral'
+import { Empty, PageHead, Panel, Stat, Stats } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,47 +48,60 @@ export default async function AdminReferralsPage() {
     activated: t.activated + r.activated, paid: t.paid + r.paid,
   }), { clicks: 0, signups: 0, activated: 0, paid: 0 })
 
+  const rate = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}% of previous step` : undefined)
+
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
-      <div>
-        <h2 className="ts-h2">Referral programme</h2>
-        <p className="ts-sub">Rewards unlock on activated referrals. Apply earned rewards manually during beta.</p>
-      </div>
+    <>
+      <PageHead
+        title="Referrals"
+        sub="Rewards unlock on activated referrals. Apply earned rewards manually while the programme is in beta."
+      />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 14 }}>
-        {([['Clicks', totals.clicks], ['Signups', totals.signups], ['Activated', totals.activated], ['Paid', totals.paid]] as const).map(([k, v]) => (
-          <div key={k} className="ts-card" style={{ display: 'grid', gap: 4 }}>
-            <span className="faint" style={{ fontSize: 13 }}>{k}</span>
-            <strong style={{ fontSize: 26 }}>{v}</strong>
-          </div>
-        ))}
-      </div>
+      <div className="ad-stack">
+        <Stats>
+          <Stat label="Clicks" value={totals.clicks} />
+          <Stat label="Signups" value={totals.signups} sub={rate(totals.signups, totals.clicks)} />
+          <Stat label="Activated" value={totals.activated} sub={rate(totals.activated, totals.signups)} tone="accent" />
+          <Stat label="Paid" value={totals.paid} sub={rate(totals.paid, totals.activated)} />
+        </Stats>
 
-      {rows.length === 0 ? (
-        <p className="faint">No referral activity yet.</p>
-      ) : (
-        <div className="ts-card" style={{ overflowX: 'auto' }}>
-          <table className="ts-table">
-            <thead><tr><th>Referrer</th><th>Code</th><th className="num">Clicks</th><th className="num">Signups</th><th className="num">Activated</th><th className="num">Paid</th><th>Rewards earned</th></tr></thead>
-            <tbody>
-              {rows.map((r) => {
-                const earned = rewardsFor(r.activated).filter((x) => x.earned)
-                return (
-                  <tr key={r.id}>
-                    <td><Link href={`/${r.username}`}>@{r.username}</Link></td>
-                    <td className="mono" style={{ fontSize: 12 }}>{r.code || '—'}</td>
-                    <td className="num">{r.clicks}</td>
-                    <td className="num">{r.signups}</td>
-                    <td className="num">{r.activated}</td>
-                    <td className="num">{r.paid}</td>
-                    <td>{earned.length === 0 ? <span className="faint">—</span> : earned.map((e) => <span key={e.id} className="v-badge" style={{ marginRight: 4 }}>{e.label}</span>)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+        <Panel title="By referrer" flush scroll>
+          {rows.length === 0 ? <Empty>No referral activity yet.</Empty> : (
+            <table className="ts-table">
+              <thead>
+                <tr>
+                  <th>Referrer</th><th>Code</th>
+                  <th className="num">Clicks</th><th className="num">Signups</th>
+                  <th className="num">Activated</th><th className="num">Paid</th>
+                  <th>Rewards earned</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const earned = rewardsFor(r.activated).filter((x) => x.earned)
+                  return (
+                    <tr key={r.id}>
+                      <td><Link href={`/${r.username}`}>@{r.username}</Link></td>
+                      <td className="ad-kv">{r.code || '—'}</td>
+                      <td className="num">{r.clicks}</td>
+                      <td className="num">{r.signups}</td>
+                      <td className="num">{r.activated}</td>
+                      <td className="num">{r.paid}</td>
+                      <td>
+                        {earned.length === 0 ? <span className="faint">—</span> : (
+                          <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>
+                            {earned.map((e) => <span key={e.id} className="v-badge vb-statement">{e.label}</span>)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </Panel>
+      </div>
+    </>
   )
 }

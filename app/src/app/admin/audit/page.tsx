@@ -1,5 +1,6 @@
 // Admin action audit log (row 52). Every privileged mutation is recorded here.
 import { createServiceClient } from '@/lib/supabase/service'
+import { Empty, PageHead, Panel, When } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,42 +29,39 @@ export default async function AdminAuditPage() {
     .order('created_at', { ascending: false })
     .limit(200)
 
+  const list = rows ?? []
   return (
-    <div style={{ display: 'grid', gap: 14 }}>
-      <div>
-        <h2 className="ts-h2">Admin audit log</h2>
-        <p className="ts-sub">
-          Every privileged action — flag changes, moderation, content publishing. Append-only;
-          nothing here can be edited or deleted through the app.
-        </p>
-      </div>
+    <>
+      <PageHead
+        title="Audit log"
+        sub="Every privileged action — flag changes, moderation, content publishing. Append-only; nothing here can be edited or deleted through the app."
+        right={<span className="v-badge">Append-only</span>}
+      />
 
-      {(rows ?? []).length === 0 ? (
-        <p className="faint">No admin actions recorded yet.</p>
-      ) : (
-        <div className="ts-card" style={{ overflowX: 'auto' }}>
+      <Panel title={`Last ${list.length} action${list.length === 1 ? '' : 's'}`} flush scroll>
+        {list.length === 0 ? (
+          <Empty>No admin actions recorded yet.</Empty>
+        ) : (
           <table className="ts-table">
             <thead><tr><th>When</th><th>Admin</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
             <tbody>
-              {(rows ?? []).map((r) => (
+              {list.map((r) => (
                 <tr key={r.id}>
-                  <td className="faint" style={{ whiteSpace: 'nowrap', fontSize: 12.5 }}>
-                    {new Date(r.created_at).toLocaleString()}
-                  </td>
+                  <td><When iso={r.created_at} /></td>
                   <td style={{ fontSize: 13 }}>{r.actor_email ?? '—'}</td>
                   <td><span className="v-badge">{LABEL[r.action] ?? r.action}</span></td>
-                  <td className="mono" style={{ fontSize: 11.5 }}>
+                  <td className="ad-kv" style={{ fontSize: 11.5 }}>
                     {r.target_type ? `${r.target_type}:${String(r.target_id).slice(0, 12)}` : '—'}
                   </td>
-                  <td className="faint" style={{ fontSize: 11.5, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <td className="faint" style={{ fontSize: 11.5, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {Object.keys(r.detail ?? {}).length ? JSON.stringify(r.detail) : '—'}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-    </div>
+        )}
+      </Panel>
+    </>
   )
 }

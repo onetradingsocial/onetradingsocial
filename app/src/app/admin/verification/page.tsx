@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getSuspiciousAccounts } from '@/lib/server/suspicion'
 import { ReportStatus } from '../_components/ReportStatus'
+import { Empty, PageHead, Panel, Section, Stat, Stats, When } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,16 +16,10 @@ const KIND_LABEL: Record<string, string> = {
   locked_field_edit: 'Locked-field edit',
 }
 
-function Section({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
-  return (
-    <section style={{ display: 'grid', gap: 10 }}>
-      <div>
-        <h2 className="ts-h2">{title}</h2>
-        {sub && <p className="ts-sub">{sub}</p>}
-      </div>
-      {children}
-    </section>
-  )
+const REASON_LABEL: Record<string, string> = {
+  suspicious_performance: 'Suspicious performance', misleading_claims: 'Misleading claims',
+  impersonation: 'Impersonation', manipulated_screenshots: 'Manipulated screenshots',
+  spam: 'Spam', advice_violation: 'Advice violation',
 }
 
 export default async function VerificationReviewPage() {
@@ -59,108 +54,111 @@ export default async function VerificationReviewPage() {
     : { data: [] as { id: string; username: string }[] }
   const uname = new Map((profs ?? []).map((p) => [p.id, p.username]))
 
-  const REASON_LABEL: Record<string, string> = {
-    suspicious_performance: 'Suspicious performance', misleading_claims: 'Misleading claims',
-    impersonation: 'Impersonation', manipulated_screenshots: 'Manipulated screenshots',
-    spam: 'Spam', advice_violation: 'Advice violation',
-  }
-
   const pendingOrBroken = (brokers ?? []).filter((b) => b.status !== 'active')
+  const openReports = reports ?? []
+  const imports = failedImports ?? []
+  const tradeEdits = edits ?? []
 
   return (
-    <div style={{ display: 'grid', gap: 28 }}>
-      <Section title="User reports" sub="Filed by traders against profiles — review and action or dismiss.">
-        {(reports ?? []).length === 0 ? (
-          <p className="faint">No open reports. ✓</p>
-        ) : (
-          <div className="ts-card" style={{ display: 'grid', gap: 8 }}>
-            {(reports ?? []).map((r) => (
-              <div key={r.id} style={{ display: 'grid', gap: 3, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+    <>
+      <PageHead
+        title="Verification"
+        sub="Trust queue. Heuristics surface accounts worth a look — nothing here is auto-punished, every action is yours."
+      />
+
+      <div className="ad-stack">
+        <Stats>
+          <Stat label="Open reports" value={openReports.length} tone={openReports.length ? 'warn' : undefined} />
+          <Stat label="Flagged accounts" value={suspicious.length} tone={suspicious.length ? 'warn' : undefined} />
+          <Stat label="Broker issues" value={pendingOrBroken.length} tone={pendingOrBroken.length ? 'warn' : undefined} />
+          <Stat label="Failed imports" value={imports.length} />
+        </Stats>
+
+        <Section title="User reports" sub="Filed by traders against profiles — review and action, or dismiss.">
+          <Panel flush>
+            {openReports.length === 0 ? <Empty ok>No open reports.</Empty> : openReports.map((r) => (
+              <div key={r.id} className="ad-row ad-row-stack">
+                <div style={{ display: 'flex', gap: 9, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span className="v-badge vb-failed">{REASON_LABEL[r.reason] ?? r.reason}</span>
-                  <Link href={`/${uname.get(r.reported_user_id ?? '') ?? ''}`} style={{ fontWeight: 700 }}>@{uname.get(r.reported_user_id ?? '') ?? 'unknown'}</Link>
-                  <span className="faint" style={{ fontSize: 12 }}>reported by @{uname.get(r.reporter_id) ?? 'unknown'} · {new Date(r.created_at).toLocaleString()}</span>
-                  <span style={{ marginLeft: 'auto' }}><ReportStatus id={r.id} status={r.status} /></span>
+                  <Link href={`/${uname.get(r.reported_user_id ?? '') ?? ''}`} style={{ fontWeight: 700 }}>
+                    @{uname.get(r.reported_user_id ?? '') ?? 'unknown'}
+                  </Link>
+                  <span className="faint" style={{ fontSize: 12 }}>
+                    reported by @{uname.get(r.reporter_id) ?? 'unknown'}
+                  </span>
+                  <When iso={r.created_at} />
+                  <span className="sp"><ReportStatus id={r.id} status={r.status} /></span>
                 </div>
                 {r.detail && <p style={{ fontSize: 13, margin: 0 }}>{r.detail}</p>}
               </div>
             ))}
-          </div>
-        )}
-      </Section>
+          </Panel>
+        </Section>
 
-      <Section title="Suspicious accounts" sub="Heuristics over all non-internal accounts — review before acting, nothing is auto-punished.">
-        {suspicious.length === 0 ? (
-          <p className="faint">Nothing flagged. ✓</p>
-        ) : (
-          <div className="ts-card" style={{ display: 'grid', gap: 8 }}>
-            {suspicious.map((f, i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <Section title="Suspicious accounts" sub="Heuristics over all non-internal accounts. A flag is a prompt to look, not a verdict.">
+          <Panel flush>
+            {suspicious.length === 0 ? <Empty ok>Nothing flagged.</Empty> : suspicious.map((f, i) => (
+              <div key={i} className="ad-row">
                 <Link href={`/${f.username}`} style={{ fontWeight: 700 }}>@{f.username}</Link>
-                <span className="v-badge vb-failed">{KIND_LABEL[f.kind]}</span>
+                <span className="v-badge vb-failed">{KIND_LABEL[f.kind] ?? f.kind}</span>
                 <span className="faint" style={{ fontSize: 13 }}>{f.detail}</span>
               </div>
             ))}
-          </div>
-        )}
-      </Section>
+          </Panel>
+        </Section>
 
-      <Section title="Broker connections needing attention" sub="Pending = verification in progress; error = verification failed.">
-        {pendingOrBroken.length === 0 ? (
-          <p className="faint">All broker connections healthy. ✓</p>
-        ) : (
-          <div className="ts-card" style={{ overflowX: 'auto' }}>
-            <table className="ts-table">
-              <thead><tr><th>User</th><th>Login</th><th>Server</th><th>Status</th><th>Last sync</th><th>Error</th></tr></thead>
-              <tbody>
-                {pendingOrBroken.map((b) => {
-                  const p = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles
-                  return (
-                    <tr key={b.user_id}>
-                      <td>@{p?.username ?? b.user_id.slice(0, 8)}</td>
-                      <td className="mono">{b.login}</td>
-                      <td className="mono">{b.server}</td>
-                      <td><span className={`v-badge ${b.status === 'pending' ? 'vb-pending' : 'vb-failed'}`}>{b.status}</span></td>
-                      <td className="faint">{b.last_sync_at ? new Date(b.last_sync_at).toLocaleString() : '—'}</td>
-                      <td className="faint" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.sync_error ?? '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
+        <Section title="Broker connections needing attention" sub="Pending = verification in progress; error = verification failed.">
+          <Panel flush scroll>
+            {pendingOrBroken.length === 0 ? <Empty ok>All broker connections healthy.</Empty> : (
+              <table className="ts-table">
+                <thead><tr><th>User</th><th>Login</th><th>Server</th><th>Status</th><th>Last sync</th><th>Error</th></tr></thead>
+                <tbody>
+                  {pendingOrBroken.map((b) => {
+                    const p = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles
+                    return (
+                      <tr key={b.user_id}>
+                        <td>@{p?.username ?? b.user_id.slice(0, 8)}</td>
+                        <td className="ad-kv">{b.login}</td>
+                        <td className="ad-kv">{b.server}</td>
+                        <td><span className={`v-badge ${b.status === 'pending' ? 'vb-pending' : 'vb-failed'}`}>{b.status}</span></td>
+                        <td>{b.last_sync_at ? <When iso={b.last_sync_at} short /> : <span className="faint">—</span>}</td>
+                        <td className="faint" style={{ fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {b.sync_error ?? '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </Panel>
+        </Section>
 
-      <Section title="Failed imports (recent)">
-        {(failedImports ?? []).length === 0 ? (
-          <p className="faint">No failed imports. ✓</p>
-        ) : (
-          <div className="ts-card" style={{ display: 'grid', gap: 6 }}>
-            {(failedImports ?? []).map((f, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13 }}>
-                <span>@{uname.get(f.user_id ?? '') ?? 'unknown'} — {String((f.props as { reason?: string })?.reason ?? 'unknown reason')}</span>
-                <span className="faint">{new Date(f.created_at).toLocaleString()}</span>
+        <Section title="Failed imports" sub="Most recent 20. A cluster of the same reason usually means a parser bug, not user error.">
+          <Panel flush>
+            {imports.length === 0 ? <Empty ok>No failed imports.</Empty> : imports.map((f, i) => (
+              <div key={i} className="ad-row">
+                <span>@{uname.get(f.user_id ?? '') ?? 'unknown'}</span>
+                <span className="faint">{String((f.props as { reason?: string })?.reason ?? 'unknown reason')}</span>
+                <span className="sp"><When iso={f.created_at} short /></span>
               </div>
             ))}
-          </div>
-        )}
-      </Section>
+          </Panel>
+        </Section>
 
-      <Section title="Recent trade edits" sub="Full immutable history lives in trade_audits; imported execution fields are DB-locked.">
-        {(edits ?? []).length === 0 ? (
-          <p className="faint">No edits recorded yet.</p>
-        ) : (
-          <div className="ts-card" style={{ display: 'grid', gap: 6 }}>
-            {(edits ?? []).map((e, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13 }}>
-                <span>@{uname.get(e.user_id) ?? e.user_id.slice(0, 8)} edited <code style={{ fontSize: 12 }}>{(e.changed_fields as string[]).join(', ')}</code></span>
-                <span className="faint">{new Date(e.created_at).toLocaleString()}</span>
+        <Section title="Recent trade edits" sub="Full immutable history lives in trade_audits; imported execution fields are DB-locked.">
+          <Panel flush>
+            {tradeEdits.length === 0 ? <Empty>No edits recorded yet.</Empty> : tradeEdits.map((e, i) => (
+              <div key={i} className="ad-row">
+                <span>@{uname.get(e.user_id) ?? e.user_id.slice(0, 8)}</span>
+                <span className="faint">edited</span>
+                <code className="ad-kv">{(e.changed_fields as string[]).join(', ')}</code>
+                <span className="sp"><When iso={e.created_at} short /></span>
               </div>
             ))}
-          </div>
-        )}
-      </Section>
-    </div>
+          </Panel>
+        </Section>
+      </div>
+    </>
   )
 }

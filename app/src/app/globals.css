@@ -1996,3 +1996,186 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .at-demo        { color: #9A6A10; background: rgba(224,138,30,0.12); border-color: rgba(224,138,30,0.35); }
 .at-prop        { color: var(--violet-deep); background: rgba(124,92,230,0.10); border-color: var(--border-vio); }
 .at-competition { color: #8A2C86; background: rgba(200,64,188,0.10); border-color: rgba(200,64,188,0.35); }
+
+/* ============================================================
+   ADMIN CONSOLE
+   Operator surface: denser than the consumer app, mono labels,
+   tabular numerals, one violet accent for state. No decoration
+   that does not encode information.
+   ============================================================ */
+
+/* ---------- shell ---------- */
+.ad-page { max-width: 1240px; margin: 0 auto; padding: 28px 24px 80px; }
+.ad-shell { display: grid; grid-template-columns: 216px minmax(0, 1fr); gap: 32px; align-items: start; }
+
+.ad-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.ad-brand .dot { width: 9px; height: 9px; border-radius: 3px; background: var(--brand-grad); flex: none; }
+.ad-brand b { font-family: var(--display); font-size: 15px; letter-spacing: -0.02em; }
+.ad-brand .env {
+  margin-left: auto; font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--violet-br);
+  background: rgba(124,92,230,0.10); border: 1px solid var(--border-vio);
+  padding: 2px 6px; border-radius: 5px;
+}
+
+/* ---------- left rail ---------- */
+.ad-side { position: sticky; top: 20px; display: grid; gap: 2px; }
+.ad-side-group {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--faintest);
+  padding: 14px 10px 6px;
+}
+.ad-side-group:first-of-type { padding-top: 2px; }
+.ad-link {
+  position: relative; display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 9px;
+  font-size: 13.5px; font-weight: 600; color: var(--dim);
+  transition: background .14s, color .14s;
+}
+.ad-link:hover { background: var(--surface-2); color: var(--text); }
+.ad-link[aria-current="page"] { background: rgba(124,92,230,0.09); color: var(--violet-deep); }
+.ad-link[aria-current="page"]::before {
+  content: ""; position: absolute; left: -9px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 16px; border-radius: 2px; background: var(--brand-grad);
+}
+.ad-link .ad-count {
+  margin-left: auto; font-family: var(--mono); font-size: 10.5px; font-weight: 700;
+  color: var(--down); background: var(--down-soft); border-radius: 999px; padding: 1px 6px;
+}
+.ad-side-foot { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+/* ---------- page head ---------- */
+.ad-head { margin-bottom: 22px; }
+.ad-head h1 { font-family: var(--display); font-size: 26px; letter-spacing: -0.03em; line-height: 1.1; }
+.ad-head p { color: var(--dim); font-size: 13.5px; margin-top: 7px; max-width: 74ch; text-wrap: pretty; }
+.ad-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+/* ---------- sections ---------- */
+.ad-stack { display: grid; gap: 26px; }
+.ad-sec { display: grid; gap: 11px; }
+.ad-sec > header h2 { font-family: var(--display); font-size: 16.5px; letter-spacing: -0.02em; }
+.ad-sec > header p { color: var(--faint); font-size: 12.5px; margin-top: 4px; max-width: 78ch; }
+
+/* ---------- stat tiles ---------- */
+.ad-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 12px; }
+.ad-stat {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow-sm); padding: 15px 17px; display: grid; gap: 3px;
+}
+.ad-stat .k {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint);
+}
+.ad-stat .v {
+  font-family: var(--display); font-size: 27px; font-weight: 700;
+  letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.ad-stat .sub { font-size: 11.5px; color: var(--faintest); }
+.ad-stat--accent { border-color: var(--border-vio); background: linear-gradient(180deg, rgba(124,92,230,0.05), transparent 70%), var(--surface); }
+.ad-stat--warn { border-color: rgba(229,71,93,0.32); }
+.ad-stat--warn .v { color: var(--down); }
+
+/* ---------- panel (card that hosts a table or list) ---------- */
+.ad-panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.ad-panel-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 13px 17px; border-bottom: 1px solid var(--border); background: var(--surface-2);
+}
+.ad-panel-head .t {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.13em; text-transform: uppercase; color: var(--dim);
+}
+.ad-panel-head .r { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.ad-panel-body { padding: 17px; display: grid; gap: 10px; }
+.ad-panel-scroll { overflow-x: auto; }
+.ad-panel--danger { border-color: rgba(229,71,93,0.36); }
+.ad-panel--danger .ad-panel-head { background: var(--down-soft); }
+.ad-panel--danger .ad-panel-head .t { color: #B02A3C; }
+
+/* rows inside a panel (list, not table) */
+.ad-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 17px; border-top: 1px solid var(--border); font-size: 13.5px;
+}
+.ad-panel-head + .ad-row, .ad-panel > .ad-row:first-child { border-top: 0; }
+.ad-row:hover { background: var(--surface-2); }
+.ad-row .sp { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.ad-row-stack { display: grid; gap: 6px; align-items: start; }
+.ad-row-stack > * { min-width: 0; }
+
+/* ---------- tables ---------- */
+.ad-panel .ts-table th { background: var(--surface-2); }
+.ad-panel .ts-table tr:last-child td { border-bottom: 0; }
+/* align table edges with the panel head/rows */
+.ad-panel .ts-table th:first-child, .ad-panel .ts-table td:first-child { padding-left: 17px; }
+.ad-panel .ts-table th:last-child, .ad-panel .ts-table td:last-child { padding-right: 17px; }
+.ts-table th.num, .ts-table td.num { text-align: right; }
+.ts-table td.num { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* ---------- empty state ---------- */
+.ad-empty {
+  display: grid; gap: 4px; justify-items: center; text-align: center;
+  padding: 26px 18px; color: var(--faint); font-size: 13px;
+}
+.ad-empty .mark {
+  width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
+  background: var(--up-soft); color: var(--up); font-size: 13px; margin-bottom: 4px;
+}
+.ad-empty--neutral .mark { background: var(--surface-3); color: var(--faint); }
+
+/* ---------- segmented filter ---------- */
+.ad-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); }
+.ad-tab {
+  padding: 6px 13px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+  color: var(--dim); text-transform: capitalize; transition: background .14s, color .14s;
+}
+.ad-tab:hover { color: var(--text); background: var(--surface); }
+.ad-tab[aria-current="page"] { background: var(--text); color: #fff; box-shadow: var(--shadow-sm); }
+
+/* ---------- meters (funnel / adoption bars) ---------- */
+.ad-meter { display: grid; gap: 5px; }
+.ad-meter-top { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.ad-meter-top .n { font-family: var(--mono); font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.ad-meter-track { height: 7px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.ad-meter-fill { display: block; height: 100%; background: var(--brand-grad); border-radius: 999px; }
+
+/* ---------- compact inline controls (inside rows/tables) ---------- */
+/* pair with .ts-select to keep the chevron; this only compacts it */
+.ad-select {
+  height: 30px; width: auto; padding: 0 27px 0 9px;
+  font-size: 12.5px; font-weight: 600; color: var(--dim);
+  border-radius: 8px; background-color: var(--surface);
+  background-position: right 9px center;
+}
+.ad-select:focus { box-shadow: 0 0 0 3px rgba(124,92,230,0.14); }
+
+/* ---------- misc ---------- */
+.ad-kv { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+.ad-note {
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  padding: 11px 15px; border-radius: 12px; font-size: 12.5px; color: var(--dim);
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .ad-page { padding: 20px 14px 64px; }
+  .ad-shell { grid-template-columns: 1fr; gap: 20px; }
+  .ad-side {
+    position: static; grid-auto-flow: column; grid-auto-columns: max-content;
+    gap: 4px; overflow-x: auto; padding-bottom: 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .ad-side::-webkit-scrollbar { display: none; }
+  .ad-side-group, .ad-side-foot { display: none; }
+  .ad-link { white-space: nowrap; }
+  .ad-link[aria-current="page"]::before { left: 10px; right: 10px; top: auto; bottom: -6px; width: auto; height: 2px; transform: none; }
+  .ad-stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .ad-head h1 { font-size: 22px; }
+}
