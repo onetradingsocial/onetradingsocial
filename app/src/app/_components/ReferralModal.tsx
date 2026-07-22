@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 export type ReferralSummary = {
   code: string
@@ -40,7 +41,11 @@ export function ReferralModal({
 }) {
   const [copied, setCopied] = useState(false)
   const [claiming, setClaiming] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Portal target only exists on the client; render nothing during SSR.
+  useEffect(() => setMounted(true), [])
 
   // Close on Escape; lock the page behind the modal.
   useEffect(() => {
@@ -84,7 +89,11 @@ export function ReferralModal({
   const shareUrl = encodeURIComponent(link)
   const shareText = encodeURIComponent(SHARE_TEXT)
 
-  return (
+  if (!mounted) return null
+
+  // Portal to <body> so the fixed backdrop escapes the nav's backdrop-filter,
+  // which would otherwise become its containing block and clip it.
+  return createPortal(
     <div className="ref-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="ref-modal" role="dialog" aria-modal="true" aria-label="Refer traders, earn free Pro">
         <div className="ref-banner">
@@ -154,6 +163,7 @@ export function ReferralModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
