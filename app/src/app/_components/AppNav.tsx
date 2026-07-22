@@ -14,6 +14,7 @@ import { getUnreadTotal } from '@/lib/server/messaging'
 import { NotificationBell } from './NotificationBell'
 import { MessagesBell } from './MessagesBell'
 import { NavSearch } from './NavSearch'
+import { ReferralLauncher } from './ReferralLauncher'
 
 export async function AppNav() {
   const supabase = await createClient()
@@ -49,6 +50,7 @@ export async function AppNav() {
             <div className="ts-nav-right">
               <NotificationBell initialCount={initialNotifCount} initialItems={initialNotifItems} />
               <MessagesBell initialCount={initialMsgUnread} />
+              <ReferralLauncher />
               <NewTradeButton className="btn btn-primary btn-sm" />
               {isPro
                 ? <span className="ts-pro-badge">PRO</span>

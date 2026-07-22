@@ -2250,3 +2250,95 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 @media (max-width: 560px) {
   .ad-chart-x span { font-size: 9px; }
 }
+
+/* ============================================================
+   Referral modal — "earn free Pro" popup (Backlog row 39)
+   ============================================================ */
+.ref-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(16,13,26,0.55); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; overflow-y: auto;
+  animation: ref-fade .2s ease;
+}
+@keyframes ref-fade { from { opacity: 0 } to { opacity: 1 } }
+.ref-modal {
+  position: relative; width: 100%; max-width: 480px;
+  max-height: calc(100vh - 48px); margin: auto;
+  background: var(--surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); overflow: hidden auto;
+  animation: ref-pop .35s cubic-bezier(.2,.9,.25,1);
+}
+@keyframes ref-pop { from { opacity: 0; transform: translateY(14px) scale(.97) } to { opacity: 1; transform: none } }
+.ref-close {
+  position: absolute; top: 16px; right: 16px; width: 34px; height: 34px;
+  border-radius: 50%; background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.3); display: grid; place-items: center;
+  color: #fff; cursor: pointer; z-index: 2; transition: background .2s;
+}
+.ref-close:hover { background: rgba(255,255,255,0.28); }
+.ref-close svg { width: 16px; height: 16px; }
+.ref-banner {
+  position: relative; padding: 36px 32px 30px;
+  background: var(--brand-grad); background-size: 160% auto; overflow: hidden;
+}
+.ref-banner-noise {
+  position: absolute; inset: 0; opacity: .5; mix-blend-mode: overlay;
+  background-image: radial-gradient(rgba(255,255,255,.35) 1px, transparent 1px);
+  background-size: 14px 14px; pointer-events: none;
+}
+.ref-eyebrow {
+  position: relative; display: inline-flex; align-items: center; gap: 7px;
+  height: 28px; padding-inline: 11px; border-radius: 100px;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.32);
+  color: #fff; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; font-weight: 500;
+}
+.ref-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.3); }
+.ref-banner h1 {
+  position: relative; color: #fff; font-family: var(--display);
+  font-size: 29px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.12; margin-top: 16px;
+}
+.ref-banner p { position: relative; color: rgba(255,255,255,0.88); font-size: 14.5px; line-height: 1.5; margin-top: 10px; max-width: 40ch; }
+.ref-banner p b { color: #fff; }
+.ref-body { padding: 28px 32px 32px; }
+
+.ref-progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ref-progress-head .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.ref-progress-head .val { font-family: var(--display); font-size: 15px; font-weight: 700; color: var(--violet-br); }
+.ref-track { display: flex; gap: 4px; margin-top: 12px; }
+.ref-seg { flex: 1; height: 10px; border-radius: 4px; background: var(--surface-3); }
+.ref-seg.filled { background: var(--brand-grad); }
+.ref-track-caption { display: flex; justify-content: space-between; margin-top: 7px; font-family: var(--mono); font-size: 10px; color: var(--faintest); }
+
+.ref-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+.ref-stat { border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; background: var(--surface-2); }
+.ref-stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.ref-stat .v { font-family: var(--display); font-size: 24px; font-weight: 700; margin-top: 4px; letter-spacing: -0.01em; }
+.ref-stat .v em { font-style: normal; background: var(--brand-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ref-stat .s { font-size: 12px; color: var(--dim); margin-top: 2px; }
+
+.ref-link { display: flex; align-items: center; gap: 8px; margin-top: 22px; border: 1px solid var(--border-2); border-radius: 12px; padding: 5px 5px 5px 14px; background: var(--surface-2); }
+.ref-link input { flex: 1; min-width: 0; border: none; background: transparent; font-family: var(--mono); font-size: 13px; color: var(--text); outline: none; }
+.ref-copy { flex-shrink: 0; height: 38px; padding-inline: 16px; border-radius: 9px; border: none; background: var(--text); color: #fff; font-family: var(--body); font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: background .2s; }
+.ref-copy:hover { background: var(--violet-deep); }
+.ref-copy svg { width: 14px; height: 14px; }
+.ref-copy.copied { background: var(--up); }
+
+.ref-share { display: flex; gap: 9px; margin-top: 14px; }
+.ref-share a { flex: 1; height: 42px; border-radius: 10px; border: 1px solid var(--border); display: grid; place-items: center; color: var(--dim); transition: border-color .2s, color .2s, transform .2s; }
+.ref-share a:hover { border-color: var(--border-vio); color: var(--violet-br); transform: translateY(-2px); }
+.ref-share a svg { width: 18px; height: 18px; }
+
+.ref-cta { width: 100%; margin-top: 20px; height: 50px; border-radius: 12px; }
+.ref-fine { margin-top: 16px; font-size: 11.5px; line-height: 1.55; color: var(--faint); text-align: center; }
+
+.ref-loading { padding: 60px 32px; display: grid; place-items: center; gap: 14px; color: var(--faint); }
+.ref-spinner { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--surface-3); border-top-color: var(--violet); animation: ref-spin .8s linear infinite; }
+@keyframes ref-spin { to { transform: rotate(360deg) } }
+
+@media (max-width: 480px) {
+  .ref-banner { padding: 28px 22px 24px; }
+  .ref-banner h1 { font-size: 25px; }
+  .ref-body { padding: 22px; }
+  .ref-stats { grid-template-columns: 1fr; }
+}

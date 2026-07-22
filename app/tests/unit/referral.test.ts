@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest'
-import { rewardsFor, nextReward, makeReferralCode, conversionRates, REWARD_LADDER } from '@/lib/referral'
+import {
+  rewardsFor, nextReward, makeReferralCode, conversionRates, REWARD_LADDER,
+  earnedMonths, REFERRAL_MONTH_CAP,
+} from '@/lib/referral'
+
+describe('earnedMonths', () => {
+  it('grants one free Pro month per activated referral', () => {
+    expect(earnedMonths(0)).toBe(0)
+    expect(earnedMonths(1)).toBe(1)
+    expect(earnedMonths(7)).toBe(7)
+  })
+  it('caps at a full year and never goes negative', () => {
+    expect(earnedMonths(REFERRAL_MONTH_CAP)).toBe(12)
+    expect(earnedMonths(50)).toBe(12)
+    expect(earnedMonths(-3)).toBe(0)
+  })
+})
 
 describe('rewardsFor', () => {
   it('earns nothing at zero activated referrals', () => {

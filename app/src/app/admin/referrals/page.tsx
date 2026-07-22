@@ -2,7 +2,7 @@
 // so rewards can be applied manually while the programme is in beta.
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
-import { rewardsFor } from '@/lib/referral'
+import { earnedMonths } from '@/lib/referral'
 import { Empty, PageHead, Panel, Stat, Stats } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
@@ -54,7 +54,7 @@ export default async function AdminReferralsPage() {
     <>
       <PageHead
         title="Referrals"
-        sub="Rewards unlock on activated referrals. Apply earned rewards manually while the programme is in beta."
+        sub="Each activated referral earns the referrer 1 month of free Pro (max 12), redeemed via a $0 Stripe checkout that converts to monthly billing."
       />
 
       <div className="ad-stack">
@@ -73,12 +73,12 @@ export default async function AdminReferralsPage() {
                   <th>Referrer</th><th>Code</th>
                   <th className="num">Clicks</th><th className="num">Signups</th>
                   <th className="num">Activated</th><th className="num">Paid</th>
-                  <th>Rewards earned</th>
+                  <th className="num">Pro months</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => {
-                  const earned = rewardsFor(r.activated).filter((x) => x.earned)
+                  const months = earnedMonths(r.activated)
                   return (
                     <tr key={r.id}>
                       <td><Link href={`/${r.username}`}>@{r.username}</Link></td>
@@ -87,11 +87,9 @@ export default async function AdminReferralsPage() {
                       <td className="num">{r.signups}</td>
                       <td className="num">{r.activated}</td>
                       <td className="num">{r.paid}</td>
-                      <td>
-                        {earned.length === 0 ? <span className="faint">—</span> : (
-                          <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>
-                            {earned.map((e) => <span key={e.id} className="v-badge vb-statement">{e.label}</span>)}
-                          </span>
+                      <td className="num">
+                        {months === 0 ? <span className="faint">—</span> : (
+                          <span className="v-badge vb-statement">{months} mo</span>
                         )}
                       </td>
                     </tr>

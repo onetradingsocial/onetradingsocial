@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { priceForPlan, type Tier, type Interval } from '@/lib/entitlements'
+import { getReferralStats } from '@/lib/server/referral'
+import { earnedMonths } from '@/lib/referral'
 import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
 
 export const runtime = 'nodejs'
@@ -22,12 +25,34 @@ export async function POST(request: NextRequest) {
   if (!rl.ok) return tooMany(rl.retryAfter)
 
   const { tier, interval, flow } = (await request.json().catch(() => ({}))) as {
-    tier?: Tier; interval?: Interval; flow?: 'onboarding'
+    tier?: Tier; interval?: Interval; flow?: 'onboarding' | 'referral'
   }
-  if ((tier !== 'trader' && tier !== 'pro') || (interval !== 'monthly' && interval !== 'annual')) {
+
+  const env = process.env as Record<string, string | undefined>
+
+  // Referral redemption: the referrer claims their earned free Pro. We ignore
+  // any client-supplied tier/interval and force Pro monthly, then hand them the
+  // free months they've actually earned as a Stripe trial. The count is
+  // re-derived server-side so the free period can never be forged by the client.
+  let referralMonths = 0
+  if (flow === 'referral') {
+    const svc = createServiceClient()
+    const { data: codeRow } = await svc
+      .from('referral_codes').select('code').eq('user_id', user.id).maybeSingle()
+    if (codeRow?.code) {
+      const stats = await getReferralStats(svc, user.id, codeRow.code)
+      referralMonths = earnedMonths(stats.activated)
+    }
+    if (referralMonths < 1) {
+      return NextResponse.json({ error: 'no referral reward earned yet' }, { status: 400 })
+    }
+  } else if ((tier !== 'trader' && tier !== 'pro') || (interval !== 'monthly' && interval !== 'annual')) {
     return NextResponse.json({ error: 'bad request' }, { status: 400 })
   }
-  const price = priceForPlan(tier, interval, process.env as Record<string, string | undefined>)
+
+  const price = flow === 'referral'
+    ? priceForPlan('pro', 'monthly', env)
+    : priceForPlan(tier as Tier, interval as Interval, env)
   if (!price) return NextResponse.json({ error: 'price not configured' }, { status: 500 })
 
   const stripe = getStripe()
@@ -56,7 +81,9 @@ export async function POST(request: NextRequest) {
   // ad-pixel Subscribe event; the pixel component strips them after firing.
   const successUrl = flow === 'onboarding'
     ? `${SITE}/onboarding?checkout=success&tier=${tier}&interval=${interval}`
-    : `${SITE}/settings/billing?status=success&tier=${tier}&interval=${interval}`
+    : flow === 'referral'
+      ? `${SITE}/settings/billing?status=referral&months=${referralMonths}`
+      : `${SITE}/settings/billing?status=success&tier=${tier}&interval=${interval}`
   const cancelUrl = flow === 'onboarding'
     ? `${SITE}/select-plan?checkout=cancelled`
     : `${SITE}/settings/billing?status=cancelled`
@@ -71,7 +98,17 @@ export async function POST(request: NextRequest) {
     customer: customerId,
     client_reference_id: user.id,
     line_items: [{ price, quantity: 1 }],
-    discounts: interval === 'annual' && betaCoupon ? [{ coupon: betaCoupon }] : undefined,
+    discounts: flow !== 'referral' && interval === 'annual' && betaCoupon
+      ? [{ coupon: betaCoupon }] : undefined,
+    // Free-Pro reward: collect a card up front ($0 due today) and open the
+    // subscription in a trial that lasts one month per earned referral. When the
+    // trial ends Stripe bills Pro monthly automatically — the "free now, billed
+    // later" flow the client asked for. The card is required so conversion is
+    // frictionless; the T&Cs (billed monthly after the free period) are shown at
+    // checkout and on the referral modal.
+    subscription_data: flow === 'referral'
+      ? { trial_period_days: referralMonths * 30 } : undefined,
+    payment_method_collection: flow === 'referral' ? 'always' : undefined,
     success_url: successUrl,
     cancel_url: cancelUrl,
   })

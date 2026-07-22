@@ -34,6 +34,19 @@ export function rewardsFor(activated: number): Reward[] {
   return REWARD_LADDER.map((r) => ({ ...r, earned: activated >= r.needs }))
 }
 
+/**
+ * Free-Pro reward model (client, 2026-07-22): every activated referral earns the
+ * referrer one month of Pro, free, capped at a full year. "Activated" keeps its
+ * meaning — the referred trader logged their first trade — so signup spam earns
+ * nothing. The earned months are redeemed through a $0 Stripe checkout that puts
+ * a card on file and converts to monthly billing once the free time runs out.
+ */
+export const REFERRAL_MONTH_CAP = 12
+
+export function earnedMonths(activated: number): number {
+  return Math.max(0, Math.min(activated, REFERRAL_MONTH_CAP))
+}
+
 /** Next unearned reward, for the "x more to unlock" nudge. */
 export function nextReward(activated: number): { reward: Reward; remaining: number } | null {
   const next = rewardsFor(activated).find((r) => !r.earned)
