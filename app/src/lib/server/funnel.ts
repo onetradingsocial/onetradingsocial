@@ -87,11 +87,17 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
     tradesByUser.set(t.user_id, arr)
   }
 
+  // Only genuine users count as paid — the same is_internal filter every other
+  // figure honours. Without this, an internal/test-mode subscription inflates
+  // the "Paid" lifecycle stat (subs is queried unfiltered by profile).
+  const realIdSet = new Set(ids)
   const { data: subs } = await svc
     .from('subscriptions')
     .select('user_id, status')
     .in('status', ['active', 'trialing'])
-  const paidIds = new Set((subs ?? []).map((s) => s.user_id))
+  const paidIds = new Set(
+    (subs ?? []).map((s) => s.user_id).filter((id) => realIdSet.has(id)),
+  )
 
   let registered = 0, onboarding = 0, activated = 0, engaged = 0, retained = 0, atRisk = 0, churned = 0
   for (const p of profiles) {
