@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Avatar } from './Avatar'
 import { fmtPL } from './format'
 import { FollowButton } from '@/app/_components/FollowButton'
+import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import type { BoardRow } from './LeaderboardTable'
 
 // Visual order: #2 left, #1 center (elevated), #3 right.
@@ -21,10 +22,8 @@ export function Podium({ top, viewerId, kind = 'performance' }: { top: BoardRow[
         const t = top[idx]
         if (!t) return <div key={tier} className={`lb-pod t${tier} lb-pod--empty`} />
         const self = t.userId === viewerId
-        return (
-          <div key={t.userId} className={`lb-pod t${tier}`}>
-            <span className="cap" />
-            {tier !== 1 && <span className={`lb-rk g${tier} rankbadge`}>{t.rank}</span>}
+        const idBlock = (
+          <>
             <div className="av-wrap">
               {tier === 1 && (
                 <span className="crown" aria-label="1st place">
@@ -37,6 +36,15 @@ export function Podium({ top, viewerId, kind = 'performance' }: { top: BoardRow[
             </div>
             <div className="name">{t.displayName || t.username}{self && <span className="lb-you">You</span>}</div>
             <div className="handle">@{t.username}</div>
+          </>
+        )
+        return (
+          <div key={t.userId} className={`lb-pod t${tier}`}>
+            <span className="cap" />
+            {tier !== 1 && <span className={`lb-rk g${tier} rankbadge`}>{t.rank}</span>}
+            {self
+              ? idBlock
+              : <TraderHoverCard userId={t.userId} username={t.username} displayName={t.displayName} avatarUrl={t.avatarUrl} wrapClassName="thc-stack">{idBlock}</TraderHoverCard>}
             {kind === 'xp'
               ? <div className="pl up">{t.pnl.toLocaleString()} XP</div>
               : <div className={`pl ${t.pnl >= 0 ? 'up' : 'down'}`}>{fmtPL(t.pnl)}</div>}
