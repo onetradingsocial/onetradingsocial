@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { search } from '@/app/actions/search'
 import type { SearchResults } from '@/lib/search'
+import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -95,17 +96,19 @@ export function NavSearch() {
                   <ul className="ts-search-list">
                     {results.users.map((u) => (
                       <li key={u.username}>
-                        <Link href={`/${u.username}`} className="ts-search-row" onClick={() => setOpen(false)}>
-                          <span className="ts-search-avatar">
-                            {u.avatarUrl
-                              ? <img src={u.avatarUrl} alt="" width={28} height={28} style={{ borderRadius: '50%' }} />
-                              : <span className="ts-search-avatar-initial">{(u.username[0] ?? '?').toUpperCase()}</span>}
-                          </span>
-                          <span className="ts-search-body">
-                            <span className="ts-search-name">{u.displayName ?? u.username}</span>
-                            <span className="ts-search-sub">@{u.username}</span>
-                          </span>
-                        </Link>
+                        <TraderHoverCard userId={u.id} username={u.username} displayName={u.displayName} avatarUrl={u.avatarUrl} wrapClassName="thc-block">
+                          <Link href={`/${u.username}`} className="ts-search-row" onClick={() => setOpen(false)}>
+                            <span className="ts-search-avatar">
+                              {u.avatarUrl
+                                ? <img src={u.avatarUrl} alt="" width={28} height={28} style={{ borderRadius: '50%' }} />
+                                : <span className="ts-search-avatar-initial">{(u.username[0] ?? '?').toUpperCase()}</span>}
+                            </span>
+                            <span className="ts-search-body">
+                              <span className="ts-search-name">{u.displayName ?? u.username}</span>
+                              <span className="ts-search-sub">@{u.username}</span>
+                            </span>
+                          </Link>
+                        </TraderHoverCard>
                       </li>
                     ))}
                   </ul>

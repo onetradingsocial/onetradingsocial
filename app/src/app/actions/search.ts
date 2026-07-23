@@ -16,7 +16,7 @@ export async function search(rawQuery: string): Promise<SearchResults> {
   const [usersRes, postsRes] = await Promise.all([
     supabase
       .from('profiles')
-      .select('username, display_name, avatar_url, bio')
+      .select('id, username, display_name, avatar_url, bio')
       .eq('is_public', true)
       .or(`username.ilike.${like},display_name.ilike.${like}`)
       .limit(5),
@@ -29,6 +29,7 @@ export async function search(rawQuery: string): Promise<SearchResults> {
   ])
 
   const users: UserResult[] = (usersRes.data ?? []).map((u) => ({
+    id: u.id,
     username: u.username,
     displayName: u.display_name ?? null,
     avatarUrl: u.avatar_url ?? null,
