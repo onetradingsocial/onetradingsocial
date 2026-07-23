@@ -1,10 +1,11 @@
 import Link from 'next/link'
+import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 
-export function UserLink({ username, displayName, avatarUrl, sub }: {
-  username: string; displayName?: string | null; avatarUrl?: string | null; sub?: string
+export function UserLink({ userId, username, displayName, avatarUrl, sub }: {
+  userId?: string; username: string; displayName?: string | null; avatarUrl?: string | null; sub?: string
 }) {
   const name = displayName || username
-  return (
+  const link = (
     <Link href={`/${username}`} className="ts-userlink">
       {avatarUrl
         ? <img src={avatarUrl} alt="" className="ts-userlink-av" />
@@ -14,5 +15,11 @@ export function UserLink({ username, displayName, avatarUrl, sub }: {
         <span className="un">@{username}{sub ? ` · ${sub}` : ''}</span>
       </span>
     </Link>
+  )
+  if (!userId) return link
+  return (
+    <TraderHoverCard userId={userId} username={username} displayName={displayName ?? null} avatarUrl={avatarUrl ?? null} wrapClassName="thc-inline">
+      {link}
+    </TraderHoverCard>
   )
 }
