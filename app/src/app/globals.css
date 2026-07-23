@@ -1909,6 +1909,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 
 /* Trader hover card */
 .thc-wrap { display: flex; align-items: center; gap: 11px; min-width: 0; flex: 1; }
+.thc-inline { display: inline-flex; align-items: center; min-width: 0; }
+.thc-block { display: block; }
+.thc-stack { display: flex; flex-direction: column; align-items: center; }
 .thc-card { position: fixed; z-index: 300; background: var(--card, #fff); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 32px rgba(20,16,41,.14); padding: 14px; }
 .thc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .thc-id { display: flex; align-items: center; gap: 10px; min-width: 0; color: inherit; text-decoration: none; }

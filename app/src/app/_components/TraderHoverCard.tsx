@@ -49,8 +49,8 @@ function CardActions({ userId, data, onChange }: { userId: string; data: TraderC
   )
 }
 
-export function TraderHoverCard({ userId, username, displayName, avatarUrl, children }:
-  { userId: string; username: string; displayName: string | null; avatarUrl: string | null; children: ReactNode }) {
+export function TraderHoverCard({ userId, username, displayName, avatarUrl, wrapClassName = 'thc-wrap', children }:
+  { userId: string; username: string; displayName: string | null; avatarUrl: string | null; wrapClassName?: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
   const [data, setData] = useState<TraderCardData | null>(null)
@@ -102,7 +102,7 @@ export function TraderHoverCard({ userId, username, displayName, avatarUrl, chil
   const updateData = (d: TraderCardData) => { cache.set(userId, d); setData(d) }
 
   return (
-    <div ref={wrapRef} className="thc-wrap"
+    <div ref={wrapRef} className={wrapClassName}
       onPointerEnter={(e) => { if (e.pointerType === 'mouse') scheduleShow() }}
       onPointerLeave={(e) => { if (e.pointerType === 'mouse') scheduleHide() }}
       onClick={(e) => {
