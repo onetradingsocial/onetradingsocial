@@ -23,6 +23,20 @@ function RailFollow({ targetId, initial }: { targetId: string; initial: boolean 
 
 export function TraderOfWeek({ leader, isFollowing, isSelf }: { leader: HomeLeader | null; isFollowing: boolean; isSelf: boolean }) {
   if (!leader) return null
+
+  const whoBlock = (
+    <div className="who">
+      <span className="av-medal">
+        <Avatar seed={leader.username} src={leader.avatarUrl} name={leader.displayName || leader.username} size={62} ring />
+        <span className="badge"><Icon name="crown" size={12} /></span>
+      </span>
+      <div className="txt">
+        <b>@{leader.username}</b>
+        <span>{(leader.displayName || leader.username)} · #1 this week</span>
+      </div>
+    </div>
+  )
+
   return (
     <div className="h-totw">
       <div className="h-totw-top">
@@ -31,16 +45,9 @@ export function TraderOfWeek({ leader, isFollowing, isSelf }: { leader: HomeLead
         <span className="seed">{leader.trades} trades</span>
       </div>
       <div className="h-totw-body">
-        <div className="who">
-          <span className="av-medal">
-            <Avatar seed={leader.username} src={leader.avatarUrl} name={leader.displayName || leader.username} size={62} ring />
-            <span className="badge"><Icon name="crown" size={12} /></span>
-          </span>
-          <div className="txt">
-            <b>@{leader.username}</b>
-            <span>{(leader.displayName || leader.username)} · #1 this week</span>
-          </div>
-        </div>
+        {isSelf
+          ? whoBlock
+          : <TraderHoverCard userId={leader.userId} username={leader.username} displayName={leader.displayName} avatarUrl={leader.avatarUrl} wrapClassName="thc-inline">{whoBlock}</TraderHoverCard>}
         <div className="h-totw-stats">
           <div className="m"><div className="k">Weekly P/L</div><div className={'val ' + (leader.pnl >= 0 ? 'h-up' : 'h-down')}>{money(leader.pnl)}</div></div>
           <div className="m"><div className="k">Win rate</div><div className="val">{Math.round(leader.winRate * 100)}%</div></div>
