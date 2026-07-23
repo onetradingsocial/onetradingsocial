@@ -2077,6 +2077,39 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ad-stat--accent { border-color: var(--border-vio); background: linear-gradient(180deg, rgba(124,92,230,0.05), transparent 70%), var(--surface); }
 .ad-stat--warn { border-color: rgba(229,71,93,0.32); }
 .ad-stat--warn .v { color: var(--down); }
+.ad-stat .k { display: inline-flex; align-items: center; gap: 5px; }
+
+/* ---------- hint glyph + CSS tooltip (server-safe, no JS) ---------- */
+.ad-hint {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 13px; height: 13px; border-radius: 999px; flex: none;
+  border: 1px solid var(--border); background: var(--surface-3);
+  font-family: var(--display); font-size: 9px; font-weight: 700; font-style: italic;
+  line-height: 1; letter-spacing: 0; text-transform: none; color: var(--faint);
+  cursor: help; user-select: none; transition: color .12s, border-color .12s;
+}
+.ad-hint:hover, .ad-hint:focus-visible { color: var(--text); border-color: var(--border-vio); outline: none; }
+/* Bubble */
+.ad-hint::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(4px);
+  width: max-content; max-width: 240px; z-index: 40;
+  padding: 8px 10px; border-radius: 9px;
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-md, var(--shadow-sm));
+  font-family: var(--sans, inherit); font-size: 12px; font-weight: 400; font-style: normal;
+  letter-spacing: normal; line-height: 1.4; text-transform: none; text-align: left; white-space: normal;
+  color: var(--text); pointer-events: none; opacity: 0; transition: opacity .12s, transform .12s;
+}
+/* Arrow */
+.ad-hint::before {
+  content: ""; position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%) translateY(4px);
+  border: 5px solid transparent; border-top-color: var(--border); z-index: 41;
+  opacity: 0; transition: opacity .12s, transform .12s; pointer-events: none;
+}
+.ad-hint:hover::after, .ad-hint:focus-visible::after,
+.ad-hint:hover::before, .ad-hint:focus-visible::before {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
 
 /* ---------- panel (card that hosts a table or list) ---------- */
 .ad-panel {

@@ -33,17 +33,30 @@ export function Section({ title, sub, right, children }: { title: string; sub?: 
   )
 }
 
+/**
+ * Small info marker with a hover/focus tooltip. Server-safe: pure CSS, no JS.
+ * `tabIndex` + `aria-label` keep the explanation reachable by keyboard and SR.
+ */
+export function Hint({ text }: { text: string }) {
+  return (
+    <span className="ad-hint" tabIndex={0} role="note" aria-label={text} data-tip={text}>
+      i
+    </span>
+  )
+}
+
 /** Single metric tile. `tone` colours the value for at-a-glance triage. */
-export function Stat({ label, value, sub, tone }: {
+export function Stat({ label, value, sub, tone, hint }: {
   label: string
   value: ReactNode
   sub?: string
   tone?: 'accent' | 'warn'
+  hint?: string
 }) {
   const cls = tone ? ` ad-stat--${tone}` : ''
   return (
     <div className={`ad-stat${cls}`}>
-      <span className="k">{label}</span>
+      <span className="k">{label}{hint && <Hint text={hint} />}</span>
       <span className="v">{value}</span>
       {sub && <span className="sub">{sub}</span>}
     </div>
@@ -92,11 +105,11 @@ export function Empty({ children, ok }: { children: ReactNode; ok?: boolean }) {
 }
 
 /** Horizontal progress bar used by funnels and adoption charts. */
-export function Meter({ label, note, pct }: { label: ReactNode; note?: ReactNode; pct: number }) {
+export function Meter({ label, note, pct, hint }: { label: ReactNode; note?: ReactNode; pct: number; hint?: string }) {
   return (
     <div className="ad-meter">
       <div className="ad-meter-top">
-        <span>{label}</span>
+        <span>{label}{hint && <Hint text={hint} />}</span>
         {note != null && <span className="n">{note}</span>}
       </div>
       <div className="ad-meter-track">
