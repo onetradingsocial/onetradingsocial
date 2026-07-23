@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useNotifications } from '@/app/hooks/useNotifications'
 import type { Notification } from '@/lib/server/notifications'
+import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -121,8 +122,8 @@ export function NotificationBell({
             <p className="ts-notif-empty">No notifications yet</p>
           ) : (
             <ul className="ts-notif-list">
-              {notifications.map((n) => (
-                <li key={n.id} className={`ts-notif-row${n.read ? '' : ' ts-notif-unread'}`}>
+              {notifications.map((n) => {
+                const link = (
                   <Link
                     href={notifHref(n)}
                     onClick={() => { if (!n.read) markRead(n.id); setOpen(false) }}
@@ -141,8 +142,15 @@ export function NotificationBell({
                       <span className="ts-notif-time">{relativeTime(n.createdAt)}</span>
                     </span>
                   </Link>
-                </li>
-              ))}
+                )
+                return (
+                  <li key={n.id} className={`ts-notif-row${n.read ? '' : ' ts-notif-unread'}`}>
+                    {n.actorId && !isSystem(n)
+                      ? <TraderHoverCard userId={n.actorId} username={n.actorUsername} displayName={null} avatarUrl={n.actorAvatarUrl} wrapClassName="thc-block">{link}</TraderHoverCard>
+                      : link}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>
