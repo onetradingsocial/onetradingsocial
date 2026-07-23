@@ -482,36 +482,29 @@ git commit -m "feat(podium): hover trader card on top-3 (skip self)"
 
 - [ ] **Step 1: Wrap the `who` block**
 
-In `TraderOfWeek`, wrap the existing `<div className="who"> ... </div>` (avatar medal + text) in a `TraderHoverCard` unless `isSelf`:
+In `TraderOfWeek`, extract the existing `<div className="who"> ... </div>` (avatar medal + text) into a local variable, then wrap it in `TraderHoverCard` unless `isSelf` (mirrors the Podium extraction pattern in Task 7):
+
+```tsx
+  const whoBlock = (
+    <div className="who">
+      <span className="av-medal">
+        <Avatar seed={leader.username} src={leader.avatarUrl} name={leader.displayName || leader.username} size={62} ring />
+        <span className="badge"><Icon name="crown" size={12} /></span>
+      </span>
+      <div className="txt">
+        <b>@{leader.username}</b>
+        <span>{(leader.displayName || leader.username)} · #1 this week</span>
+      </div>
+    </div>
+  )
+```
+
+Then in the returned JSX, replace the original `<div className="who">…</div>` with:
 
 ```tsx
         {isSelf
-          ? (
-            <div className="who">
-              <span className="av-medal">
-                <Avatar seed={leader.username} src={leader.avatarUrl} name={leader.displayName || leader.username} size={62} ring />
-                <span className="badge"><Icon name="crown" size={12} /></span>
-              </span>
-              <div className="txt">
-                <b>@{leader.username}</b>
-                <span>{(leader.displayName || leader.username)} · #1 this week</span>
-              </div>
-            </div>
-          )
-          : (
-            <TraderHoverCard userId={leader.userId} username={leader.username} displayName={leader.displayName} avatarUrl={leader.avatarUrl} wrapClassName="thc-inline">
-              <div className="who">
-                <span className="av-medal">
-                  <Avatar seed={leader.username} src={leader.avatarUrl} name={leader.displayName || leader.username} size={62} ring />
-                  <span className="badge"><Icon name="crown" size={12} /></span>
-                </span>
-                <div className="txt">
-                  <b>@{leader.username}</b>
-                  <span>{(leader.displayName || leader.username)} · #1 this week</span>
-                </div>
-              </div>
-            </TraderHoverCard>
-          )}
+          ? whoBlock
+          : <TraderHoverCard userId={leader.userId} username={leader.username} displayName={leader.displayName} avatarUrl={leader.avatarUrl} wrapClassName="thc-inline">{whoBlock}</TraderHoverCard>}
 ```
 
 - [ ] **Step 2: Verify in preview + build**
