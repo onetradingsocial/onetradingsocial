@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { getUserXp } from '@/lib/server/xp'
@@ -22,7 +21,7 @@ export default async function AchievementsPage() {
       </div></header>
 
       <XpHero level={xp.level} totalXp={xp.totalXp} questStreak={xp.questStreak} />
-      <p className="faint mt-3" style={{ fontSize: 13 }}>📚 {xp.lessonsCompleted} lesson{xp.lessonsCompleted === 1 ? '' : 's'} completed · <Link href="/learn" className="ts-link-sm">Learn</Link></p>
+      {/* Learn hidden for now — we are not financial advisors. Restore lessons-completed line when compliant. */}
 
       <div className="ach-quest-cols mt-6">
         <QuestList title="Daily quests" quests={xp.daily} reward={XP.DAILY_QUEST_BONUS} />

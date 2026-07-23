@@ -9,7 +9,7 @@ const PAGES = [
   { href: '/', label: 'Home', exact: true },
   { href: '/journal', label: 'Journal' },
   { href: '/leaderboard', label: 'Leaderboard' },
-  { href: '/learn', label: 'Learn' },
+  // Learn hidden for now — we are not financial advisors. Restore when compliant.
 ]
 
 export function MobileNav({ isAdmin = false, isPro = false }: { isAdmin?: boolean; isPro?: boolean }) {

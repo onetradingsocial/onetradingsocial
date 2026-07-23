@@ -8,7 +8,11 @@ import { canFlag } from '@/lib/feature-flags'
 import { TIER_RANK, type Tier } from '@/lib/entitlements'
 import { learningStreakDays, streakBoostPct } from '@/lib/learning'
 
+// Learn hidden for now — we are not financial advisors. Flip to false when compliant.
+const LEARN_HIDDEN = true
+
 export default async function LearnPage() {
+  if (LEARN_HIDDEN) redirect('/')
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')

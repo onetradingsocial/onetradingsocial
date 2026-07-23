@@ -32,7 +32,8 @@ async function signUpAndOnboard(page: Page, prefix: string) {
   return username
 }
 
-test('passing the quiz grants XP and marks the lesson complete', async ({ page }) => {
+// Learn hidden for now — we are not financial advisors. Un-skip when the feature is restored.
+test.skip('passing the quiz grants XP and marks the lesson complete', async ({ page }) => {
   await signUpAndOnboard(page, 'lp')
   await page.goto('/learn/foundations/what-is-a-trade')
   await expect(page.getByRole('heading', { name: 'Quiz' })).toBeVisible()
@@ -48,7 +49,7 @@ test('passing the quiz grants XP and marks the lesson complete', async ({ page }
   await expect(page.getByText(/lesson.* completed/)).toContainText(/1 lesson/)
 })
 
-test('a wrong answer does not complete the lesson', async ({ page }) => {
+test.skip('a wrong answer does not complete the lesson', async ({ page }) => {
   await signUpAndOnboard(page, 'lf')
   await page.goto('/learn/foundations/reading-candles')
   // Correct answer for this lesson is option 2; pick option 1 (wrong).

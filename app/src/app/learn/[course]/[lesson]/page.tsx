@@ -6,7 +6,11 @@ import { getTier } from '@/lib/server/entitlements'
 import { TIER_RANK, type Tier } from '@/lib/entitlements'
 import { Quiz } from './Quiz'
 
+// Learn hidden for now — we are not financial advisors. Flip to false when compliant.
+const LEARN_HIDDEN = true
+
 export default async function LessonPage({ params }: { params: Promise<{ course: string; lesson: string }> }) {
+  if (LEARN_HIDDEN) redirect('/')
   const { course, lesson } = await params
   const supabase = await createClient()
   const user = await getSessionUser(supabase)

@@ -10,7 +10,7 @@ export function NavLinks() {
       <Link href="/" className="ts-navpill" data-active={path === '/'}>Home</Link>
       <Link href="/journal" className="ts-navpill" data-active={!!path?.startsWith('/journal')}>Journal</Link>
       <Link href="/leaderboard" className="ts-navpill" data-active={!!path?.startsWith('/leaderboard')}>Leaderboard</Link>
-      <Link href="/learn" className="ts-navpill" data-active={!!path?.startsWith('/learn')}>Learn</Link>
+      {/* Learn hidden for now — we are not financial advisors. Restore when compliant. */}
     </div>
   )
 }

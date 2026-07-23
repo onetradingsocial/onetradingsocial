@@ -3,7 +3,11 @@ import { createClient, getSessionUser } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { getCourseWithLessons } from '@/lib/server/learning'
 
+// Learn hidden for now — we are not financial advisors. Flip to false when compliant.
+const LEARN_HIDDEN = true
+
 export default async function CoursePage({ params }: { params: Promise<{ course: string }> }) {
+  if (LEARN_HIDDEN) redirect('/')
   const { course: slug } = await params
   const supabase = await createClient()
   const user = await getSessionUser(supabase)

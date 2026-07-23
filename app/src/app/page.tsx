@@ -150,11 +150,9 @@ export default async function Home({
   }
 
   // Onboarding checklist (row 14): computed from real data, shown until done.
-  const [{ count: lessonCount }, { count: reviewViews }] = await Promise.all([
-    supabase.from('lesson_completions').select('lesson_id', { count: 'exact', head: true }).eq('user_id', user.id),
-    createServiceClient().from('analytics_events').select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id).eq('event', 'weekly_review_viewed'),
-  ])
+  const { count: reviewViews } = await createServiceClient()
+    .from('analytics_events').select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id).eq('event', 'weekly_review_viewed')
   const checklist: ChecklistItem[] = [
     { key: 'photo', label: 'Add a profile photo', done: !!profile?.avatar_url, href: '/settings' },
     { key: 'markets', label: 'Pick your markets', done: (profile?.main_markets ?? []).length > 0, href: '/settings' },
@@ -162,7 +160,7 @@ export default async function Home({
     { key: 'strategy', label: 'Tag your first strategy', done: trades.some((t) => (t.strategy_tags ?? []).length > 0 || t.setup_type), href: '/journal' },
     { key: 'review', label: 'Read your weekly review', done: (reviewViews ?? 0) > 0, href: '/journal' },
     { key: 'follows', label: 'Follow 3 traders', done: followingIds.length >= 3, href: '/leaderboard' },
-    { key: 'lesson', label: 'Finish your first lesson', done: (lessonCount ?? 0) > 0, href: '/learn' },
+    // Learn hidden for now — we are not financial advisors. Restore lesson item when compliant.
   ]
 
   const dayOld = profile?.created_at ? (Date.now() - Date.parse(profile.created_at)) / 864e5 : 0
