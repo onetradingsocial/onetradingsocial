@@ -15,7 +15,7 @@ const FAVORITE_GATE_ERROR = 'Favouriting traders is available on the Trader plan
 
 export type CommentItem = {
   id: string; body: string; created_at: string; isOwn: boolean
-  author: { username: string; display_name: string | null; avatar_url: string | null }
+  author: { id: string; username: string; display_name: string | null; avatar_url: string | null }
 }
 
 export type AttachmentType = 'none' | 'trade' | 'images' | 'poll'
@@ -175,7 +175,7 @@ export async function getComments(postId: string): Promise<CommentItem[]> {
     .eq('post_id', postId).order('created_at', { ascending: true })
   return (data ?? []).map((c) => {
     const author = (Array.isArray(c.author) ? c.author[0] : c.author) as { username: string; display_name: string | null; avatar_url: string | null }
-    return { id: c.id, body: c.body, created_at: c.created_at, isOwn: c.author_id === user?.id, author }
+    return { id: c.id, body: c.body, created_at: c.created_at, isOwn: c.author_id === user?.id, author: { id: c.author_id, ...author } }
   })
 }
 

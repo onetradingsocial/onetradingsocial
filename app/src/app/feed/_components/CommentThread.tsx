@@ -34,7 +34,7 @@ export function CommentThread({ postId, onCountChange }: { postId: string; onCou
     <div className="ts-comments">
       {comments.map((c) => (
         <div key={c.id} className="ts-comment">
-          <UserLink username={c.author.username} displayName={c.author.display_name} avatarUrl={c.author.avatar_url} />
+          <UserLink userId={c.author.id} username={c.author.username} displayName={c.author.display_name} avatarUrl={c.author.avatar_url} />
           <p>{c.body}</p>
           {c.isOwn ? <button type="button" className="ts-mini" onClick={() => remove(c.id)}>Delete</button> : <span />}
         </div>
