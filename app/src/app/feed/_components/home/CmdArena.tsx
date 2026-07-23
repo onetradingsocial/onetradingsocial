@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Icon, Avatar, StreakChain, Delta } from './atoms'
+import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import type { HomeData } from './types'
 
 const money = (n: number) => `${n >= 0 ? '+' : '−'}$${Math.abs(Math.round(n)).toLocaleString()}`
@@ -82,14 +83,21 @@ export function CmdArena({ data, onOpenTrade }: { data: HomeData; onOpenTrade: (
             {race.map((r) => {
               const me = r.userId === userId
               const gap = r.rank === 1 ? 'Leading' : `${money(leaderPnl - r.pnl).replace('+', '')} behind`
-              return (
-                <div key={r.userId} className={'h-vsrow' + (me ? ' me' : '')}>
-                  <span className="pos">{r.rank}</span>
+              const idRow = (
+                <>
                   <Avatar seed={r.username} src={r.avatarUrl} name={r.displayName || r.username} size={34} ring={me} />
                   <div style={{ minWidth: 0 }}>
                     <b style={{ fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>@{r.username}{me && <span className="h-mini-lv">You</span>}</b>
                     <span className="h-mono" style={{ fontSize: 11, color: me ? 'var(--violet-br)' : 'var(--faint)' }}>{gap}</span>
                   </div>
+                </>
+              )
+              return (
+                <div key={r.userId} className={'h-vsrow' + (me ? ' me' : '')}>
+                  <span className="pos">{r.rank}</span>
+                  {me
+                    ? idRow
+                    : <TraderHoverCard userId={r.userId} username={r.username} displayName={r.displayName} avatarUrl={r.avatarUrl} wrapClassName="thc-wrap">{idRow}</TraderHoverCard>}
                   <span className={'h-mono ' + (r.pnl >= 0 ? 'h-up' : 'h-down')} style={{ marginLeft: 'auto', fontWeight: 700, fontSize: 14 }}>{money(r.pnl)}</span>
                 </div>
               )
