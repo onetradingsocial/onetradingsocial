@@ -185,15 +185,22 @@ create unique index if not exists exchange_accounts_user_exchange_idx
 
 RLS mirrors `broker_accounts`: owner `select` / `insert` / `delete`, **no update policy** (sync
 writes use the service role). `touch_updated_at` trigger as elsewhere. Plus one control MT5 did not
-need:
+need — hide the ciphertext columns from client roles:
 
 ```sql
-revoke select (api_key_enc, api_secret_enc, passphrase_enc)
-  on public.exchange_accounts from authenticated, anon;
+revoke select on public.exchange_accounts from authenticated, anon;
+grant select (
+  id, user_id, exchange, label, status,
+  last_sync_at, last_fill_at, sync_error, created_at, updated_at
+) on public.exchange_accounts to authenticated, anon;
 ```
 
-Column-level revoke, so even the owner's own browser cannot pull its ciphertext down. The row stays
-readable for `status` and `label`; the secrets are service-role only.
+Note the shape: a *column-level* `revoke` does **not** subtract from Supabase's default table-level
+SELECT grant (access passes if either level allows it), so it would be a no-op. Instead we revoke
+the whole-table grant and re-grant SELECT on only the ten non-secret columns. The three `*_enc`
+columns are never granted to a client role, so only the service role (which bypasses grants) reads
+the ciphertext; RLS still restricts which rows an owner sees. Phase 1 client reads must name columns
+explicitly — a bare `select('*')` as `authenticated` will error on the ungranted columns.
 
 ### Supporting changes
 
