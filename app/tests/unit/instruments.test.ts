@@ -24,3 +24,13 @@ describe('instruments', () => {
     expect(INSTRUMENTS.length).toBeGreaterThan(10)
   })
 })
+
+describe('crypto catalog', () => {
+  it('carries the majors the exchange sync will emit', () => {
+    for (const s of ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD', 'BNB/USD', 'DOGE/USD', 'ADA/USD']) {
+      const found = findInstrument(s)
+      expect(found, s).toBeDefined()
+      expect(found!.market).toBe('crypto')
+    }
+  })
+})

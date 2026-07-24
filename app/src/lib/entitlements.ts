@@ -59,6 +59,7 @@ export type Feature =
   | 'ai_insights' | 'advanced_leaderboard_filters' | 'leaderboard_placement'
   | 'premium_challenges' | 'xp_boosts' | 'priority_support' | 'early_access'
   | 'mt5_import' | 'mt5_autosync'
+  | 'crypto_import' | 'crypto_autosync'
 
 /** Full pricing-matrix gate. Features not yet built are still mapped so the
  *  gate is ready when the feature ships. */
@@ -94,6 +95,8 @@ export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
   priority_support: 'pro',
   early_access: 'pro',
   mt5_autosync: 'pro',
+  crypto_import: 'trader',
+  crypto_autosync: 'pro',
 }
 
 export function can(tier: Tier, feature: Feature): boolean {

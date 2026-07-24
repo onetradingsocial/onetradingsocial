@@ -68,3 +68,12 @@ describe('constants', () => {
     expect(JOURNAL_FREE_LIMIT).toBe(30)
   })
 })
+
+describe('crypto feature gates', () => {
+  it('gates import at trader and autosync at pro', () => {
+    expect(can('free', 'crypto_import')).toBe(false)
+    expect(can('trader', 'crypto_import')).toBe(true)
+    expect(can('trader', 'crypto_autosync')).toBe(false)
+    expect(can('pro', 'crypto_autosync')).toBe(true)
+  })
+})
