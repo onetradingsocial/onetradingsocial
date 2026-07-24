@@ -11,7 +11,7 @@ const IV_BYTES = 12
 const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64')
 const unb64 = (s: string) => new Uint8Array(Buffer.from(s, 'base64'))
 
-async function masterKey(): Promise<CryptoKey> {
+async function masterKey() {
   const raw = process.env.EXCHANGE_KEY_SECRET
   if (!raw) throw new Error('EXCHANGE_KEY_SECRET is not set')
   const bytes = unb64(raw)
