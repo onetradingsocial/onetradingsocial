@@ -42,7 +42,13 @@ drop policy if exists exchange_accounts_delete on public.exchange_accounts;
 create policy exchange_accounts_delete on public.exchange_accounts
   for delete using (auth.uid() = user_id);
 
--- Defense in depth: the row stays readable for status/label, but no client
--- role can ever select the ciphertext columns.
-revoke select (api_key_enc, api_secret_enc, passphrase_enc)
-  on public.exchange_accounts from authenticated, anon;
+-- Defense in depth: revoke the blanket table-level SELECT that Supabase's
+-- default grants give client roles, then hand back SELECT on only the
+-- non-secret columns. The three *_enc columns are never granted to any
+-- client role, so only the service role (which bypasses grants) can read
+-- the ciphertext. RLS still restricts which rows an owner sees.
+revoke select on public.exchange_accounts from authenticated, anon;
+grant select (
+  id, user_id, exchange, label, status,
+  last_sync_at, last_fill_at, sync_error, created_at, updated_at
+) on public.exchange_accounts to authenticated, anon;
