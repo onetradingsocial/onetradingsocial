@@ -1,0 +1,29 @@
+# Daily crypto (Binance) sync. Vercel Hobby crons are daily-only and both slots
+# are used, so — like mt5-sync.yml — GitHub Actions drives this instead.
+# Requires repo secret CRON_SECRET matching the Vercel env var of the same name.
+name: Crypto sync
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: crypto-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Call crypto-sync route
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          code=$(curl -sS -o /tmp/out -w '%{http_code}' \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "https://app.tradingsocial.io/api/cron/crypto-sync")
+          cat /tmp/out; echo
+          echo "HTTP ${code}"
+          test "${code}" = "200"
