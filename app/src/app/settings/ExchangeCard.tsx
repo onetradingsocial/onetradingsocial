@@ -25,8 +25,8 @@ export function ExchangeCard({ row, canImport }: { row: ExchangeRowView | null; 
     return (
       <section id="exchange" className="ts-card settings-section">
         <h2 className="ts-h2"><Icon name="bolt" size={18} /> Crypto exchange sync</h2>
-        <p className="ts-sub mt-2">Connect Binance with a read-only API key and your trades land in the journal.</p>
-        <a href="/settings/billing" className="btn btn-primary mt-4">Upgrade to Trader</a>
+        <p className="ts-sub mt-2">Connect Binance with a read-only API key and your trades land in the journal. Available on the Pro plan.</p>
+        <a href="/settings/billing" className="btn btn-primary mt-4">Upgrade to Pro</a>
       </section>
     )
   }

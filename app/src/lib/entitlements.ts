@@ -95,7 +95,7 @@ export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
   priority_support: 'pro',
   early_access: 'pro',
   mt5_autosync: 'pro',
-  crypto_import: 'trader',
+  crypto_import: 'pro',
   crypto_autosync: 'pro',
 }
 

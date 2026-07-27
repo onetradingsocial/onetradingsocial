@@ -12,7 +12,7 @@ import { encryptSecret } from '@/lib/server/secrets'
 import { syncExchangeAccount, type ExchangeRow } from '@/lib/server/crypto-sync'
 
 export type ExchangeState = { ok?: boolean; error?: string }
-const IMPORT_GATE = 'Crypto sync is available on the Trader plan and above.'
+const IMPORT_GATE = 'Crypto sync is available on the Pro plan.'
 
 async function gateImport(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<string | null> {
   const tier = await getTier(supabase, userId)
