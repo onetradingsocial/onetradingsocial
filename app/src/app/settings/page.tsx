@@ -8,6 +8,7 @@ import { Icon } from '@/app/[username]/_components/Icon'
 import { SettingsNav } from './SettingsNav'
 import { ProfileSettingsForm } from './ProfileSettingsForm'
 import { BrokerCard } from './BrokerCard'
+import { ExchangeCard } from './ExchangeCard'
 import { DangerZone } from './DangerZone'
 import { NotificationPrefs } from './NotificationPrefs'
 import { CoverUploader } from '@/app/_components/CoverUploader'
@@ -20,7 +21,7 @@ export default async function SettingsPage() {
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
-  const [{ data: profile }, tier, sub, flags, { data: brokerRow }, { data: ownPosts }] = await Promise.all([
+  const [{ data: profile }, tier, sub, flags, { data: brokerRow }, { data: exchangeRow }, { data: ownPosts }] = await Promise.all([
     supabase
       .from('profiles')
       .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id, leaderboard_optout, account_type, notification_prefs')
@@ -33,6 +34,11 @@ export default async function SettingsPage() {
       .from('broker_accounts')
       .select('login, server, status, last_sync_at, sync_error')
       .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('exchange_accounts')
+      .select('status, symbols, last_sync_at, sync_error')
+      .eq('user_id', user.id).eq('exchange', 'binance')
       .maybeSingle(),
     supabase
       .from('posts')
@@ -144,6 +150,8 @@ export default async function SettingsPage() {
             </section>
 
             <BrokerCard row={brokerRow} canAutosync={canFlag(flags, tier, 'mt5_autosync')} />
+
+            <ExchangeCard row={exchangeRow} canImport={canFlag(flags, tier, 'crypto_import')} />
 
             <NotificationPrefs initial={(profile?.notification_prefs ?? {}) as Record<string, boolean>} />
 
