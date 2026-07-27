@@ -80,6 +80,18 @@ export function ExchangeCard({ row, canImport }: { row: ExchangeRowView | null; 
         Paste a <strong>read-only</strong> Binance API key (enable “Reading” only — not trading or withdrawals).
         We store it encrypted and it can never move funds.
       </p>
+      <details className="ts-help mt-2" style={{ fontSize: 13 }}>
+        <summary style={{ cursor: 'pointer', color: 'var(--accent, #4f8cff)' }}>
+          How do I get a read-only key?
+        </summary>
+        <ol className="faint" style={{ margin: '8px 0 0', paddingLeft: 18, lineHeight: 1.6 }}>
+          <li>On Binance: <strong>Account → API Management</strong> → <strong>Create API</strong> (System generated).</li>
+          <li>Label it, then complete Binance’s security check.</li>
+          <li>Tick <strong>Enable Reading only</strong> — leave Spot/Margin/Futures trading and Withdrawals off.</li>
+          <li>Copy the <strong>API Key</strong> and <strong>Secret</strong> (the secret shows once) and paste them below.</li>
+          <li>Pick the pairs you trade, then Connect.</li>
+        </ol>
+      </details>
       <form action={formAction} className="mt-4">
         <input type="hidden" name="symbols" value={symbols} />
         <label className="ts-field"><span className="ts-label">API key</span>
