@@ -67,6 +67,20 @@ function toFill(t: CcxtTrade): Fill {
 // stops making forward progress, guarding against an infinite loop. We don't
 // treat a page shorter than PAGE_LIMIT as end-of-data — Binance can return a
 // partial page mid-history — so we always confirm the end with one empty call.
+//
+// The cursor advances inclusively (`since = max timestamp seen`, not +1):
+// Binance timestamps only have millisecond resolution, so if the page cap is
+// hit mid-millisecond, an exclusive (+1) advance would skip over sibling
+// fills sharing that same millisecond on the next page. Advancing inclusively
+// re-fetches that boundary millisecond; the `seen` id set dedupes what we
+// already captured and appends any siblings we hadn't seen. This still
+// terminates: a page containing nothing new sets `progressed = false`.
+//
+// Residual limit (not solved here): if a single pair has more than
+// PAGE_LIMIT fills sharing one exact millisecond, this cursor can't
+// distinguish "already captured" from "still to come" beyond `seen`'s
+// dedupe, and the boundary can't be fully paged without Binance's `fromId`
+// cursor. Out of scope for this task.
 export async function fetchFillsSince(
   creds: ExchangeCreds,
   symbol: string,
@@ -82,11 +96,11 @@ export async function fetchFillsSince(
     let progressed = false
     for (const t of page) {
       const f = toFill(t)
+      if (f.timestamp > since) since = f.timestamp // advance the window inclusively to the newest fill seen
       if (seen.has(f.id)) continue
       seen.add(f.id)
       out.push(f)
       progressed = true
-      if (f.timestamp >= since) since = f.timestamp + 1 // advance the window past this fill
     }
     if (!progressed) break
   }

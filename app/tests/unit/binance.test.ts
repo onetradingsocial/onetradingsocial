@@ -72,6 +72,29 @@ const pagingClient = (pages: unknown[][]): BinanceClient => {
   }
 }
 
+// Fake client modeling the millisecond-boundary case: the first "page" is
+// capped at 2 items (simulating hitting the exchange's page limit) even
+// though a third fill ('c') shares the same millisecond as the page's last
+// fill ('b'). Every call after the first actually honors `since` (ms
+// granularity, inclusive) like the real exchange would, so it re-returns any
+// same-ms siblings until the caller's cursor moves past that millisecond.
+const boundaryClient = (): BinanceClient => {
+  const store = [
+    ccxtTrade({ id: 'a', timestamp: 5 }),
+    ccxtTrade({ id: 'b', timestamp: 10 }),
+    ccxtTrade({ id: 'c', timestamp: 10 }), // shares 'b' timestamp; dropped by an exclusive (+1) cursor
+  ]
+  let calls = 0
+  return {
+    sapiGetAccountApiRestrictions: async () => ({}),
+    fetchMyTrades: async (_symbol: string, since?: number) => {
+      calls += 1
+      if (calls === 1) return [store[0], store[1]] // simulated page cap: 'c' held back
+      return store.filter((t) => t.timestamp >= (since ?? 0))
+    },
+  }
+}
+
 describe('fetchFillsSince', () => {
   it('normalizes a ccxt trade into a Fill', async () => {
     const fills = await fetchFillsSince({ apiKey: 'k', apiSecret: 's' }, 'BTC/USDT', null,
@@ -98,5 +121,10 @@ describe('fetchFillsSince', () => {
     const fills = await fetchFillsSince({ apiKey: 'k', apiSecret: 's' }, 'BTC/USDT', 0,
       pagingClient([[t], [t]]))
     expect(fills.map((f) => f.id)).toEqual(['a'])
+  })
+
+  it('captures a fill sharing a timestamp with the prior page boundary (inclusive cursor)', async () => {
+    const fills = await fetchFillsSince({ apiKey: 'k', apiSecret: 's' }, 'BTC/USDT', 0, boundaryClient())
+    expect(fills.map((f) => f.id)).toEqual(['a', 'b', 'c'])
   })
 })
