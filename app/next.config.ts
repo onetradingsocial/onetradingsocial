@@ -39,6 +39,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname, '../'),
+  // ccxt is a large, server-only dependency (crypto exchange sync) that uses a
+  // dynamic require in its base Exchange class. Keeping it external stops
+  // webpack bundling it into the serverless functions — removes the benign
+  // "Critical dependency" build warning and shrinks bundle/cold-start.
+  serverExternalPackages: ['ccxt'],
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }]
   },
