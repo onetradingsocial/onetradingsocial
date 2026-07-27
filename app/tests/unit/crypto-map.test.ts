@@ -10,8 +10,8 @@ const cycle = (o: Partial<Cycle> = {}): Cycle => ({
 
 describe('mapCycleToTrade', () => {
   it('produces a closed, broker-sourced crypto row', () => {
-    expect(mapCycleToTrade(cycle(), { userId: 'u1', isPublic: true })).toMatchObject({
-      user_id: 'u1', broker_deal_id: 'fill-9', source: 'broker',
+    expect(mapCycleToTrade(cycle(), { userId: 'u1', isPublic: true, exchange: 'binance' })).toMatchObject({
+      user_id: 'u1', broker_deal_id: 'binance:fill-9', source: 'broker',
       market: 'crypto', instrument: 'BTC/USD', direction: 'long',
       sizing_mode: 'lots', lots: 0.5,
       entry_price: 60000, exit_price: 61000,
@@ -22,7 +22,7 @@ describe('mapCycleToTrade', () => {
   })
 
   it('leaves every stop/risk field neutral because imports carry no stop', () => {
-    const row = mapCycleToTrade(cycle(), { userId: 'u1', isPublic: false })
+    const row = mapCycleToTrade(cycle(), { userId: 'u1', isPublic: false, exchange: 'binance' })
     expect(row).toMatchObject({
       stop_price: null, target_price: null, tp_pips: null,
       planned_rr: null, r_multiple: null, risk_percent: null,
@@ -33,19 +33,19 @@ describe('mapCycleToTrade', () => {
   it('marks a losing short and rounds pnl to cents', () => {
     const row = mapCycleToTrade(
       cycle({ direction: 'short', entryPrice: 100, exitPrice: 110, pnl: -10.005 }),
-      { userId: 'u1', isPublic: true },
+      { userId: 'u1', isPublic: true, exchange: 'binance' },
     )
     expect(row.outcome).toBe('loss')
     expect(row.pnl_amount).toBe(-10.01)
   })
 
   it('treats a zero-pnl cycle as breakeven', () => {
-    const row = mapCycleToTrade(cycle({ pnl: 0 }), { userId: 'u1', isPublic: true })
+    const row = mapCycleToTrade(cycle({ pnl: 0 }), { userId: 'u1', isPublic: true, exchange: 'binance' })
     expect(row.outcome).toBe('breakeven')
   })
 
   it('computes realized_pips from the catalog pip size', () => {
     // BTC/USD pipSize is 1, so 61000 - 60000 = 1000 pips.
-    expect(mapCycleToTrade(cycle(), { userId: 'u1', isPublic: true }).realized_pips).toBe(1000)
+    expect(mapCycleToTrade(cycle(), { userId: 'u1', isPublic: true, exchange: 'binance' }).realized_pips).toBe(1000)
   })
 })

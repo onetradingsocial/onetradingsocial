@@ -7,7 +7,7 @@ import type { Cycle } from '@/lib/crypto/fills'
 // level as a MetaApi sync, so verification badges need no new case.
 export function mapCycleToTrade(
   cycle: Cycle,
-  opts: { userId: string; isPublic: boolean },
+  opts: { userId: string; isPublic: boolean; exchange: string },
 ): Record<string, unknown> {
   const { instrument, market } = normalizeExchangeSymbol(cycle.symbol)
   const { pipSize } = pipInfo(instrument, market)
@@ -17,7 +17,7 @@ export function mapCycleToTrade(
 
   return {
     user_id: opts.userId,
-    broker_deal_id: cycle.dedupeId,
+    broker_deal_id: `${opts.exchange}:${cycle.dedupeId}`,
     source: 'broker',
     market,
     instrument,
