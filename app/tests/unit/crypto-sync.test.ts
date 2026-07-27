@@ -41,3 +41,71 @@ describe('planImport', () => {
     expect(res.cursor).toBe(4000) // so the open position isn't re-fetched from scratch next run
   })
 })
+
+import { syncExchangeAccount, type ExchangeRow } from '@/lib/server/crypto-sync'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+// Minimal fake service client capturing upserts + row updates.
+function fakeSvc() {
+  const calls = { upserted: [] as Record<string, unknown>[], updated: [] as Record<string, unknown>[] }
+  const svc = {
+    from(table: string) {
+      if (table === 'profiles') {
+        return { select: () => ({ eq: () => ({ single: async () => ({ data: { is_public: true } }) }) }) }
+      }
+      if (table === 'trades') {
+        return { upsert: (rows: Record<string, unknown>[]) => ({ select: async () => { calls.upserted.push(...rows); return { data: rows.map((_, i) => ({ id: `t${i}` })), error: null } } }) }
+      }
+      if (table === 'exchange_accounts') {
+        return { update: (patch: Record<string, unknown>) => ({ eq: async () => { calls.updated.push(patch); return { error: null } } }) }
+      }
+      throw new Error(`unexpected table ${table}`)
+    },
+  } as unknown as SupabaseClient
+  return { svc, calls }
+}
+
+const row = (o: Partial<ExchangeRow> = {}): ExchangeRow => ({
+  id: 'row1', user_id: 'u1', exchange: 'binance',
+  api_key_enc: 'KENC', api_secret_enc: 'SENC',
+  symbols: ['BTC/USDT'], last_fill_at: null, ...o,
+})
+
+const okDeps = (fills: Parameters<typeof import('@/lib/crypto/fills')['rollupFills']>[0]) => ({
+  decryptSecret: async (enc: string) => (enc === 'KENC' ? 'apikey' : 'apisecret'),
+  fetchFillsSince: async () => fills,
+  insertSystemNotification: async () => {},
+})
+
+describe('syncExchangeAccount', () => {
+  it('imports fills, advances the cursor, and reports the count', async () => {
+    const { svc, calls } = fakeSvc()
+    const notes: string[] = []
+    const res = await syncExchangeAccount(svc, row(), {
+      ...okDeps([
+        { id: '1', symbol: 'BTC/USDT', side: 'buy', price: 100, amount: 1, timestamp: 1000 },
+        { id: '2', symbol: 'BTC/USDT', side: 'sell', price: 110, amount: 1, timestamp: 5000 },
+      ]),
+      insertSystemNotification: async (a) => { notes.push(a.type) },
+    })
+    expect(res).toEqual({ imported: 1 })
+    expect(calls.upserted[0]).toMatchObject({ broker_deal_id: 'binance:2' })
+    // cursor persisted as an ISO string of the max fill ts (5000ms)
+    expect(calls.updated.at(-1)).toMatchObject({ status: 'active', sync_error: null })
+    expect(String(calls.updated.at(-1)!.last_fill_at)).toBe(new Date(5000).toISOString())
+    expect(notes).toContain('import_done')
+  })
+
+  it('on a fetch failure sets error status, notifies, and returns an error', async () => {
+    const { svc, calls } = fakeSvc()
+    const notes: string[] = []
+    const res = await syncExchangeAccount(svc, row(), {
+      decryptSecret: async () => 'x',
+      fetchFillsSince: async () => { throw new Error('451 unavailable') },
+      insertSystemNotification: async (a) => { notes.push(a.type) },
+    })
+    expect('error' in res).toBe(true)
+    expect(calls.updated.at(-1)).toMatchObject({ status: 'error' })
+    expect(notes).toContain('sync_failed')
+  })
+})
