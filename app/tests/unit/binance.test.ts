@@ -10,6 +10,7 @@ const clientWith = (restrictions: Record<string, unknown>): BinanceClient => ({
 })
 
 const READ_ONLY = {
+  enableReading: true,
   enableWithdrawals: false,
   enableInternalTransfer: false,
   enableSpotAndMarginTrading: false,
@@ -27,7 +28,7 @@ describe('verifyReadOnly', () => {
     const res = await verifyReadOnly({ apiKey: 'k', apiSecret: 's' },
       clientWith({ ...READ_ONLY, enableWithdrawals: true }))
     expect(res.ok).toBe(false)
-    if (!res.ok) expect(res.reason).toMatch(/withdraw/i)
+    if (!res.ok) expect(res.reason).toMatch(/trade or move funds/i)
   })
 
   it('rejects a key that can trade spot/margin', async () => {
@@ -41,6 +42,39 @@ describe('verifyReadOnly', () => {
     const res = await verifyReadOnly({ apiKey: 'k', apiSecret: 's' },
       clientWith({ ...READ_ONLY, enableFutures: true }))
     expect(res.ok).toBe(false)
+  })
+
+  it('rejects a key that can make internal transfers', async () => {
+    const res = await verifyReadOnly({ apiKey: 'k', apiSecret: 's' },
+      clientWith({ ...READ_ONLY, enableInternalTransfer: true }))
+    expect(res.ok).toBe(false)
+  })
+
+  it('rejects a key with universal transfer permission', async () => {
+    const res = await verifyReadOnly({ apiKey: 'k', apiSecret: 's' },
+      clientWith({ ...READ_ONLY, permitsUniversalTransfer: true }))
+    expect(res.ok).toBe(false)
+  })
+
+  it('rejects a key that can trade vanilla options', async () => {
+    const res = await verifyReadOnly({ apiKey: 'k', apiSecret: 's' },
+      clientWith({ ...READ_ONLY, enableVanillaOptions: true }))
+    expect(res.ok).toBe(false)
+  })
+
+  it('rejects a key without read permission', async () => {
+    const res = await verifyReadOnly({ apiKey: 'k', apiSecret: 's' },
+      clientWith({ ...READ_ONLY, enableReading: false }))
+    expect(res.ok).toBe(false)
+    if (!res.ok) expect(res.reason).toMatch(/read/i)
+  })
+
+  it('rejects a key with no enableReading field at all', async () => {
+    const { enableReading: _enableReading, ...withoutReading } = READ_ONLY
+    const res = await verifyReadOnly({ apiKey: 'k', apiSecret: 's' },
+      clientWith(withoutReading))
+    expect(res.ok).toBe(false)
+    if (!res.ok) expect(res.reason).toMatch(/read/i)
   })
 
   it('reports a read failure without leaking the key', async () => {

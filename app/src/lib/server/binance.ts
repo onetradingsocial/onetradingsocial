@@ -22,6 +22,12 @@ export function makeClient(creds: ExchangeCreds): BinanceClient {
 
 // Reject any key that can move funds or trade. A read key is the only kind
 // we will custody. Never echoes the key on failure.
+//
+// Allowlist, not denylist: require enableReading, then reject any OTHER flag
+// that grants trading or fund movement. This catches capability flags we
+// don't explicitly name (enableInternalTransfer, permitsUniversalTransfer,
+// enableVanillaOptions, and anything Binance adds later) instead of only the
+// handful we happened to enumerate.
 export async function verifyReadOnly(
   creds: ExchangeCreds,
   client: BinanceClient = makeClient(creds),
@@ -32,11 +38,16 @@ export async function verifyReadOnly(
   } catch {
     return { ok: false, reason: 'Could not reach Binance with that key — check it is correct and read-only.' }
   }
-  if (r.enableWithdrawals === true) {
-    return { ok: false, reason: 'This key can withdraw funds. Create a new key with only "Enable Reading" checked.' }
+  if (r.enableReading !== true) {
+    return { ok: false, reason: 'This key does not have read permission. Enable "Reading" on the key.' }
   }
-  if (r.enableSpotAndMarginTrading === true || r.enableMargin === true || r.enableFutures === true) {
-    return { ok: false, reason: 'This key can place trades. Create a new key with only "Enable Reading" checked.' }
+  for (const [key, value] of Object.entries(r)) {
+    if (key === 'enableReading') continue
+    const k = key.toLowerCase()
+    const grantsAccess = key.startsWith('enable') || k.includes('transfer') || k.includes('withdraw')
+    if (grantsAccess && value === true) {
+      return { ok: false, reason: 'This key can trade or move funds. Create a new key with only "Enable Reading" checked.' }
+    }
   }
   return { ok: true }
 }
