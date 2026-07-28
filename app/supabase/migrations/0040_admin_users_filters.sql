@@ -56,18 +56,18 @@ as $$
       or word_similarity(term, coalesce(p.display_name, '')) > 0.3
     )
     and (
-      p_account not in ('real', 'test')
+      coalesce(p_account, 'all') not in ('real', 'test')
       or (p_account = 'test' and (p.is_internal or u.email ilike '%@tradingsocial.io'))
       or (p_account = 'real' and not (p.is_internal or u.email ilike '%@tradingsocial.io'))
     )
     and (
-      p_sub not in ('free', 'trader', 'pro')
+      coalesce(p_sub, 'any') not in ('free', 'trader', 'pro')
       or (p_sub = 'free' and s.tier is null)
       or (p_sub = 'trader' and s.tier = 'trader')
       or (p_sub = 'pro' and s.tier = 'pro')
     )
     and (
-      p_comp not in ('comped', 'not')
+      coalesce(p_comp, 'any') not in ('comped', 'not')
       or (p_comp = 'comped' and p.comp_tier is not null)
       or (p_comp = 'not' and p.comp_tier is null)
     )
