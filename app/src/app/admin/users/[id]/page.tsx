@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { parseAdminEmails } from '@/lib/admin'
-import { userTierSummary } from '@/lib/admin-users'
+import { userTierSummary, isInternalRow } from '@/lib/admin-users'
 import { PageHead, Section, Stat, Stats } from '../../_components/ui'
 import { CompTierControl } from '../_components/CompTierControl'
 
@@ -13,7 +13,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
   const svc = createServiceClient()
 
   const [{ data: prof, error: profErr }, { data: authRes }] = await Promise.all([
-    svc.from('profiles').select('username, display_name, comp_tier, created_at').eq('id', id).maybeSingle(),
+    svc.from('profiles').select('username, display_name, comp_tier, created_at, is_internal').eq('id', id).maybeSingle(),
     svc.auth.admin.getUserById(id),
   ])
   // Surface a real read failure as a 500 rather than masking a transient DB
@@ -40,6 +40,8 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
     adminEmails: parseAdminEmails(process.env.ADMIN_EMAILS),
   })
 
+  const internal = isInternalRow({ is_internal: prof.is_internal, email })
+
   const comp = prof.comp_tier === 'trader' || prof.comp_tier === 'pro' ? prof.comp_tier : null
 
   return (
@@ -47,11 +49,21 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
       <PageHead
         title={prof.username}
         sub={email ?? undefined}
-        right={<Link className="ad-kv" href="/admin/users">← Directory</Link>}
+        right={
+          <>
+            {internal && <span className="ad-chip--test" style={{ marginLeft: 0 }}>test</span>}
+            <Link className="ad-kv" href="/admin/users">← Directory</Link>
+          </>
+        }
       />
 
       <Stats>
-        <Stat label="Effective tier" value={tier} sub={`via ${source}`} tone="accent" />
+        <Stat
+          label="Effective tier"
+          value={<span className={`ad-tier ad-tier--${tier}`}>{tier}</span>}
+          sub={`via ${source}`}
+          tone="accent"
+        />
         <Stat label="Trades logged" value={trades ?? 0} />
         <Stat label="Referrals" value={referrals ?? 0} />
         <Stat label="Subscription" value={best ? best.status : 'none'} />
