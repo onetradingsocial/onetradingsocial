@@ -35,26 +35,29 @@ export function CompTierControl({ userId, current }: { userId: string; current: 
 
   return (
     <div>
-      <div role="group" aria-label="Comp tier" style={{ display: 'inline-flex', gap: 6 }}>
+      <div className="ts-seg" role="group" aria-label="Comp tier" aria-busy={pending}>
         {OPTIONS.map((o) => (
-          <button
-            key={o.label}
-            type="button"
-            className="v-badge"
-            aria-pressed={value === o.value}
-            disabled={pending}
-            onClick={() => choose(o.value)}
-            style={{
-              cursor: pending ? 'wait' : 'pointer',
-              opacity: value === o.value ? 1 : 0.55,
-              fontWeight: value === o.value ? 700 : 400,
-            }}
-          >
+          <label key={o.label} data-active={value === o.value}>
+            <input
+              type="radio"
+              name={`comp-${userId}`}
+              checked={value === o.value}
+              disabled={pending}
+              onChange={() => choose(o.value)}
+            />
             {o.label}
-          </button>
+          </label>
         ))}
       </div>
-      {err && <p className="faint" style={{ color: 'var(--danger, #c0392b)', fontSize: 12, marginTop: 6 }}>{err}</p>}
+      <p className="faint" style={{ fontSize: 12, marginTop: 8, minHeight: 16 }}>
+        {pending
+          ? 'Saving…'
+          : err
+            ? <span style={{ color: 'var(--danger, #c0392b)' }}>{err}</span>
+            : value
+              ? `Comped ${value}.`
+              : 'No comp grant.'}
+      </p>
     </div>
   )
 }
