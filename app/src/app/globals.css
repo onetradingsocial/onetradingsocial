@@ -2378,3 +2378,25 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   .ref-body { padding: 22px; }
   .ref-stats { grid-template-columns: 1fr; }
 }
+
+/* ── Admin user directory: tier / source / test badges ─────────────── */
+.ad-tier, .ad-src {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 8px;
+  border-radius: 6px; font-family: var(--mono); font-size: 11px; font-weight: 700;
+  letter-spacing: .03em; text-transform: uppercase; white-space: nowrap;
+}
+.ad-tier--pro    { background: rgba(124,92,230,.14); color: var(--violet-deep); }
+.ad-tier--trader { background: rgba(37,99,235,.12);  color: #1d4ed8; }
+.ad-tier--free   { background: var(--surface-3);      color: var(--dim); }
+.ad-src--admin   { background: rgba(201,145,20,.16); color: #8a5a00; }
+.ad-src--comp    { background: rgba(124,92,230,.12); color: var(--violet-br); }
+.ad-src--paid    { background: rgba(16,150,90,.14);  color: #0f7a45; }
+.ad-src--free    { background: var(--surface-3);      color: var(--dim); }
+.ad-chip--test {
+  display: inline-flex; align-items: center; height: 16px; padding: 0 6px;
+  border-radius: 5px; background: var(--surface-3); color: var(--dim);
+  font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; margin-left: 6px;
+}
+.ad-filterbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 16px; }
+.ad-filterbar .ts-select { height: 38px; }
