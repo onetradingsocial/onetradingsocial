@@ -12,10 +12,13 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
   const { id } = await params
   const svc = createServiceClient()
 
-  const [{ data: prof }, { data: authRes }] = await Promise.all([
+  const [{ data: prof, error: profErr }, { data: authRes }] = await Promise.all([
     svc.from('profiles').select('username, display_name, comp_tier, created_at').eq('id', id).maybeSingle(),
     svc.auth.admin.getUserById(id),
   ])
+  // Surface a real read failure as a 500 rather than masking a transient DB
+  // error as "user not found". notFound() is only for a genuinely missing row.
+  if (profErr) throw profErr
   if (!prof) notFound()
 
   const [{ count: trades }, { count: referrals }, { data: subs }] = await Promise.all([
