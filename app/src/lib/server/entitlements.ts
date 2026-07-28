@@ -1,6 +1,8 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { tierFromSubscriptions, TIER_RANK, type Tier } from '@/lib/entitlements'
+import {
+  tierFromSubscriptions, higherTier, normalizeCompTier, TIER_RANK, type Tier,
+} from '@/lib/entitlements'
 import { parseAdminEmails, emailIsAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 
@@ -11,15 +13,19 @@ import { createServiceClient } from '@/lib/supabase/service'
  *  up by the target user's own email, independent of who's viewing / which
  *  client is passed in). */
 export async function getTier(supabase: SupabaseClient, userId: string): Promise<Tier> {
-  const { data: { user } } = await createServiceClient().auth.admin.getUserById(userId)
+  const svc = createServiceClient()
+  const { data: { user } } = await svc.auth.admin.getUserById(userId)
   if (user && emailIsAdmin(user.email, parseAdminEmails(process.env.ADMIN_EMAILS))) {
     return 'pro'
   }
 
-  const { data, error } = await supabase
-    .from('subscriptions').select('tier, status').eq('user_id', userId)
-  if (error || !data) return 'free'
-  return tierFromSubscriptions(data)
+  const [{ data: prof }, { data: subs, error }] = await Promise.all([
+    svc.from('profiles').select('comp_tier').eq('id', userId).maybeSingle(),
+    supabase.from('subscriptions').select('tier, status').eq('user_id', userId),
+  ])
+
+  const stripeTier: Tier = error || !subs ? 'free' : tierFromSubscriptions(subs)
+  return higherTier(normalizeCompTier(prof?.comp_tier), stripeTier)
 }
 
 export type CurrentSub = {
