@@ -53,3 +53,4 @@ as $$
 $$;
 
 revoke all on function public.admin_search_users(text, int, int) from public, anon, authenticated;
+grant execute on function public.admin_search_users(text, int, int) to service_role;
