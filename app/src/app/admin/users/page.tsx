@@ -53,7 +53,7 @@ export default async function AdminUsersPage({
     const str = s.toString()
     return str ? `/admin/users?${str}` : '/admin/users'
   }
-  const filtered = term || account !== 'real' || sub !== 'any' || comp !== 'any'
+  const filtered = Boolean(term) || account !== 'real' || sub !== 'any' || comp !== 'any'
 
   return (
     <>
@@ -84,7 +84,7 @@ export default async function AdminUsersPage({
           <option value="comped">Comped</option>
           <option value="not">Not comped</option>
         </select>
-        <button type="submit" className="btn btn-ghost">Apply</button>
+        <button type="submit" className="btn btn-ghost btn-sm">Apply</button>
         {filtered && <Link href="/admin/users" className="ad-kv">Reset</Link>}
       </form>
 

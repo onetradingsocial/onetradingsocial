@@ -35,7 +35,7 @@ export function CompTierControl({ userId, current }: { userId: string; current: 
 
   return (
     <div>
-      <div className="ts-seg" role="group" aria-label="Comp tier" aria-busy={pending}>
+      <div className="ts-seg" role="radiogroup" aria-label="Comp tier" aria-busy={pending}>
         {OPTIONS.map((o) => (
           <label key={o.label} data-active={value === o.value}>
             <input
@@ -49,7 +49,7 @@ export function CompTierControl({ userId, current }: { userId: string; current: 
           </label>
         ))}
       </div>
-      <p className="faint" style={{ fontSize: 12, marginTop: 8, minHeight: 16 }}>
+      <p className="faint" style={{ fontSize: 12, marginTop: 8, minHeight: 16 }} aria-live="polite">
         {pending
           ? 'Saving…'
           : err

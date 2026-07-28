@@ -36,7 +36,7 @@ as $$
     p.comp_tier,
     s.tier as sub_tier,
     s.status as sub_status,
-    (p.is_internal or u.email ilike '%@tradingsocial.io') as is_internal
+    (p.is_internal or coalesce(u.email, '') ilike '%@tradingsocial.io') as is_internal
   from public.profiles p
   join auth.users u on u.id = p.id
   left join lateral (
@@ -57,8 +57,8 @@ as $$
     )
     and (
       coalesce(p_account, 'all') not in ('real', 'test')
-      or (p_account = 'test' and (p.is_internal or u.email ilike '%@tradingsocial.io'))
-      or (p_account = 'real' and not (p.is_internal or u.email ilike '%@tradingsocial.io'))
+      or (p_account = 'test' and (p.is_internal or coalesce(u.email, '') ilike '%@tradingsocial.io'))
+      or (p_account = 'real' and not (p.is_internal or coalesce(u.email, '') ilike '%@tradingsocial.io'))
     )
     and (
       coalesce(p_sub, 'any') not in ('free', 'trader', 'pro')
