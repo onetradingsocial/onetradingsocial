@@ -38,6 +38,7 @@ const GROUPS: NavGroup[] = [
   {
     title: 'Users',
     items: [
+      { href: '/admin/users', label: 'Directory' },
       { href: '/admin/feedback', label: 'Feedback', countKey: 'feedback' },
       { href: '/admin/interviews', label: 'Interviews' },
       { href: '/admin/referrals', label: 'Referrals' },
