@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { userTierSummary } from '@/lib/admin-users'
+import {
+  normalizeAccountFilter, normalizeSubFilter, normalizeCompFilter, isInternalRow,
+} from '@/lib/admin-users'
 
 const ADMINS = ['boss@x.com']
 
@@ -33,5 +36,42 @@ describe('userTierSummary', () => {
       .toEqual({ tier: 'pro', source: 'Comp' })
     expect(userTierSummary({ email: 'a@x.com', compTier: 'trader', subTier: 'trader', subStatus: 'active', adminEmails: ADMINS }))
       .toEqual({ tier: 'trader', source: 'Comp' })
+  })
+})
+
+describe('filter normalizers', () => {
+  it('normalizeAccountFilter defaults to real, passes valid, rejects junk', () => {
+    expect(normalizeAccountFilter(undefined)).toBe('real')
+    expect(normalizeAccountFilter('all')).toBe('all')
+    expect(normalizeAccountFilter('test')).toBe('test')
+    expect(normalizeAccountFilter('real')).toBe('real')
+    expect(normalizeAccountFilter('bogus')).toBe('real')
+  })
+  it('normalizeSubFilter defaults to any', () => {
+    expect(normalizeSubFilter(undefined)).toBe('any')
+    expect(normalizeSubFilter('pro')).toBe('pro')
+    expect(normalizeSubFilter('trader')).toBe('trader')
+    expect(normalizeSubFilter('free')).toBe('free')
+    expect(normalizeSubFilter('x')).toBe('any')
+  })
+  it('normalizeCompFilter defaults to any', () => {
+    expect(normalizeCompFilter(undefined)).toBe('any')
+    expect(normalizeCompFilter('comped')).toBe('comped')
+    expect(normalizeCompFilter('not')).toBe('not')
+    expect(normalizeCompFilter('x')).toBe('any')
+  })
+})
+
+describe('isInternalRow', () => {
+  it('true when flag set', () => {
+    expect(isInternalRow({ is_internal: true, email: 'a@gmail.com' })).toBe(true)
+  })
+  it('true for @tradingsocial.io regardless of flag', () => {
+    expect(isInternalRow({ is_internal: false, email: 'lb_hi_1@tradingsocial.io' })).toBe(true)
+    expect(isInternalRow({ is_internal: false, email: 'X@TradingSocial.IO' })).toBe(true)
+  })
+  it('false for a real external user', () => {
+    expect(isInternalRow({ is_internal: false, email: 'real@gmail.com' })).toBe(false)
+    expect(isInternalRow({ is_internal: null, email: null })).toBe(false)
   })
 })

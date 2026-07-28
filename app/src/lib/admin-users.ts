@@ -26,3 +26,23 @@ export function userTierSummary(input: {
   const source: TierSource = comp === tier ? 'Comp' : 'Paid'
   return { tier, source }
 }
+
+export type AccountFilter = 'all' | 'real' | 'test'
+export type SubFilter = 'any' | 'free' | 'trader' | 'pro'
+export type CompFilter = 'any' | 'comped' | 'not'
+
+export function normalizeAccountFilter(v: string | undefined): AccountFilter {
+  return v === 'all' || v === 'test' || v === 'real' ? v : 'real'
+}
+export function normalizeSubFilter(v: string | undefined): SubFilter {
+  return v === 'free' || v === 'trader' || v === 'pro' ? v : 'any'
+}
+export function normalizeCompFilter(v: string | undefined): CompFilter {
+  return v === 'comped' || v === 'not' ? v : 'any'
+}
+
+/** Mirrors the RPC's internal predicate for defensive client-side checks. */
+export function isInternalRow(input: { is_internal: boolean | null; email: string | null }): boolean {
+  if (input.is_internal) return true
+  return (input.email ?? '').toLowerCase().endsWith('@tradingsocial.io')
+}
