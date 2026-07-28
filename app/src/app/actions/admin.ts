@@ -230,3 +230,25 @@ export async function resetFeatureFlag(feature: string): Promise<{ error?: strin
   revalidatePath('/admin/features')
   return {}
 }
+
+const COMP_TIERS = new Set(['trader', 'pro'])
+
+export async function setCompTier(
+  userId: string,
+  tier: 'trader' | 'pro' | null,
+): Promise<{ error?: string }> {
+  const admin = await requireAdmin()
+  if (tier !== null && !COMP_TIERS.has(tier)) return { error: 'Invalid tier.' }
+  const svc = createServiceClient()
+  const { error } = await svc.from('profiles').update({ comp_tier: tier }).eq('id', userId)
+  if (error) return { error: 'Update failed.' }
+  await logAdminAction(
+    admin,
+    tier ? 'user.comp_tier.set' : 'user.comp_tier.clear',
+    { type: 'user', id: userId },
+    { tier },
+  )
+  revalidatePath('/admin/users')
+  revalidatePath(`/admin/users/${userId}`)
+  return {}
+}

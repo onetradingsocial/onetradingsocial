@@ -19,6 +19,8 @@ const LABEL: Record<string, string> = {
   'lesson.quiz.set': 'Quiz replaced',
   'feature_flag.set': 'Feature flag changed',
   'feature_flag.reset': 'Feature flag reset',
+  'user.comp_tier.set': 'Comp tier granted',
+  'user.comp_tier.clear': 'Comp tier removed',
 }
 
 export default async function AdminAuditPage() {
