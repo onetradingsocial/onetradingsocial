@@ -28,4 +28,10 @@ describe('userTierSummary', () => {
     expect(userTierSummary({ email: 'a@x.com', compTier: null, subTier: null, subStatus: null, adminEmails: ADMINS }))
       .toEqual({ tier: 'free', source: 'Free' })
   })
+  it('comp ties with equal paid tier → source is Comp', () => {
+    expect(userTierSummary({ email: 'a@x.com', compTier: 'pro', subTier: 'pro', subStatus: 'active', adminEmails: ADMINS }))
+      .toEqual({ tier: 'pro', source: 'Comp' })
+    expect(userTierSummary({ email: 'a@x.com', compTier: 'trader', subTier: 'trader', subStatus: 'active', adminEmails: ADMINS }))
+      .toEqual({ tier: 'trader', source: 'Comp' })
+  })
 })
