@@ -20,6 +20,16 @@ export function tierFromSubscriptions(subs: { tier: string; status: string }[]):
   return best
 }
 
+/** The higher-ranked of two tiers (used to combine comp grants with Stripe subs). */
+export function higherTier(a: Tier, b: Tier): Tier {
+  return TIER_RANK[a] >= TIER_RANK[b] ? a : b
+}
+
+/** A stored comp_tier value → Tier. Anything but 'trader'/'pro' means no comp. */
+export function normalizeCompTier(v: string | null | undefined): Tier {
+  return v === 'trader' || v === 'pro' ? v : 'free'
+}
+
 export type PlanEnv = {
   STRIPE_PRICE_TRADER_MONTHLY?: string
   STRIPE_PRICE_TRADER_ANNUAL?: string

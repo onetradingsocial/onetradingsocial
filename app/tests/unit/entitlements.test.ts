@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   TIER_RANK, JOURNAL_FREE_LIMIT, tierFromSubscriptions,
-  planForPrice, priceForPlan, can, type PlanEnv,
+  planForPrice, priceForPlan, can, higherTier, normalizeCompTier, type PlanEnv,
 } from '@/lib/entitlements'
 
 const ENV: PlanEnv = {
@@ -76,5 +76,28 @@ describe('crypto feature gates', () => {
     expect(can('pro', 'crypto_import')).toBe(true)
     expect(can('trader', 'crypto_autosync')).toBe(false)
     expect(can('pro', 'crypto_autosync')).toBe(true)
+  })
+})
+
+describe('higherTier', () => {
+  it('returns the higher-ranked tier regardless of order', () => {
+    expect(higherTier('free', 'pro')).toBe('pro')
+    expect(higherTier('pro', 'free')).toBe('pro')
+    expect(higherTier('trader', 'pro')).toBe('pro')
+    expect(higherTier('trader', 'free')).toBe('trader')
+    expect(higherTier('free', 'free')).toBe('free')
+  })
+})
+
+describe('normalizeCompTier', () => {
+  it('passes through valid comp tiers', () => {
+    expect(normalizeCompTier('trader')).toBe('trader')
+    expect(normalizeCompTier('pro')).toBe('pro')
+  })
+  it('maps null/empty/invalid to free', () => {
+    expect(normalizeCompTier(null)).toBe('free')
+    expect(normalizeCompTier(undefined)).toBe('free')
+    expect(normalizeCompTier('free')).toBe('free')
+    expect(normalizeCompTier('gold')).toBe('free')
   })
 })
