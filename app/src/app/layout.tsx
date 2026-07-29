@@ -9,9 +9,10 @@ import { GoogleAnalytics } from './_components/GoogleAnalytics'
 import { PageViewTracker } from './_components/PageViewTracker'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/server/admin'
-import { getTier } from '@/lib/server/entitlements'
+import { getTier, getTrialGate, type TrialGate } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
+import { TrialGateModal } from './_components/TrialGateModal'
 
 const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display' })
 const body = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body' })
@@ -28,12 +29,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await getSessionUser(supabase)
   let config: { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean } | null = null
   let internalTraffic = false
+  let gate: TrialGate | null = null
   if (user) {
     const [{ data }, tier, flags] = await Promise.all([
       supabase.from('profiles').select('account_balance, is_public, is_internal').eq('id', user.id).single(),
       getTier(supabase, user.id),
       getFeatureFlags(),
     ])
+    gate = await getTrialGate(supabase, user.id, tier)
     internalTraffic = isAdmin(user) || (data?.is_internal ?? false)
     config = {
       accountBalance: data?.account_balance ?? 0,
@@ -54,6 +57,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <AppNav />
           {children}
           {user && <HelpWidget />}
+          {user && <TrialGateModal show={!!gate?.showWall} />}
         </TradeModalProvider>
         <Analytics />
         <GoogleAnalytics isInternal={internalTraffic} />

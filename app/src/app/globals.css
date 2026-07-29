@@ -2403,3 +2403,52 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 }
 .ad-filterbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 16px; }
 .ad-filterbar .ts-select { height: 38px; }
+
+/* ---------- End-of-trial wall ---------- */
+.tg-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; overflow-y: auto;
+  background: rgba(16,13,26,0.72); backdrop-filter: blur(6px);
+  animation: ref-fade .2s ease;
+}
+.tg-modal {
+  position: relative; width: 100%; max-width: 780px; margin: auto; outline: none;
+  max-height: calc(100vh - 48px); overflow: hidden auto;
+  background: var(--surface); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); padding: 28px 32px 32px;
+  animation: ref-pop .35s cubic-bezier(.2,.9,.25,1);
+}
+.tg-head h1 { font-family: var(--display); font-size: 26px; margin: 10px 0 8px; }
+.tg-head p { color: var(--faint); font-size: 14px; line-height: 1.55; }
+.tg-eyebrow { display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--faint); }
+.tg-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--violet); }
+.tg-billing { display: inline-flex; gap: 4px; margin: 18px 0 14px; padding: 4px;
+  border-radius: 999px; background: var(--surface-3); }
+.tg-bopt { padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  background: transparent; border: 0; color: var(--faint); cursor: pointer; }
+.tg-bopt.on { background: var(--surface); color: var(--violet); }
+.tg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.tg-card { padding: 18px; border-radius: 14px; border: 1px solid var(--surface-3); }
+.tg-card.pop { border-color: var(--violet); }
+.tg-name { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.tg-price { display: flex; align-items: baseline; gap: 2px; margin-top: 10px; }
+.tg-price .amt { font-family: var(--display); font-size: 30px; font-weight: 700; }
+.tg-price .cur, .tg-price .per { color: var(--faint); font-size: 13px; }
+.tg-billed { color: var(--faint); font-size: 12px; margin-bottom: 12px; }
+.tg-feats { display: grid; gap: 7px; margin-bottom: 16px; font-size: 13px; }
+.tg-feats li { display: flex; gap: 8px; align-items: flex-start; }
+.tg-feats .chk { width: 14px; flex: none; color: var(--violet); }
+.tg-feats .chk svg { width: 14px; height: 14px; }
+.tg-cta { width: 100%; }
+.tg-error { margin-top: 14px; font-size: 13px; color: var(--down); text-align: center; }
+.tg-free { display: block; margin: 18px auto 0; padding: 8px 14px; font-size: 13px;
+  font-weight: 600; background: none; border: 0; color: var(--faint);
+  text-decoration: underline; cursor: pointer; }
+.tg-free:disabled { opacity: .5; cursor: default; }
+@media (max-width: 640px) {
+  .tg-grid { grid-template-columns: 1fr; }
+  .tg-modal { padding: 22px; }
+}
