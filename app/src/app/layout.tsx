@@ -13,6 +13,7 @@ import { getTier, getTrialGate, type TrialGate } from '@/lib/server/entitlements
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { TrialGateModal } from './_components/TrialGateModal'
+import { TrialEndingBanner } from './_components/TrialEndingBanner'
 
 const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display' })
 const body = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body' })
@@ -55,6 +56,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <TradeModalProvider config={config}>
           <AppNav />
+          {gate?.state === 'active' && gate.daysLeft <= 3 && (
+            <TrialEndingBanner daysLeft={gate.daysLeft} />
+          )}
           {children}
           {user && <HelpWidget />}
           {user && <TrialGateModal show={!!gate?.showWall} />}

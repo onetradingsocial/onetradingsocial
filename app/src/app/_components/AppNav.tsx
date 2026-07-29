@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/server/admin'
-import { getTier } from '@/lib/server/entitlements'
+import { getTier, getTrialGate } from '@/lib/server/entitlements'
 import { canFlag } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { Brand } from './Brand'
@@ -22,6 +22,8 @@ export async function AppNav() {
 
   let profile: { username: string; avatar_url: string | null } | null = null
   let isPro = false
+  let onTrial = false
+  let trialDaysLeft = 0
   let initialNotifCount = 0
   let initialNotifItems: Notification[] = []
   let initialMsgUnread = 0
@@ -30,6 +32,9 @@ export async function AppNav() {
     profile = data
     const tier = await getTier(supabase, user.id)
     isPro = canFlag(await getFeatureFlags(), tier, 'pro_badge')
+    const gate = await getTrialGate(supabase, user.id, tier)
+    onTrial = gate.state === 'active'
+    trialDaysLeft = gate.daysLeft
     const service = createServiceClient()
     ;[initialNotifCount, initialNotifItems, initialMsgUnread] = await Promise.all([
       getUnreadCount(service, user.id),
@@ -52,9 +57,13 @@ export async function AppNav() {
               <MessagesBell initialCount={initialMsgUnread} />
               <ReferralLauncher />
               <NewTradeButton className="btn btn-primary btn-sm" />
-              {isPro
-                ? <span className="ts-pro-badge">PRO</span>
-                : <Link href="/settings/billing" className="btn btn-sm" style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px' }}>Upgrade</Link>}
+              {onTrial
+                ? <Link href="/settings/billing" className="ts-trial-chip">
+                    PRO TRIAL · {trialDaysLeft}d left
+                  </Link>
+                : isPro
+                  ? <span className="ts-pro-badge">PRO</span>
+                  : <Link href="/settings/billing" className="btn btn-sm" style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px' }}>Upgrade</Link>}
               {isAdmin(user) && (
                 <Link href="/admin" className="ts-nav-icon" title="Admin" aria-label="Admin">🛡</Link>
               )}
