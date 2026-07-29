@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { headers, cookies } from 'next/headers'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { sendRedditConversion } from '@/lib/server/reddit-capi'
 import { trackServer } from '@/lib/server/track'
 import { validateUsername } from '@/lib/username'
@@ -47,16 +48,25 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
 
   const { error } = await supabase
     .from('profiles')
-    .update({
-      ...onboardingToRow(input),
-      account_type,
-      ...(refCookie ? { acquisition_source: refCookie.slice(0, 64) } : {}),
-    })
+    .update({ ...onboardingToRow(input), account_type })
     .eq('id', user.id)
 
   if (error) {
     if (error.code === '23505') return { error: 'That username is already taken.' }
     return { error: error.message }
+  }
+
+  // Attribution is written with the service client because acquisition_source is
+  // NOT in the column grant of 0042 — it is analytics provenance, so the client
+  // must not be able to rewrite it. Separate statement for the same reason; the
+  // row is still scoped to the caller's own id. Best-effort: losing an
+  // attribution tag must never fail onboarding.
+  if (refCookie) {
+    const { error: srcError } = await createServiceClient()
+      .from('profiles')
+      .update({ acquisition_source: refCookie.slice(0, 64) })
+      .eq('id', user.id)
+    if (srcError) console.error('[saveOnboarding] acquisition_source', srcError)
   }
   // ?signup=1 lets the home page fire the Reddit SignUp conversion once. This is
   // the single completion signal for both the email and Google signup paths,

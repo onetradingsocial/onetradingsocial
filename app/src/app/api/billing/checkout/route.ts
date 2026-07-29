@@ -67,7 +67,10 @@ export async function POST(request: NextRequest) {
       metadata: { user_id: user.id },
     })
     customerId = customer.id
-    const { error: persistError } = await supabase
+    // Service client: stripe_customer_id is NOT in the column grant of 0042.
+    // It is the key the webhook maps a Stripe customer back to a user with, so
+    // letting a client PATCH it would let one user claim another's subscription.
+    const { error: persistError } = await createServiceClient()
       .from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
     if (persistError) {
       console.error('[billing checkout] failed to persist stripe_customer_id', persistError)
