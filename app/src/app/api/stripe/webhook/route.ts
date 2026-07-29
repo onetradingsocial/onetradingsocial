@@ -43,6 +43,14 @@ async function upsertFromSubscription(
   const status = (row as { status?: string }).status
   if (status === 'active' || status === 'trialing') {
     try { await markReferralPaid(svc, userId) } catch { /* ignore */ }
+    // A paid subscription is itself an answer to the end-of-trial modal, so the
+    // user is never re-walled if they later churn. Guarded on null for webhook
+    // retry idempotence; best-effort — bookkeeping must never fail the webhook.
+    try {
+      await svc.from('profiles')
+        .update({ trial_ack_at: new Date().toISOString() })
+        .eq('id', userId).is('trial_ack_at', null)
+    } catch { /* ignore */ }
   }
 }
 

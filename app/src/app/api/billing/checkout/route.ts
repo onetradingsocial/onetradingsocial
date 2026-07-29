@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   if (!rl.ok) return tooMany(rl.retryAfter)
 
   const { tier, interval, flow } = (await request.json().catch(() => ({}))) as {
-    tier?: Tier; interval?: Interval; flow?: 'onboarding' | 'referral'
+    tier?: Tier; interval?: Interval; flow?: 'onboarding' | 'referral' | 'trial_end'
   }
 
   const env = process.env as Record<string, string | undefined>
