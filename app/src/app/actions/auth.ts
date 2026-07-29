@@ -46,7 +46,7 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     await trackServer('signup_completed', { id: data.user.id, email }, { method: 'email', source: ref })
   }
 
-  redirect('/select-plan')
+  redirect('/welcome')
 }
 
 export async function signIn(_prev: ActionState, formData: FormData): Promise<ActionState> {

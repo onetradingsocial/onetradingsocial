@@ -13,8 +13,8 @@ async function signUp(page: Page, prefix: string) {
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')
-  await expect(page).toHaveURL(/\/select-plan/, { timeout: 15000 })
-  await page.click('button:has-text("Continue with Free")')
+  await expect(page).toHaveURL(/\/welcome/, { timeout: 15000 })
+  await page.click('button:has-text("Start my trial")')
   // Onboarding multi-step flow (5 steps + reveal)
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 15000 })
   // Step 0 — welcome → "Build my identity"

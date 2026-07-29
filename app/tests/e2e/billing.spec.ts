@@ -15,9 +15,9 @@ async function signUpAndOnboard(page: import('@playwright/test').Page) {
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')
-  // Select-plan step — default selection is Free; continue with it
-  await expect(page).toHaveURL(/\/select-plan/, { timeout: 15000 })
-  await page.click('button:has-text("Continue with Free")')
+  // Trial welcome step — 14 days of Pro, no card
+  await expect(page).toHaveURL(/\/welcome/, { timeout: 15000 })
+  await page.click('button:has-text("Start my trial")')
   // Onboarding multi-step flow (5 steps + reveal)
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 15000 })
   await page.click('button:has-text("Build my identity")')

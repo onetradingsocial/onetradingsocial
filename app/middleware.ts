@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Signup-funnel steps — gated to logged-in, not-yet-onboarded users.
-const FUNNEL_PATHS = ['/onboarding', '/select-plan']
+const FUNNEL_PATHS = ['/onboarding', '/select-plan', '/welcome']
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })

@@ -1872,6 +1872,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .fl-continue:disabled { opacity: .5; pointer-events: none; box-shadow: none; }
 .fl-continue svg { width: 17px; height: 17px; }
 
+/* Trial welcome: the Pro feature list stands alone (no plan grid around it). */
+.fl-trial-feats { max-width: 460px; margin: 0 auto; }
+
 /* ----- onboarding: visibility option locked behind a paid plan ----- */
 .ob-visopt.locked { cursor: default; opacity: 0.72; }
 .ob-visopt.locked:hover { border-color: var(--line-2); transform: none; box-shadow: none; }
