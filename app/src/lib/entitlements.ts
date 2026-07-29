@@ -30,6 +30,54 @@ export function normalizeCompTier(v: string | null | undefined): Tier {
   return v === 'trader' || v === 'pro' ? v : 'free'
 }
 
+/* ── 14-day free Pro trial ──────────────────────────────────────────────── */
+
+export const TRIAL_DAYS = 14
+const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000
+
+/** none = never on a trial (also the fail-open value); active = inside the
+ *  window; expired = past it and unanswered (the wall); resolved = answered. */
+export type TrialState = 'none' | 'active' | 'expired' | 'resolved'
+
+export function trialState(
+  startedAt: string | null | undefined,
+  ackAt: string | null | undefined,
+  now: Date,
+): TrialState {
+  if (!startedAt) return 'none'
+  const start = Date.parse(startedAt)
+  if (Number.isNaN(start)) return 'none'
+  if (ackAt) return 'resolved'
+  return now.getTime() - start < TRIAL_MS ? 'active' : 'expired'
+}
+
+/** Whole days remaining, rounded up, clamped to [0, TRIAL_DAYS]. */
+export function trialDaysLeft(startedAt: string | null | undefined, now: Date): number {
+  if (!startedAt) return 0
+  const start = Date.parse(startedAt)
+  if (Number.isNaN(start)) return 0
+  const remaining = start + TRIAL_MS - now.getTime()
+  if (remaining <= 0) return 0
+  return Math.min(TRIAL_DAYS, Math.ceil(remaining / (24 * 60 * 60 * 1000)))
+}
+
+/** Comp grant, Stripe subscription and trial combined — highest rank wins, so
+ *  a trial never downgrades a paying or comped user. */
+export function effectiveTier(
+  compTier: string | null | undefined,
+  stripeTier: Tier,
+  trial: TrialState,
+): Tier {
+  const trialTier: Tier = trial === 'active' ? 'pro' : 'free'
+  return higherTier(normalizeCompTier(compTier), higherTier(stripeTier, trialTier))
+}
+
+/** The end-of-trial wall. Every condition must hold, so admins, comped users
+ *  and subscribers are exempt without any special-casing. */
+export function shouldShowWall(state: TrialState, tier: Tier, enabled: boolean): boolean {
+  return enabled && state === 'expired' && tier === 'free'
+}
+
 export type PlanEnv = {
   STRIPE_PRICE_TRADER_MONTHLY?: string
   STRIPE_PRICE_TRADER_ANNUAL?: string
