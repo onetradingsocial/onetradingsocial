@@ -2419,7 +2419,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   box-shadow: var(--shadow-lg); padding: 28px 32px 32px;
   animation: ref-pop .35s cubic-bezier(.2,.9,.25,1);
 }
-.tg-head h1 { font-family: var(--display); font-size: 26px; margin: 10px 0 8px; }
+.tg-head h2 { font-family: var(--display); font-size: 26px; margin: 10px 0 8px; }
 .tg-head p { color: var(--faint); font-size: 14px; line-height: 1.55; }
 .tg-eyebrow { display: inline-flex; align-items: center; gap: 7px;
   font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em;
@@ -2448,6 +2448,16 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   font-weight: 600; background: none; border: 0; color: var(--faint);
   text-decoration: underline; cursor: pointer; }
 .tg-free:disabled { opacity: .5; cursor: default; }
+/* Close control for the DISMISSIBLE in-trial upsell only. The end-of-trial wall
+   deliberately renders no .tg-close — it must be answered, not closed. */
+.tg-close {
+  position: absolute; top: 16px; right: 16px; width: 32px; height: 32px;
+  border-radius: 50%; background: var(--surface-3); border: 1px solid var(--faintest);
+  display: grid; place-items: center; color: var(--faint); cursor: pointer;
+  z-index: 2; transition: color .2s;
+}
+.tg-close:hover { color: var(--violet); }
+.tg-close svg { width: 15px; height: 15px; }
 @media (max-width: 640px) {
   .tg-grid { grid-template-columns: 1fr; }
   .tg-modal { padding: 22px; }
@@ -2459,6 +2469,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .02em;
   white-space: nowrap; color: var(--violet); border: 1px solid currentColor;
   text-decoration: none;
+  /* It is a <button> now (it opens the upsell modal rather than navigating), so
+     neutralise the UA button background and restore the pointer. */
+  background: none; cursor: pointer;
 }
 .ts-trial-banner {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
@@ -2466,7 +2479,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   background: var(--surface-3); border-bottom: 1px solid var(--faintest);
 }
 .ts-trial-banner > span { flex: 1 1 260px; }
-.ts-trial-banner > button {
+/* Scoped to the dismiss control by class: the banner's "See plans" is now also
+   a direct-child <button>, and a bare element selector would out-specify
+   .btn-primary and strip its styling. */
+.ts-trial-banner .ts-banner-x {
   background: none; border: 0; color: var(--faint); cursor: pointer;
   font-size: 14px; line-height: 1; padding: 4px;
 }

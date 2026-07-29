@@ -16,6 +16,7 @@ import { NotificationBell } from './NotificationBell'
 import { MessagesBell } from './MessagesBell'
 import { NavSearch } from './NavSearch'
 import { ReferralLauncher } from './ReferralLauncher'
+import { TrialChip } from './TrialChip'
 
 /** `tier` and `gate` come from the root layout, which already resolved them for
  *  this request. Computing them here as well doubled the entitlement round
@@ -58,9 +59,7 @@ export async function AppNav({ tier, gate }: { tier: Tier | null; gate: TrialGat
               <ReferralLauncher />
               <NewTradeButton className="btn btn-primary btn-sm" />
               {onTrial
-                ? <Link href="/settings/billing" className="ts-trial-chip">
-                    PRO TRIAL · {trialDaysLeft}d left
-                  </Link>
+                ? <TrialChip daysLeft={trialDaysLeft} />
                 : isPro
                   ? <span className="ts-pro-badge">PRO</span>
                   : <Link href="/settings/billing" className="btn btn-sm" style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px' }}>Upgrade</Link>}

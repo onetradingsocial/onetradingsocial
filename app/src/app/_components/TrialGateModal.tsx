@@ -1,28 +1,29 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname, useRouter } from 'next/navigation'
-import type { Interval } from '@/lib/entitlements'
 import { TRIAL_DAYS } from '@/lib/entitlements'
-import { PAID_PLANS } from '@/lib/plans'
 import { ackTrial } from '@/app/actions/trial'
-import { trackMeta } from '@/app/_components/MetaPixel'
-
-const CHK: ReactNode = (
-  <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
-)
+import { TrialPlanPicker } from '@/app/_components/TrialPlanPicker'
 
 // Subscribing has to land somewhere, so billing is the one page the wall skips.
 const EXEMPT_PATHS = ['/settings/billing']
 
+/** The end-of-trial WALL. It is not escapable: no Escape handler, no
+ *  backdrop-click close, no close button, no logout. Its only actions are
+ *  Subscribe to Trader, Subscribe to Pro, and Continue on Free.
+ *
+ *  The dismissible in-trial variant is a SEPARATE component
+ *  (TrialUpsellModal). Keeping them apart is deliberate — there is no `mode`
+ *  prop here that could accidentally render the wall in a closeable state. */
 export function TrialGateModal({ show }: { show: boolean }) {
   const router = useRouter()
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [checkoutBusy, setCheckoutBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [interval, setInterval] = useState<Interval>('monthly')
   const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => setMounted(true), [])
@@ -32,8 +33,13 @@ export function TrialGateModal({ show }: { show: boolean }) {
 
   // Lock the page behind the modal and trap focus inside it. Deliberately NO
   // Escape handler and NO backdrop-click close — this modal must be answered.
+  //
+  // `mounted` is in the deps because the card does not exist until after the
+  // mount guard below lets it render: on the first pass cardRef.current is null,
+  // so focus() was a silent no-op and Tab walked straight out into the page
+  // behind the wall. The effect has to re-run once the card is actually there.
   useEffect(() => {
-    if (!open) return
+    if (!open || !mounted) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     cardRef.current?.focus()
@@ -51,25 +57,7 @@ export function TrialGateModal({ show }: { show: boolean }) {
     }
     document.addEventListener('keydown', onKey)
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
-  }, [open])
-
-  const subscribe = async (tier: 'trader' | 'pro') => {
-    setBusy(true); setError(null)
-    trackMeta('InitiateCheckout', { content_name: `${tier}_${interval}` })
-    try {
-      const res = await fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ tier, interval, flow: 'trial_end' }),
-      })
-      const { url } = (await res.json().catch(() => ({}))) as { url?: string }
-      if (res.ok && url) { window.location.href = url; return }
-      setError('Could not start checkout. Please try again.')
-    } catch {
-      setError('Could not start checkout. Please try again.')
-    }
-    setBusy(false)
-  }
+  }, [open, mounted])
 
   const continueFree = async () => {
     setBusy(true); setError(null)
@@ -94,7 +82,8 @@ export function TrialGateModal({ show }: { show: boolean }) {
       >
         <div className="tg-head">
           <span className="tg-eyebrow"><span className="dot" />Trial ended</span>
-          <h1 id="tg-title">Your {TRIAL_DAYS} days of Pro have ended.</h1>
+          {/* h2, not h1: the page underneath already owns the document's h1. */}
+          <h2 id="tg-title">Your {TRIAL_DAYS} days of Pro have ended.</h2>
           <p>
             Keep the full toolkit — unlimited journal, advanced analytics, MT5 sync and premium
             courses — or continue on Free with your last 30 trades, basic stats, the feed and the
@@ -102,49 +91,16 @@ export function TrialGateModal({ show }: { show: boolean }) {
           </p>
         </div>
 
-        <div className="tg-billing">
-          <button
-            type="button"
-            className={`tg-bopt${interval === 'monthly' ? ' on' : ''}`}
-            onClick={() => setInterval('monthly')}
-          >Monthly</button>
-          <button
-            type="button"
-            className={`tg-bopt${interval === 'annual' ? ' on' : ''}`}
-            onClick={() => setInterval('annual')}
-          >Annual</button>
-        </div>
-
-        <div className="tg-grid">
-          {PAID_PLANS.map((p) => (
-            <div key={p.tier} className={`tg-card${p.tier === 'pro' ? ' pop' : ''}`}>
-              <span className="tg-name"><span className={`fl-pip ${p.pip}`} />{p.name}</span>
-              <div className="tg-price">
-                <span className="cur">$</span>
-                <span className="amt">{interval === 'monthly' ? p.monthly : p.annual}</span>
-                <span className="per">/mo</span>
-              </div>
-              <div className="tg-billed">{interval === 'monthly' ? p.billedM : p.billedA}</div>
-              <ul className="tg-feats">
-                {p.feats.map((f, i) => (
-                  <li key={i}><span className="chk">{CHK}</span><span>{f.t}</span></li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                className="btn btn-primary tg-cta"
-                disabled={busy}
-                onClick={() => subscribe(p.tier)}
-              >
-                {busy ? 'Starting…' : `Subscribe to ${p.name}`}
-              </button>
-            </div>
-          ))}
-        </div>
+        <TrialPlanPicker disabled={busy} onBusyChange={setCheckoutBusy} />
 
         {error && <p className="tg-error" role="alert">{error}</p>}
 
-        <button type="button" className="tg-free" disabled={busy} onClick={continueFree}>
+        <button
+          type="button"
+          className="tg-free"
+          disabled={busy || checkoutBusy}
+          onClick={continueFree}
+        >
           Continue on Free
         </button>
       </div>
