@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { trackMeta } from '@/app/_components/MetaPixel'
 
 type Tier = 'free' | 'trader' | 'pro'
-const RANK: Record<Tier, number> = { free: 0, trader: 1, pro: 2 }
+type Interval = 'monthly' | 'annual'
 
 async function post(url: string, body?: unknown): Promise<void> {
   const res = await fetch(url, {
@@ -77,8 +77,16 @@ const PLANS: PlanDef[] = [
   },
 ]
 
-export function PlanCards({ currentTier, isPaid }: { currentTier: Tier; isPaid: boolean }) {
-  const [interval, setBillingInterval] = useState<'monthly' | 'annual'>('monthly')
+export function PlanCards({ currentTier, currentInterval, hasSubscription, onTrial }: {
+  currentTier: Tier
+  /** The interval they actually pay on, or null when there is no subscription. */
+  currentInterval: Interval | null
+  /** A real Stripe subscription exists. NOT the same as tier !== 'free': a trial
+   *  grants 'pro' with no Stripe object at all. */
+  hasSubscription: boolean
+  onTrial: boolean
+}) {
+  const [interval, setBillingInterval] = useState<Interval>('monthly')
   const [busy, setBusy] = useState(false)
 
   const act = async (fn: () => Promise<void>) => { setBusy(true); await fn(); setBusy(false) }
@@ -108,7 +116,16 @@ export function PlanCards({ currentTier, isPaid }: { currentTier: Tier; isPaid: 
       <div className="ts-plan-grid mt-6">
         {PLANS.map((p) => {
           const popular = p.tier === 'trader'
-          const isCurrent = p.tier === currentTier
+          // "Your plan" means the exact thing they pay for — tier AND interval.
+          // Comparing tier alone marked the annual card as current for a monthly
+          // subscriber, which both misstated their bill and disabled the only
+          // route onto the annual plan. Free counts as current only when there
+          // is no subscription and no trial running.
+          const isCurrent = onTrial
+            ? false
+            : p.tier === 'free'
+              ? !hasSubscription && currentTier === 'free'
+              : p.tier === currentTier && interval === currentInterval
           const amt = interval === 'monthly' ? p.monthly : p.annual
           const billed = interval === 'monthly' ? p.billedM : p.billedA
           return (
@@ -136,13 +153,21 @@ export function PlanCards({ currentTier, isPaid }: { currentTier: Tier; isPaid: 
                 </ul>
               </div>
 
-              <PlanCta plan={p} currentTier={currentTier} interval={interval} busy={busy} act={act} />
+              <PlanCta
+                plan={p}
+                isCurrent={isCurrent}
+                interval={interval}
+                hasSubscription={hasSubscription}
+                onTrial={onTrial}
+                busy={busy}
+                act={act}
+              />
             </article>
           )
         })}
       </div>
 
-      {isPaid && (
+      {hasSubscription && (
         <div className="mt-6" style={{ textAlign: 'center' }}>
           <button className="btn btn-ghost" disabled={busy} onClick={() => act(() => post('/api/billing/portal'))}>
             Manage billing & invoices
@@ -153,31 +178,55 @@ export function PlanCards({ currentTier, isPaid }: { currentTier: Tier; isPaid: 
   )
 }
 
-function PlanCta({ plan, currentTier, interval, busy, act }: {
+function PlanCta({ plan, isCurrent, interval, hasSubscription, onTrial, busy, act }: {
   plan: PlanDef
-  currentTier: Tier
-  interval: 'monthly' | 'annual'
+  isCurrent: boolean
+  interval: Interval
+  hasSubscription: boolean
+  onTrial: boolean
   busy: boolean
   act: (fn: () => Promise<void>) => Promise<void>
 }) {
-  if (plan.tier === currentTier) {
+  if (isCurrent) {
     return <button className="btn btn-ghost pcard-cta" disabled>✓ Current plan</button>
   }
+
+  // Free is never something you buy. With a subscription, dropping to Free is a
+  // cancellation and belongs in the portal. On a trial it is simply what happens
+  // next, so say so rather than offering a button that cannot work.
   if (plan.tier === 'free') {
-    // Viewer is on a paid plan; downgrade to Free happens via the Stripe portal.
-    return <button className="btn btn-ghost pcard-cta" disabled={busy} onClick={() => act(() => post('/api/billing/portal'))}>Manage plan</button>
-  }
-  if (RANK[plan.tier] > RANK[currentTier]) {
+    if (onTrial) {
+      return <button className="btn btn-ghost pcard-cta" disabled>Your plan when the trial ends</button>
+    }
     return (
-      <button className={`btn pcard-cta ${plan.tier === 'trader' ? 'btn-primary' : 'btn-ghost'}`} disabled={busy}
-        onClick={() => {
-          trackMeta('InitiateCheckout', { content_name: `${plan.tier}_${interval}` })
-          return act(() => post('/api/billing/checkout', { tier: plan.tier, interval }))
-        }}>
-        Upgrade to {plan.name}
+      <button className="btn btn-ghost pcard-cta" disabled={busy}
+        onClick={() => act(() => post('/api/billing/portal'))}>
+        Manage plan
       </button>
     )
   }
-  // Lower than the current tier (e.g. on Pro, viewing Trader) — switch via portal.
-  return <button className="btn btn-ghost pcard-cta" disabled={busy} onClick={() => act(() => post('/api/billing/portal'))}>Switch to {plan.name}</button>
+
+  // ANY change to an existing subscription — different tier or different
+  // interval — must go through the Stripe portal. Opening a fresh Checkout
+  // session would create a SECOND active subscription against the same customer
+  // and bill them twice, rather than moving them onto the new plan.
+  if (hasSubscription) {
+    return (
+      <button className="btn btn-ghost pcard-cta" disabled={busy}
+        onClick={() => act(() => post('/api/billing/portal'))}>
+        Switch to {plan.name} {interval === 'annual' ? 'annual' : 'monthly'}
+      </button>
+    )
+  }
+
+  // No subscription (free or on trial) — a real first purchase, so Checkout.
+  return (
+    <button className={`btn pcard-cta ${plan.tier === 'trader' ? 'btn-primary' : 'btn-ghost'}`} disabled={busy}
+      onClick={() => {
+        trackMeta('InitiateCheckout', { content_name: `${plan.tier}_${interval}` })
+        return act(() => post('/api/billing/checkout', { tier: plan.tier, interval }))
+      }}>
+      {onTrial ? `Continue with ${plan.name}` : `Upgrade to ${plan.name}`}
+    </button>
+  )
 }
