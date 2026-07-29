@@ -9,7 +9,8 @@ import { GoogleAnalytics } from './_components/GoogleAnalytics'
 import { PageViewTracker } from './_components/PageViewTracker'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/server/admin'
-import { getTier, getTrialGate, type TrialGate } from '@/lib/server/entitlements'
+import { getEntitlements, type TrialGate } from '@/lib/server/entitlements'
+import type { Tier } from '@/lib/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { TrialGateModal } from './_components/TrialGateModal'
@@ -31,23 +32,27 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   let config: { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean } | null = null
   let internalTraffic = false
   let gate: TrialGate | null = null
+  let tier: Tier | null = null
   if (user) {
-    const [{ data }, tier, flags] = await Promise.all([
+    // One pass for tier + gate: they read the same two rows, so asking for them
+    // separately cost two extra serialized profiles round trips per render.
+    const [{ data }, ent, flags] = await Promise.all([
       supabase.from('profiles').select('account_balance, is_public, is_internal').eq('id', user.id).single(),
-      getTier(supabase, user.id),
+      getEntitlements(supabase, user.id),
       getFeatureFlags(),
     ])
-    gate = await getTrialGate(supabase, user.id, tier)
+    tier = ent.tier
+    gate = ent.gate
     internalTraffic = isAdmin(user) || (data?.is_internal ?? false)
     config = {
       accountBalance: data?.account_balance ?? 0,
       defaultPublic: data?.is_public ?? true,
-      canMt5Import: canFlag(flags, tier, 'mt5_import'),
-      canAdvancedJournal: canFlag(flags, tier, 'advanced_journal'),
+      canMt5Import: canFlag(flags, ent.tier, 'mt5_import'),
+      canAdvancedJournal: canFlag(flags, ent.tier, 'advanced_journal'),
       // Strategy tracking: Trader tags one strategy per trade, Pro is multi-strategy.
-      maxStrategyTags: canFlag(flags, tier, 'strategy_tracking') ? (tier === 'pro' ? 8 : 1) : 0,
-      canPrivateNotes: canFlag(flags, tier, 'private_notes'),
-      canTemplates: canFlag(flags, tier, 'custom_templates'),
+      maxStrategyTags: canFlag(flags, ent.tier, 'strategy_tracking') ? (ent.tier === 'pro' ? 8 : 1) : 0,
+      canPrivateNotes: canFlag(flags, ent.tier, 'private_notes'),
+      canTemplates: canFlag(flags, ent.tier, 'custom_templates'),
     }
   }
 
@@ -55,7 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
         <TradeModalProvider config={config}>
-          <AppNav />
+          <AppNav tier={tier} gate={gate} />
           {gate?.state === 'active' && gate.daysLeft <= 3 && (
             <TrialEndingBanner daysLeft={gate.daysLeft} />
           )}

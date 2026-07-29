@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/server/admin'
-import { getTier, getTrialGate } from '@/lib/server/entitlements'
+import type { TrialGate } from '@/lib/server/entitlements'
+import type { Tier } from '@/lib/entitlements'
 import { canFlag } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { Brand } from './Brand'
@@ -16,25 +17,24 @@ import { MessagesBell } from './MessagesBell'
 import { NavSearch } from './NavSearch'
 import { ReferralLauncher } from './ReferralLauncher'
 
-export async function AppNav() {
+/** `tier` and `gate` come from the root layout, which already resolved them for
+ *  this request. Computing them here as well doubled the entitlement round
+ *  trips on every authenticated render. Both are null for logged-out visitors. */
+export async function AppNav({ tier, gate }: { tier: Tier | null; gate: TrialGate | null }) {
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
 
   let profile: { username: string; avatar_url: string | null } | null = null
   let isPro = false
-  let onTrial = false
-  let trialDaysLeft = 0
+  const onTrial = gate?.state === 'active'
+  const trialDaysLeft = gate?.daysLeft ?? 0
   let initialNotifCount = 0
   let initialNotifItems: Notification[] = []
   let initialMsgUnread = 0
   if (user) {
     const { data } = await supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single()
     profile = data
-    const tier = await getTier(supabase, user.id)
-    isPro = canFlag(await getFeatureFlags(), tier, 'pro_badge')
-    const gate = await getTrialGate(supabase, user.id, tier)
-    onTrial = gate.state === 'active'
-    trialDaysLeft = gate.daysLeft
+    isPro = canFlag(await getFeatureFlags(), tier ?? 'free', 'pro_badge')
     const service = createServiceClient()
     ;[initialNotifCount, initialNotifItems, initialMsgUnread] = await Promise.all([
       getUnreadCount(service, user.id),
