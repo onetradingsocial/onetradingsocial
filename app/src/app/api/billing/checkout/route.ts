@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   if (!rl.ok) return tooMany(rl.retryAfter)
 
   const { tier, interval, flow } = (await request.json().catch(() => ({}))) as {
-    tier?: Tier; interval?: Interval; flow?: 'onboarding' | 'referral' | 'trial_end'
+    tier?: Tier; interval?: Interval; flow?: 'referral' | 'trial_end'
   }
 
   const env = process.env as Record<string, string | undefined>
@@ -75,18 +75,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // During signup the checkout sits between the plan selector and onboarding,
-  // so on success we send the user into onboarding rather than back to billing.
-  // tier/interval ride along so the landing page can attach a value to the
-  // ad-pixel Subscribe event; the pixel component strips them after firing.
-  const successUrl = flow === 'onboarding'
-    ? `${SITE}/onboarding?checkout=success&tier=${tier}&interval=${interval}`
-    : flow === 'referral'
-      ? `${SITE}/settings/billing?status=referral&months=${referralMonths}`
-      : `${SITE}/settings/billing?status=success&tier=${tier}&interval=${interval}`
-  const cancelUrl = flow === 'onboarding'
-    ? `${SITE}/select-plan?checkout=cancelled`
-    : `${SITE}/settings/billing?status=cancelled`
+  // Every checkout now returns to the billing page. tier/interval ride along so
+  // that page can attach a value to the ad-pixel Subscribe event; the pixel
+  // component strips them after firing.
+  const successUrl = flow === 'referral'
+    ? `${SITE}/settings/billing?status=referral&months=${referralMonths}`
+    : `${SITE}/settings/billing?status=success&tier=${tier}&interval=${interval}`
+  const cancelUrl = `${SITE}/settings/billing?status=cancelled`
 
   // Beta promo: 76% off the annual list price (= 80% off the 12x monthly rate,
   // since annual list already includes 2 months free). First invoice only —
