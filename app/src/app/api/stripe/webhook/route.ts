@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { subscriptionRow } from '@/lib/billing-webhook'
 import { sendRedditConversion } from '@/lib/server/reddit-capi'
 import { markReferralPaid } from '@/lib/server/referral'
+import { shouldAckTrialOnSubscription } from '@/lib/entitlements'
 
 export const runtime = 'nodejs'
 
@@ -43,14 +44,28 @@ async function upsertFromSubscription(
   const status = (row as { status?: string }).status
   if (status === 'active' || status === 'trialing') {
     try { await markReferralPaid(svc, userId) } catch { /* ignore */ }
+
     // A paid subscription is itself an answer to the end-of-trial modal, so the
-    // user is never re-walled if they later churn. Guarded on null for webhook
-    // retry idempotence; best-effort — bookkeeping must never fail the webhook.
+    // user is never re-walled if they later churn — but ONLY once the trial has
+    // actually expired. Acking mid-trial resolves the trial and so revokes its
+    // 'pro' grant, silently downgrading someone who bought Trader on day 2 from
+    // the Pro they were promised for 14 days. Best-effort throughout:
+    // bookkeeping must never fail the webhook.
     try {
-      await svc.from('profiles')
-        .update({ trial_ack_at: new Date().toISOString() })
-        .eq('id', userId).is('trial_ack_at', null)
-    } catch { /* ignore */ }
+      const { data: prof, error: readError } = await svc.from('profiles')
+        .select('trial_started_at, trial_ack_at').eq('id', userId).maybeSingle()
+      if (readError) console.error('[stripe webhook] trial read failed', readError)
+
+      if (prof && shouldAckTrialOnSubscription(prof.trial_started_at, prof.trial_ack_at, new Date())) {
+        // .is(null) keeps this idempotent across webhook retries.
+        const { error: ackError } = await svc.from('profiles')
+          .update({ trial_ack_at: new Date().toISOString() })
+          .eq('id', userId).is('trial_ack_at', null)
+        // PostgREST returns failures in the result object rather than throwing,
+        // so the enclosing try/catch would never see this one.
+        if (ackError) console.error('[stripe webhook] trial ack failed', ackError)
+      }
+    } catch (err) { console.error('[stripe webhook] trial ack skipped', err) }
   }
 }
 

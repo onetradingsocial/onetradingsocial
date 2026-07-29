@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   TRIAL_DAYS, trialState, trialDaysLeft, effectiveTier, shouldShowWall,
+  shouldAckTrialOnSubscription,
 } from '@/lib/entitlements'
 
 const NOW = new Date('2026-07-29T12:00:00.000Z')
@@ -82,5 +83,42 @@ describe('shouldShowWall', () => {
     expect(shouldShowWall('active', 'free', true)).toBe(false)
     expect(shouldShowWall('resolved', 'free', true)).toBe(false)
     expect(shouldShowWall('none', 'free', true)).toBe(false)
+  })
+})
+
+// The Stripe webhook's trial_ack_at write is gated on this. It used to stamp
+// the ack for ANY active/trialing subscription, which ended the trial early.
+describe('shouldAckTrialOnSubscription', () => {
+  it('acks once the trial has actually expired', () => {
+    expect(shouldAckTrialOnSubscription(daysBefore(14), null, NOW)).toBe(true)
+    expect(shouldAckTrialOnSubscription(daysBefore(90), null, NOW)).toBe(true)
+  })
+
+  it('does NOT ack mid-trial — the 14 days of Pro are a gift, not a downgrade', () => {
+    // Buying Trader on day 2 must leave the trial running, so effectiveTier
+    // keeps returning 'pro' until day 14 (asserted in the block above).
+    expect(shouldAckTrialOnSubscription(daysBefore(2), null, NOW)).toBe(false)
+    expect(shouldAckTrialOnSubscription(daysBefore(0), null, NOW)).toBe(false)
+    expect(shouldAckTrialOnSubscription(daysBefore(13.9), null, NOW)).toBe(false)
+  })
+
+  it('does not re-ack an already resolved trial', () => {
+    expect(shouldAckTrialOnSubscription(daysBefore(90), daysBefore(30), NOW)).toBe(false)
+  })
+
+  it('does not ack a user who was never on a trial', () => {
+    expect(shouldAckTrialOnSubscription(null, null, NOW)).toBe(false)
+    expect(shouldAckTrialOnSubscription(undefined, undefined, NOW)).toBe(false)
+  })
+
+  it('agrees with the wall: exactly the states that would be walled get acked', () => {
+    // The ack exists to stop a churned subscriber being re-walled, so it must
+    // fire for precisely the state the wall triggers on.
+    for (const start of [null, daysBefore(2), daysBefore(14), daysBefore(90)]) {
+      for (const ack of [null, daysBefore(1)]) {
+        const walled = shouldShowWall(trialState(start, ack, NOW), 'free', true)
+        expect(shouldAckTrialOnSubscription(start, ack, NOW)).toBe(walled)
+      }
+    }
   })
 })

@@ -72,6 +72,21 @@ export function effectiveTier(
   return higherTier(normalizeCompTier(compTier), higherTier(stripeTier, trialTier))
 }
 
+/** Whether a newly live subscription should also answer the end-of-trial modal.
+ *
+ *  A paid subscription IS an answer, so a subscriber who later churns is never
+ *  re-walled. But only once the trial has actually run out: acking mid-trial
+ *  would flip the state to 'resolved', which drops the trial's 'pro' grant, so
+ *  someone who buys Trader on day 2 would be silently downgraded from the Pro
+ *  they were promised for 14 days. The 14 days are a deliberate gift. */
+export function shouldAckTrialOnSubscription(
+  startedAt: string | null | undefined,
+  ackAt: string | null | undefined,
+  now: Date,
+): boolean {
+  return trialState(startedAt, ackAt, now) === 'expired'
+}
+
 /** The end-of-trial wall. Every condition must hold, so admins, comped users
  *  and subscribers are exempt without any special-casing. */
 export function shouldShowWall(state: TrialState, tier: Tier, enabled: boolean): boolean {
