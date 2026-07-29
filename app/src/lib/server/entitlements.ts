@@ -1,7 +1,9 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  tierFromSubscriptions, higherTier, normalizeCompTier, TIER_RANK, type Tier,
+  tierFromSubscriptions, TIER_RANK,
+  trialState, trialDaysLeft, effectiveTier, shouldShowWall,
+  type Tier, type TrialState,
 } from '@/lib/entitlements'
 import { parseAdminEmails, emailIsAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -20,12 +22,15 @@ export async function getTier(supabase: SupabaseClient, userId: string): Promise
   }
 
   const [{ data: prof }, { data: subs, error }] = await Promise.all([
-    svc.from('profiles').select('comp_tier').eq('id', userId).maybeSingle(),
+    svc.from('profiles')
+      .select('comp_tier, trial_started_at, trial_ack_at')
+      .eq('id', userId).maybeSingle(),
     supabase.from('subscriptions').select('tier, status').eq('user_id', userId),
   ])
 
   const stripeTier: Tier = error || !subs ? 'free' : tierFromSubscriptions(subs)
-  return higherTier(normalizeCompTier(prof?.comp_tier), stripeTier)
+  const trial = trialState(prof?.trial_started_at, prof?.trial_ack_at, new Date())
+  return effectiveTier(prof?.comp_tier, stripeTier, trial)
 }
 
 export type CurrentSub = {
@@ -54,5 +59,31 @@ export async function getSubscription(
     priceId: best.price_id,
     currentPeriodEnd: best.current_period_end,
     cancelAtPeriodEnd: best.cancel_at_period_end,
+  }
+}
+
+export type TrialGate = { state: TrialState; daysLeft: number; showWall: boolean }
+
+const NO_GATE: TrialGate = { state: 'none', daysLeft: 0, showWall: false }
+
+/** Trial state for UI: the countdown chip, the final-days banner and the
+ *  end-of-trial wall. Fails open — any read failure yields no wall, because a
+ *  bug here must never lock the userbase out. */
+export async function getTrialGate(
+  supabase: SupabaseClient, userId: string, tier: Tier,
+): Promise<TrialGate> {
+  const svc = createServiceClient()
+  const { data: prof, error } = await svc
+    .from('profiles')
+    .select('trial_started_at, trial_ack_at')
+    .eq('id', userId).maybeSingle()
+  if (error || !prof) return NO_GATE
+
+  const now = new Date()
+  const state = trialState(prof.trial_started_at, prof.trial_ack_at, now)
+  return {
+    state,
+    daysLeft: trialDaysLeft(prof.trial_started_at, now),
+    showWall: shouldShowWall(state, tier, process.env.TRIAL_WALL_ENABLED === 'true'),
   }
 }
