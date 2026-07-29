@@ -621,7 +621,15 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-burger-link {
   padding: 11px 14px; border-radius: 10px; font-size: 15px; font-weight: 600; color: var(--dim);
 }
+/* The trial "Keep Pro" item is a <button> (it opens a modal, it does not
+   navigate), so strip the UA button chrome and left-align it like the links. */
+button.ts-burger-link {
+  background: none; border: 0; width: 100%; text-align: left;
+  font-family: inherit; cursor: pointer;
+}
 .ts-burger-link:hover { background: var(--surface-2); color: var(--text); }
+/* Countdown row in the burger panel — the nav chip is hidden at this width. */
+.ts-burger-trial { padding: 6px 14px 2px; }
 .ts-burger-link[data-active="true"] { background: var(--brand-grad-soft); color: var(--violet-deep); }
 .ts-burger-cta { width: 100%; justify-content: center; }
 .ts-burger-sep { height: 1px; margin: 6px 4px; background: var(--border); }

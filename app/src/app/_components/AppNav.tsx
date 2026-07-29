@@ -67,7 +67,12 @@ export async function AppNav({ tier, gate }: { tier: Tier | null; gate: TrialGat
                 <Link href="/admin" className="ts-nav-icon" title="Admin" aria-label="Admin">🛡</Link>
               )}
               <Link href="/settings" className="ts-nav-icon" title="Settings" aria-label="Settings">⚙</Link>
-              <MobileNav isAdmin={isAdmin(user)} isPro={isPro} />
+              <MobileNav
+                isAdmin={isAdmin(user)}
+                isPro={isPro}
+                onTrial={onTrial}
+                trialDaysLeft={trialDaysLeft}
+              />
               {profile?.username && (
                 <Link href={`/${profile.username}`} className="ts-nav-avatar" aria-label="Your profile">
                   {profile.avatar_url
