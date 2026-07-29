@@ -65,8 +65,19 @@ test('an expired trial walls the app and cannot be escaped', async ({ page }) =>
   await page.goto('/')
   await expect(wall(page)).toBeVisible()
 
-  // No close control, and neither Escape nor a backdrop click dismisses it.
-  await expect(page.locator('.tg-modal button[aria-label="Close"]')).toHaveCount(0)
+  // Assert the modal's complete interactive button set rather than the absence
+  // of one named "Close" — an absence check only rules out that exact label,
+  // so a regression that adds an icon-only close button (or any other new
+  // control) under a different aria-label would silently slip past it while
+  // the wall became escapable. An exact-set check fails on ANY added button.
+  const modalButtonTexts = (await page.locator('.tg-modal button').allTextContents()).map((t) => t.trim())
+  expect(modalButtonTexts).toEqual([
+    'Monthly',
+    'Annual',
+    'Subscribe to Trader',
+    'Subscribe to Pro Trader',
+    'Continue on Free',
+  ])
   await page.keyboard.press('Escape')
   await expect(wall(page)).toBeVisible()
   await page.locator('.tg-backdrop').click({ position: { x: 5, y: 5 } })
