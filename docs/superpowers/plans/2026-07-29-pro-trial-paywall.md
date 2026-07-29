@@ -81,8 +81,13 @@ comment on column public.profiles.trial_started_at is
 comment on column public.profiles.trial_ack_at is
   'When the user answered the end-of-trial modal (Continue on Free, or first paid subscription).';
 
--- New signups start their trial at account creation. Mirrors 0001_profiles.sql
--- with trial_started_at added.
+-- New signups start their trial at account creation.
+--
+-- CRITICAL: this replaces the trigger as it stands after 0008_google_avatar.sql,
+-- NOT the original 0001_profiles.sql version. 0008 added display_name and
+-- avatar_url capture from OAuth metadata — dropping those columns here would
+-- silently break Google sign-up. The body below is 0008's, with
+-- trial_started_at added. Verified against the live definition on dev.
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
@@ -92,8 +97,17 @@ begin
     new.raw_user_meta_data->>'username',
     'user_' || substr(new.id::text, 1, 8)
   );
-  insert into public.profiles (id, username, trial_started_at)
-  values (new.id, uname, now())
+  insert into public.profiles (id, username, display_name, avatar_url, trial_started_at)
+  values (
+    new.id,
+    uname,
+    new.raw_user_meta_data->>'full_name',
+    coalesce(
+      new.raw_user_meta_data->>'avatar_url',
+      new.raw_user_meta_data->>'picture'
+    ),
+    now()
+  )
   on conflict (id) do nothing;
   return new;
 end $$;
@@ -112,13 +126,13 @@ where p.trial_started_at is null
   );
 ```
 
-- [ ] **Step 2: Apply to the dev Supabase project**
+- [ ] **Step 2: Apply to the dev Supabase project — CONTROLLER ONLY**
 
-Apply via the Supabase MCP `apply_migration` tool (or the SQL editor) against the **dev** project — never prod at this stage. Migration name: `0041_pro_trial`.
+**Implementers: skip steps 2-4. Write and commit the file (steps 1 and 5), then report DONE and note that steps 2-4 are the controller's.** Supabase access is session-scoped and does not reach subagents.
 
-- [ ] **Step 3: Verify the backfill did the right thing**
+The controller applies the migration via the Supabase MCP `apply_migration` tool against project `sixixwutvrguqemqzvvw` (**TradingSocial-Dev**) — never `jmpanzrjxflovdfwcbye`, which is production. Migration name: `0041_pro_trial`.
 
-Run in the dev SQL editor:
+- [ ] **Step 3: Verify the backfill did the right thing (controller)**
 
 ```sql
 select
@@ -128,16 +142,28 @@ select
 from public.profiles;
 ```
 
-Expected: `internal_skipped` equals your seeded internal user count (10 if all seed users are flagged internal), and every non-internal, non-subscribed profile has a `trial_started_at`.
+**Expected on dev as it stands today: `with_trial` = 0.** All 13 dev profiles are flagged `is_internal` and none has a live subscription, so the backfill correctly updates zero rows — `without_trial` = 13 and `internal_skipped` = 13. That is a pass, not a failure. A non-zero `with_trial` would mean the `is_internal` guard is not working.
 
-- [ ] **Step 4: Verify the trigger fires on new signups**
+- [ ] **Step 4: Verify the trigger fires on new signups (controller)**
+
+Confirm the replaced trigger still captures OAuth fields — the regression this migration must not cause:
 
 ```sql
-select id, username, trial_started_at from public.profiles
-order by created_at desc limit 5;
+select pg_get_functiondef(p.oid) from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname = 'handle_new_user';
 ```
 
-Then sign up a throwaway account at `http://localhost:3000/signup` and re-run — the new row must have a non-null `trial_started_at` within seconds of `created_at`.
+Expected: the body inserts `display_name`, `avatar_url` **and** `trial_started_at`. If `display_name`/`avatar_url` are missing, the 0008 behaviour was dropped — stop and fix before going further.
+
+Then sign up a throwaway account via the running dev server and check:
+
+```sql
+select username, display_name, trial_started_at, created_at from public.profiles
+order by created_at desc limit 3;
+```
+
+Expected: the new row has a non-null `trial_started_at` within seconds of `created_at`.
 
 - [ ] **Step 5: Commit**
 
