@@ -47,22 +47,6 @@ export function trackMeta(
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-// First-invoice amounts in USD (mirrors PLANS in select-plan / settings/billing;
-// annual figures are the beta-promo first-year charge).
-const SUBSCRIBE_VALUE: Record<string, number> = {
-  trader_monthly: 30,
-  trader_annual: 72,
-  pro_monthly: 50,
-  pro_annual: 120,
-}
-
-/** Params for the Subscribe standard event, from the tier/interval the
- *  checkout route appends to its success URL. Unknown combos → no params. */
-export function subscribeParams(tier?: string, interval?: string) {
-  const value = SUBSCRIBE_VALUE[`${tier}_${interval}`]
-  return value ? { value, currency: 'USD', content_name: `${tier}_${interval}` } : undefined
-}
-
 export function MetaPixel({
   event,
   params,

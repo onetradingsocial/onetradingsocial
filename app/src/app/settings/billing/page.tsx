@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { getTier, getSubscription } from '@/lib/server/entitlements'
 import { PlanCards } from './BillingActions'
-import { MetaPixel, subscribeParams } from '@/app/_components/MetaPixel'
+import { MetaPixel } from '@/app/_components/MetaPixel'
+import { subscribeParams } from '@/lib/meta'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
 
