@@ -2494,3 +2494,115 @@ button.ts-burger-link {
   background: none; border: 0; color: var(--faint); cursor: pointer;
   font-size: 14px; line-height: 1; padding: 4px;
 }
+
+/* ============================================================
+   Tier welcome popup (post-onboarding + plan change)
+   Ported from the client's standalone mockups. Every custom
+   property it uses already existed in this file.
+   ============================================================ */
+.wpop-backdrop{position:fixed;inset:0;background:rgba(16,13,26,0.6);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:900;overflow-y:auto;opacity:0;animation:wpopFadeIn .4s ease forwards}
+.wpop-backdrop.closing{animation:wpopFadeOut .25s ease forwards}
+.wpop-modal{position:relative;width:100%;max-width:460px;max-height:calc(100vh - 48px);background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow-y:auto;overflow-x:hidden;animation:wpopPop .55s cubic-bezier(.2,.9,.25,1);margin:auto;transform-origin:center}
+.wpop-backdrop.closing .wpop-modal{animation:wpopPopOut .22s ease forwards}
+@keyframes wpopFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes wpopFadeOut{from{opacity:1}to{opacity:0}}
+@keyframes wpopPop{0%{opacity:0;transform:translateY(28px) scale(.92)}60%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes wpopPopOut{to{opacity:0;transform:translateY(14px) scale(.96)}}
+
+.wpop-close{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.3);display:grid;place-items:center;color:#fff;cursor:pointer;z-index:3;transition:background .2s}
+.wpop-close:hover{background:rgba(255,255,255,0.28)}
+.wpop-close svg{width:16px;height:16px}
+
+.wpop-banner{position:relative;padding:44px 32px 78px;background:var(--brand-grad);background-size:160% auto;overflow:hidden;text-align:center}
+.wpop-banner-noise{position:absolute;inset:0;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.35) 1px,transparent 1px);background-size:14px 14px;mix-blend-mode:overlay}
+.wpop-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+.wpop-confetti span{position:absolute;top:-12px;border-radius:2px;opacity:0;animation:wpopConfetti 1.6s ease-in forwards}
+@keyframes wpopConfetti{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(220px) rotate(340deg);opacity:0}}
+
+.wpop-badge-wrap{position:relative;width:96px;height:96px;margin:0 auto;display:grid;place-items:center;opacity:0;z-index:2}
+.wpop-badge-wrap.on{opacity:1;animation:wpopIconPop .6s cubic-bezier(.2,.8,.25,1) forwards}
+@keyframes wpopIconPop{0%{transform:scale(.4) rotate(-10deg);opacity:0}60%{transform:scale(1.1) rotate(3deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+.wpop-ring{position:absolute;inset:0;width:96px;height:96px;transform:rotate(-90deg)}
+.wpop-ring circle{fill:none;stroke-width:5}
+.wpop-ring .track{stroke:rgba(255,255,255,0.22)}
+.wpop-ring .fill{stroke:#fff;stroke-linecap:round;stroke-dasharray:301.6;stroke-dashoffset:301.6}
+.wpop-badge-wrap.on .wpop-ring .fill{animation:wpopRingDraw .9s cubic-bezier(.3,.7,.3,1) .1s forwards}
+@keyframes wpopRingDraw{to{stroke-dashoffset:0}}
+.wpop-badge{position:relative;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 32% 28%, #ffffff 0%, #d6f2ff 20%, #3FB6E8 60%, #145E8C 100%);border:1px solid rgba(255,255,255,0.7);display:grid;place-items:center;color:#145E8C;box-shadow:0 8px 22px -6px rgba(10,60,100,0.5), inset 0 1px 2px rgba(255,255,255,0.8), inset 0 -6px 10px rgba(10,60,100,0.3), 0 0 0 0 rgba(63,182,232,0.45);overflow:hidden}
+.wpop-badge::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,0.85) 48%,transparent 66%);background-size:220% 220%;background-position:120% 0;opacity:0}
+.wpop-badge-wrap.on .wpop-badge::before{animation:wpopSheen 2.2s ease-in-out 1.1s infinite}
+@keyframes wpopSheen{0%{background-position:120% 0;opacity:0}15%{opacity:.9}45%{background-position:-20% 0;opacity:0}100%{background-position:-20% 0;opacity:0}}
+.wpop-badge-wrap.on .wpop-badge{animation:wpopGlow 2.4s ease-in-out .9s infinite}
+@keyframes wpopGlow{0%,100%{box-shadow:0 8px 22px -6px rgba(10,60,100,0.5), inset 0 1px 2px rgba(255,255,255,0.8), inset 0 -6px 10px rgba(10,60,100,0.3), 0 0 0 0 rgba(63,182,232,0.45)}50%{box-shadow:0 8px 22px -6px rgba(10,60,100,0.5), inset 0 1px 2px rgba(255,255,255,0.8), inset 0 -6px 10px rgba(10,60,100,0.3), 0 0 0 14px rgba(63,182,232,0)}}
+.wpop-badge svg{position:relative;width:28px;height:28px;filter:drop-shadow(0 1px 1px rgba(255,255,255,0.5))}
+.wpop-burst{position:absolute;inset:0;pointer-events:none}
+.wpop-burst i{position:absolute;top:50%;left:50%;width:6px;height:6px;border-radius:50%;background:#fff;opacity:0;animation:wpopBurst .7s ease-out forwards}
+@keyframes wpopBurst{0%{transform:translate(-50%,-50%) translate(0,0) scale(1);opacity:1}100%{transform:translate(-50%,-50%) translate(var(--bx),var(--by)) scale(0);opacity:0}}
+
+.wpop-eyebrow{position:relative;display:inline-flex;align-items:center;gap:7px;height:26px;padding-inline:11px;border-radius:100px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.32);color:#fff;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;font-weight:500;opacity:0;margin-top:18px}
+.wpop-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.3)}
+.wpop-banner h1{position:relative;color:#fff;font-family:var(--display);font-size:29px;font-weight:600;letter-spacing:-0.02em;line-height:1.14;margin-top:14px;opacity:0}
+.wpop-banner h1 em{font-style:normal}
+.wpop-banner .wpop-sub{position:relative;color:rgba(255,255,255,0.88);font-size:14px;line-height:1.55;margin-top:10px;max-width:36ch;margin-inline:auto;opacity:0}
+.wpop-banner .wpop-price{position:relative;display:inline-block;margin-top:14px;font-family:var(--mono);font-size:11.5px;color:rgba(255,255,255,0.75);opacity:0}
+
+.wpop-reveal{opacity:0;animation:wpopRevealUp .55s cubic-bezier(.2,.9,.25,1) forwards}
+@keyframes wpopRevealUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.wpop-body{padding:28px 32px 32px;margin-top:-40px;position:relative;z-index:2}
+.wpop-progress-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow)}
+.wpop-progress-head{display:flex;align-items:baseline;justify-content:space-between}
+.wpop-progress-head .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.wpop-progress-head .val{font-family:var(--display);font-size:15px;font-weight:700;color:var(--violet-br)}
+.wpop-track{display:flex;gap:4px;margin-top:12px}
+.wpop-seg{flex:1;height:9px;border-radius:4px;background:var(--surface-3);position:relative;overflow:hidden}
+.wpop-seg i{position:absolute;inset:0;background:var(--brand-grad);transform:scaleX(0);transform-origin:left}
+.wpop-seg.filled i{animation:wpopSegFill .5s cubic-bezier(.3,.8,.3,1) forwards}
+@keyframes wpopSegFill{to{transform:scaleX(1)}}
+.wpop-track-caption{margin-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--faintest)}
+
+.wpop-feats{margin-top:20px;display:flex;flex-direction:column;gap:13px}
+.wpop-feat{display:flex;gap:12px;align-items:flex-start;opacity:0}
+.wpop-feat.in{animation:wpopFeatIn .5s cubic-bezier(.2,.85,.25,1) forwards}
+@keyframes wpopFeatIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.wpop-fic{width:24px;height:24px;border-radius:7px;background:var(--brand-grad-soft);border:1px solid var(--border-vio);display:grid;place-items:center;flex-shrink:0;margin-top:1px;transform:scale(0)}
+.wpop-feat.in .wpop-fic{animation:wpopFicPop .4s cubic-bezier(.3,1.4,.4,1) .15s forwards}
+@keyframes wpopFicPop{to{transform:scale(1)}}
+.wpop-fic svg{width:13px;height:13px;color:var(--violet-br)}
+.wpop-feat b{font-weight:700;font-size:14.5px}
+.wpop-feat p{font-size:13px;color:var(--dim);margin-top:2px;line-height:1.4}
+
+.wpop-cta{width:100%;margin-top:24px;height:52px;border-radius:12px;opacity:0}
+.wpop-cta.in{animation:wpopCtaIn .5s cubic-bezier(.3,1.1,.3,1) forwards,wpopCtaPulse 2.6s ease-in-out .6s infinite}
+@keyframes wpopCtaIn{0%{opacity:0;transform:scale(.92)}70%{transform:scale(1.03)}100%{opacity:1;transform:scale(1)}}
+@keyframes wpopCtaPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,92,230,0)}50%{box-shadow:0 0 0 7px rgba(124,92,230,0.14)}}
+.wpop-secondary{display:block;width:100%;text-align:center;margin-top:12px;font-size:13px;color:var(--faint);font-weight:600;opacity:0;cursor:pointer}
+.wpop-secondary.in{animation:wpopRevealUp .5s ease forwards}
+.wpop-secondary:hover{color:var(--dim)}
+
+/* The mockup set these four via element.style.animation from its inline
+   script; as classes they are equivalent and React-idiomatic. Timings and
+   easings copied exactly from that script. */
+.wpop-eyebrow.in { animation: wpopRevealUp .5s ease forwards; }
+.wpop-banner h1.in { animation: wpopRevealUp .55s cubic-bezier(.2,.9,.25,1) forwards; }
+.wpop-banner .wpop-sub.in { animation: wpopRevealUp .55s ease forwards; }
+.wpop-banner .wpop-price.in { animation: wpopRevealUp .5s ease forwards; }
+
+@media (max-width: 420px) {
+  .wpop-backdrop { padding: 12px; }
+  .wpop-banner { padding: 36px 20px 70px; }
+  .wpop-body { padding: 24px 20px 26px; }
+  .wpop-banner h1 { font-size: 25px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wpop-backdrop, .wpop-modal, .wpop-badge-wrap, .wpop-badge, .wpop-ring .fill,
+  .wpop-eyebrow, .wpop-banner h1, .wpop-sub, .wpop-price, .wpop-feat,
+  .wpop-feat .wpop-fic, .wpop-seg i, .wpop-cta, .wpop-secondary,
+  .wpop-confetti span, .wpop-burst i { animation: none !important; }
+  /* Land every animated element in its finished state. */
+  .wpop-badge-wrap, .wpop-eyebrow, .wpop-banner h1, .wpop-sub, .wpop-price,
+  .wpop-feat, .wpop-cta, .wpop-secondary { opacity: 1; transform: none; }
+  .wpop-seg.filled i { transform: scaleX(1); }
+  .wpop-confetti, .wpop-burst { display: none; }
+}
