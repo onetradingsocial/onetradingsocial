@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { dismissWelcome } from './utils/welcome'
 
 // Measures perceived page-switch latency: time from clicking a nav pill
 // until the destination's <h1> is visible (i.e. the server render arrived).
@@ -29,6 +30,7 @@ async function signUpAndOnboard(page: Page, prefix: string) {
   await page.click('button:has-text("Enter TradingSocial")')
   // Dev cold-compile of "/" can be slow on first hit; give it room.
   await expect(page).toHaveURL(/localhost:3000\/$/, { timeout: 30_000 })
+  await dismissWelcome(page)
   return username
 }
 

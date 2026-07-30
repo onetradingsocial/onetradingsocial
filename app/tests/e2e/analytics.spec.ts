@@ -1,5 +1,6 @@
 // app/tests/e2e/analytics.spec.ts
 import { test, expect, type Page } from '@playwright/test'
+import { dismissWelcome } from './utils/welcome'
 
 async function signUpAndOnboard(page: Page, prefix: string, domain: string) {
   const stamp = Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36)
@@ -29,6 +30,7 @@ async function signUpAndOnboard(page: Page, prefix: string, domain: string) {
   await page.click('button:has-text("Create my profile")')
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
   return username
 }
 

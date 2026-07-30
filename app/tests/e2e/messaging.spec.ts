@@ -1,5 +1,6 @@
 // app/tests/e2e/messaging.spec.ts
 import { test, expect, type Page, type BrowserContext } from '@playwright/test'
+import { dismissWelcome } from './utils/welcome'
 
 const DOMAIN = 'msg.tradingsocial.test'
 
@@ -37,6 +38,7 @@ async function signUp(page: Page, prefix: string) {
   // Reveal → "Enter TradingSocial"
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
   return username
 }
 

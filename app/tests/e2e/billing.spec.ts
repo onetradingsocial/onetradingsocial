@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { dismissWelcome } from './utils/welcome'
 
 // Guard: skip Stripe-dependent tests when keys are absent.
 const STRIPE = !!process.env.STRIPE_SECRET_KEY
@@ -33,6 +34,7 @@ async function signUpAndOnboard(page: import('@playwright/test').Page) {
   await page.click('button:has-text("Create my profile")')
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
   return username
 }
 

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { dismissWelcome } from './utils/welcome'
 
 const DOMAIN = 'search.tradingsocial.test'
 
@@ -30,6 +31,7 @@ async function signUp(page: Page, prefix: string, opts: { private?: boolean } = 
   await page.click('button:has-text("Create my profile")')
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
   return username
 }
 
