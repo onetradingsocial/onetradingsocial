@@ -43,4 +43,15 @@ describe('shouldShowWelcome', () => {
     // layout also wraps.
     expect(shouldShowWelcome(null, 'pro', 'active', false, false)).toBe(false)
   })
+
+  it('shows a comp upgrade after an unresolved expiry (the bug the narrowing fixes)', () => {
+    // TRIAL_WALL_ENABLED unset means trial_ack_at is only ever written by the
+    // Stripe webhook, which never fires for a comp grant. Without the tier
+    // === 'free' narrowing this stays suppressed forever.
+    expect(shouldShowWelcome('free', 'pro', 'expired', false, true)).toBe(true)
+  })
+
+  it('shows an upgrade to trader after an unresolved expiry', () => {
+    expect(shouldShowWelcome('free', 'trader', 'expired', false, true)).toBe(true)
+  })
 })
