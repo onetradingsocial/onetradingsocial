@@ -93,6 +93,35 @@ export function shouldShowWall(state: TrialState, tier: Tier, enabled: boolean):
   return enabled && state === 'expired' && tier === 'free'
 }
 
+/** Whether to show the tier welcome popup.
+ *
+ *  `seen` is profiles.welcome_tier_seen — the last tier we celebrated, NULL for
+ *  a user who has never seen it. A mismatch against the effective tier means
+ *  either "never celebrated" or "tier changed", which are the same event as far
+ *  as this popup is concerned.
+ *
+ *  Three suppressions, each earning its place:
+ *    * !onboarded — the root layout also wraps /welcome and /onboarding, so
+ *      without this the popup lands on top of the signup flow it is meant to
+ *      follow.
+ *    * showWall — never compete with the non-escapable end-of-trial wall.
+ *    * trial 'expired' — trial expiry IS mechanically a pro->free change, so a
+ *      naive tier diff would fire a confetti "Welcome to Free" at exactly the
+ *      moment the user lost Pro. Once they answer the wall the state becomes
+ *      'resolved' and the popup fires for the tier they settled on. */
+export function shouldShowWelcome(
+  seen: string | null | undefined,
+  tier: Tier,
+  trial: TrialState,
+  showWall: boolean,
+  onboarded: boolean,
+): boolean {
+  if (!onboarded) return false
+  if (showWall) return false
+  if (trial === 'expired') return false
+  return seen !== tier
+}
+
 export type PlanEnv = {
   STRIPE_PRICE_TRADER_MONTHLY?: string
   STRIPE_PRICE_TRADER_ANNUAL?: string
