@@ -6,7 +6,10 @@ export const JOURNAL_FREE_LIMIT = 30
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing'])
 
-function isTier(t: string): t is Tier {
+/** Type guard: validates that a string is a known tier using an explicit
+ *  allow-list rather than other["in"], which walks the prototype chain and
+ *  would incorrectly accept Object.prototype keys like 'toString'. */
+export function isTier(t: string): t is Tier {
   return t === 'free' || t === 'trader' || t === 'pro'
 }
 
