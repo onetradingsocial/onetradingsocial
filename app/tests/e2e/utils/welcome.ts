@@ -1,18 +1,27 @@
-import type { Page } from '@playwright/test'
+import { type Page } from '@playwright/test'
 
-/** Dismisses the post-onboarding welcome popup if it is up.
+/** Dismisses the post-onboarding welcome popup if it appears.
  *
- *  Every onboarding flow in the suite lands on '/', where this popup now
- *  renders a full-screen backdrop that swallows clicks. Tolerant by design:
- *  a spec may run against a user who has already acknowledged their tier, so
- *  absence is not a failure.
+ *  Every onboarding flow in the suite lands on '/', where this popup renders a
+ *  full-screen backdrop that swallows clicks. Because WelcomeModal is mounted in
+ *  the root layout, an undismissed popup blocks every later page too, not just
+ *  the next click.
  *
- *  The close button only fades in with the rest of the banner, but it is in the
- *  DOM and clickable from the first frame, so there is no need to wait out the
- *  ~3.8s reveal sequence. */
+ *  Why a bounded waitFor and not count(): WelcomeModal returns null on its first
+ *  render and only portals the backdrop in on a second render, after its
+ *  `useEffect(() => setMounted(true))` commits. toHaveURL('/') can resolve before
+ *  that, so a single non-retrying count() is a coin-flip — and losing it means the
+ *  popup appears afterwards and breaks the rest of the spec intermittently.
+ *
+ *  Still tolerant: a spec whose user has already acknowledged their tier simply
+ *  falls through when the wait times out. */
 export async function dismissWelcome(page: Page): Promise<void> {
   const backdrop = page.locator('.wpop-backdrop')
-  if (!(await backdrop.count())) return
+  const appeared = await backdrop
+    .waitFor({ state: 'visible', timeout: 5000 })
+    .then(() => true)
+    .catch(() => false)
+  if (!appeared) return
   await page.locator('.wpop-close').click()
   await backdrop.waitFor({ state: 'detached', timeout: 5000 })
 }
