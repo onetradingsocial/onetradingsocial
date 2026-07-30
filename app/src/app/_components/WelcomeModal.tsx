@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import type { Tier } from '@/lib/entitlements'
 import { WELCOME_TIERS, TRIAL_PRICE } from '@/lib/welcome-tiers'
 import { ackWelcome } from '@/app/actions/welcome'
@@ -41,12 +41,20 @@ export function WelcomeModal({
   tier, username, trialActive,
 }: { tier: Tier; username: string | null; trialActive: boolean }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [closing, setClosing] = useState(false)
   const [gone, setGone] = useState(false)
   const [p, setP] = useState<Phase>(START)
   const cardRef = useRef<HTMLDivElement>(null)
   const acked = useRef(false)
+  // The 300ms "closing" animation timeout, tracked outside the animation
+  // effect below because close() can fire at any point in the modal's
+  // lifetime (including after that effect's own timers have all fired and
+  // its cleanup has already run). ackWelcome() triggers revalidatePath, which
+  // can unmount this component before the 300ms elapses, so this handle must
+  // be cleared on unmount independently.
+  const closeTimeout = useRef(0)
 
   const copy = WELCOME_TIERS[tier]
   const exempt = EXEMPT_PATHS.some((x) => pathname?.startsWith(x))
@@ -54,24 +62,54 @@ export function WelcomeModal({
 
   useEffect(() => setMounted(true), [])
 
+  useEffect(() => {
+    return () => { if (closeTimeout.current) window.clearTimeout(closeTimeout.current) }
+  }, [])
+
   // Free's CTA needs the handle; fall back to settings rather than /undefined.
   const href = copy.href || (username ? `/${username}` : '/settings')
 
-  const close = (action: 'cta' | 'later' | 'close') => {
+  // X / Maybe later / backdrop / Escape: none of these navigate, so an
+  // optimistic fire-and-forget ack is safe — a failed write costs at most one
+  // repeat showing, never a stuck modal.
+  const close = (action: 'later' | 'close') => {
     if (acked.current) return
     acked.current = true
     track('welcome_popup_dismissed', { tier, action })
-    // Optimistic: a failed write costs at most one repeat showing, never a
-    // stuck modal.
     void ackWelcome(tier)
-    if (action === 'cta') { setGone(true); return }
     setClosing(true)
-    window.setTimeout(() => setGone(true), 300)
+    closeTimeout.current = window.setTimeout(() => setGone(true), 300)
   }
 
-  // The mockup fires eight setTimeouts plus a setInterval from a bare inline
-  // script. In React those outlive unmount and would write to detached state,
-  // so every handle is tracked and cleared.
+  // The CTA is different: it navigates. A plain <a href> click starts a real
+  // document navigation as soon as this handler returns, and Next transports
+  // server actions over a plain un-keepalive fetch() — which the browser
+  // aborts the instant the initiating document unloads. Firing this the same
+  // fire-and-forget way as close() above would silently drop
+  // welcome_tier_seen on the most common dismissal path. So: prevent the
+  // native navigation, close visually right away (no perceived delay), await
+  // the ack (tolerating a rejection — the user must not get stuck on a failed
+  // write), then navigate ourselves via the router.
+  const handleCta = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (acked.current) return
+    acked.current = true
+    e.preventDefault()
+    track('welcome_popup_dismissed', { tier, action: 'cta' })
+    setGone(true)
+    try {
+      await ackWelcome(tier)
+    } catch {
+      // Navigation must proceed even if the write failed.
+    }
+    router.push(href)
+  }
+
+  // The mockup fires timeouts from a bare inline script: 5 reveal timeouts, 1
+  // to start the counter interval, 6 (flattened from the mockup's nested
+  // per-feature timeouts into absolute-time schedules) for the feature
+  // cascade, and 1 for the finish state — 13 timeouts plus the 1 interval
+  // they start. In React those outlive unmount and would write to detached
+  // state, so every handle is tracked and cleared.
   useEffect(() => {
     if (!open) return
     track('welcome_popup_shown', { tier })
@@ -228,7 +266,7 @@ export function WelcomeModal({
           <a
             className={'btn btn-primary wpop-cta' + (p.finish ? ' in' : '')}
             href={href}
-            onClick={() => close('cta')}
+            onClick={handleCta}
           >
             {copy.cta}
           </a>
