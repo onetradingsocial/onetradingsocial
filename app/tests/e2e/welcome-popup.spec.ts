@@ -11,6 +11,20 @@ async function seedProfile(username: string, row: Record<string, unknown>) {
 
 const popup = (page: Page) => page.getByRole('dialog', { name: /^Welcome to/ })
 
+// close('later') / close('close') fire ackWelcome() fire-and-forget, then remove
+// the backdrop after a fixed 300ms — the client-side "backdrop is gone" signal
+// and the server-side "the Supabase write landed" signal are independent async
+// chains. A single non-retried read right after the backdrop disappears can
+// easily lose that race (especially on a cold dev server), so poll instead of
+// assuming the write has landed.
+async function expectAcked(username: string, tier: string) {
+  await expect.poll(async () => {
+    const { data } = await createServiceClient()
+      .from('profiles').select('welcome_tier_seen').eq('username', username).single()
+    return data?.welcome_tier_seen ?? null
+  }, { timeout: 15000, message: 'ackWelcome should persist welcome_tier_seen' }).toBe(tier)
+}
+
 test('shows the Pro variant with a trial-honest price after onboarding', async ({ page }) => {
   await signUpAndOnboard(page)
   const modal = page.getByRole('dialog', { name: 'Welcome to pro' })
@@ -31,10 +45,14 @@ test('shows the six features and fills the counter to 6 / 6', async ({ page }) =
 })
 
 test('does not reappear after dismissal', async ({ page }) => {
-  await signUpAndOnboard(page)
+  const username = await signUpAndOnboard(page)
   await expect(popup(page)).toBeVisible()
   await page.locator('.wpop-close').click()
   await expect(page.locator('.wpop-backdrop')).toHaveCount(0)
+  // Wait for the ack to actually persist before reloading — otherwise the
+  // reload can outrun the fire-and-forget write, the server recomputes
+  // welcome.show = true, and the popup deterministically resurfaces.
+  await expectAcked(username, 'pro')
   await page.reload()
   await expect(page.locator('.wpop-backdrop')).toHaveCount(0)
 })
@@ -44,9 +62,7 @@ test('records the tier so a reload after "Maybe later" stays quiet', async ({ pa
   await expect(popup(page)).toBeVisible()
   await page.locator('.wpop-secondary').click()
   await expect(page.locator('.wpop-backdrop')).toHaveCount(0)
-  const { data } = await createServiceClient()
-    .from('profiles').select('welcome_tier_seen').eq('username', username).single()
-  expect(data?.welcome_tier_seen).toBe('pro')
+  await expectAcked(username, 'pro')
 })
 
 test('stays hidden while the end-of-trial wall is up', async ({ page }) => {
@@ -65,7 +81,15 @@ test('stays hidden while the end-of-trial wall is up', async ({ page }) => {
   await expect(page.locator('.wpop-backdrop')).toHaveCount(0)
 })
 
-test('does not cover the onboarding flow', async ({ page }) => {
+// This passes via the `!onboarded` gate in shouldShowWelcome (the user's
+// onboarding_completed is still false throughout this test), NOT because of
+// WelcomeModal's EXEMPT_PATHS check. EXEMPT_PATHS is belt-and-braces defence
+// that no e2e test can reach: an onboarded user cannot land on /onboarding or
+// /welcome at all, since both pages redirect them straight to '/' when
+// profile.onboarding_completed is true. So this test would still pass if
+// EXEMPT_PATHS were deleted entirely — it only proves the popup stays away
+// during the signup funnel, not that the exempt-path check works.
+test('no popup anywhere in the signup funnel', async ({ page }) => {
   const stamp = Date.now().toString(36)
   await page.goto('/signup')
   await page.fill('input[name="username"]', `n_${stamp}`)
