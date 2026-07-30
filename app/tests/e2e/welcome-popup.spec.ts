@@ -57,6 +57,22 @@ test('does not reappear after dismissal', async ({ page }) => {
   await expect(page.locator('.wpop-backdrop')).toHaveCount(0)
 })
 
+// Guards the fix in WelcomeModal.handleCta: a bare <a href> plus an
+// un-awaited server action used to be aborted by the navigation it triggered,
+// so welcome_tier_seen never persisted on the most common dismissal path and
+// the popup returned forever. The component now preventDefaults, awaits the
+// ack, then navigates itself via the router.
+test('clicking the CTA navigates and persists the ack', async ({ page }) => {
+  const username = await signUpAndOnboard(page)
+  await expect(popup(page)).toBeVisible()
+  await page.locator('.wpop-cta').click()
+  // A fresh trial user is on the Pro tier, whose CTA href is /journal. The
+  // component awaits ackWelcome() before calling router.push, so this needs a
+  // generous timeout rather than the default.
+  await expect(page).toHaveURL(/\/journal/, { timeout: 15000 })
+  await expectAcked(username, 'pro')
+})
+
 test('records the tier so a reload after "Maybe later" stays quiet', async ({ page }) => {
   const username = await signUpAndOnboard(page)
   await expect(popup(page)).toBeVisible()
