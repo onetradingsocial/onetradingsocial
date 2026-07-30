@@ -871,6 +871,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 }
 .hero-banner-noise { position: absolute; inset: 0; z-index: 0; opacity: 0.5; mix-blend-mode: soft-light; pointer-events: none;
   background: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.4) 1px, transparent 0); background-size: 5px 5px; }
+.hero-banner-video { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.38; mix-blend-mode: overlay; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .hero-banner-video { display: none; } }
 .hero-content { position: relative; z-index: 2; max-width: 880px; margin-inline: auto; }
 .hero-content .h1 { margin-top: 22px; color: #fff; letter-spacing: -0.03em; text-shadow: 0 4px 30px rgba(40,10,60,0.25); }
 .hero-content .h1 em { font-style: normal; position: relative; white-space: nowrap; }
@@ -880,10 +882,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 }
 .hero-sub { font-size: clamp(16px, 1.7vw, 21px); color: rgba(255,255,255,0.92); max-width: 60ch; margin: 22px auto 0; }
 .hero-cta { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 34px; flex-wrap: wrap; }
-.hero-proof { margin-top: 26px; display: flex; align-items: center; justify-content: center; gap: 14px; color: rgba(255,255,255,0.85); font-size: 13.5px; font-weight: 500; }
+.hero-proof { margin-top: 26px; display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; color: rgba(255,255,255,0.85); font-size: 13.5px; font-weight: 500; }
+.hero-proof-stars { color: #FFD15C; font-size: 13px; letter-spacing: 1.5px; display: inline-flex; align-items: center; gap: 6px; }
+.hero-proof-stars b { color: #fff; font-family: var(--body); font-weight: 600; font-size: 13.5px; letter-spacing: 0; }
 .hero-proof .av-row { display: flex; }
-.av-row .av { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.9); margin-left: -10px; background: linear-gradient(140deg,#fff,#e7e3f7); overflow: hidden; }
-.av-row .av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.av-row .av { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.9); margin-left: -10px; background: linear-gradient(140deg,#fff,#e7e3f7); }
 .av-row .av:first-child { margin-left: 0; }
 .hero-proof .stars { color: #FFD15C; letter-spacing: 2px; font-size: 14px; }
 
@@ -1032,6 +1035,35 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 @media (max-width: 900px){ .problem-grid { grid-template-columns: 1fr; gap: 40px; } }
 
 /* ============================================================
+   Reviews
+   ============================================================ */
+.reviews { overflow: hidden; }
+.review-card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-sm); transition: transform .25s, box-shadow .25s, border-color .25s; }
+.review-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--border-vio); }
+.review-card .stars { color: var(--xp); font-size: 15px; letter-spacing: 2px; }
+.review-quote { font-size: 15px; color: var(--text); line-height: 1.6; margin-top: 14px; }
+.review-who { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 20px; }
+.review-av { position: relative; overflow: hidden; width: 38px; height: 38px; border-radius: 50%; background: var(--brand-grad); color: #fff; font-family: var(--display); font-size: 13px; font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
+.review-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.review-who b { font-size: 14px; font-weight: 700; display: block; }
+.review-who span { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+.reviews-note { margin-top: 28px; font-family: var(--mono); font-size: 12px; color: var(--faintest); text-align: center; }
+
+/* ---- Reviews marquee ---- */
+.marquee { position: relative; margin-top: 40px; }
+.marquee-viewport { overflow: hidden; }
+.marquee-track { display: flex; width: max-content; animation: marquee-scroll 34s linear infinite; }
+.marquee-group { display: flex; gap: 20px; padding-right: 20px; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+@keyframes marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee .review-card { width: 360px; flex-shrink: 0; }
+.marquee-fade { position: absolute; top: 0; bottom: 0; width: 120px; z-index: 3; pointer-events: none; }
+.marquee-fade-l { left: 0; background: linear-gradient(90deg, var(--bg-2), transparent); }
+.marquee-fade-r { right: 0; background: linear-gradient(270deg, var(--bg-2), transparent); }
+@media (prefers-reduced-motion: reduce) { .marquee-track { animation: none; } }
+@media (max-width: 640px){ .marquee .review-card { width: 300px; } .marquee-fade { width: 60px; } }
+
+/* ============================================================
    Product showcase (real screenshots, browser frames)
    ============================================================ */
 .showcase { position: relative; overflow: hidden; }
@@ -1047,14 +1079,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .bwin-url { flex: 1; margin-left: 8px; height: 26px; border-radius: 7px; background: #fff; border: 1px solid var(--border); display: flex; align-items: center; padding-inline: 12px; gap: 8px; font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
 .bwin-url svg { width: 12px; height: 12px; opacity: .55; }
 .bwin-shot { display: block; width: 100%; }
-.hero-video { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--border-2); background: #000; box-shadow: var(--shadow-lg); }
-.video-mute { position: absolute; right: 14px; bottom: 14px; z-index: 3; width: 42px; height: 42px; display: grid; place-items: center; border: none; border-radius: 50%; cursor: pointer; color: #fff; background: rgba(16,14,32,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: background .18s ease, transform .18s ease; }
-.video-mute:hover { background: rgba(16,14,32,0.78); transform: translateY(-1px); }
-.video-mute:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-.video-mute svg { width: 20px; height: 20px; }
-.video-mute .ic-sound { display: none; }
-.video-mute[data-muted="false"] .ic-muted { display: none; }
-.video-mute[data-muted="false"] .ic-sound { display: block; }
+/* Quick Trade Capture is a portrait modal — centre it at natural aspect inside the frame. */
+.bwin-shot--tall { width: auto; max-width: 100%; max-height: 620px; margin-inline: auto; }
+.bwin:has(.bwin-shot--tall) { background: var(--bg-2); }
 
 .show-tabs { display: flex; justify-content: center; gap: 8px; margin-top: 40px; flex-wrap: wrap; }
 .show-tab { display: inline-flex; align-items: center; gap: 9px; height: 46px; padding-inline: 20px; border-radius: 12px; border: 1px solid var(--border); background: #fff; color: var(--dim); font-weight: 600; font-size: 14px; box-shadow: var(--shadow-sm); transition: all .2s; }
@@ -1230,7 +1257,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
     </nav>
     <div class="nav-cta">
       <a class="nav-login" href="https://app.tradingsocial.io/login">Log in</a>
-      <a class="btn btn-primary btn-sm" href="https://app.tradingsocial.io/signup">Join the Beta</a>
+      <a class="btn btn-primary btn-sm" href="https://app.tradingsocial.io/signup">Start Free Trial</a>
     </div>
   </div>
 </header>
@@ -1239,19 +1266,25 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 <section class="hero" id="top">
   <div class="wrap">
     <div class="hero-banner">
+      <video class="hero-banner-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1"
+             poster="/assets/videos/website-hero-poster.jpg">
+        <source src="/assets/videos/website-hero.webm" type="video/webm">
+        <source src="/assets/videos/website-hero.mp4" type="video/mp4">
+      </video>
       <div class="hero-banner-grid"></div>
       <div class="hero-banner-noise"></div>
       <div class="hero-content">
-        <span class="chip chip--band"><span class="dot"></span>Beta is open</span>
+        <span class="chip chip--band"><span class="dot"></span>Start your 14-day free trial — no card required</span>
         <h1 class="h1">Track. Prove.<br><em>Improve</em> your trading.</h1>
         <p class="hero-sub">The social trading journal built for transparent traders. Journal trades, track real performance, follow other traders, and compete on leaderboards that can't be faked.</p>
         <div class="hero-cta">
-          <a class="btn btn-onband btn-lg" href="https://app.tradingsocial.io/signup">Join the Beta<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+          <a class="btn btn-onband btn-lg" href="https://app.tradingsocial.io/signup">Start Free — 14 Days<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
           <a class="btn btn-band-ghost btn-lg" href="#showcase">See inside the platform</a>
         </div>
         <div class="hero-proof">
-          <div class="av-row"><span class="av"><img src="https://lh3.googleusercontent.com/a/ACg8ocISNXDQC93pPvXQ0FptMRjH9iLuoJQpiAmvxFjUVTK6Y3asmOU=s96-c" alt="Edrian Pasaylo" loading="lazy" referrerpolicy="no-referrer"></span><span class="av"><img src="https://lh3.googleusercontent.com/a/ACg8ocIylfLKsKhC6X7Y9isWYfZ28zzHBR65UWmmtyj2tzN8ID4zcg=s96-c" alt="Oliver Hayes" loading="lazy" referrerpolicy="no-referrer"></span><span class="av"><img src="https://lh3.googleusercontent.com/a/ACg8ocL_2ycshSpKpQ_VopW2GAn9iFe_AQgSv7Zv6RG2sTOKHTdzSpEN=s96-c" alt="TradingSocial trader" loading="lazy" referrerpolicy="no-referrer"></span><span class="av"><img src="https://lh3.googleusercontent.com/a/ACg8ocIYzet7MMZGgzfl753oa4G1kEHNVA4A2v4JPm4c2gtqdu1R=s96-c" alt="Amelia Price" loading="lazy" referrerpolicy="no-referrer"></span></div>
-          <span>Free to join · Build a verified profile before launch</span>
+          <div class="av-row"><span class="av"></span><span class="av"></span><span class="av"></span><span class="av"></span></div>
+          <span>No card required · Cancel anytime</span>
+          <span class="hero-proof-stars">★★★★★ <b>Loved by early traders</b></span>
         </div>
       </div>
     </div>
@@ -1269,18 +1302,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           <div class="hf-t"><b>+75 XP · Level 7</b><span>Trade reviewed</span></div>
         </div>
       </div>
-      <div class="hero-video">
-        <video id="heroVideo" class="bwin-shot" autoplay muted loop playsinline preload="metadata"
-               poster="/assets/videos/website-hero-poster.jpg"
-               aria-label="TradingSocial product walkthrough — community feed, performance and quick journal entry">
-          <source src="/assets/videos/website-hero.webm" type="video/webm">
-          <source src="/assets/videos/website-hero.mp4" type="video/mp4">
-          <img class="bwin-shot" src="/assets/images/Dashboard.png" alt="TradingSocial dashboard — community feed, performance and quick journal entry">
-        </video>
-        <button type="button" class="video-mute" id="videoMute" aria-label="Unmute video" aria-pressed="false" data-muted="true">
-          <svg class="ic-muted" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor"/><path d="m16 9 5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <svg class="ic-sound" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor"/><path d="M16 8a5 5 0 0 1 0 8M18.5 5.5a9 9 0 0 1 0 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
+      <div class="bwin">
+        <div class="bwin-bar"><div class="dots"><i></i><i></i><i></i></div><div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/home</div></div>
+        <img class="bwin-shot" src="/assets/images/Dashboard.png" alt="TradingSocial home — community feed, performance and quick journal entry">
       </div>
     </div>
   </div>
@@ -1293,6 +1317,127 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
     <div class="ti"><span class="v grad-text">Track</span><span class="k">Real performance</span></div>
     <div class="ti"><span class="v grad-text">Compete</span><span class="k">Transparent boards</span></div>
     <div class="ti"><span class="v grad-text">Learn</span><span class="k">Earn XP &amp; levels</span></div>
+  </div>
+</section>
+
+<!-- ============================ REVIEWS ============================ -->
+<section class="section reviews" id="reviews" style="background:var(--bg-2); border-block:1px solid var(--border)">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow eyebrow--center" style="justify-content:center">What traders are saying</span>
+      <h2 class="h2">Built with traders. Trusted by traders.</h2>
+    </div>
+  </div>
+  <div class="marquee reveal">
+    <div class="marquee-fade marquee-fade-l"></div>
+    <div class="marquee-fade marquee-fade-r"></div>
+    <div class="marquee-viewport">
+      <div class="marquee-track">
+      <div class="marquee-group">
+        <article class="review-card">
+          <div class="stars" aria-label="5 out of 5">★★★★★</div>
+          <p class="review-quote">"I've tried three journal apps. This is the first one I've actually kept using — logging a trade takes seconds so I never skip it."</p>
+          <div class="review-who">
+            <div class="review-av"><span>JM</span><img src="/assets/images/reviews/james-m.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>James M.</b><span>Forex swing trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars" aria-label="5 out of 5">★★★★★</div>
+          <p class="review-quote">"Seeing my mistake tags stack up was uncomfortable at first. Three weeks later my win rate is up because I finally stopped repeating the same one."</p>
+          <div class="review-who">
+            <div class="review-av"><span>SK</span><img src="/assets/images/reviews/sara-k.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Sara K.</b><span>Index &amp; FX trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars" aria-label="5 out of 5">★★★★★</div>
+          <p class="review-quote">"The leaderboard is the first one I've seen that doesn't just crown whoever gambled biggest that week. It made me actually want to climb it."</p>
+          <div class="review-who">
+            <div class="review-av"><span>DR</span><img src="/assets/images/reviews/diego-r.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Diego R.</b><span>Crypto trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars" aria-label="5 out of 5">★★★★★</div>
+          <p class="review-quote">"The equity curve alone was worth switching for. I finally see the trajectory instead of guessing from memory."</p>
+          <div class="review-who">
+            <div class="review-av"><span>NO</span><img src="/assets/images/reviews/nathan-o.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Nathan O.</b><span>Stock trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars" aria-label="5 out of 5">★★★★★</div>
+          <p class="review-quote">"Journaling used to feel like homework. Quick Trade Capture made it a 10-second habit I actually keep."</p>
+          <div class="review-who">
+            <div class="review-av"><span>PL</span><img src="/assets/images/reviews/priya-l.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Priya L.</b><span>Options trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars" aria-label="5 out of 5">★★★★★</div>
+          <p class="review-quote">"Following traders who post losses too, not just wins, changed how I think about my own drawdowns."</p>
+          <div class="review-who">
+            <div class="review-av"><span>MC</span><img src="/assets/images/reviews/marcus-c.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Marcus C.</b><span>Futures trader</span></div>
+          </div>
+        </article>
+      </div>
+      <div class="marquee-group" aria-hidden="true">
+        <article class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-quote">"I've tried three journal apps. This is the first one I've actually kept using — logging a trade takes seconds so I never skip it."</p>
+          <div class="review-who">
+            <div class="review-av"><span>JM</span><img src="/assets/images/reviews/james-m.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>James M.</b><span>Forex swing trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-quote">"Seeing my mistake tags stack up was uncomfortable at first. Three weeks later my win rate is up because I finally stopped repeating the same one."</p>
+          <div class="review-who">
+            <div class="review-av"><span>SK</span><img src="/assets/images/reviews/sara-k.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Sara K.</b><span>Index &amp; FX trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-quote">"The leaderboard is the first one I've seen that doesn't just crown whoever gambled biggest that week. It made me actually want to climb it."</p>
+          <div class="review-who">
+            <div class="review-av"><span>DR</span><img src="/assets/images/reviews/diego-r.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Diego R.</b><span>Crypto trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-quote">"The equity curve alone was worth switching for. I finally see the trajectory instead of guessing from memory."</p>
+          <div class="review-who">
+            <div class="review-av"><span>NO</span><img src="/assets/images/reviews/nathan-o.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Nathan O.</b><span>Stock trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-quote">"Journaling used to feel like homework. Quick Trade Capture made it a 10-second habit I actually keep."</p>
+          <div class="review-who">
+            <div class="review-av"><span>PL</span><img src="/assets/images/reviews/priya-l.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Priya L.</b><span>Options trader</span></div>
+          </div>
+        </article>
+        <article class="review-card">
+          <div class="stars">★★★★★</div>
+          <p class="review-quote">"Following traders who post losses too, not just wins, changed how I think about my own drawdowns."</p>
+          <div class="review-who">
+            <div class="review-av"><span>MC</span><img src="/assets/images/reviews/marcus-c.jpg" alt="" decoding="async" onerror="this.remove()"></div>
+            <div><b>Marcus C.</b><span>Futures trader</span></div>
+          </div>
+        </article>
+      </div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <p class="reviews-note reveal">Early access feedback from our founding trader cohort.</p>
   </div>
 </section>
 
@@ -1401,8 +1546,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
         <p>Complete trading courses, earn XP, and progress through levels as you close your real gaps.</p>
       </div>
       <a class="f reveal" href="https://app.tradingsocial.io/signup">
-        <h4>Join the Beta <svg viewBox="0 0 24 24" fill="none" style="width:20px;height:20px"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></h4>
-        <p>Be one of the first traders to build a verified TradingSocial profile.</p>
+        <h4>Start Free Trial <svg viewBox="0 0 24 24" fill="none" style="width:20px;height:20px"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></h4>
+        <p>Start free — no card required. Cancel anytime.</p>
       </a>
     </div>
   </div>
@@ -1415,13 +1560,14 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
     <div class="section-head center reveal">
       <span class="eyebrow eyebrow--center" style="justify-content:center">A look inside</span>
       <h2 class="h2">This is the real platform.</h2>
-      <p class="lead">Not a concept. Not a mockup. Explore the actual product traders are using in the beta right now.</p>
+      <p class="lead">Not a concept. Not a mockup. Explore the actual product traders are using right now.</p>
     </div>
 
     <div class="show-tabs reveal">
       <button class="show-tab active" data-show="home"><span class="n">01</span> Home &amp; Feed</button>
       <button class="show-tab" data-show="journal"><span class="n">02</span> Journal &amp; Analytics</button>
-      <button class="show-tab" data-show="leaderboard"><span class="n">03</span> Leaderboard</button>
+      <button class="show-tab" data-show="capture"><span class="n">03</span> Quick Trade Capture</button>
+      <button class="show-tab" data-show="leaderboard"><span class="n">04</span> Leaderboard</button>
     </div>
 
     <div class="show-panels">
@@ -1459,6 +1605,25 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           <div class="bwin reveal">
             <div class="bwin-bar"><div class="dots"><i></i><i></i><i></i></div><div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/journal</div></div>
             <img class="bwin-shot" src="/assets/images/Journal.png" alt="TradingSocial journal page — analytics, equity curve and trading calendar">
+          </div>
+        </div>
+      </div>
+
+      <!-- QUICK TRADE CAPTURE -->
+      <div class="show-panel" data-panel="capture">
+        <div class="show-panel-grid">
+          <div class="pcopy">
+            <h3 class="h3">Log a trade in seconds. Stay consistent.</h3>
+            <p class="lead">The #1 reason traders stop journaling is friction. Quick Trade Capture logs entry, stop, target and risk:reward instantly — so the habit actually sticks.</p>
+            <ul class="feature-list">
+              <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Auto risk:reward &amp; P/L</b><p>Set your stop and target — the math is instant.</p></div></li>
+              <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Setup, confidence &amp; emotion tags</b><p>Capture the story behind the trade, not just the numbers.</p></div></li>
+              <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Import from MT5</b><p>Already trading live? Pull trades straight in.</p></div></li>
+            </ul>
+          </div>
+          <div class="bwin reveal">
+            <div class="bwin-bar"><div class="dots"><i></i><i></i><i></i></div><div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io</div></div>
+            <img class="bwin-shot bwin-shot--tall" src="/assets/images/QuickTrade.png" alt="TradingSocial Quick Trade Capture — log a trade in seconds">
           </div>
         </div>
       </div>
@@ -1578,74 +1743,19 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
   </div>
 </section>
 
-<!-- ============================ PROOF ============================ -->
-<section class="section" id="proof" style="background:var(--bg-2); border-block:1px solid var(--border)">
-  <div class="wrap">
-    <div class="section-head center reveal">
-      <span class="eyebrow eyebrow--center" style="justify-content:center">Real numbers</span>
-      <h2 class="h2">Built in the open, with real traders.</h2>
-      <p class="lead">No inflated vanity metrics — these update live from the platform. Internal and test accounts are excluded.</p>
-    </div>
-
-    <div class="proof-stats reveal" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:760px;margin:0 auto 8px">
-      <div class="proof-stat" style="text-align:center;padding:22px 14px;background:var(--surface);border:1px solid var(--border);border-radius:16px">
-        <div id="stat-trades" style="font-family:var(--display);font-size:34px;font-weight:700">—</div>
-        <div style="color:var(--dim);font-size:13.5px;margin-top:4px">Trades journaled</div>
-      </div>
-      <div class="proof-stat" style="text-align:center;padding:22px 14px;background:var(--surface);border:1px solid var(--border);border-radius:16px">
-        <div id="stat-users" style="font-family:var(--display);font-size:34px;font-weight:700">—</div>
-        <div style="color:var(--dim);font-size:13.5px;margin-top:4px">Active beta traders</div>
-      </div>
-      <div class="proof-stat" style="text-align:center;padding:22px 14px;background:var(--surface);border:1px solid var(--border);border-radius:16px">
-        <div id="stat-lessons" style="font-family:var(--display);font-size:34px;font-weight:700">—</div>
-        <div style="color:var(--dim);font-size:13.5px;margin-top:4px">Lessons completed</div>
-      </div>
-    </div>
-
-    <div class="reveal" style="max-width:760px;margin:34px auto 0;padding:22px 24px;background:var(--surface);border:1px solid var(--border);border-radius:16px">
-      <h4 style="margin:0 0 8px">Why we built TradingSocial</h4>
-      <p style="color:var(--dim);line-height:1.65;margin:0">
-        Most traders judge themselves on screenshots and memory. We wanted a place where your track record is
-        computed from trades you actually logged — verifiable, honest, and useful for getting better. Every
-        feature is aimed at discipline over hype: journal, review, learn, repeat.
-      </p>
-    </div>
-
-    <div class="reveal" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:900px;margin:26px auto 0">
-      <img src="/assets/images/Journal.png" alt="TradingSocial journal with analytics" style="width:100%;border:1px solid var(--border);border-radius:14px" loading="lazy">
-      <img src="/assets/images/Dashboard.png" alt="TradingSocial dashboard" style="width:100%;border:1px solid var(--border);border-radius:14px" loading="lazy">
-      <img src="/assets/images/Leaderboard.png" alt="TradingSocial leaderboard" style="width:100%;border:1px solid var(--border);border-radius:14px" loading="lazy">
-    </div>
-  </div>
-</section>
-
-<script>
-  // Live proof stats from the app API. Fails silently -> dashes stay.
-  (function () {
-    fetch('https://app.tradingsocial.io/api/stats').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-      if (!d) return;
-      var fmt = function (n) { return (n || 0).toLocaleString(); };
-      var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
-      set('stat-trades', fmt(d.tradesJournaled));
-      set('stat-users', fmt(d.activeBetaUsers));
-      set('stat-lessons', fmt(d.lessonsCompleted));
-    }).catch(function () {});
-  })();
-</script>
-
 <!-- ============================ BETA CTA ============================ -->
 <section class="section finalcta" id="beta">
   <div class="wrap">
     <div class="finalcta-card reveal">
       <div class="hero-banner-grid"></div>
-      <span class="eyebrow eyebrow--center" style="justify-content:center">Beta is open</span>
-      <h2 class="h2">Become one of the first traders<br>with a verified profile.</h2>
-      <p class="hero-sub">Join the beta free while we build. Log your first trades, claim your handle, and lock in founding-member status before launch.</p>
+      <span class="eyebrow eyebrow--center" style="justify-content:center">14 days free — no card required</span>
+      <h2 class="h2">Start your 14-day free trial<br>and prove your edge.</h2>
+      <p class="hero-sub">Try TradingSocial free for 14 days. Log your first trades, claim your handle, and see your real edge — no card required.</p>
       <div class="hero-cta">
-        <a class="btn btn-onband btn-lg" href="https://app.tradingsocial.io/signup">Join the Beta<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+        <a class="btn btn-onband btn-lg" href="https://app.tradingsocial.io/signup">Start Free — 14 Days<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
         <a class="btn btn-band-ghost btn-lg" href="https://app.tradingsocial.io/signup">Continue with Google</a>
       </div>
-      <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.8); margin-top:20px; position:relative; z-index:2">Free to join · Public or private profile · No card required</p>
+      <p class="mono" style="font-size:12px; color:rgba(255,255,255,0.8); margin-top:20px; position:relative; z-index:2">14 days free · Public or private profile · Cancel anytime</p>
     </div>
   </div>
 </section>
@@ -1673,7 +1783,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
         <a href="#about">About</a>
         <a href="/pricing">Pricing</a>
         <a href="/blog">Blog</a>
-        <a href="https://app.tradingsocial.io/signup">Join the Beta</a>
+        <a href="https://app.tradingsocial.io/signup">Start Free Trial</a>
       </div>
       <div class="foot-col">
         <h5>Legal</h5>
@@ -1697,26 +1807,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 
 <script>
   window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-</script>
-<script>
-  // Hero video mute toggle. Autoplay requires muted start; button unmutes.
-  (function () {
-    var v = document.getElementById('heroVideo');
-    var b = document.getElementById('videoMute');
-    if (!v || !b) return;
-    function sync() {
-      var m = v.muted;
-      b.dataset.muted = m ? 'true' : 'false';
-      b.setAttribute('aria-pressed', m ? 'false' : 'true');
-      b.setAttribute('aria-label', m ? 'Unmute video' : 'Mute video');
-    }
-    b.addEventListener('click', function () {
-      v.muted = !v.muted;
-      if (!v.muted && v.paused) v.play();
-      sync();
-    });
-    sync();
-  })();
 </script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
