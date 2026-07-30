@@ -76,7 +76,11 @@ export function WelcomeModal({
     if (acked.current) return
     acked.current = true
     track('welcome_popup_dismissed', { tier, action })
-    void ackWelcome(tier)
+    // Best-effort write: nothing here awaits it, so an unhandled rejection
+    // (rotated service key, network blip) would otherwise surface as an
+    // unhandled promise rejection — which next dev's error overlay can turn
+    // into a broken page. A failure here costs at most one repeat showing.
+    void ackWelcome(tier).catch(() => {})
     setClosing(true)
     closeTimeout.current = window.setTimeout(() => setGone(true), 300)
   }
