@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { dismissWelcome } from './utils/welcome'
 
 async function signUpAndOnboard(page: Page, prefix: string) {
   // Keep usernames within the 3-20 char limit: short prefix + base36 time/random.
@@ -29,6 +30,7 @@ async function signUpAndOnboard(page: Page, prefix: string) {
   await page.click('button:has-text("Create my profile")')
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
   return username
 }
 

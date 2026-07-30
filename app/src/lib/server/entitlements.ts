@@ -2,14 +2,15 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   tierFromSubscriptions, TIER_RANK,
-  trialState, trialDaysLeft, effectiveTier, shouldShowWall,
+  trialState, trialDaysLeft, effectiveTier, shouldShowWall, shouldShowWelcome,
   type Tier, type TrialState,
 } from '@/lib/entitlements'
 import { parseAdminEmails, emailIsAdmin } from '@/lib/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export type TrialGate = { state: TrialState; daysLeft: number; showWall: boolean }
-export type Entitlements = { tier: Tier; gate: TrialGate }
+export type WelcomeState = { show: boolean; tier: Tier }
+export type Entitlements = { tier: Tier; gate: TrialGate; welcome: WelcomeState }
 
 const NO_GATE: TrialGate = { state: 'none', daysLeft: 0, showWall: false }
 
@@ -35,13 +36,32 @@ export async function getEntitlements(
   supabase: SupabaseClient, userId: string,
 ): Promise<Entitlements> {
   const svc = createServiceClient()
-  const [{ data: { user } }, { data: prof, error: profError }, { data: subs, error: subsError }] =
+  const [
+    { data: { user } },
+    { data: prof, error: profError },
+    { data: subs, error: subsError },
+    { data: wel },
+  ] =
     await Promise.all([
       svc.auth.admin.getUserById(userId),
       svc.from('profiles')
         .select('comp_tier, trial_started_at, trial_ack_at')
         .eq('id', userId).maybeSingle(),
       supabase.from('subscriptions').select('tier, status').eq('user_id', userId),
+      // Deliberately its OWN query, not folded into the profiles select above.
+      // welcome_tier_seen / onboarding_completed are the newest columns here
+      // (Task 4); if a deploy ships the code before migration 0043 reaches a
+      // given database, PostgREST returns 42703 for an unknown column and
+      // fails the WHOLE select it's part of. If these two columns were in the
+      // same query as comp_tier/trial_started_at/trial_ack_at, that failure
+      // would null out `prof` and silently degrade every mid-trial and
+      // admin-comped user's TIER to 'free' — including permanently, since
+      // saveProfileSettings recomputes tier and would then null out paid
+      // profile fields. Keeping it separate means a missing column can only
+      // ever suppress the welcome popup, never touch tier or the trial gate.
+      svc.from('profiles')
+        .select('welcome_tier_seen, onboarding_completed')
+        .eq('id', userId).maybeSingle(),
     ])
 
   const now = new Date()
@@ -54,20 +74,46 @@ export async function getEntitlements(
     ? 'pro'
     : effectiveTier(prof?.comp_tier, stripeTier, state)
 
-  if (profError || !prof) return { tier, gate: NO_GATE }
+  // Fails CLOSED (no popup) on a profiles read error: a spurious celebration is
+  // worse than a missed one, and `tier` is already the fail-closed 'free' here.
+  if (profError || !prof) return { tier, gate: NO_GATE, welcome: { show: false, tier } }
 
   // Only a positively-confirmed free tier may be walled. If we could not read
   // the subscriptions we do not know the tier, so we must not wall: substitute
   // a tier that can never satisfy shouldShowWall rather than the 'free' the
   // fail-closed path handed us.
   const wallTier: Tier = tierKnown ? tier : 'pro'
+  const showWall = shouldShowWall(state, wallTier, process.env.TRIAL_WALL_ENABLED === 'true')
 
   return {
     tier,
     gate: {
       state,
       daysLeft: trialDaysLeft(prof.trial_started_at, now),
-      showWall: shouldShowWall(state, wallTier, process.env.TRIAL_WALL_ENABLED === 'true'),
+      showWall,
+    },
+    welcome: {
+      // Gated on tierKnown for the same reason as wallTier above: a failed
+      // subscriptions read degrades `tier` to 'free', and without this a
+      // transient read failure would show a paying Pro customer a confetti
+      // "Welcome to Free", then persist 'free' via ackWelcome and fire a
+      // second spurious popup once the read recovers. This does not regress
+      // fresh signups — a user with no subscriptions rows yields an empty
+      // (truthy) array, so tierKnown is still true.
+      //
+      // Fed from `wel`, not `prof`: welcome_tier_seen/onboarding_completed
+      // live in their own query (see above), so a null/errored `wel` must
+      // fail CLOSED here — `wel?.onboarding_completed === true` is false for
+      // a null `wel`, which alone suppresses the popup regardless of the
+      // other arguments.
+      show: tierKnown && shouldShowWelcome(
+        wel?.welcome_tier_seen,
+        tier,
+        state,
+        showWall,
+        wel?.onboarding_completed === true,
+      ),
+      tier,
     },
   }
 }

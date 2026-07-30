@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { createServiceClient } from './utils/db'
+import { dismissWelcome } from './utils/welcome'
 
 // The wall only renders when the kill switch is on. Skip rather than fail when
 // the dev server was started without it.
@@ -33,6 +34,7 @@ async function signUpAndOnboard(page: import('@playwright/test').Page) {
   await page.click('button:has-text("Create my profile")')
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
   return username
 }
 

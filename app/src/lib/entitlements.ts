@@ -6,7 +6,10 @@ export const JOURNAL_FREE_LIMIT = 30
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing'])
 
-function isTier(t: string): t is Tier {
+/** Type guard: validates that a string is a known tier using an explicit
+ *  allow-list rather than other["in"], which walks the prototype chain and
+ *  would incorrectly accept Object.prototype keys like 'toString'. */
+export function isTier(t: string): t is Tier {
   return t === 'free' || t === 'trader' || t === 'pro'
 }
 
@@ -91,6 +94,44 @@ export function shouldAckTrialOnSubscription(
  *  and subscribers are exempt without any special-casing. */
 export function shouldShowWall(state: TrialState, tier: Tier, enabled: boolean): boolean {
   return enabled && state === 'expired' && tier === 'free'
+}
+
+/** Whether to show the tier welcome popup.
+ *
+ *  `seen` is profiles.welcome_tier_seen — the last tier we celebrated, NULL for
+ *  a user who has never seen it. A mismatch against the effective tier means
+ *  either "never celebrated" or "tier changed", which are the same event as far
+ *  as this popup is concerned.
+ *
+ *  Three suppressions, each earning its place:
+ *    * !onboarded — the root layout also wraps /welcome and /onboarding, so
+ *      without this the popup lands on top of the signup flow it is meant to
+ *      follow.
+ *    * showWall — never compete with the non-escapable end-of-trial wall.
+ *    * trial 'expired' AND tier 'free' — trial expiry IS mechanically a
+ *      pro->free change, so a naive tier diff would fire a confetti "Welcome
+ *      to Free" at exactly the moment the user lost Pro. This is narrowed to
+ *      require tier === 'free' (rather than suppressing on 'expired' alone)
+ *      because TRIAL_WALL_ENABLED can be unset in production, in which case
+ *      nothing but the Stripe webhook ever writes trial_ack_at — and that
+ *      webhook only fires for users who actually subscribe. A user whose
+ *      trial expires unresolved and who never subscribes stays 'expired'
+ *      indefinitely, so an unconditional suppression would also permanently
+ *      hide a genuine later upgrade (e.g. an admin comp grant) for that user.
+ *      Requiring tier === 'free' still blocks only the drop it was written
+ *      for, and can never collide with the wall since shouldShowWall already
+ *      requires tier === 'free' to fire in the first place. */
+export function shouldShowWelcome(
+  seen: string | null | undefined,
+  tier: Tier,
+  trial: TrialState,
+  showWall: boolean,
+  onboarded: boolean,
+): boolean {
+  if (!onboarded) return false
+  if (showWall) return false
+  if (trial === 'expired' && tier === 'free') return false
+  return seen !== tier
 }
 
 export type PlanEnv = {

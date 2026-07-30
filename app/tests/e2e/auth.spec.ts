@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { dismissWelcome } from './utils/welcome'
 
 const stamp = Date.now()
 const username = `e2e_${stamp}`
@@ -31,6 +32,7 @@ test('signup -> onboarding -> profile, then logout', async ({ page }) => {
   await page.click('button:has-text("Create my profile")')
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
 
   // Public profile renders
   await page.goto(`/${username}`)

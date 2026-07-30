@@ -1,6 +1,7 @@
 // app/tests/e2e/admin.spec.ts
 import { test, expect, type Page } from '@playwright/test'
 import { deleteCourseBySlug } from './utils/db'
+import { dismissWelcome } from './utils/welcome'
 
 // Course created by the publish test; removed in afterEach so failed runs
 // don't leave "E2E Course" rows behind in the shared database.
@@ -41,6 +42,7 @@ async function signUpAndOnboard(page: Page, prefix: string, domain = 'tradingsoc
   await page.click('button:has-text("Create my profile")')
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
   return username
 }
 

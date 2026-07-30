@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { dismissWelcome } from './utils/welcome'
 
 async function signUp(page: import('@playwright/test').Page) {
   const stamp = Date.now() + Math.floor(Math.random() * 1000)
@@ -28,6 +29,7 @@ async function signUp(page: import('@playwright/test').Page) {
   await page.click('button:has-text("Create my profile")')
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
   return username
 }
 
