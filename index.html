@@ -886,7 +886,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .hero-proof-stars { color: #FFD15C; font-size: 13px; letter-spacing: 1.5px; display: inline-flex; align-items: center; gap: 6px; }
 .hero-proof-stars b { color: #fff; font-family: var(--body); font-weight: 600; font-size: 13.5px; letter-spacing: 0; }
 .hero-proof .av-row { display: flex; }
-.av-row .av { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.9); margin-left: -10px; background: linear-gradient(140deg,#fff,#e7e3f7); }
+.av-row .av { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.9); margin-left: -10px; background: linear-gradient(140deg,#fff,#e7e3f7); overflow: hidden; }
+.av-row .av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
 .av-row .av:first-child { margin-left: 0; }
 .hero-proof .stars { color: #FFD15C; letter-spacing: 2px; font-size: 14px; }
 
@@ -1282,7 +1283,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           <a class="btn btn-band-ghost btn-lg" href="#showcase">See inside the platform</a>
         </div>
         <div class="hero-proof">
-          <div class="av-row"><span class="av"></span><span class="av"></span><span class="av"></span><span class="av"></span></div>
+          <div class="av-row"><span class="av"><img src="/assets/images/avatars/trader-1.jpg" alt="" width="30" height="30" decoding="async"></span><span class="av"><img src="/assets/images/avatars/trader-2.png" alt="" width="30" height="30" decoding="async"></span><span class="av"><img src="/assets/images/avatars/trader-3.jpg" alt="" width="30" height="30" decoding="async"></span><span class="av"><img src="/assets/images/avatars/trader-4.jpg" alt="" width="30" height="30" decoding="async"></span></div>
           <span>No card required · Cancel anytime</span>
           <span class="hero-proof-stars">★★★★★ <b>Loved by early traders</b></span>
         </div>
