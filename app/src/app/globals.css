@@ -2597,12 +2597,18 @@ button.ts-burger-link {
 
 @media (prefers-reduced-motion: reduce) {
   .wpop-backdrop, .wpop-modal, .wpop-badge-wrap, .wpop-badge, .wpop-ring .fill,
-  .wpop-eyebrow, .wpop-banner h1, .wpop-sub, .wpop-price, .wpop-feat,
-  .wpop-feat .wpop-fic, .wpop-seg i, .wpop-cta, .wpop-secondary,
+  .wpop-eyebrow, .wpop-banner h1, .wpop-banner .wpop-sub, .wpop-banner .wpop-price,
+  .wpop-feat, .wpop-fic, .wpop-seg i, .wpop-cta, .wpop-secondary,
   .wpop-confetti span, .wpop-burst i { animation: none !important; }
-  /* Land every animated element in its finished state. */
-  .wpop-badge-wrap, .wpop-eyebrow, .wpop-banner h1, .wpop-sub, .wpop-price,
+  /* Land every animated element in its finished state. Selectors must match or
+     beat the base rules that hide them — bare .wpop-sub / .wpop-price are
+     (0,1,0) and would LOSE to .wpop-banner .wpop-sub / .wpop-price at (0,2,0),
+     leaving the subtitle and price permanently invisible. */
+  .wpop-badge-wrap, .wpop-eyebrow, .wpop-banner h1,
+  .wpop-banner .wpop-sub, .wpop-banner .wpop-price,
   .wpop-feat, .wpop-cta, .wpop-secondary { opacity: 1; transform: none; }
+  .wpop-fic { transform: none; }
+  .wpop-ring .fill { stroke-dashoffset: 0; }
   .wpop-seg.filled i { transform: scaleX(1); }
   .wpop-confetti, .wpop-burst { display: none; }
 }
