@@ -9,12 +9,13 @@ import { GoogleAnalytics } from './_components/GoogleAnalytics'
 import { PageViewTracker } from './_components/PageViewTracker'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/server/admin'
-import { getEntitlements, type TrialGate } from '@/lib/server/entitlements'
+import { getEntitlements, type TrialGate, type WelcomeState } from '@/lib/server/entitlements'
 import type { Tier } from '@/lib/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { TrialGateModal } from './_components/TrialGateModal'
 import { TrialEndingBanner } from './_components/TrialEndingBanner'
+import { WelcomeModal } from './_components/WelcomeModal'
 
 const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display' })
 const body = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body' })
@@ -33,16 +34,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   let internalTraffic = false
   let gate: TrialGate | null = null
   let tier: Tier | null = null
+  let welcome: WelcomeState | null = null
+  let username: string | null = null
   if (user) {
     // One pass for tier + gate: they read the same two rows, so asking for them
     // separately cost two extra serialized profiles round trips per render.
     const [{ data }, ent, flags] = await Promise.all([
-      supabase.from('profiles').select('account_balance, is_public, is_internal').eq('id', user.id).single(),
+      supabase.from('profiles').select('account_balance, is_public, is_internal, username').eq('id', user.id).single(),
       getEntitlements(supabase, user.id),
       getFeatureFlags(),
     ])
     tier = ent.tier
     gate = ent.gate
+    welcome = ent.welcome
+    username = data?.username ?? null
     internalTraffic = isAdmin(user) || (data?.is_internal ?? false)
     config = {
       accountBalance: data?.account_balance ?? 0,
@@ -67,6 +72,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
           {user && <HelpWidget />}
           {user && <TrialGateModal show={!!gate?.showWall} />}
+          {user && welcome?.show && (
+            <WelcomeModal
+              tier={welcome.tier}
+              username={username}
+              trialActive={gate?.state === 'active'}
+            />
+          )}
         </TradeModalProvider>
         <Analytics />
         <GoogleAnalytics isInternal={internalTraffic} />
