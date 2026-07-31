@@ -101,7 +101,7 @@ export function ReferralModal({
           <button className="ref-close" onClick={onClose} aria-label="Close">{CLOSE}</button>
           <span className="ref-eyebrow"><span className="dot" />Referral program</span>
           <h1>Refer a trader.<br />Earn Pro, free.</h1>
-          <p>Every trader who joins with your link and logs their first trade earns you <b>1 month of Pro, free</b> — up to <b>a full year</b>.</p>
+          <p>Every trader who joins with your link and logs their first trade earns you <b>1 month of Pro, free</b> — up to <b>6 months</b>.</p>
         </div>
 
         {loading || !summary ? (

@@ -8,11 +8,11 @@ describe('earnedMonths', () => {
   it('grants one free Pro month per activated referral', () => {
     expect(earnedMonths(0)).toBe(0)
     expect(earnedMonths(1)).toBe(1)
-    expect(earnedMonths(7)).toBe(7)
+    expect(earnedMonths(4)).toBe(4)
   })
-  it('caps at a full year and never goes negative', () => {
-    expect(earnedMonths(REFERRAL_MONTH_CAP)).toBe(12)
-    expect(earnedMonths(50)).toBe(12)
+  it('caps at six months and never goes negative', () => {
+    expect(earnedMonths(REFERRAL_MONTH_CAP)).toBe(6)
+    expect(earnedMonths(50)).toBe(6)
     expect(earnedMonths(-3)).toBe(0)
   })
 })

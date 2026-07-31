@@ -54,7 +54,7 @@ export default async function AdminReferralsPage() {
     <>
       <PageHead
         title="Referrals"
-        sub="Each activated referral earns the referrer 1 month of free Pro (max 12), redeemed via a $0 Stripe checkout that converts to monthly billing."
+        sub="Each activated referral earns the referrer 1 month of free Pro (max 6), redeemed via a $0 Stripe checkout that converts to monthly billing."
       />
 
       <div className="ad-stack">
