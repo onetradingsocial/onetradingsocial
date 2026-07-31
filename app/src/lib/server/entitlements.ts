@@ -1,11 +1,14 @@
 import 'server-only'
+import { unstable_cache } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  tierFromSubscriptions, TIER_RANK,
-  trialState, trialDaysLeft, effectiveTier, shouldShowWall, shouldShowWelcome,
+  TIER_RANK,
+  trialState, trialDaysLeft, resolveTier, shouldShowWall, shouldShowWelcome,
   type Tier, type TrialState,
 } from '@/lib/entitlements'
 import { parseAdminEmails, emailIsAdmin } from '@/lib/admin'
+import { canFlag } from '@/lib/feature-flags'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export type TrialGate = { state: TrialState; daysLeft: number; showWall: boolean }
@@ -69,10 +72,13 @@ export async function getEntitlements(
 
   // A failed subscriptions read means the tier is UNKNOWN, not free.
   const tierKnown = !subsError && !!subs
-  const stripeTier: Tier = tierKnown ? tierFromSubscriptions(subs) : 'free'
-  const tier: Tier = user && emailIsAdmin(user.email, parseAdminEmails(process.env.ADMIN_EMAILS))
-    ? 'pro'
-    : effectiveTier(prof?.comp_tier, stripeTier, state)
+  const tier = resolveTier({
+    isAdmin: !!user && emailIsAdmin(user.email, parseAdminEmails(process.env.ADMIN_EMAILS)),
+    compTier: prof?.comp_tier,
+    subs: tierKnown ? subs : [],
+    trialStartedAt: prof?.trial_started_at,
+    trialAckAt: prof?.trial_ack_at,
+  }, now)
 
   // Fails CLOSED (no popup) on a profiles read error: a spurious celebration is
   // worse than a missed one, and `tier` is already the fail-closed 'free' here.
@@ -129,6 +135,101 @@ export async function getEntitlements(
  *  — it costs the same round trips. */
 export async function getTier(supabase: SupabaseClient, userId: string): Promise<Tier> {
   return (await getEntitlements(supabase, userId)).tier
+}
+
+/** Ids of the accounts whose email matches ADMIN_EMAILS.
+ *
+ *  Emails live in auth.users, which PostgREST cannot reach, so this borrows the
+ *  admin directory RPC (migration 0040) — one call per configured entry, cached
+ *  because the list changes about never. The RPC's search is fuzzy, so every
+ *  returned row is re-checked against emailIsAdmin before it counts. Any
+ *  failure yields [], which simply drops the admin bypass: those accounts fall
+ *  back to whatever tier their own comp/subscription/trial earns. */
+const adminUserIds = unstable_cache(
+  async (): Promise<string[]> => {
+    const allow = parseAdminEmails(process.env.ADMIN_EMAILS)
+    if (allow.length === 0) return []
+    try {
+      const svc = createServiceClient()
+      const found = new Set<string>()
+      for (const entry of allow) {
+        const { data } = await svc.rpc('admin_search_users', {
+          term: entry, p_account: 'all', p_sub: 'any', p_comp: 'any', lim: 200, off: 0,
+        })
+        for (const r of (data ?? []) as { id: string; email: string | null }[]) {
+          if (emailIsAdmin(r.email, [entry])) found.add(r.id)
+        }
+      }
+      return [...found]
+    } catch {
+      return []
+    }
+  },
+  ['admin-user-ids'],
+  { revalidate: 300 },
+)
+
+/** Effective tiers for many users in two round trips — the bulk sibling of
+ *  getTier(), with the same precedence (admin > comp > Stripe > trial).
+ *
+ *  A user is OMITTED from the map when their tier could not be established (a
+ *  failed read, or no profile row at all) rather than defaulted to 'free', so
+ *  callers can tell "free" apart from "unknown" and choose their own failure
+ *  direction — see leaderboardEligibleIds. */
+export async function getTierMap(userIds: string[], now = new Date()): Promise<Map<string, Tier>> {
+  const ids = [...new Set(userIds)]
+  const out = new Map<string, Tier>()
+  if (ids.length === 0) return out
+
+  const svc = createServiceClient()
+  const [{ data: profs, error: profError }, { data: subs, error: subsError }, admins] = await Promise.all([
+    svc.from('profiles').select('id, comp_tier, trial_started_at, trial_ack_at').in('id', ids),
+    svc.from('subscriptions').select('user_id, tier, status').in('user_id', ids),
+    adminUserIds(),
+  ])
+  // Either read failing makes EVERY tier unknown: a partial answer here would
+  // silently demote real subscribers.
+  if (profError || subsError || !profs || !subs) return out
+
+  const byUser = new Map<string, { tier: string; status: string }[]>()
+  for (const s of subs as { user_id: string; tier: string; status: string }[]) {
+    const arr = byUser.get(s.user_id) ?? []
+    arr.push({ tier: s.tier, status: s.status })
+    byUser.set(s.user_id, arr)
+  }
+
+  const adminSet = new Set(admins)
+  for (const p of profs) {
+    out.set(p.id, resolveTier({
+      isAdmin: adminSet.has(p.id),
+      compTier: p.comp_tier,
+      subs: byUser.get(p.id) ?? [],
+      trialStartedAt: p.trial_started_at,
+      trialAckAt: p.trial_ack_at,
+    }, now))
+  }
+  return out
+}
+
+/** The subset of `userIds` whose tier earns a spot on a public board.
+ *
+ *  Ranking is a paid perk (feature key `leaderboard_ranking`, Trader+ by
+ *  default and per-tier configurable in /admin/features), so free accounts are
+ *  dropped. An active trial counts — during it the account IS Pro everywhere
+ *  else in the app, and treating it differently here would put a user on the
+ *  board only after they subscribe despite showing them Pro features all along.
+ *
+ *  Fails OPEN: an id whose tier could not be resolved is kept. A leaderboard
+ *  that empties itself because one read failed is a far louder failure than a
+ *  free account lingering on it for a render. */
+export async function leaderboardEligibleIds(userIds: string[]): Promise<string[]> {
+  const ids = [...new Set(userIds)]
+  if (ids.length === 0) return []
+  const [tiers, flags] = await Promise.all([getTierMap(ids), getFeatureFlags()])
+  return ids.filter((id) => {
+    const tier = tiers.get(id)
+    return tier === undefined || canFlag(flags, tier, 'leaderboard_ranking')
+  })
 }
 
 export type CurrentSub = {

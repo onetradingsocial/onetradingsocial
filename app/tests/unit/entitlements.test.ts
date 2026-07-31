@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   TIER_RANK, JOURNAL_FREE_LIMIT, tierFromSubscriptions,
-  planForPrice, priceForPlan, can, higherTier, normalizeCompTier, type PlanEnv,
+  planForPrice, priceForPlan, can, higherTier, normalizeCompTier, resolveTier, type PlanEnv,
 } from '@/lib/entitlements'
 
 const ENV: PlanEnv = {
@@ -86,6 +86,33 @@ describe('higherTier', () => {
     expect(higherTier('trader', 'pro')).toBe('pro')
     expect(higherTier('trader', 'free')).toBe('trader')
     expect(higherTier('free', 'free')).toBe('free')
+  })
+})
+
+describe('resolveTier', () => {
+  const NOW = new Date('2026-07-31T12:00:00Z')
+  const dayBefore = (days: number) => new Date(NOW.getTime() - days * 864e5).toISOString()
+
+  it('is free with nothing at all', () => {
+    expect(resolveTier({ subs: [] }, NOW)).toBe('free')
+  })
+  it('reads an active subscription', () => {
+    expect(resolveTier({ subs: [{ tier: 'trader', status: 'active' }] }, NOW)).toBe('trader')
+    expect(resolveTier({ subs: [{ tier: 'pro', status: 'canceled' }] }, NOW)).toBe('free')
+  })
+  it('counts an active trial as pro and an expired one as free', () => {
+    expect(resolveTier({ subs: [], trialStartedAt: dayBefore(3) }, NOW)).toBe('pro')
+    expect(resolveTier({ subs: [], trialStartedAt: dayBefore(20) }, NOW)).toBe('free')
+  })
+  it('never lets a trial or comp downgrade a higher grant', () => {
+    expect(resolveTier({ subs: [{ tier: 'pro', status: 'active' }], trialStartedAt: dayBefore(20) }, NOW)).toBe('pro')
+    expect(resolveTier({ subs: [{ tier: 'trader', status: 'active' }], compTier: 'pro' }, NOW)).toBe('pro')
+  })
+  it('gives admins pro regardless of everything else', () => {
+    expect(resolveTier({ isAdmin: true, subs: [], trialStartedAt: dayBefore(99) }, NOW)).toBe('pro')
+  })
+  it('matches getEntitlements: an unreadable subscription list is not a grant', () => {
+    expect(resolveTier({ subs: [], compTier: null }, NOW)).toBe('free')
   })
 })
 

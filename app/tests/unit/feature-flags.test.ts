@@ -45,6 +45,26 @@ describe('registry', () => {
   })
 })
 
+describe('leaderboard gates', () => {
+  it('leaderboard_ranking keeps free accounts off the board by default', () => {
+    expect(canFlag({}, 'free', 'leaderboard_ranking')).toBe(false)
+    expect(canFlag({}, 'trader', 'leaderboard_ranking')).toBe(true)
+    expect(canFlag({}, 'pro', 'leaderboard_ranking')).toBe(true)
+  })
+  it('is admin-overridable to Pro only', () => {
+    const flags = flagsFromRows([
+      { feature: 'leaderboard_ranking', free: false, trader: false, pro: true },
+    ])
+    expect(canFlag(flags, 'trader', 'leaderboard_ranking')).toBe(false)
+    expect(canFlag(flags, 'pro', 'leaderboard_ranking')).toBe(true)
+  })
+  it('ranking eligibility is independent of the placement opt-out perk', () => {
+    // leaderboard_placement is Pro-only; ranking must not inherit that.
+    expect(canFlag({}, 'trader', 'leaderboard_placement')).toBe(false)
+    expect(canFlag({}, 'trader', 'leaderboard_ranking')).toBe(true)
+  })
+})
+
 describe('mt5 feature gates', () => {
   it('mt5_import is trader+', () => {
     expect(canFlag({}, 'free', 'mt5_import')).toBe(false)

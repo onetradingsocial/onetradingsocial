@@ -35,14 +35,15 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   // Advanced filters (sorting beyond P/L) are Trader+ — coerce to pnl for Free.
   const [tier, flags] = await Promise.all([getTier(supabase, user.id), getFeatureFlags()])
   const canAdvFilters = canFlag(flags, tier, 'advanced_leaderboard_filters')
+  const canRank = canFlag(flags, tier, 'leaderboard_ranking')
   const sort: PerfSort = canAdvFilters ? requestedSort : 'pnl'
 
   return (
     <main className="ts-page ts-feed lb-app">
       <div className="ts-feed-main lb-main">
         <header className="lb-head"><div className="tx">
-          <h1 className="ts-h1">Leaderboard</h1>
-          <p>Top-performing traders ranked by profit, win rate, consistency — and now XP. Track the best in real time, discover rising talent, and see how you stack up.</p>
+          <h1 className="ts-h1">Pro Leaderboard</h1>
+          <p>Top-performing traders ranked by profit, win rate, consistency — and now XP. Ranking is for Trader and Pro members, so every name here is a subscribed trader putting their numbers on the line.</p>
         </div></header>
 
         <LeaderboardTabs cat={cat} />
@@ -54,7 +55,7 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
       </div>
 
       <aside className="ts-feed-side">
-        <LeaderboardRail supabase={supabase} userId={user.id} cat={cat} period={period} />
+        <LeaderboardRail supabase={supabase} userId={user.id} cat={cat} period={period} canRank={canRank} />
       </aside>
     </main>
   )
@@ -103,7 +104,7 @@ async function XpBoard({ supabase, period, userId }: { supabase: Awaited<ReturnT
   )
 }
 
-async function LeaderboardRail({ supabase, userId, cat, period }: { supabase: Awaited<ReturnType<typeof createClient>>; userId: string; cat: 'performance' | 'xp'; period: Period }) {
+async function LeaderboardRail({ supabase, userId, cat, period, canRank }: { supabase: Awaited<ReturnType<typeof createClient>>; userId: string; cat: 'performance' | 'xp'; period: Period; canRank: boolean }) {
   if (cat === 'xp') {
     const xp = await getUserXp(supabase, userId)
     const pct = Math.round(xp.level.progress * 100)
@@ -129,6 +130,7 @@ async function LeaderboardRail({ supabase, userId, cat, period }: { supabase: Aw
       periodLabel={PERIOD_LABEL[period]}
       leaderPnl={leader?.pnl ?? null}
       leaderHandle={leader && leader.userId !== userId ? leader.username : null}
+      canRank={canRank}
     />
   )
 }

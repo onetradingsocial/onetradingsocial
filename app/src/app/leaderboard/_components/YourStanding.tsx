@@ -2,7 +2,7 @@ import { fmtPL, fmtUSD } from './format'
 
 // Ink rail card: the viewer's position in the current board view + gap to #1.
 export function YourStanding({
-  rank, total, pnl, winRate, periodLabel, leaderPnl, leaderHandle,
+  rank, total, pnl, winRate, periodLabel, leaderPnl, leaderHandle, canRank = true,
 }: {
   rank: number | null
   total: number
@@ -11,13 +11,24 @@ export function YourStanding({
   periodLabel: string
   leaderPnl: number | null
   leaderHandle: string | null
+  /** False when the viewer's tier isn't eligible to rank — otherwise the empty
+   *  state would blame their trade log for an absence upgrading would fix. */
+  canRank?: boolean
 }) {
   if (!rank) {
     return (
       <div className="lb-standing">
         <div className="h-ink-grid" />
         <span className="eyebrow">Your standing · {periodLabel}</span>
-        <p className="lb-standing-empty">Log public closed trades this period to earn a rank and climb the board.</p>
+        {canRank ? (
+          <p className="lb-standing-empty">Log public closed trades this period to earn a rank and climb the board.</p>
+        ) : (
+          <p className="lb-standing-empty">
+            Leaderboard ranking is a paid perk.{' '}
+            <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+            to put your results on the board.
+          </p>
+        )}
       </div>
     )
   }

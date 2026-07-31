@@ -4,6 +4,7 @@ import {
   type PerfTrade, type Period, type PerfSort,
 } from '@/lib/leaderboard'
 import { profileLevel, type SourceCounts, type VerificationLevel, type AccountType, type TradeSource } from '@/lib/verification'
+import { leaderboardEligibleIds } from '@/lib/server/entitlements'
 
 export type RankedEntry = {
   rank: number
@@ -64,10 +65,14 @@ export async function getPerformanceRanking(
     counts.set(r.user_id, c)
   }
 
+  // Ranking is a paid perk — free accounts never reach a public board.
+  const eligible = await leaderboardEligibleIds(aggs.map((a) => a.userId))
+  if (eligible.length === 0) return []
+
   let pq = supabase
     .from('profiles')
     .select('id, username, display_name, avatar_url, created_at, account_type')
-    .in('id', aggs.map((a) => a.userId))
+    .in('id', eligible)
     .eq('is_public', true)
     .eq('onboarding_completed', true)
     .eq('leaderboard_optout', false)

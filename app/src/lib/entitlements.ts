@@ -75,6 +75,28 @@ export function effectiveTier(
   return higherTier(normalizeCompTier(compTier), higherTier(stripeTier, trialTier))
 }
 
+export type TierInput = {
+  /** Admin emails outrank every other grant (see getEntitlements). */
+  isAdmin?: boolean
+  compTier?: string | null
+  /** Rows for THIS user only. Pass [] when the read failed — see getEntitlements
+   *  on why an unknown subscription must not be treated as a paid one. */
+  subs: { tier: string; status: string }[]
+  trialStartedAt?: string | null
+  trialAckAt?: string | null
+}
+
+/** The whole tier precedence in one pure function, so the single-user path
+ *  (getEntitlements) and the bulk path (getTierMap) can never drift apart. */
+export function resolveTier(input: TierInput, now: Date): Tier {
+  if (input.isAdmin) return 'pro'
+  return effectiveTier(
+    input.compTier,
+    tierFromSubscriptions(input.subs),
+    trialState(input.trialStartedAt, input.trialAckAt, now),
+  )
+}
+
 /** Whether a newly live subscription should also answer the end-of-trial modal.
  *
  *  A paid subscription IS an answer, so a subscriber who later churns is never
@@ -170,7 +192,7 @@ export type Feature =
   | 'saved_traders' | 'creator_profile' | 'strategy_tracking' | 'mistake_tagging'
   | 'risk_tracking' | 'private_notes' | 'custom_templates' | 'export_journal'
   | 'weekly_review' | 'strategy_breakdown' | 'advanced_reporting' | 'monthly_report' | 'trading_rules'
-  | 'ai_insights' | 'advanced_leaderboard_filters' | 'leaderboard_placement'
+  | 'ai_insights' | 'advanced_leaderboard_filters' | 'leaderboard_placement' | 'leaderboard_ranking'
   | 'premium_challenges' | 'xp_boosts' | 'priority_support' | 'early_access'
   | 'mt5_import' | 'mt5_autosync'
   | 'crypto_import' | 'crypto_autosync'
@@ -187,6 +209,9 @@ export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
   pro_badge: 'pro',
   custom_badge: 'trader',
   mt5_import: 'trader',
+  // Who may RANK at all. Distinct from leaderboard_placement, which is the
+  // opposite control: the perk of hiding yourself from a board you qualify for.
+  leaderboard_ranking: 'trader',
   // Wired, enforced when built:
   saved_traders: 'trader',
   strategy_tracking: 'trader',

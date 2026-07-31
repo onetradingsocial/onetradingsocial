@@ -5,6 +5,7 @@ import {
   questStreak, maxQuestStreak, winStreakMax, closedCount, evaluateBadges, windowXp,
 } from '@/lib/xp'
 import { learningTotalXp, learningWindowXp, type LearningCompletion } from '@/lib/learning'
+import { leaderboardEligibleIds } from '@/lib/server/entitlements'
 
 // A user's lesson completions joined to each lesson's xp_reward (+ any
 // streak-boost bonus granted at completion time).
@@ -112,10 +113,14 @@ export async function getXpRanking(supabase: SupabaseClient, period: Period, now
   }).filter((s) => s.xp > 0)
   if (scored.length === 0) return []
 
+  // Same paid-perk gate as the performance board (see leaderboardEligibleIds).
+  const eligible = await leaderboardEligibleIds(scored.map((s) => s.userId))
+  if (eligible.length === 0) return []
+
   const { data: profs } = await supabase
     .from('profiles')
     .select('id, username, display_name, avatar_url, created_at')
-    .in('id', scored.map((s) => s.userId))
+    .in('id', eligible)
     .eq('is_public', true)
     .eq('onboarding_completed', true)
     .eq('leaderboard_optout', false)
