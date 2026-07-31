@@ -106,7 +106,14 @@ export async function getEntitlements(
       // fail CLOSED here — `wel?.onboarding_completed === true` is false for
       // a null `wel`, which alone suppresses the popup regardless of the
       // other arguments.
-      show: tierKnown && shouldShowWelcome(
+      // Kill switch. Deliberately opt-OUT (disabled only when explicitly set to
+      // 'true'), unlike TRIAL_WALL_ENABLED which is opt-IN: the popup is already
+      // live, so an opt-in flag would silently switch it off the moment this
+      // deploys. Set WELCOME_POPUP_DISABLED=true in Vercel to suppress the popup
+      // everywhere without reverting the deploy or touching the database.
+      // Nothing is lost while disabled — welcome_tier_seen simply stops being
+      // written, so users become eligible again when it is turned back on.
+      show: process.env.WELCOME_POPUP_DISABLED !== 'true' && tierKnown && shouldShowWelcome(
         wel?.welcome_tier_seen,
         tier,
         state,
