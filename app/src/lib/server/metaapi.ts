@@ -4,6 +4,9 @@ import 'server-only'
 // docs mismatch is a one-file fix (verified live in the release checklist).
 const PROVISIONING = 'https://mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai'
 const clientApi = (region: string) => `https://mt-client-api-v1.${region}.agiliumtrade.ai`
+// Without a cap a stalled MetaApi request burns the whole 60s function budget
+// and the mt5-sync cron fails on a 504. Successful calls run in ~3-5s.
+const TIMEOUT_MS = 15_000
 
 function token(): string | null {
   return process.env.METAAPI_TOKEN || null
@@ -12,9 +15,12 @@ function token(): string | null {
 async function call(url: string, init: RequestInit = {}): Promise<{ ok: true; body: unknown } | { error: string }> {
   const t = token()
   if (!t) return { error: 'MetaApi is not configured.' }
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
   try {
     const res = await fetch(url, {
       ...init,
+      signal: controller.signal,
       headers: { 'auth-token': t, 'Content-Type': 'application/json', ...(init.headers ?? {}) },
     })
     if (res.status === 204) return { ok: true, body: null }
@@ -24,8 +30,14 @@ async function call(url: string, init: RequestInit = {}): Promise<{ ok: true; bo
       return { error: msg }
     }
     return { ok: true, body }
-  } catch {
+  } catch (e) {
+    // Surface the timeout distinctly so sync_error says why, not just "unreachable".
+    if (e instanceof Error && e.name === 'AbortError') {
+      return { error: `MetaApi timed out after ${TIMEOUT_MS / 1000}s.` }
+    }
     return { error: 'Could not reach MetaApi.' }
+  } finally {
+    clearTimeout(timer)
   }
 }
 
