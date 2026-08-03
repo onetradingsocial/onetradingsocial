@@ -111,10 +111,11 @@ export async function votePoll(postId: string, optionId: string): Promise<{ erro
   if (!user) return { error: 'Not authenticated.' }
   const { data: opt } = await supabase.from('poll_options').select('id').eq('id', optionId).eq('post_id', postId).maybeSingle()
   if (!opt) return { error: 'Invalid option.' }
-  await supabase.from('poll_votes').upsert(
+  const { error } = await supabase.from('poll_votes').upsert(
     { post_id: postId, user_id: user.id, option_id: optionId },
     { onConflict: 'post_id,user_id' },
   )
+  if (error) { console.error('votePoll', error.message); return { error: 'Could not record your vote. Try again.' } }
   revalidatePath('/')
   return { ok: true }
 }
@@ -133,7 +134,8 @@ export async function deletePost(postId: string): Promise<SocialState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
-  await supabase.from('posts').delete().eq('id', postId).eq('author_id', user.id)
+  const { error } = await supabase.from('posts').delete().eq('id', postId).eq('author_id', user.id)
+  if (error) { console.error('deletePost', error.message); return { error: 'Could not delete the post. Try again.' } }
   revalidatePath('/')
   return { ok: true }
 }
@@ -210,7 +212,8 @@ export async function deleteComment(commentId: string): Promise<SocialState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
-  await supabase.from('comments').delete().eq('id', commentId).eq('author_id', user.id)
+  const { error } = await supabase.from('comments').delete().eq('id', commentId).eq('author_id', user.id)
+  if (error) { console.error('deleteComment', error.message); return { error: 'Could not delete the comment. Try again.' } }
   return { ok: true }
 }
 
@@ -219,10 +222,11 @@ export async function follow(targetId: string): Promise<SocialState> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
   if (targetId === user.id) return { error: "You can't follow yourself." }
-  await supabase.from('follows').upsert(
+  const { error } = await supabase.from('follows').upsert(
     { follower_id: user.id, following_id: targetId },
     { onConflict: 'follower_id,following_id', ignoreDuplicates: true },
   )
+  if (error) { console.error('follow', error.message); return { error: 'Could not follow. Try again.' } }
   const service = createServiceClient()
   await insertNotification({ supabase: service, userId: targetId, actorId: user.id, type: 'follow' })
   revalidatePath('/')
@@ -233,7 +237,8 @@ export async function unfollow(targetId: string): Promise<SocialState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
-  await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', targetId)
+  const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', targetId)
+  if (error) { console.error('unfollow', error.message); return { error: 'Could not unfollow. Try again.' } }
   revalidatePath('/')
   return { ok: true }
 }

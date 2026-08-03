@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { submitReport, REPORT_REASONS } from '@/app/actions/reports'
+import { submitReport } from '@/app/actions/reports'
+import { REPORT_REASONS } from '@/lib/reports'
 
 /**
  * Report a profile/trade (Sprint 3, row 10). Small link that opens a modal
