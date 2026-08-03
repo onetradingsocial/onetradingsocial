@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   const flags = await getFeatureFlags()
   const { data: rows, error } = await svc
     .from('broker_accounts')
-    .select('id, user_id, metaapi_account_id, region, last_deal_time, created_at')
+    .select('id, user_id, metaapi_account_id, region, last_deal_time, created_at, status')
     .in('status', ['pending', 'active', 'error'])
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -31,8 +31,12 @@ export async function GET(req: Request) {
       await svc.from('broker_accounts')
         .update({ status: 'error', sync_error: msg }).eq('id', row.id)
       await undeployAccount(row.metaapi_account_id)
-      // Notify the owner their verification is at risk (row 31).
-      await insertSystemNotification({ supabase: svc, userId: row.user_id, type: 'sync_failed' })
+      // Notify the owner their verification is at risk (row 31), but only on the
+      // transition into error — this runs hourly, so an upstream outage would
+      // otherwise re-notify every hour until it clears.
+      if (row.status !== 'error') {
+        await insertSystemNotification({ supabase: svc, userId: row.user_id, type: 'sync_failed' })
+      }
     }
     try {
       // Same gate as connectBroker (incl. admin override) — see deploy route.
