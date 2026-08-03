@@ -8,3 +8,10 @@ skills-lock.json
 seed-users.md
 scripts/seed-activity.log
 backups/
+
+# Secrets — never commit. .env.example is the only tracked env file.
+.env
+.env.*
+!.env.example
+
+app/test-output.txt
