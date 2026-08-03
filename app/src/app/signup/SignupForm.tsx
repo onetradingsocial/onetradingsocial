@@ -32,6 +32,11 @@ export function SignupForm() {
   const [show, setShow] = useState(false)
   const [pw, setPw] = useState('')
   const [agreed, setAgreed] = useState(false)
+  // Controlled for the same reason as the password below: the post-action form
+  // reset was clearing the username and email — the two fields that were fine —
+  // while the rejected password survived.
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
 
   const score = scorePassword(pw)
   const lvl = STRENGTH[score]
@@ -49,14 +54,16 @@ export function SignupForm() {
         <div className="fl-field">
           <label htmlFor="su-username">Username</label>
           <span className="fl-input">
-            <input id="su-username" name="username" autoComplete="username" required placeholder="yourname" />
+            <input id="su-username" name="username" autoComplete="username" required placeholder="yourname"
+              value={username} onChange={(e) => setUsername(e.target.value)} />
           </span>
         </div>
 
         <div className="fl-field">
           <label htmlFor="su-email">Email</label>
           <span className="fl-input">
-            <input id="su-email" name="email" type="email" autoComplete="email" required placeholder="you@email.com" />
+            <input id="su-email" name="email" type="email" autoComplete="email" required placeholder="you@email.com"
+              value={email} onChange={(e) => setEmail(e.target.value)} />
           </span>
         </div>
 

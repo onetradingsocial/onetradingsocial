@@ -10,6 +10,31 @@ import { attributeReferral } from '@/lib/server/referral'
 
 export type ActionState = { error?: string }
 
+/** Supabase auth errors are implementation detail — "email rate limit exceeded"
+ *  and `Email address "x@y" is invalid` tell a user nothing they can act on. Map
+ *  the cases we know about to something actionable; the raw text stays in the
+ *  server log so the real cause is never lost. */
+function friendlyAuthError(raw: string, fallback: string): string {
+  const m = raw.toLowerCase()
+  if (m.includes('rate limit') || m.includes('too many requests') || m.includes('for security purposes')) {
+    return 'Too many attempts right now. Please wait a minute and try again.'
+  }
+  if (m.includes('is invalid') && m.includes('email')) {
+    return 'That email address was not accepted. Please try a different one.'
+  }
+  if (m.includes('already registered') || m.includes('already exists')) {
+    return 'An account with this email already exists.'
+  }
+  if (m.includes('password should be')) return 'Password must be at least 8 characters.'
+  if (m.includes('email not confirmed')) {
+    return 'Please confirm your email address first — check your inbox for the link.'
+  }
+  if (m.includes('signups not allowed') || m.includes('signup is disabled')) {
+    return 'New sign-ups are paused right now. Please try again later.'
+  }
+  return fallback
+}
+
 export async function signUp(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const username = String(formData.get('username') ?? '')
   const email = String(formData.get('email') ?? '')
@@ -27,7 +52,10 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     password,
     options: { data: { username } },
   })
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('signUp', error.message)
+    return { error: friendlyAuthError(error.message, 'Could not create your account. Please try again.') }
+  }
   if (data.user && data.user.identities && data.user.identities.length === 0) {
     return { error: 'An account with this email already exists.' }
   }
@@ -55,7 +83,14 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
 
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('signIn', error.message)
+    // "Invalid login credentials" is already plain English and is the wording QA
+    // signed the login flow off on, so it passes through untouched. Everything
+    // else — rate limits, unconfirmed emails — gets mapped.
+    if (/invalid login credentials/i.test(error.message)) return { error: error.message }
+    return { error: friendlyAuthError(error.message, 'Could not log you in. Please try again.') }
+  }
 
   redirect('/')
 }

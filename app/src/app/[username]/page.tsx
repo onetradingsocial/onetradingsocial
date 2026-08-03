@@ -93,6 +93,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   }
 
   const viewer = await getSessionUser(supabase)
+  const flags = await getFeatureFlags()
+  // The signed-in viewer's own tier — what every upsell shown TO them gates on.
+  const viewerTier = viewer ? await getTier(supabase, viewer.id) : 'free'
   let followerCount = 0, followingCount = 0, isFollowing = false, isFavorited = false, canFavorite = false
   let followers: { avatar_url: string | null; display_name: string | null; username: string }[] = []
   if (profileId) {
@@ -109,14 +112,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
       .map((r) => (Array.isArray(r.follower) ? r.follower[0] : r.follower))
       .filter(Boolean) as typeof followers
     if (viewer && viewer.id !== profileId) {
-      const [{ data: vf }, { data: vfav }, viewerTier] = await Promise.all([
+      const [{ data: vf }, { data: vfav }] = await Promise.all([
         supabase.from('follows').select('follower_id').eq('follower_id', viewer.id).eq('following_id', profileId).maybeSingle(),
         supabase.from('favorites').select('user_id').eq('user_id', viewer.id).eq('favorite_id', profileId).maybeSingle(),
-        getTier(supabase, viewer.id),
       ])
       isFollowing = !!vf
       isFavorited = !!vfav
-      canFavorite = canFlag(await getFeatureFlags(), viewerTier, 'saved_traders')
+      canFavorite = canFlag(flags, viewerTier, 'saved_traders')
     }
   }
   const isSelf = !!(viewer && profileId && viewer.id === profileId)
@@ -197,19 +199,24 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     if (board[0]) { leaderPnl = board[0].pnl; leaderHandle = board[0].username }
   }
 
-  // Pro badge + custom badge + creator profile + advanced stats (service client so cross-viewer RLS doesn't hide the owner's subscription).
+  // Pro badge + custom badge + creator profile — perks of the profile OWNER, so
+  // they read the owner's tier (service client so cross-viewer RLS doesn't hide
+  // the owner's subscription).
   let proBadge = false
   let customBadge = null as ReturnType<typeof findCustomBadge>
   let creatorProfile = false
-  let advancedStats = false
   if (profileId) {
-    const flags = await getFeatureFlags()
     const ownerTier = await getTier(createServiceClient(), profileId)
     proBadge = canFlag(flags, ownerTier, 'pro_badge')
     if (canFlag(flags, ownerTier, 'custom_badge')) customBadge = findCustomBadge(profile.custom_badge)
     creatorProfile = canFlag(flags, ownerTier, 'creator_profile')
-    advancedStats = canFlag(flags, ownerTier, 'advanced_stats')
   }
+
+  // The locked stat cards are an upsell aimed at the VIEWER and their CTA points
+  // at the viewer's own /settings/billing, so the lock must read the viewer's
+  // tier. Reading the owner's showed a Pro subscriber a "🔒 Trader" upgrade for
+  // a plan they already hold — buying it again would never have unlocked it.
+  const advancedStats = canFlag(flags, viewerTier, 'advanced_stats')
 
   const theme = creatorProfile ? findTheme(profile.theme_color) : null
   const tagline = creatorProfile ? profile.tagline : null
@@ -260,7 +267,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const countSeries: number[] = []
   let wRun = 0, rSum = 0, rN = 0
   asc.forEach((t, i) => {
-    if ((t.r_multiple ?? 0) > 0) wRun++
+    if (t.outcome === 'win') wRun++
     winRateSeries.push((wRun / (i + 1)) * 100)
     if (t.r_multiple != null) { rSum += t.r_multiple; rN++ }
     avgRSeries.push(rN ? rSum / rN : 0)
@@ -513,7 +520,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                         <div className="pf-hmeta">
                           <div className="col hidem"><div className="k">R:R</div><div className="v">{t.r_multiple != null ? `${t.r_multiple.toFixed(1)}R` : '—'}</div></div>
                           <div className="col"><div className="k">Net P/L</div><div className={'v ' + (pnl == null ? '' : pnl >= 0 ? 'up' : 'down')}>{pnl == null ? '—' : money(pnl, true)}</div></div>
-                          <div className="col hidem"><div className="k">Closed</div><div className="date">{new Date(t.traded_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div></div>
+                          {/* Year included so a future-dated trade can't read as a recent one. */}
+                          <div className="col hidem"><div className="k">Closed</div><div className="date">{new Date(t.traded_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</div></div>
                         </div>
                       </div>
                     )

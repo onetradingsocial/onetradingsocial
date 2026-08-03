@@ -112,6 +112,33 @@ describe('computeMetrics', () => {
     expect(m.mistakeCounts.FOMO).toBe(1)
   })
 
+  it('counts stop-less closed trades (no rMultiple) in every non-R metric', () => {
+    const quick = (outcome: 'win' | 'loss', pnl: number, tradedAt: string) => ({
+      status: 'closed' as const, outcome, rMultiple: null, pnlAmount: pnl, tradedAt, mistakeTags: [],
+    })
+    const m = computeMetrics([
+      quick('win', 10500, '2026-06-01T00:00:00Z'),
+      quick('win', 500, '2026-06-02T00:00:00Z'),
+      { status: 'open', outcome: 'open', rMultiple: null, pnlAmount: null, tradedAt: '2026-06-03T00:00:00Z', mistakeTags: [] },
+    ])
+    expect(m.total).toBe(2)
+    expect(m.open).toBe(1)     // NOT trades.length - closed.length guesswork
+    expect(m.wins).toBe(2)
+    expect(m.winRate).toBe(1)
+    expect(m.netPnl).toBe(11000)
+    expect(m.currentStreak).toBe(2)
+    expect(m.avgRr).toBe(0)    // R-only metric: nothing to average
+  })
+
+  it('averages R over the trades that have one, not over every closed trade', () => {
+    const m = computeMetrics([
+      closed(2, 200),
+      { status: 'closed', outcome: 'win', rMultiple: null, pnlAmount: 100, tradedAt: '2026-06-02T00:00:00Z', mistakeTags: [] },
+    ])
+    expect(m.total).toBe(2)
+    expect(m.avgRr).toBe(2)
+  })
+
   it('empty input yields zeros', () => {
     const m = computeMetrics([])
     expect(m).toMatchObject({ total: 0, wins: 0, winRate: 0, profitFactor: 0, netPnl: 0 })

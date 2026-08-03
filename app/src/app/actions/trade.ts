@@ -45,6 +45,10 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
 
   if (!instrument) return { error: 'Instrument is required.' }
   if (entry == null) return { error: 'Entry is required.' }
+  // num() only rejects non-finite, so a zero or negative price would reach the
+  // pip maths and produce nonsense P/L. No instrument here trades at or below 0.
+  if (entry <= 0) return { error: 'Entry price must be greater than zero.' }
+  if (exit != null && exit <= 0) return { error: 'Exit price must be greater than zero.' }
   // Quick entry (<60s) allows skipping the stop, but then risk-% sizing has
   // nothing to size against — lots become mandatory.
   if (stop == null && (sizingMode !== 'lots' || lots == null || lots <= 0)) {
@@ -96,7 +100,16 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
     }
   }
 
-  const tradedAt = String(formData.get('traded_at') ?? '') || new Date().toISOString()
+  // A future trade date is either a mistake or leaderboard gaming — one
+  // fabricated 2031 entry was enough to top the public board. The input carries
+  // a `max`, but that is only a hint: the check has to live here. A minute of
+  // slack absorbs clock skew between the browser and the server.
+  const tradedAtRaw = String(formData.get('traded_at') ?? '')
+  const tradedAt = tradedAtRaw || new Date().toISOString()
+  const tradedAtMs = Date.parse(tradedAt)
+  if (!Number.isFinite(tradedAtMs)) return { error: 'Invalid trade date.' }
+  if (tradedAtMs > Date.now() + 60_000) return { error: 'Trade date cannot be in the future.' }
+
   const isPublicRaw = formData.get('is_public')
   const isPublic = isPublicRaw == null ? (profile?.is_public ?? true) : isPublicRaw === 'public'
 

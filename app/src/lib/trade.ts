@@ -103,6 +103,24 @@ export type TradeForMetrics = {
   mistakeTags: string[]
 }
 
+/** One definition of a stat-bearing trade, shared with `@/lib/leaderboard`.
+ *
+ *  A trade counts as soon as it is CLOSED. Stop-less quick entries carry an
+ *  outcome and a P/L but no r_multiple, so gating on `rMultiple != null` erased
+ *  them from every journal/profile stat while the leaderboard — which counts by
+ *  `outcome` — still saw them: the same two trades read "0 trades, 0%" on one
+ *  page and "2 trades, 100%" on the other. Win/loss therefore comes from
+ *  `outcome`, the one field every closed trade has. Only genuinely
+ *  R-denominated figures (avg R, profit factor, best/worst R) look at
+ *  rMultiple, and they skip the nulls rather than counting them as zero. */
+export const isClosed = (t: { status?: string | null }): boolean => t.status === 'closed'
+export const isWin = (t: { outcome?: string | null }): boolean => t.outcome === 'win'
+export const isLoss = (t: { outcome?: string | null }): boolean => t.outcome === 'loss'
+
+/** The R values that actually exist — the only input an R metric may use. */
+export const rValues = (rs: (number | null | undefined)[]): number[] =>
+  rs.filter((r): r is number => r != null)
+
 export type Metrics = {
   total: number          // closed trades
   open: number
@@ -119,11 +137,11 @@ export type Metrics = {
 }
 
 export function computeMetrics(trades: TradeForMetrics[]): Metrics {
-  const closed = trades.filter((t) => t.status === 'closed' && t.rMultiple != null)
-  const open = trades.length - closed.length
-  const rs = closed.map((t) => t.rMultiple as number)
-  const wins = rs.filter((r) => r > EPS).length
-  const losses = rs.filter((r) => r < -EPS).length
+  const closed = trades.filter(isClosed)
+  const open = trades.filter((t) => t.status === 'open').length
+  const rs = rValues(closed.map((t) => t.rMultiple))
+  const wins = closed.filter(isWin).length
+  const losses = closed.filter(isLoss).length
   const grossWin = rs.filter((r) => r > EPS).reduce((a, b) => a + b, 0)
   const grossLoss = Math.abs(rs.filter((r) => r < -EPS).reduce((a, b) => a + b, 0))
   const netPnl = closed.reduce((a, t) => a + (t.pnlAmount ?? 0), 0)
@@ -131,13 +149,13 @@ export function computeMetrics(trades: TradeForMetrics[]): Metrics {
   const mistakeCounts: Record<string, number> = {}
   for (const t of closed) for (const tag of t.mistakeTags) mistakeCounts[tag] = (mistakeCounts[tag] ?? 0) + 1
 
-  // streak: walk most-recent-first by tradedAt
+  // streak: walk most-recent-first by tradedAt. Driven by outcome, not R, so a
+  // stop-less closed trade extends (or ends) the run like any other.
   const byRecent = [...closed].sort((a, b) => b.tradedAt.localeCompare(a.tradedAt))
   let streak = 0
   for (const t of byRecent) {
-    const r = t.rMultiple as number
-    if (Math.abs(r) <= EPS) break
-    const dir = r > 0 ? 1 : -1
+    const dir = isWin(t) ? 1 : isLoss(t) ? -1 : 0
+    if (dir === 0) break
     if (streak === 0 || Math.sign(streak) === dir) streak += dir
     else break
   }
@@ -148,7 +166,9 @@ export function computeMetrics(trades: TradeForMetrics[]): Metrics {
     wins,
     losses,
     winRate: closed.length ? wins / closed.length : 0,
-    avgRr: closed.length ? rs.reduce((a, b) => a + b, 0) / closed.length : 0,
+    // R metrics average over the trades that HAVE an R — dividing by every
+    // closed trade would drag a stop-less journal's avg R towards zero.
+    avgRr: rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : 0,
     profitFactor: grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : 0,
     best: rs.length ? Math.max(...rs) : 0,
     worst: rs.length ? Math.min(...rs) : 0,

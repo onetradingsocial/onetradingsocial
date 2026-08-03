@@ -94,6 +94,13 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
     if (p.strategy_tags) setStratTags(p.strategy_tags.slice(0, config.maxStrategyTags))
   }
 
+  // Latest date the picker will accept, in the local format datetime-local
+  // wants. The server rejects future dates too — this just says so up front.
+  const maxTradedAt = useMemo(
+    () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
+    [],
+  )
+
   const preview = useMemo(() => {
     const e = Number(entry), s = Number(stop), t = target ? Number(target) : null
     if (!entry || !stop || !Number.isFinite(e) || !Number.isFinite(s)) return null
@@ -218,7 +225,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
                 <input name="lots" className="ts-input" value={lots} onChange={(e) => setLots(e.target.value)} inputMode="decimal" placeholder="1.0" />
               </label>
               <label className="ts-field"><span className="ts-label">Trade date <span className="faint">(optional)</span></span>
-                <input name="traded_at" type="datetime-local" className="ts-input" />
+                <input name="traded_at" type="datetime-local" max={maxTradedAt} className="ts-input" />
               </label>
             </div>
             <p className="faint mt-3" style={{ fontSize: 12.5 }}>
@@ -386,7 +393,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
 
         <div className="ts-grid2 mt-4">
           <label className="ts-field"><span className="ts-label">Trade date <span className="faint">(optional)</span></span>
-            <input name="traded_at" type="datetime-local" className="ts-input" /></label>
+            <input name="traded_at" type="datetime-local" max={maxTradedAt} className="ts-input" /></label>
           <label className="ts-field"><span className="ts-label">Exit price <span className="faint">(fills to close now)</span></span>
             <input name="exit_price" className="ts-input" value={exit} onChange={(e) => setExit(e.target.value)} inputMode="decimal" placeholder="leave blank to keep open" /></label>
         </div>

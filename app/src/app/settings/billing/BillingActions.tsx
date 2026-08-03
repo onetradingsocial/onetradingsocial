@@ -116,16 +116,20 @@ export function PlanCards({ currentTier, currentInterval, hasSubscription, onTri
       <div className="ts-plan-grid mt-6">
         {PLANS.map((p) => {
           const popular = p.tier === 'trader'
-          // "Your plan" means the exact thing they pay for — tier AND interval.
-          // Comparing tier alone marked the annual card as current for a monthly
-          // subscriber, which both misstated their bill and disabled the only
-          // route onto the annual plan. Free counts as current only when there
-          // is no subscription and no trial running.
+          // "Your plan" keys off the EFFECTIVE tier. Interval only narrows it
+          // for people who actually pay: comparing tier alone marked the annual
+          // card as current for a monthly subscriber, which both misstated
+          // their bill and disabled the only route onto the annual plan. But
+          // requiring an interval match outright left every tier granted
+          // WITHOUT Stripe — admin bypass, referral comp — matching no card at
+          // all, so a comped Pro was shown "Upgrade to Pro Trader" and a live
+          // checkout for the plan they already hold. Free counts as current
+          // only when nothing else is granting a higher tier.
           const isCurrent = onTrial
             ? false
             : p.tier === 'free'
-              ? !hasSubscription && currentTier === 'free'
-              : p.tier === currentTier && interval === currentInterval
+              ? currentTier === 'free' && !hasSubscription
+              : p.tier === currentTier && (!hasSubscription || interval === currentInterval)
           const amt = interval === 'monthly' ? p.monthly : p.annual
           const billed = interval === 'monthly' ? p.billedM : p.billedA
           return (
@@ -197,6 +201,11 @@ function PlanCta({ plan, isCurrent, interval, hasSubscription, onTrial, busy, ac
   if (plan.tier === 'free') {
     if (onTrial) {
       return <button className="btn btn-ghost pcard-cta" disabled>Your plan when the trial ends</button>
+    }
+    // No subscription means no Stripe customer, so there is no portal session to
+    // open — a comped/admin tier would just hit an error dialog.
+    if (!hasSubscription) {
+      return <button className="btn btn-ghost pcard-cta" disabled>Included with every account</button>
     }
     return (
       <button className="btn btn-ghost pcard-cta" disabled={busy}

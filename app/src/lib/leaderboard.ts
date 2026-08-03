@@ -1,3 +1,5 @@
+import { isWin, isLoss, rValues } from '@/lib/trade'
+
 export type Period = 'day' | 'week' | 'month' | 'all'
 // Rank by more than raw profit (Sprint 3, row 9): return%, drawdown, profit
 // factor, expectancy, avg R, consistency, risk-adjusted return.
@@ -30,13 +32,17 @@ export function aggregatePerformance(trades: PerfTrade[]): Map<string, Agg> {
 
   const m = new Map<string, Agg>()
   for (const [userId, rows] of byUser) {
-    const rs = rows.map((t) => t.r_multiple ?? 0)
+    // Same definition as computeMetrics (see `isClosed` in @/lib/trade): every
+    // closed row counts, win/loss comes from outcome, and R metrics run over
+    // the rows that actually carry an r_multiple instead of reading a missing
+    // one as a flat 0R.
+    const rs = rValues(rows.map((t) => t.r_multiple))
     const pnl = rows.reduce((s, t) => s + (t.pnl_amount ?? 0), 0)
-    const wins = rows.filter((t) => t.outcome === 'win').length
-    const losses = rows.filter((t) => t.outcome === 'loss').length
+    const wins = rows.filter(isWin).length
+    const losses = rows.filter(isLoss).length
     const trades_ = rows.length
     const sumR = rs.reduce((a, b) => a + b, 0)
-    const avgR = trades_ ? sumR / trades_ : 0
+    const avgR = rs.length ? sumR / rs.length : 0
     const grossWin = rs.filter((r) => r > EPS).reduce((a, b) => a + b, 0)
     const grossLoss = Math.abs(rs.filter((r) => r < -EPS).reduce((a, b) => a + b, 0))
     const profitFactor = grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : 0
@@ -48,9 +54,9 @@ export function aggregatePerformance(trades: PerfTrade[]): Map<string, Agg> {
 
     // Volatility of per-trade R -> consistency + risk-adjusted return.
     const mean = avgR
-    const variance = trades_ > 1 ? rs.reduce((a, r) => a + (r - mean) ** 2, 0) / (trades_ - 1) : 0
+    const variance = rs.length > 1 ? rs.reduce((a, r) => a + (r - mean) ** 2, 0) / (rs.length - 1) : 0
     const stdev = Math.sqrt(variance)
-    const consistency = stdev > 0 ? 1 / (1 + stdev) : trades_ > 0 ? 1 : 0
+    const consistency = stdev > 0 ? 1 / (1 + stdev) : rs.length > 0 ? 1 : 0
     const riskAdjusted = stdev > 0 ? mean / stdev : mean > 0 ? mean : 0
 
     m.set(userId, {

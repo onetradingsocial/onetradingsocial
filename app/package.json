@@ -15,6 +15,10 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "//engines": "Local Node 22.19.0 breaks the dev server's streaming SSR: the response dies with 'controller[kState].transformAlgorithm is not a function' just before React's $RC reveal script, so hard page loads hang on the Suspense skeleton. .nvmrc pins the LTS that renders. Kept at the major here on purpose — Vercel rejects engines ranges finer than 'NN.x'.",
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",

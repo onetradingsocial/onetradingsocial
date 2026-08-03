@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   await supabase.auth.signOut()
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin
-  return NextResponse.redirect(`${base}/login`, { status: 303 })
+  // Same-origin route, so redirect relative to the host actually in use. Keying
+  // off NEXT_PUBLIC_SITE_URL sent everyone to whatever port that env var was set
+  // to (localhost:3000 in dev, wrong on every preview deployment) and dropped
+  // them on a 404 outside the app.
+  return NextResponse.redirect(new URL('/login', request.url), { status: 303 })
 }

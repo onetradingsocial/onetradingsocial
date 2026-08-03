@@ -21,6 +21,21 @@ describe('aggregatePerformance', () => {
     const a = aggregatePerformance([t('u1', null as unknown as number, null as unknown as number, 'breakeven')]).get('u1')!
     expect(a.pnl).toBe(0); expect(a.avgR).toBe(0); expect(a.wins).toBe(0); expect(a.losses).toBe(0); expect(a.trades).toBe(1)
   })
+  it('matches computeMetrics on stop-less closed trades: counted, but no R', () => {
+    const a = aggregatePerformance([
+      { user_id: 'u1', pnl_amount: 10500, r_multiple: null, outcome: 'win' },
+      { user_id: 'u1', pnl_amount: 500, r_multiple: null, outcome: 'win' },
+    ]).get('u1')!
+    expect(a.trades).toBe(2); expect(a.wins).toBe(2); expect(a.winRate).toBe(1); expect(a.pnl).toBe(11000)
+    expect(a.avgR).toBe(0)  // no R to average — not a fabricated 0R per trade
+  })
+  it('averages R over the rows that carry one', () => {
+    const a = aggregatePerformance([
+      t('u1', 100, 2, 'win'),
+      { user_id: 'u1', pnl_amount: 100, r_multiple: null, outcome: 'win' },
+    ]).get('u1')!
+    expect(a.trades).toBe(2); expect(a.avgR).toBe(2)
+  })
 })
 
 describe('rankPerformance', () => {

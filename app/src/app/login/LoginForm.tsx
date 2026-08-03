@@ -11,6 +11,10 @@ const initial: ActionState = {}
 export function LoginForm() {
   const [state, action, pending] = useActionState(signIn, initial)
   const [show, setShow] = useState(false)
+  // Controlled: React resets the form after a failed action, which wiped the
+  // email and made the user retype it after every mistyped password. Only the
+  // password is meant to clear.
+  const [email, setEmail] = useState('')
 
   return (
     <AuthShell mode="login" heading="Welcome back" sub="Log in to keep tracking your edge.">
@@ -21,7 +25,8 @@ export function LoginForm() {
         <div className="fl-field">
           <label htmlFor="li-email">Email</label>
           <span className="fl-input">
-            <input id="li-email" name="email" type="email" autoComplete="email" required placeholder="you@email.com" />
+            <input id="li-email" name="email" type="email" autoComplete="email" required placeholder="you@email.com"
+              value={email} onChange={(e) => setEmail(e.target.value)} />
           </span>
         </div>
 

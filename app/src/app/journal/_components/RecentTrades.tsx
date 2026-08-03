@@ -8,16 +8,19 @@ import { tradeLevel } from '@/lib/verification'
 
 const FILTERS = [['all', 'All'], ['wins', 'Wins'], ['losses', 'Losses'], ['crypto', 'Crypto'], ['forex', 'Forex'], ['stocks', 'Stocks']] as const
 
+// Year included: "Jan 1" made a 2031-dated trade indistinguishable from one
+// logged this week, which is how a fabricated future trade went unnoticed.
 function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return new Date(s).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 export function RecentTrades({ trades, monthNet, canMistakeTag = false }: { trades: JTrade[]; monthNet: number; canMistakeTag?: boolean }) {
   const [f, setF] = useState<string>('all')
   const shown = trades.filter((t) => {
     if (f === 'all') return true
-    if (f === 'wins') return t.status === 'closed' && (t.r_multiple ?? 0) > 0
-    if (f === 'losses') return t.status === 'closed' && (t.r_multiple ?? 0) < 0
+    // outcome, not r_multiple: stop-less trades close with a win/loss and no R.
+    if (f === 'wins') return t.status === 'closed' && t.outcome === 'win'
+    if (f === 'losses') return t.status === 'closed' && t.outcome === 'loss'
     return t.market === f
   })
 
