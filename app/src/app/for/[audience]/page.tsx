@@ -17,7 +17,10 @@ export async function generateMetadata({ params }: { params: Promise<{ audience:
   return {
     title: `${l.headline} — TradingSocial`,
     description: l.sub,
-    alternates: { canonical: `/for/${l.slug}` },
+    // The marketing site owns these audiences for search; these app-side pages
+    // exist to carry ?ref/utm through to signup. Point search at the www copy so
+    // the two don't compete for the same terms.
+    alternates: { canonical: `https://www.tradingsocial.io/for/${l.slug}` },
     openGraph: { title: l.headline, description: l.sub },
   }
 }
