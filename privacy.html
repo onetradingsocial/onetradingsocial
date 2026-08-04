@@ -781,7 +781,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .nav-links a:hover { color: var(--text); }
 .nav-cta { display: flex; align-items: center; gap: 12px; }
 .nav-login { font-size: 14.5px; font-weight: 600; padding-inline: 6px; color: var(--text); }
-@media (max-width: 880px){ .nav-links { display: none; } }
 
 /* nav dropdown */
 .nav-item { position: relative; }
@@ -804,6 +803,67 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .dd-link b { font-size: 13.5px; font-weight: 700; color: var(--text); display: block; }
 .dd-link span { font-size: 12px; color: var(--faint); line-height: 1.35; }
 
+/* nav toggle (mobile) */
+.nav-toggle {
+  display: none;
+  width: 40px; height: 40px; flex-shrink: 0;
+  align-items: center; justify-content: center;
+  border-radius: 10px; border: 1px solid var(--border-2);
+  background: var(--surface); color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.nav-toggle svg { width: 20px; height: 20px; }
+.nav-toggle .ico-close { display: none; }
+.nav.open .nav-toggle .ico-close { display: block; }
+.nav.open .nav-toggle .ico-open { display: none; }
+
+@media (max-width: 880px){
+  .nav-toggle { display: inline-flex; }
+  /* the bar needs a solid backdrop once the panel is down, even at scrollTop 0 */
+  .nav.open {
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(18px) saturate(140%);
+    border-bottom-color: var(--border);
+  }
+  .nav-cta .nav-login { display: none; }
+  .nav-links {
+    display: block;
+    position: fixed; inset: 70px 0 auto 0;
+    max-height: calc(100vh - 70px); overflow-y: auto; overscroll-behavior: contain;
+    padding: 6px var(--pad) 28px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    opacity: 0; visibility: hidden; transform: translateY(-10px);
+    /* nothing in the collapsed panel may capture a tap, even mid-transition */
+    pointer-events: none;
+    transition: opacity .22s ease, transform .22s ease, visibility .22s;
+  }
+  .nav.open .nav-links { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
+  .nav-links > a, .nav-item > a {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 15px 2px; font-size: 16px; color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-item > a { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--faint); padding-bottom: 8px; border-bottom: 0; }
+  .nav-item > a svg { display: none; }
+  /* dropdowns become plain expanded groups — no hover on touch */
+  .nav-item { position: static; }
+  .dropdown {
+    position: static; width: auto; padding: 0 0 8px;
+    transform: none; opacity: 1; visibility: inherit;
+    background: none; border: 0; border-radius: 0; box-shadow: none;
+  }
+  .nav-item:hover .dropdown { transform: none; }
+  .dropdown::before { display: none; }
+  .dd-link { padding: 11px 2px; border-bottom: 1px solid var(--border); border-radius: 0; }
+  .dd-link:hover { background: none; }
+  .nav-mob-cta { display: flex; gap: 10px; margin-top: 20px; }
+  .nav-mob-cta .btn { flex: 1; }
+}
+@media (min-width: 881px){ .nav-mob-cta { display: none; } }
+
 /* ---------- Background helpers ---------- */
 .glow { position: absolute; pointer-events: none; z-index: 0; filter: blur(8px); }
 .bg-grid {
@@ -819,7 +879,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
    Footer
    ============================================================ */
 .footer { border-top:1px solid var(--border); padding-block: 56px 40px; background: var(--bg-2); }
-.foot-grid { display:grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 40px; }
+.foot-grid { display:grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 32px 28px; }
 .foot-brand .lead { font-size: 14px; margin-top: 16px; max-width: 30ch; }
 .foot-col h5 { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; }
 .foot-col a { display:block; font-size: 14px; color: var(--dim); padding: 6px 0; transition: color .2s; }
@@ -827,8 +887,37 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .foot-disc { margin-top: 44px; padding-top: 28px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap; }
 .foot-disc p { font-size: 12px; color: var(--faint); max-width: 70ch; line-height:1.6; }
 .foot-disc .copy { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+@media (max-width: 1080px){ .foot-grid { grid-template-columns: 1fr 1fr 1fr; } }
 @media (max-width: 820px){ .foot-grid { grid-template-columns: 1fr 1fr; gap:32px; } }
 
+/* ============================================================
+   Focus, motion and text wrapping
+   ============================================================ */
+
+/* Keyboard focus was invisible everywhere. :focus-visible keeps it off mouse clicks. */
+:where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--violet-br);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.btn:focus-visible, .dd-link:focus-visible { outline-offset: 4px; }
+/* on the gradient banner a violet ring disappears — go white there */
+.hero-banner :where(a, button):focus-visible,
+.finalcta-card :where(a, button):focus-visible { outline-color: #fff; }
+
+h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
+.lead, .hero-sub { text-wrap: pretty; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+  /* reveal is a transition from opacity:0 — show it outright instead */
+  .reveal { opacity: 1 !important; transform: none !important; }
+}
 /* ============================================================
    Responsive
    ============================================================ */
@@ -891,6 +980,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
   <link rel="icon" type="image/png" href="/assets/images/favicon.png">
 </head>
 <body>
+<noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
 
 <!-- ============================ NAV ============================ -->
 <header class="nav">
@@ -899,7 +989,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
       <span class="brand-mark"><img src="/assets/images/e0cd038a5f9649e095c52adbf795e1b1.png" alt="TradingSocial"></span>
       TradingSocial
     </a>
-    <nav class="nav-links">
+    <nav class="nav-links" id="navLinks">
       <div class="nav-item">
         <a href="/#features">Features <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
         <div class="dropdown">
@@ -921,13 +1011,54 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
           </a>
         </div>
       </div>
+      <div class="nav-item">
+        <a href="/for">Solutions <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+        <div class="dropdown">
+          <a class="dd-link" href="/for/forex">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 8h14l-3-3M21 16H7l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+            <div><b>Forex traders</b><span>Pips, sessions &amp; verified pairs</span></div>
+          </a>
+          <a class="dd-link" href="/for/crypto">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle><path d="M9.5 8h4a2.2 2.2 0 010 4.4h-4zm0 4.4h4.4a2.2 2.2 0 010 4.4H9.5zM11 6v2m0 8v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+            <div><b>Crypto traders</b><span>Spot, perps &amp; 3am discipline</span></div>
+          </a>
+          <a class="dd-link" href="/for/futures">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4v16M7 7h3M7 15h3M17 4v16M14 9h3M14 18h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
+            <div><b>Futures traders</b><span>ES, NQ, micros &amp; R multiples</span></div>
+          </a>
+          <a class="dd-link" href="/for/prop-firm">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+            <div><b>Prop-firm traders</b><span>Drawdown rules &amp; challenges</span></div>
+          </a>
+          <a class="dd-link" href="/for/mt5">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M9 3v6M15 3v6M7 9h10v3a5 5 0 01-10 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
+            <div><b>MT5 users</b><span>Auto-sync your closed trades</span></div>
+          </a>
+          <a class="dd-link" href="/for/journal">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M5 4h11l3 3v13H5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M9 9h6M9 13h6M9 17h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
+            <div><b>Trading journal</b><span>Reviews and insights, not storage</span></div>
+          </a>
+          <a class="dd-link" href="/for/educators">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 11l9-4 9 4-9 4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M7 13v4c0 1 2.2 2 5 2s5-1 5-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+            <div><b>Educators &amp; creators</b><span>A track record students can verify</span></div>
+          </a>
+        </div>
+      </div>
       <a href="/pricing">Pricing</a>
       <a href="/blog">Blog</a>
       <a href="/#about">About</a>
+      <div class="nav-mob-cta">
+        <a class="btn btn-ghost" href="https://app.tradingsocial.io/login">Log in</a>
+        <a class="btn btn-primary" href="https://app.tradingsocial.io/signup">Start Free Trial</a>
+      </div>
     </nav>
     <div class="nav-cta">
       <a class="nav-login" href="https://app.tradingsocial.io/login">Log in</a>
       <a class="btn btn-primary btn-sm" href="https://app.tradingsocial.io/signup">Start Free Trial</a>
+      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks">
+        <svg class="ico-open" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+        <svg class="ico-close" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+      </button>
     </div>
   </div>
 </header>
@@ -1030,6 +1161,16 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
         <a href="https://app.tradingsocial.io/signup">Start Free Trial</a>
       </div>
       <div class="foot-col">
+        <h5>Solutions</h5>
+        <a href="/for/forex">Forex traders</a>
+        <a href="/for/crypto">Crypto traders</a>
+        <a href="/for/futures">Futures traders</a>
+        <a href="/for/prop-firm">Prop-firm traders</a>
+        <a href="/for/mt5">MT5 users</a>
+        <a href="/for/journal">Trading journal</a>
+        <a href="/for/educators">Educators</a>
+      </div>
+      <div class="foot-col">
         <h5>Legal</h5>
         <a href="/terms">Terms of service</a>
         <a href="/privacy">Privacy policy</a>
@@ -1044,8 +1185,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
   </div>
 </footer>
 
-<script src="/assets/js/d7ec549e23324d4fa56150f67348d599.js"></script>
-
+<script src="/assets/js/66e7d2ba811bad6e323afd8b3e3e557c.js"></script>
 
 <script>
   window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
