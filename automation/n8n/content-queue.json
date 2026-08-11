@@ -41,17 +41,18 @@
     {
       "id": "ig-01-what-is-the-fed",
       "platform": "instagram",
-      "status": "pending",
+      "status": "posted",
       "scheduledFor": "",
       "text": "Most traders react to the Fed without being able to say what it actually is.\n\nIt is not one bank and not one job. Five separate mandates, only one of which is the interest rate everyone watches.\n\nWorth knowing which one is moving before deciding a headline matters.\n\n#markets #federalreserve #tradingeducation #macro #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/what-is-the-fed.jpg",
       "videoUrl": "",
-      "author": "nathan (image) / drafted caption — review before publishing"
+      "author": "nathan (image) / drafted caption — review before publishing",
+      "postedAt": "2026-08-11T02:33:46.944Z"
     },
     {
       "id": "ig-02-who-controls-the-fed",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "The \"the Fed is a private bank\" line survives because the actual structure is rarely shown.\n\nThree branches, split deliberately between a federal agency, twelve regional banks, and the committee that actually votes.\n\nThe design is the answer to who controls it.\n\n#federalreserve #macro #tradingeducation #monetarypolicy #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/who-controls-the-fed.jpg",
@@ -61,7 +62,7 @@
     {
       "id": "ig-03-fed-created-after-panic",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "A failed attempt to corner the copper market ended with a private banker organising a rescue of the US financial system.\n\nThat was 1907. There was no central bank to call.\n\nSix years later there was one. Most institutions exist because something broke first.\n\n#financialhistory #federalreserve #macro #tradingeducation #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/fed-created-after-panic.jpg",
@@ -71,7 +72,7 @@
     {
       "id": "ig-04-rate-decision-moves-markets",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "A rate decision does not move markets. The gap between the decision and what was already expected moves markets.\n\nThat is why price can barely react to a hike, or move hard on a cut that everyone saw coming.\n\nIf you are trading the number instead of the expectation, you are reading the wrong variable.\n\n#markets #interestrates #macro #tradingeducation #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/rate-decision-moves-markets.jpg",
@@ -81,7 +82,7 @@
     {
       "id": "ig-05-bad-news-stocks-higher",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "Weak data pushing stocks up looks broken until you follow the chain: softer economy, lower expected rates, cheaper borrowing, support for asset prices.\n\nThe part people skip is where it stops working. Past a certain point the earnings damage outweighs the rate relief, and the same news flips sign.\n\nSame headline, opposite reaction, depending on where in that range you are.\n\n#markets #macro #tradingeducation #interestrates #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/bad-news-stocks-higher.jpg",
@@ -91,7 +92,7 @@
     {
       "id": "ig-06-why-countries-are-always-in-debt",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "Government debt gets discussed as if the number alone means something.\n\nIt does not. What it was spent on, what rate was paid, and whether the economy can carry it are three different questions with three different answers.\n\nA large debt at a low rate funding productive assets is not the same thing as a small one at a high rate funding a shortfall.\n\n#macro #governmentdebt #economics #tradingeducation #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/why-countries-are-always-in-debt.jpg",
@@ -101,7 +102,7 @@
     {
       "id": "ig-07-who-holds-government-debt",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "When people say a country is \"in debt to\" someone, the someone is usually its own pension funds, banks, and households.\n\nEvery government bond is simultaneously a liability for the state and an asset for whoever holds it.\n\nThe same instrument, read from two ends.\n\n#macro #bonds #governmentdebt #economics #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/who-holds-government-debt.jpg",
@@ -111,7 +112,7 @@
     {
       "id": "ig-08-can-a-country-owe-itself",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "A large share of most government debt is held domestically — by pension funds, local banks, and the central bank.\n\nWhich makes \"owing money to itself\" partly true, and the interest a transfer rather than a loss.\n\nIt matters because debt owed at home behaves very differently in a crisis than debt owed abroad in a currency you do not issue.\n\n#macro #governmentdebt #economics #bonds #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/can-a-country-owe-itself.jpg",
@@ -121,7 +122,7 @@
     {
       "id": "ig-09-why-not-just-print-money",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "The reason printing money does not solve much fits in one line: money is a claim on goods and services, and printing more does not create more goods.\n\nMore claims chasing the same output is not wealth. It is a repricing.\n\nEverything else in the inflation debate is detail on top of that.\n\n#macro #inflation #economics #tradingeducation #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/why-not-just-print-money.jpg",
@@ -131,7 +132,7 @@
     {
       "id": "ig-10-when-money-was-tied-to-gold",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "The gold standard is remembered as discipline, and it was — that was the point and the problem.\n\nA hard anchor on money creation is exactly what you want in normal times and exactly what you cannot afford in a banking crisis.\n\nEvery monetary system since has been an argument about which of those two matters more.\n\n#financialhistory #gold #macro #economics #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/when-money-was-tied-to-gold.jpg",
@@ -141,7 +142,7 @@
     {
       "id": "ig-11-bretton-woods",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "In 1944, with the war still running, delegates agreed how money would work afterwards.\n\nFixed rates, other currencies pegged to the dollar, the dollar convertible to gold for foreign central banks. The IMF and World Bank came out of the same meeting.\n\nThat is the moment the dollar became the centre of the system — by agreement, not by accident.\n\n#financialhistory #brettonwoods #macro #economics #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/bretton-woods.jpg",
@@ -151,7 +152,7 @@
     {
       "id": "ig-12-dollar-gold-link-suspended",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "August 15, 1971: the US suspended dollar convertibility into gold.\n\nMore dollars existed offshore than there was gold to back them, so the promise was quietly ended rather than tested.\n\nBy 1973 major currencies floated. Almost every price you trade today is denominated in the system that decision created.\n\n#financialhistory #macro #forex #economics #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/dollar-gold-link-suspended.jpg",
@@ -161,7 +162,7 @@
     {
       "id": "ig-13-what-is-quantitative-easing",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "QE is widely described as printing money and handing it to the public. Neither part is quite right.\n\nA central bank buys assets — usually government bonds — which changes what the financial system holds, not what sits in anyone's account.\n\nWhether that reaches the real economy is the actual debate, and it is a much narrower one than the headlines suggest.\n\n#macro #quantitativeeasing #monetarypolicy #economics #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/what-is-quantitative-easing.jpg",
@@ -171,7 +172,7 @@
     {
       "id": "ig-14-bank-run-out-of-money",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "A bank can be solvent and still fail.\n\nSolvency asks whether the assets are worth more than the liabilities. Liquidity asks whether it can pay today. A bank passing the first test and failing the second is how most bank runs actually work.\n\nDeposits get lent out. They cannot all come back at once.\n\n#banking #macro #financialhistory #economics #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/bank-run-out-of-money.jpg",
@@ -181,7 +182,7 @@
     {
       "id": "ig-15-crash-1929",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "The 1929 crash is remembered as the cause of the Great Depression. The sequence is less tidy than that.\n\nTwo brutal days in October, then years of banking panics and policy failures that turned a market collapse into an economic one.\n\nThe crash did the damage to confidence. What followed did the rest.\n\n#financialhistory #markets #economics #tradingeducation #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/crash-1929.jpg",
@@ -191,7 +192,7 @@
     {
       "id": "ig-16-good-trade-bad-result",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "A loss does not prove the decision was wrong, and a win does not prove it was right.\n\nWith enough randomness in the outcome, judging yourself on results alone means learning the wrong lesson roughly half the time.\n\nThis is why the process gets written down and reviewed separately from the P&L.\n\n#tradingpsychology #tradingjournal #riskmanagement #tradingeducation #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/good-trade-bad-result.jpg",
@@ -201,7 +202,7 @@
     {
       "id": "ig-17-market-owes-you-nothing",
       "platform": "instagram",
-      "status": "draft",
+      "status": "pending",
       "scheduledFor": "",
       "text": "A day with no setup still tells you something.\n\nA flat day is not a wasted one — it is a day the market did not offer what you wait for, which is exactly when a plan is worth having.\n\nPatience is a position. It is just harder to log.\n\n#tradingpsychology #tradingdiscipline #tradingjournal #tradingeducation #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/market-owes-you-nothing.jpg",
