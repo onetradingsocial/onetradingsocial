@@ -281,11 +281,72 @@ node. `post-log.jsonl` is the durable record of what actually went out.
 
 ---
 
+## Keeping it running (watchdog)
+
+This runs on a laptop that sleeps, so two mechanisms cover the gaps.
+
+### 1. Scheduled Task restarts n8n
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\automation\n8n\install-watchdog.ps1
+```
+
+Registers **TradingSocial n8n watchdog** under your own account (no admin
+needed) with three triggers: at logon, every 5 minutes, and daily at 11:50 with
+*wake the computer to run this task*. It checks whether anything is listening on
+5678 and starts n8n only if not, so repeated runs can't produce a second
+instance. Activity goes to `watchdog.log`; n8n's own output to
+`n8n-console.log`.
+
+Remove it with:
+
+```powershell
+Unregister-ScheduledTask -TaskName "TradingSocial n8n watchdog" -Confirm:$false
+```
+
+### 2. The Instagram poster heals a missed slot
+
+n8n's cron does **not** backfill a tick it slept through, so a single daily
+trigger silently loses the day. Instead the workflow runs **hourly** and decides
+whether to post, guarded so it still posts at most once a day:
+
+- already posted today → skip
+- before `IG_POST_HOUR` (12) → skip
+- at/after `IG_POST_UNTIL_HOUR` (21) → skip, leave it for tomorrow
+
+So it posts at 12:00 normally; if the machine was asleep until 15:00 it posts at
+15:00; if it never woke inside the window the item stays `pending` and goes out
+the next day. **Nothing is lost — the queue just drains a day slower.**
+
+### What this does not fix
+
+Wake-to-run works from sleep, not hibernate or shutdown, and only when wake
+timers are permitted. On this machine they are **enabled on AC and disabled on
+battery**, so a closed lid on battery will not wake for the 11:50 trigger — the
+5-minute watchdog catches it whenever you next open the lid, and the posting
+window absorbs the delay.
+
+Check with `powercfg /query SCHEME_CURRENT SUB_SLEEP RTCWAKE` (`0x1` = enabled).
+Enabling it on battery costs battery life and isn't necessary given the window.
+
+For genuinely unattended posting, this still wants an always-on host — same
+workflows, same files, somewhere that doesn't sleep.
+
 ## Operational notes
 
-- **This is a local instance.** Nothing posts while the machine is asleep or n8n
-  isn't running, and missed cron slots are not backfilled. If the channels need
-  to post unattended, this wants an always-on host with the same workflows.
+- **Re-importing deactivates workflows.** `n8n import:workflow` resets `active`
+  to false. After any re-import, reactivate and restart:
+
+  ```bash
+  n8n update:workflow --id=tsInstagramPost04 --active=true
+  n8n update:workflow --id=tsIgTokenRefresh5 --active=true
+  ```
+
+  Triggers are registered at boot, so a restart is required for the change to
+  take effect. If the n8n server is running, the CLI needs its own ports:
+  `N8N_RUNNERS_BROKER_PORT=5690 N8N_PORT=5691`.
+- **Keep PowerShell scripts ASCII-only.** PowerShell 5.1 reads `.ps1` as ANSI
+  unless there's a BOM, so an em dash in a comment becomes a parser error.
 - **Back up** `~/.n8n/database.sqlite` and keep `N8N_ENCRYPTION_KEY` somewhere
   separate. One without the other is useless.
 - `content-queue.json` is safe to commit — it's the content calendar. `.env`,

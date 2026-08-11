@@ -8,13 +8,13 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 12 * * *"
+              "expression": "7 * * * *"
             }
           ]
         }
       },
       "id": "d4000000-0000-4000-8000-000000000001",
-      "name": "Schedule (12:00 daily)",
+      "name": "Schedule (hourly, window-guarded)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -24,7 +24,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Picks the next DUE instagram item from Nathan's queue.\n// Instagram cannot publish text-only, so an item needs an imageUrl (feed post)\n// or a videoUrl (Reel). There is no fallback: nothing queued means nothing posted.\nconst fs = require('fs');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\n\nlet queue;\ntry {\n  queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));\n} catch (err) {\n  throw new Error('Cannot read the content queue at ' + QUEUE_PATH + ': ' + err.message);\n}\n\nconst now = Date.now();\nconst due = (queue.items || [])\n  .filter(\n    (i) =>\n      i.platform === 'instagram' &&\n      i.status === 'pending' &&\n      (i.imageUrl || i.videoUrl) &&\n      (!i.scheduledFor || Date.parse(i.scheduledFor) <= now)\n  )\n  .sort((a, b) => {\n    const ta = a.scheduledFor ? Date.parse(a.scheduledFor) : 0;\n    const tb = b.scheduledFor ? Date.parse(b.scheduledFor) : 0;\n    return ta - tb;\n  });\n\nif (due.length === 0) {\n  return [\n    {\n      json: {\n        found: false,\n        reason:\n          'No instagram item is pending, due, and carrying an imageUrl or videoUrl.'\n      }\n    }\n  ];\n}\n\nconst item = due[0];\nconst isReel = !item.imageUrl && !!item.videoUrl;\n\nreturn [\n  {\n    json: {\n      found: true,\n      source: 'queue',\n      itemId: item.id,\n      mediaUrl: isReel ? item.videoUrl : item.imageUrl,\n      mediaType: isReel ? 'REELS' : 'IMAGE',\n      caption: item.text || ''\n    }\n  }\n];\n"
+        "jsCode": "// Picks the next DUE instagram item from Nathan's queue.\n//\n// This runs HOURLY, not once at noon. The laptop sleeps, and n8n's cron does not\n// backfill a tick it slept through — a single daily trigger silently loses the\n// day. Instead every hour asks \"should something go out now?\", guarded so it\n// still posts at most once a day:\n//\n//   - already posted today  -> skip\n//   - before IG_POST_HOUR   -> skip (don't post early)\n//   - after IG_POST_UNTIL   -> skip (don't post at 3am after a long sleep)\n//\n// So on a normal day it posts at 12:00. If the machine was asleep until 15:00,\n// it posts at 15:00. If it never woke inside the window, the item stays pending\n// and goes out tomorrow — the queue drains a day later, nothing is lost.\n//\n// Times are local; TZ is set to Asia/Hong_Kong in .env.\nconst fs = require('fs');\nconst path = require('path');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\nconst LOG_PATH = path.join(path.dirname(QUEUE_PATH), 'post-log.jsonl');\n\nconst START_HOUR = Number($env.IG_POST_HOUR || 12);\nconst END_HOUR = Number($env.IG_POST_UNTIL_HOUR || 21);\n\nconst now = new Date();\nconst hour = now.getHours();\nconst todayKey = now.toLocaleDateString('en-CA'); // YYYY-MM-DD, local\n\nconst skip = (reason) => [{ json: { found: false, reason } }];\n\n// Guard 1: one Instagram post per calendar day.\nlet postedToday = false;\ntry {\n  for (const line of fs.readFileSync(LOG_PATH, 'utf8').split('\\n')) {\n    if (!line.trim()) continue;\n    const e = JSON.parse(line);\n    if (e.platform === 'instagram' && new Date(e.at).toLocaleDateString('en-CA') === todayKey) {\n      postedToday = true;\n      break;\n    }\n  }\n} catch (err) {\n  // No log yet — nothing has ever posted.\n}\nif (postedToday) return skip('Already posted to Instagram today (' + todayKey + ').');\n\n// Guard 2: only inside the posting window.\nif (hour < START_HOUR) return skip('Before the ' + START_HOUR + ':00 window (now ' + hour + ':00).');\nif (hour >= END_HOUR) {\n  return skip('Past the ' + END_HOUR + ':00 cutoff (now ' + hour + ':00) — leaving it for tomorrow.');\n}\n\nlet queue;\ntry {\n  queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));\n} catch (err) {\n  throw new Error('Cannot read the content queue at ' + QUEUE_PATH + ': ' + err.message);\n}\n\nconst due = (queue.items || [])\n  .filter(\n    (i) =>\n      i.platform === 'instagram' &&\n      i.status === 'pending' &&\n      (i.imageUrl || i.videoUrl) &&\n      (!i.scheduledFor || Date.parse(i.scheduledFor) <= now.getTime())\n  )\n  .sort((a, b) => {\n    const ta = a.scheduledFor ? Date.parse(a.scheduledFor) : 0;\n    const tb = b.scheduledFor ? Date.parse(b.scheduledFor) : 0;\n    return ta - tb;\n  });\n\nif (due.length === 0) {\n  return skip('No instagram item is pending, due, and carrying an imageUrl or videoUrl.');\n}\n\nconst item = due[0];\nconst isReel = !item.imageUrl && !!item.videoUrl;\n\nreturn [\n  {\n    json: {\n      found: true,\n      source: 'queue',\n      itemId: item.id,\n      mediaUrl: isReel ? item.videoUrl : item.imageUrl,\n      mediaType: isReel ? 'REELS' : 'IMAGE',\n      caption: item.text || '',\n    },\n  },\n];\n"
       },
       "id": "d4000000-0000-4000-8000-000000000002",
       "name": "Load IG Queue",
@@ -300,17 +300,6 @@
     }
   ],
   "connections": {
-    "Schedule (12:00 daily)": {
-      "main": [
-        [
-          {
-            "node": "Load IG Queue",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Load IG Queue": {
       "main": [
         [
@@ -411,6 +400,17 @@
         [
           {
             "node": "Mark Posted & Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule (hourly, window-guarded)": {
+      "main": [
+        [
+          {
+            "node": "Load IG Queue",
             "type": "main",
             "index": 0
           }

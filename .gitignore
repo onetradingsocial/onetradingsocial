@@ -20,3 +20,7 @@ app/test-output.txt
 automation/n8n/post-log.jsonl
 # Holds a live Instagram long-lived access token.
 automation/n8n/instagram-token.json
+# Watchdog and n8n console output.
+automation/n8n/watchdog.log
+automation/n8n/n8n-console.log
+automation/n8n/n8n-console.err.log

@@ -41,7 +41,7 @@ foreach ($line in Get-Content $envFile) {
         }
     }
 
-    # Set-Item on an empty value deletes the variable — skip blanks instead.
+    # Set-Item on an empty value deletes the variable -- skip blanks instead.
     if ($value -eq '') { continue }
 
     Set-Item -Path "Env:$name" -Value $value
