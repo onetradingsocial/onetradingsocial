@@ -1504,15 +1504,14 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   </script>
   <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1056839790113606&ev=PageView&noscript=1"/></noscript>
   <!-- End Meta Pixel Code -->
-  <meta name="description" content="Read the latest trading insights and strategies on TradingSocial.">
-  <meta property="og:title" content="Blog Post — TradingSocial">
-  <meta property="og:description" content="Read the latest trading insights and strategies on TradingSocial.">
+  <meta property="og:title" content="Why a trading journal is the highest-ROI habit you're not building — TradingSocial">
+  <meta property="og:description" content="Most traders track P&amp;L and stop there. The traders who compound review. The case for journaling, plus a ten-minute daily framework.">
   <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
   <meta property="og:url" content="https://www.tradingsocial.io/blog-post">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Blog Post — TradingSocial">
-  <meta name="twitter:description" content="Read the latest trading insights and strategies on TradingSocial.">
+  <meta name="twitter:title" content="Why a trading journal is the highest-ROI habit you're not building — TradingSocial">
+  <meta name="twitter:description" content="Most traders track P&amp;L and stop there. The traders who compound review. The case for journaling, plus a ten-minute daily framework.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
   <link rel="canonical" href="https://www.tradingsocial.io/blog-post">
   <link rel="icon" type="image/png" href="/assets/images/favicon.png">
@@ -1757,8 +1756,13 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       setMeta('og:title', post.title);
       setMeta('og:description', post.excerpt);
       setMeta('og:url', 'https://www.tradingsocial.io/blog/' + post.slug);
+      setMeta('og:type', 'article');
+      setMetaName('description', post.excerpt);
+      setMetaName('twitter:title', post.title);
+      setMetaName('twitter:description', post.excerpt);
       var canon = document.querySelector('link[rel="canonical"]');
       if (canon) canon.href = 'https://www.tradingsocial.io/blog/' + post.slug;
+      injectArticleJsonLd(post);
 
       // Hero
       document.getElementById('js-crumb-cat').textContent = post.category;
@@ -1832,6 +1836,49 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   function setMeta(prop, val) {
     var el = document.querySelector('meta[property="' + prop + '"]');
     if (el) el.setAttribute('content', val);
+  }
+
+  function setMetaName(name, val) {
+    var el = document.querySelector('meta[name="' + name + '"]');
+    if (el) el.setAttribute('content', val);
+  }
+
+  // BlogPosting structured data — built from the fetched post, since this page
+  // is a client-rendered shell and has no post-specific markup at load time.
+  function injectArticleJsonLd(post) {
+    var url = 'https://www.tradingsocial.io/blog/' + post.slug;
+    var data = {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      'headline': post.title,
+      'description': post.excerpt,
+      'url': url,
+      'mainEntityOfPage': { '@type': 'WebPage', '@id': url },
+      'datePublished': post.published_date,
+      'dateModified': post.published_date,
+      'articleSection': post.category,
+      'inLanguage': 'en',
+      'author': { '@type': 'Person', 'name': post.author_name },
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'TradingSocial',
+        'url': 'https://www.tradingsocial.io',
+        'logo': {
+          '@type': 'ImageObject',
+          'url': 'https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png'
+        }
+      }
+    };
+    if (post.tags && post.tags.length) data.keywords = post.tags.join(', ');
+    if (post.image) {
+      data.image = [post.image.indexOf('http') === 0
+        ? post.image
+        : 'https://www.tradingsocial.io' + post.image];
+    }
+    var s = document.createElement('script');
+    s.type = 'application/ld+json';
+    s.textContent = JSON.stringify(data);
+    document.head.appendChild(s);
   }
 
   function renderCard(p) {
