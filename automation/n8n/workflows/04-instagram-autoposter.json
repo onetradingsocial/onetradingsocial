@@ -1,0 +1,425 @@
+{
+  "id": "tsInstagramPost04",
+  "name": "TradingSocial — Instagram Auto-Poster",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 12 * * *"
+            }
+          ]
+        }
+      },
+      "id": "d4000000-0000-4000-8000-000000000001",
+      "name": "Schedule (12:00 daily)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Picks the next DUE instagram item from Nathan's queue.\n// Instagram cannot publish text-only, so an item needs an imageUrl (feed post)\n// or a videoUrl (Reel). There is no fallback: nothing queued means nothing posted.\nconst fs = require('fs');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\n\nlet queue;\ntry {\n  queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));\n} catch (err) {\n  throw new Error('Cannot read the content queue at ' + QUEUE_PATH + ': ' + err.message);\n}\n\nconst now = Date.now();\nconst due = (queue.items || [])\n  .filter(\n    (i) =>\n      i.platform === 'instagram' &&\n      i.status === 'pending' &&\n      (i.imageUrl || i.videoUrl) &&\n      (!i.scheduledFor || Date.parse(i.scheduledFor) <= now)\n  )\n  .sort((a, b) => {\n    const ta = a.scheduledFor ? Date.parse(a.scheduledFor) : 0;\n    const tb = b.scheduledFor ? Date.parse(b.scheduledFor) : 0;\n    return ta - tb;\n  });\n\nif (due.length === 0) {\n  return [\n    {\n      json: {\n        found: false,\n        reason:\n          'No instagram item is pending, due, and carrying an imageUrl or videoUrl.'\n      }\n    }\n  ];\n}\n\nconst item = due[0];\nconst isReel = !item.imageUrl && !!item.videoUrl;\n\nreturn [\n  {\n    json: {\n      found: true,\n      source: 'queue',\n      itemId: item.id,\n      mediaUrl: isReel ? item.videoUrl : item.imageUrl,\n      mediaType: isReel ? 'REELS' : 'IMAGE',\n      caption: item.text || ''\n    }\n  }\n];\n"
+      },
+      "id": "d4000000-0000-4000-8000-000000000002",
+      "name": "Load IG Queue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-found",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000003",
+      "name": "Nathan's post ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-media",
+              "name": "mediaUrl",
+              "value": "={{ $json.mediaUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "set-type",
+              "name": "mediaType",
+              "value": "={{ $json.mediaType }}",
+              "type": "string"
+            },
+            {
+              "id": "set-caption",
+              "name": "caption",
+              "value": "={{ $json.caption }}",
+              "type": "string"
+            },
+            {
+              "id": "set-itemid",
+              "name": "itemId",
+              "value": "={{ $json.itemId || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "set-source",
+              "name": "source",
+              "value": "={{ $json.source }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "d4000000-0000-4000-8000-000000000007",
+      "name": "Prepare Post",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reads the long-lived token from the shared token file. Workflow 05 refreshes\n// that file weekly — per-workflow static data cannot be shared between the two,\n// which is why this lives on disk next to the content queue.\nconst fs = require('fs');\nconst path = require('path');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\nconst TOKEN_PATH = path.join(path.dirname(QUEUE_PATH), 'instagram-token.json');\n\nconst igUserId = $env.IG_USER_ID;\nconst base = ($env.IG_GRAPH_BASE || 'https://graph.instagram.com/v23.0').replace(/\\/+$/, '');\n\nif (!igUserId) throw new Error('IG_USER_ID is not set.');\n\nlet store = {};\ntry {\n  store = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));\n} catch (err) {\n  store = {};\n}\n\n// Seed from the env var the first time, then the file is the source of truth.\nconst token = store.accessToken || $env.IG_ACCESS_TOKEN;\nif (!token) {\n  throw new Error(\n    'No Instagram access token. Complete the OAuth flow, put the long-lived token in IG_ACCESS_TOKEN, and run workflow 05 once (see README step 8).'\n  );\n}\n\nif (!store.accessToken) {\n  store.accessToken = token;\n  store.seededAt = new Date().toISOString();\n  try {\n    fs.writeFileSync(TOKEN_PATH, JSON.stringify(store, null, 2), 'utf8');\n  } catch (err) {\n    // Non-fatal: posting can still proceed on the env-var token.\n  }\n}\n\n// Instagram long-lived tokens die at 60 days and CANNOT be refreshed once\n// expired — someone has to redo the OAuth consent by hand. Fail loudly rather\n// than letting the account go quiet without explanation.\nif (store.expiresAt) {\n  const daysLeft = (Date.parse(store.expiresAt) - Date.now()) / 86400000;\n  if (daysLeft < 0) {\n    throw new Error(\n      'The Instagram token expired on ' +\n        store.expiresAt +\n        '. It cannot be refreshed — redo the OAuth consent and reset IG_ACCESS_TOKEN.'\n    );\n  }\n}\n\nreturn [{ json: { token, igUserId, base, tokenPath: TOKEN_PATH } }];"
+      },
+      "id": "d4000000-0000-4000-8000-000000000008",
+      "name": "Get IG Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.base }}/{{ $json.igUserId }}/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "={{ $('Prepare Post').first().json.mediaType === 'REELS' ? 'video_url' : 'image_url' }}",
+              "value": "={{ $('Prepare Post').first().json.mediaUrl }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $('Prepare Post').first().json.caption }}"
+            },
+            {
+              "name": "media_type",
+              "value": "={{ $('Prepare Post').first().json.mediaType }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "d4000000-0000-4000-8000-000000000009",
+      "name": "Create Media Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 20,
+        "unit": "seconds"
+      },
+      "id": "d4000000-0000-4000-8000-00000000000a",
+      "name": "Wait for container",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        300
+      ],
+      "webhookId": "d4000000-0000-4000-8000-00000000000a"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Get IG Token').first().json.base }}/{{ $('Create Media Container').first().json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get IG Token').first().json.token }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "status_code,status"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "d4000000-0000-4000-8000-00000000000b",
+      "name": "Check Container Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Publishing a container that is not FINISHED silently produces nothing, so\n// fail loudly here instead.\nconst status = $json.status_code || '';\nconst container = $('Create Media Container').first().json;\n\nif (container.error) {\n  throw new Error(\n    'Instagram rejected the container: ' +\n      (container.error.message || JSON.stringify(container.error))\n  );\n}\nif (!container.id) {\n  throw new Error('No container id returned: ' + JSON.stringify(container).slice(0, 300));\n}\n\nif (status === 'ERROR') {\n  throw new Error(\n    'Instagram could not process the media. Most common causes: the image is not JPEG, the URL is not publicly reachable, or the aspect ratio is out of range. Detail: ' +\n      ($json.status || 'none')\n  );\n}\nif (status && status !== 'FINISHED') {\n  throw new Error(\n    'Container still ' + status + ' after the wait. Increase the Wait node for larger video.'\n  );\n}\n\nreturn [{ json: { containerId: container.id, statusCode: status || 'FINISHED' } }];"
+      },
+      "id": "d4000000-0000-4000-8000-00000000000c",
+      "name": "Verify Container Ready",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Get IG Token').first().json.base }}/{{ $('Get IG Token').first().json.igUserId }}/media_publish",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get IG Token').first().json.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.containerId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "d4000000-0000-4000-8000-00000000000d",
+      "name": "Publish to Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\nconst LOG_PATH = path.join(path.dirname(QUEUE_PATH), 'post-log.jsonl');\n\nconst prep = $('Prepare Post').first().json;\nconst published = $json;\n\nif (published.error) {\n  throw new Error(\n    'Instagram publish failed: ' +\n      (published.error.message || JSON.stringify(published.error))\n  );\n}\n\nconst entry = {\n  at: new Date().toISOString(),\n  platform: 'instagram',\n  source: prep.source,\n  itemId: prep.itemId || null,\n  mediaType: prep.mediaType,\n  mediaId: published.id || null,\n  captionChars: (prep.caption || '').length\n};\n\nif (prep.itemId) {\n  try {\n    const queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));\n    const target = (queue.items || []).find((i) => i.id === prep.itemId);\n    if (target) {\n      target.status = 'posted';\n      target.postedAt = entry.at;\n      fs.writeFileSync(QUEUE_PATH, JSON.stringify(queue, null, 2), 'utf8');\n      entry.queueUpdated = true;\n    }\n  } catch (err) {\n    entry.queueError = String(err.message || err);\n  }\n}\n\ntry {\n  fs.appendFileSync(LOG_PATH, JSON.stringify(entry) + '\\n', 'utf8');\n} catch (err) {\n  // The post already went out — never fail the run on logging.\n}\n\nreturn [{ json: entry }];"
+      },
+      "id": "d4000000-0000-4000-8000-00000000000e",
+      "name": "Mark Posted & Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "d4000000-0000-4000-8000-0000000000f1",
+      "name": "Nothing queued — stop",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        720,
+        460
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule (12:00 daily)": {
+      "main": [
+        [
+          {
+            "node": "Load IG Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load IG Queue": {
+      "main": [
+        [
+          {
+            "node": "Nathan's post ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nathan's post ready?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nothing queued — stop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Post": {
+      "main": [
+        [
+          {
+            "node": "Get IG Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get IG Token": {
+      "main": [
+        [
+          {
+            "node": "Create Media Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Media Container": {
+      "main": [
+        [
+          {
+            "node": "Wait for container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for container": {
+      "main": [
+        [
+          {
+            "node": "Check Container Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Container Status": {
+      "main": [
+        [
+          {
+            "node": "Verify Container Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Container Ready": {
+      "main": [
+        [
+          {
+            "node": "Publish to Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Instagram": {
+      "main": [
+        [
+          {
+            "node": "Mark Posted & Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

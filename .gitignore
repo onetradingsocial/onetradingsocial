@@ -15,3 +15,8 @@ backups/
 !.env.example
 
 app/test-output.txt
+
+# n8n runtime output — the content queue itself IS tracked.
+automation/n8n/post-log.jsonl
+# Holds a live Instagram long-lived access token.
+automation/n8n/instagram-token.json

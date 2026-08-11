@@ -1,0 +1,302 @@
+{
+  "id": "tsIgTokenRefresh5",
+  "name": "TradingSocial — Instagram Token Refresh",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e5000000-0000-4000-8000-000000000001",
+      "name": "Run manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 4 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "e5000000-0000-4000-8000-000000000002",
+      "name": "Schedule (Mondays 04:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loads the current long-lived token so it can be exchanged for a fresh one.\n//\n// Instagram long-lived tokens last 60 days, can only be refreshed once they are\n// at least 24 hours old, and CANNOT be refreshed after they expire. Running\n// this weekly keeps the token permanently rolling forward.\nconst fs = require('fs');\nconst path = require('path');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\nconst TOKEN_PATH = path.join(path.dirname(QUEUE_PATH), 'instagram-token.json');\n\nlet store = {};\ntry {\n  store = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));\n} catch (err) {\n  store = {};\n}\n\nconst token = store.accessToken || $env.IG_ACCESS_TOKEN;\nif (!token) {\n  throw new Error(\n    'No Instagram token to refresh. Complete the OAuth consent and set IG_ACCESS_TOKEN first (README step 8).'\n  );\n}\n\nconst ageHours = store.refreshedAt\n  ? (Date.now() - Date.parse(store.refreshedAt)) / 3600000\n  : 999;\n\n// Meta rejects a refresh on a token younger than 24h. Skip rather than error.\nconst tooYoung = ageHours < 24;\n\nreturn [\n  {\n    json: {\n      token,\n      tokenPath: TOKEN_PATH,\n      tooYoung,\n      ageHours: Math.round(ageHours),\n      expiresAt: store.expiresAt || null\n    }\n  }\n];\n"
+      },
+      "id": "e5000000-0000-4000-8000-000000000003",
+      "name": "Read Current Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-too-young",
+              "leftValue": "={{ $json.tooYoung }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000004",
+      "name": "Old enough to refresh?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e5000000-0000-4000-8000-000000000005",
+      "name": "Refreshed recently — skip",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        720,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://graph.instagram.com/refresh_access_token",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "ig_refresh_token"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "e5000000-0000-4000-8000-000000000006",
+      "name": "Refresh Long-Lived Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Persists the refreshed token and decides whether a human needs to be told.\nconst fs = require('fs');\n\nconst res = $json;\nconst prev = $('Read Current Token').first().json;\n\nlet ok = false;\nlet message = '';\nlet expiresAt = prev.expiresAt;\n\nif (res.error) {\n  // Meta returns { error: { message, type, code } } on failure.\n  const e = res.error;\n  message =\n    'Instagram token refresh FAILED: ' +\n    (e.message || JSON.stringify(e)) +\n    (prev.expiresAt ? ' — current token expires ' + prev.expiresAt : '') +\n    '. If it expires, the OAuth consent must be redone by hand.';\n} else if (res.access_token) {\n  const seconds = Number(res.expires_in || 5184000);\n  expiresAt = new Date(Date.now() + seconds * 1000).toISOString();\n\n  const store = {\n    accessToken: res.access_token,\n    refreshedAt: new Date().toISOString(),\n    expiresAt,\n    expiresInDays: Math.round(seconds / 86400)\n  };\n\n  fs.writeFileSync(prev.tokenPath, JSON.stringify(store, null, 2), 'utf8');\n  ok = true;\n  message =\n    'Instagram token refreshed. Valid for ' +\n    store.expiresInDays +\n    ' more days (until ' +\n    expiresAt.slice(0, 10) +\n    ').';\n} else {\n  message =\n    'Instagram token refresh returned an unexpected response: ' +\n    JSON.stringify(res).slice(0, 300);\n}\n\n// Warn while there is still time to act, not after the token is dead.\nconst daysLeft = expiresAt ? (Date.parse(expiresAt) - Date.now()) / 86400000 : null;\nconst needsAttention = !ok || (daysLeft !== null && daysLeft < 14);\n\nreturn [\n  {\n    json: {\n      ok,\n      needsAttention,\n      message,\n      expiresAt,\n      daysLeft: daysLeft === null ? null : Math.floor(daysLeft),\n      notification: '<b>TradingSocial — Instagram token</b>\\n\\n' + message\n    }\n  }\n];\n"
+      },
+      "id": "e5000000-0000-4000-8000-000000000007",
+      "name": "Store New Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-attention",
+              "leftValue": "={{ $json.needsAttention }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e5000000-0000-4000-8000-000000000008",
+      "name": "Needs attention?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_REVIEW_CHAT_ID || $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.notification }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false
+        }
+      },
+      "id": "e5000000-0000-4000-8000-000000000009",
+      "name": "Alert Nathan",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1440,
+        140
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e5000000-0000-4000-8000-00000000000a",
+      "name": "All good — stay quiet",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Run manually": {
+      "main": [
+        [
+          {
+            "node": "Read Current Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule (Mondays 04:00)": {
+      "main": [
+        [
+          {
+            "node": "Read Current Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Current Token": {
+      "main": [
+        [
+          {
+            "node": "Old enough to refresh?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Old enough to refresh?": {
+      "main": [
+        [
+          {
+            "node": "Refresh Long-Lived Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refreshed recently — skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh Long-Lived Token": {
+      "main": [
+        [
+          {
+            "node": "Store New Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store New Token": {
+      "main": [
+        [
+          {
+            "node": "Needs attention?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs attention?": {
+      "main": [
+        [
+          {
+            "node": "Alert Nathan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "All good — stay quiet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

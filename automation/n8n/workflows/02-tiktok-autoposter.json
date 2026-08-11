@@ -1,0 +1,475 @@
+{
+  "id": "tsTikTokPoster0002",
+  "name": "TradingSocial — TikTok Auto-Poster",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 17 * * *"
+            }
+          ]
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000001",
+      "name": "Schedule (17:00 daily)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Picks the next DUE tiktok item from Nathan's queue.\n// A TikTok post is impossible without a video, so items lacking videoUrl are\n// skipped. There is no fallback: nothing queued means nothing posted.\nconst fs = require('fs');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\n\nlet queue;\ntry {\n  queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));\n} catch (err) {\n  throw new Error('Cannot read the content queue at ' + QUEUE_PATH + ': ' + err.message);\n}\n\nconst now = Date.now();\nconst due = (queue.items || [])\n  .filter(\n    (i) =>\n      i.platform === 'tiktok' &&\n      i.status === 'pending' &&\n      i.videoUrl &&\n      (!i.scheduledFor || Date.parse(i.scheduledFor) <= now)\n  )\n  .sort((a, b) => {\n    const ta = a.scheduledFor ? Date.parse(a.scheduledFor) : 0;\n    const tb = b.scheduledFor ? Date.parse(b.scheduledFor) : 0;\n    return ta - tb;\n  });\n\nif (due.length === 0) {\n  return [\n    {\n      json: {\n        found: false,\n        reason: 'No tiktok item is pending, due, and carrying a videoUrl.'\n      }\n    }\n  ];\n}\n\nconst item = due[0];\nreturn [\n  {\n    json: {\n      found: true,\n      source: 'queue',\n      itemId: item.id,\n      videoUrl: item.videoUrl,\n      caption: item.text || ''\n    }\n  }\n];\n"
+      },
+      "id": "b2000000-0000-4000-8000-000000000002",
+      "name": "Load Queue & Video",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-found",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000003",
+      "name": "Anything queued?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-video",
+              "name": "videoUrl",
+              "value": "={{ $json.videoUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "set-caption",
+              "name": "caption",
+              "value": "={{ $json.caption }}",
+              "type": "string"
+            },
+            {
+              "id": "set-itemid",
+              "name": "itemId",
+              "value": "={{ $json.itemId || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "set-source",
+              "name": "source",
+              "value": "={{ $json.source }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "b2000000-0000-4000-8000-000000000009",
+      "name": "Prepare Post",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// TikTok access tokens live 24h; refresh tokens live 365 days and ROTATE on\n// every refresh. The current refresh token is kept in workflow static data so\n// the rotation survives restarts. TIKTOK_REFRESH_TOKEN seeds it on first run.\nconst store = $getWorkflowStaticData('global');\nconst refreshToken = store.tiktokRefreshToken || $env.TIKTOK_REFRESH_TOKEN;\n\nif (!refreshToken) {\n  throw new Error(\n    'No TikTok refresh token. Set TIKTOK_REFRESH_TOKEN in .env after completing the OAuth consent flow (see README step 6).'\n  );\n}\n\nreturn [{ json: { refreshToken } }];"
+      },
+      "id": "b2000000-0000-4000-8000-00000000000a",
+      "name": "Get Refresh Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://open.tiktokapis.com/v2/oauth/token/",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "client_key",
+              "value": "={{ $env.TIKTOK_CLIENT_KEY }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $env.TIKTOK_CLIENT_SECRET }}"
+            },
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            },
+            {
+              "name": "refresh_token",
+              "value": "={{ $json.refreshToken }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "b2000000-0000-4000-8000-00000000000b",
+      "name": "Refresh TikTok Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2140,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Persist the rotated refresh token immediately — if this run later fails, the\n// old refresh token is already dead and only the new one will work.\nconst res = $json;\n\nif (res.error) {\n  throw new Error(\n    'TikTok token refresh failed: ' + res.error + ' — ' + (res.error_description || '')\n  );\n}\nif (!res.access_token) {\n  throw new Error('TikTok token refresh returned no access_token: ' + JSON.stringify(res).slice(0, 300));\n}\n\nconst store = $getWorkflowStaticData('global');\nif (res.refresh_token) {\n  store.tiktokRefreshToken = res.refresh_token;\n  store.tiktokRefreshedAt = new Date().toISOString();\n}\n\nreturn [\n  {\n    json: {\n      accessToken: res.access_token,\n      openId: res.open_id || '',\n      expiresIn: res.expires_in || 0\n    }\n  }\n];"
+      },
+      "id": "b2000000-0000-4000-8000-00000000000c",
+      "name": "Store Tokens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://open.tiktokapis.com/v2/post/publish/creator_info/query/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json; charset=UTF-8"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "b2000000-0000-4000-8000-00000000000d",
+      "name": "Query Creator Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Chooses the endpoint and assembles the publish payload.\n//\n// TIKTOK_MODE:\n//   inbox  (default) — uploads to the creator's TikTok inbox as a draft they\n//                      finish and post by hand. Needs only the video.upload\n//                      scope and works WITHOUT app audit.\n//   direct           — publishes straight to the account. Needs video.publish\n//                      AND an audited app, otherwise TikTok forces SELF_ONLY.\nconst creator = $json;\n\nif (creator.error && creator.error.code && creator.error.code !== 'ok') {\n  throw new Error(\n    'TikTok creator_info failed: ' +\n      creator.error.code +\n      ' — ' +\n      (creator.error.message || '')\n  );\n}\n\nconst info = creator.data || {};\nconst prep = $('Prepare Post').first().json;\nconst mode = ($env.TIKTOK_MODE || 'inbox').toLowerCase();\n\nlet endpoint;\nlet body;\n\nif (mode === 'direct') {\n  // privacy_level MUST be one of the options TikTok returned for this creator.\n  // Unaudited apps only ever get SELF_ONLY, so never hardcode PUBLIC.\n  const allowed = info.privacy_level_options || [];\n  const wanted = $env.TIKTOK_PRIVACY_LEVEL || '';\n  const privacy = allowed.includes(wanted) ? wanted : allowed[0];\n\n  if (!privacy) {\n    throw new Error(\n      'TikTok returned no privacy_level_options — the account cannot be posted to right now.'\n    );\n  }\n\n  endpoint = 'https://open.tiktokapis.com/v2/post/publish/video/init/';\n  body = {\n    post_info: {\n      title: prep.caption,\n      privacy_level: privacy,\n      disable_duet: false,\n      disable_comment: false,\n      disable_stitch: false,\n      video_cover_timestamp_ms: 1000\n    },\n    source_info: {\n      source: 'PULL_FROM_URL',\n      video_url: prep.videoUrl\n    }\n  };\n} else {\n  // Draft-to-inbox: no post_info block is accepted here. The caption is carried\n  // through so it can be logged and copy-pasted when finishing the draft.\n  endpoint = 'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/';\n  body = {\n    source_info: {\n      source: 'PULL_FROM_URL',\n      video_url: prep.videoUrl\n    }\n  };\n}\n\nreturn [\n  {\n    json: {\n      mode,\n      endpoint,\n      body,\n      caption: prep.caption,\n      creatorNickname: info.creator_nickname || ''\n    }\n  }\n];"
+      },
+      "id": "b2000000-0000-4000-8000-00000000000e",
+      "name": "Build Publish Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.endpoint }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Store Tokens').first().json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json; charset=UTF-8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "b2000000-0000-4000-8000-00000000000f",
+      "name": "Publish to TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 45,
+        "unit": "seconds"
+      },
+      "id": "b2000000-0000-4000-8000-000000000010",
+      "name": "Wait for TikTok to pull video",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3340,
+        300
+      ],
+      "webhookId": "b2000000-0000-4000-8000-000000000010"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://open.tiktokapis.com/v2/post/publish/status/fetch/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Store Tokens').first().json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json; charset=UTF-8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ publish_id: $('Publish to TikTok').first().json.data.publish_id }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000011",
+      "name": "Check Publish Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3580,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Marks the queue item posted and appends to the post log.\nconst fs = require('fs');\nconst path = require('path');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\nconst LOG_PATH = path.join(path.dirname(QUEUE_PATH), 'post-log.jsonl');\n\nconst prep = $('Prepare Post').first().json;\nconst publish = $('Publish to TikTok').first().json;\nconst request = $('Build Publish Request').first().json;\nconst status = $json;\n\nif (publish.error && publish.error.code && publish.error.code !== 'ok') {\n  throw new Error(\n    'TikTok publish failed: ' + publish.error.code + ' — ' + (publish.error.message || '')\n  );\n}\n\nconst entry = {\n  at: new Date().toISOString(),\n  platform: 'tiktok',\n  mode: request.mode,\n  source: prep.source,\n  itemId: prep.itemId || null,\n  publishId: (publish.data && publish.data.publish_id) || null,\n  status: (status.data && status.data.status) || 'UNKNOWN',\n  failReason: (status.data && status.data.fail_reason) || null,\n  caption: prep.caption\n};\n\nif (prep.itemId) {\n  try {\n    const queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));\n    const target = (queue.items || []).find((i) => i.id === prep.itemId);\n    if (target) {\n      target.status = 'posted';\n      target.postedAt = entry.at;\n      fs.writeFileSync(QUEUE_PATH, JSON.stringify(queue, null, 2), 'utf8');\n      entry.queueUpdated = true;\n    }\n  } catch (err) {\n    entry.queueError = String(err.message || err);\n  }\n}\n\ntry {\n  fs.appendFileSync(LOG_PATH, JSON.stringify(entry) + '\\n', 'utf8');\n} catch (err) {\n  // The post already went out — never fail the run on logging.\n}\n\nreturn [{ json: entry }];\n"
+      },
+      "id": "b2000000-0000-4000-8000-000000000012",
+      "name": "Mark Posted & Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3820,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b2000000-0000-4000-8000-0000000000f1",
+      "name": "Nothing queued — stop",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        700,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule (17:00 daily)": {
+      "main": [
+        [
+          {
+            "node": "Load Queue & Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Queue & Video": {
+      "main": [
+        [
+          {
+            "node": "Anything queued?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Post": {
+      "main": [
+        [
+          {
+            "node": "Get Refresh Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Refresh Token": {
+      "main": [
+        [
+          {
+            "node": "Refresh TikTok Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh TikTok Token": {
+      "main": [
+        [
+          {
+            "node": "Store Tokens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Tokens": {
+      "main": [
+        [
+          {
+            "node": "Query Creator Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Creator Info": {
+      "main": [
+        [
+          {
+            "node": "Build Publish Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Publish Request": {
+      "main": [
+        [
+          {
+            "node": "Publish to TikTok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to TikTok": {
+      "main": [
+        [
+          {
+            "node": "Wait for TikTok to pull video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for TikTok to pull video": {
+      "main": [
+        [
+          {
+            "node": "Check Publish Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Publish Status": {
+      "main": [
+        [
+          {
+            "node": "Mark Posted & Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything queued?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nothing queued — stop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -1,0 +1,310 @@
+{
+  "id": "tsTelegramPoster01",
+  "name": "TradingSocial — Telegram Auto-Poster",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9,14,19 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Schedule (09:00 / 14:00 / 19:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Picks the next DUE telegram item from Nathan's queue.\n// There is no fallback: if nothing is queued, the workflow stops without posting.\nconst fs = require('fs');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\n\nlet queue;\ntry {\n  queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));\n} catch (err) {\n  throw new Error('Cannot read the content queue at ' + QUEUE_PATH + ': ' + err.message);\n}\n\nconst now = Date.now();\nconst due = (queue.items || [])\n  .filter(\n    (i) =>\n      i.platform === 'telegram' &&\n      i.status === 'pending' &&\n      (!i.scheduledFor || Date.parse(i.scheduledFor) <= now)\n  )\n  .sort((a, b) => {\n    const ta = a.scheduledFor ? Date.parse(a.scheduledFor) : 0;\n    const tb = b.scheduledFor ? Date.parse(b.scheduledFor) : 0;\n    return ta - tb;\n  });\n\nif (due.length === 0) {\n  return [{ json: { found: false, reason: 'No telegram item is pending and due.' } }];\n}\n\nconst item = due[0];\nreturn [\n  {\n    json: {\n      found: true,\n      source: 'queue',\n      itemId: item.id,\n      text: item.text || '',\n      imageUrl: item.imageUrl || ''\n    }\n  }\n];\n"
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Load Queue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-found",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Nathan's content ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-text",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "set-image",
+              "name": "imageUrl",
+              "value": "={{ $json.imageUrl || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "set-itemid",
+              "name": "itemId",
+              "value": "={{ $json.itemId || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "set-source",
+              "name": "source",
+              "value": "={{ $json.source }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "Prepare Post",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-image",
+              "leftValue": "={{ $json.imageUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "Has image?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "file": "={{ $json.imageUrl }}",
+        "additionalFields": {
+          "caption": "={{ $json.text }}",
+          "parse_mode": "HTML",
+          "appendAttribution": false
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "Telegram — Send Photo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false
+        }
+      },
+      "id": "a1000000-0000-4000-8000-00000000000a",
+      "name": "Telegram — Send Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1880,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Marks the queue item as posted. AI-generated posts have no itemId, so this\n// is a no-op for them — it only appends a line to the post log.\nconst fs = require('fs');\nconst path = require('path');\n\nconst QUEUE_PATH =\n  $env.TS_CONTENT_QUEUE ||\n  'C:\\\\work\\\\OneTradingSocial\\\\Website\\\\automation\\\\n8n\\\\content-queue.json';\nconst LOG_PATH = path.join(path.dirname(QUEUE_PATH), 'post-log.jsonl');\n\nconst out = [];\n\nfor (const item of $input.all()) {\n  const prep = $('Prepare Post').first().json;\n  const entry = {\n    at: new Date().toISOString(),\n    platform: 'telegram',\n    source: prep.source,\n    itemId: prep.itemId || null,\n    chars: (prep.text || '').length,\n    telegramMessageId: item.json.message_id || item.json.result?.message_id || null\n  };\n\n  if (prep.itemId) {\n    try {\n      const queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));\n      const target = (queue.items || []).find((i) => i.id === prep.itemId);\n      if (target) {\n        target.status = 'posted';\n        target.postedAt = entry.at;\n        fs.writeFileSync(QUEUE_PATH, JSON.stringify(queue, null, 2), 'utf8');\n        entry.queueUpdated = true;\n      }\n    } catch (err) {\n      entry.queueUpdated = false;\n      entry.queueError = String(err.message || err);\n    }\n  }\n\n  try {\n    fs.appendFileSync(LOG_PATH, JSON.stringify(entry) + '\\n', 'utf8');\n  } catch (err) {\n    // Logging must never fail the run — the post already went out.\n  }\n\n  out.push({ json: entry });\n}\n\nreturn out;"
+      },
+      "id": "a1000000-0000-4000-8000-00000000000b",
+      "name": "Mark Posted & Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2120,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a1000000-0000-4000-8000-0000000000f1",
+      "name": "Nothing queued — stop",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        700,
+        460
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule (09:00 / 14:00 / 19:00)": {
+      "main": [
+        [
+          {
+            "node": "Load Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Queue": {
+      "main": [
+        [
+          {
+            "node": "Nathan's content ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nathan's content ready?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nothing queued — stop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Post": {
+      "main": [
+        [
+          {
+            "node": "Has image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has image?": {
+      "main": [
+        [
+          {
+            "node": "Telegram — Send Photo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram — Send Photo": {
+      "main": [
+        [
+          {
+            "node": "Mark Posted & Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram — Send Message": {
+      "main": [
+        [
+          {
+            "node": "Mark Posted & Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
