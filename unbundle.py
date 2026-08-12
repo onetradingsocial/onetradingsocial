@@ -122,9 +122,44 @@ def build_seo_and_ga(output_name: str) -> str:
         f'  <meta name="twitter:description" content="{desc}">',
         f'  <meta name="twitter:image" content="{OG_IMAGE}">',
         f'  <link rel="canonical" href="{canonical}">',
-        f'  <link rel="icon" type="image/png" href="/assets/images/favicon.png">',
+        f'  <link rel="icon" href="/favicon.ico" sizes="48x48">',
+        f'  <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96.png">',
+        f'  <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/favicon-192.png">',
+        f'  <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">',
     ]
     return '\n'.join(lines)
+
+
+def move_pixel_noscript_to_body(html: str) -> str:
+    """Relocate any head-level <noscript> holding an <img> to the top of <body>.
+
+    <noscript> in <head> may only contain link/style/meta. An <img> there is a
+    parse error: a parser with scripting disabled closes </head> at that point,
+    so everything after it — favicon, canonical, description — lands in the body
+    and is ignored. Google's favicon fetcher is one such parser.
+    """
+    head_end = html.lower().find('</head>')
+    if head_end < 0:
+        return html
+
+    pattern = re.compile(
+        r'[ \t]*<noscript>(?:(?!</noscript>).)*?<img.*?</noscript>[ \t]*\r?\n',
+        re.I | re.S)
+    head, rest = html[:head_end], html[head_end:]
+    moved = [m.group(0).strip() for m in pattern.finditer(head)]
+    if not moved:
+        return html
+
+    head = pattern.sub('', head)
+    body = re.search(r'<body[^>]*>[ \t]*\r?\n', rest, re.I)
+    if not body:
+        print('  Warning: no <body> tag found, pixel noscript left in <head>')
+        return html
+
+    at = head_end + body.end()
+    html = head + rest
+    print(f'  Moved {len(moved)} pixel <noscript> out of <head>')
+    return html[:at] + '\n'.join(moved) + '\n' + html[at:]
 
 
 def unbundle(input_path: Path, output_path: Path, assets_root: Path):
@@ -188,6 +223,8 @@ def unbundle(input_path: Path, output_path: Path, assets_root: Path):
         result = result.replace('</head>', inject + '\n</head>', 1)
     else:
         print('  Warning: no </head> tag found, SEO tags not injected')
+
+    result = move_pixel_noscript_to_body(result)
 
     output_path.write_text(result, encoding='utf-8')
     print(f'  Written: {output_path.name}')
