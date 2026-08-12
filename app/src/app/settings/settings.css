@@ -1,4 +1,12 @@
 /* Settings hub — two-column grid + sticky sidebar nav. Tokens from globals.css. */
+
+/* Page container. Matches the arena's .h-main metrics, but defined here: the
+   page wrapped itself in .h-app/.h-main without importing home-arena.css, so
+   both rules resolved to nothing and the hub rendered full-bleed. Owning the
+   one rule it needs beats pulling in 51.6KB of arena styles for it. */
+.settings-page { max-width: 1240px; margin: 0 auto; padding: 26px 26px 60px; }
+@media (max-width: 720px) { .settings-page { padding: 16px 14px 48px; } }
+
 .settings-grid {
   display: grid;
   grid-template-columns: 220px 1fr;

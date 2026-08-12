@@ -56,107 +56,105 @@ export default async function SettingsPage() {
     : null
 
   return (
-    <div className="h-app">
-      <div className="h-main">
-        <div className="settings-head">
-          <p className="eyebrow">Account</p>
-          <h1 className="ts-h1 mt-3">Settings</h1>
-          <p className="ts-sub">@{profile?.username}</p>
-        </div>
+    <div className="settings-page">
+      <div className="settings-head">
+        <p className="eyebrow">Account</p>
+        <h1 className="ts-h1 mt-3">Settings</h1>
+        <p className="ts-sub">@{profile?.username}</p>
+      </div>
 
-        <div className="settings-grid">
-          <SettingsNav />
+      <div className="settings-grid">
+        <SettingsNav />
 
-          <div className="settings-body">
-            <ProfileSettingsForm
-              avatarUrl={profile?.avatar_url ?? null}
-              username={profile?.username ?? ''}
-              displayName={profile?.display_name ?? ''}
-              bio={profile?.bio ?? ''}
-              goal={profile?.goal ?? ''}
-              experience={profile?.experience_level ?? 'beginner'}
-              markets={profile?.main_markets ?? []}
-              styles={profile?.trading_styles ?? []}
-              isPublic={profile?.is_public ?? true}
-              canGoPrivate={canGoPrivate}
-              accountType={profile?.account_type ?? null}
-              customBadge={profile?.custom_badge ?? null}
-              canCustomBadge={canFlag(flags, tier, 'custom_badge')}
-              canCreatorProfile={canCreatorProfile}
-              themeColor={profile?.theme_color ?? null}
-              tagline={profile?.tagline ?? ''}
-              ctaLabel={profile?.cta_label ?? ''}
-              ctaUrl={profile?.cta_url ?? ''}
-              pinnedPostId={profile?.pinned_post_id ?? null}
-              leaderboardOptout={profile?.leaderboard_optout ?? false}
-              canLeaderboardPlacement={canFlag(flags, tier, 'leaderboard_placement')}
-              ownPosts={(ownPosts ?? []).map((p) => ({
-                id: p.id,
-                label: (p.attachment_type === 'trade' ? '[Trade] ' : p.attachment_type === 'images' ? '[Photo] ' : '') +
-                  (p.body.trim() ? p.body.trim().slice(0, 60) : new Date(p.created_at).toLocaleDateString()),
-              }))}
-            />
+        <div className="settings-body">
+          <ProfileSettingsForm
+            avatarUrl={profile?.avatar_url ?? null}
+            username={profile?.username ?? ''}
+            displayName={profile?.display_name ?? ''}
+            bio={profile?.bio ?? ''}
+            goal={profile?.goal ?? ''}
+            experience={profile?.experience_level ?? 'beginner'}
+            markets={profile?.main_markets ?? []}
+            styles={profile?.trading_styles ?? []}
+            isPublic={profile?.is_public ?? true}
+            canGoPrivate={canGoPrivate}
+            accountType={profile?.account_type ?? null}
+            customBadge={profile?.custom_badge ?? null}
+            canCustomBadge={canFlag(flags, tier, 'custom_badge')}
+            canCreatorProfile={canCreatorProfile}
+            themeColor={profile?.theme_color ?? null}
+            tagline={profile?.tagline ?? ''}
+            ctaLabel={profile?.cta_label ?? ''}
+            ctaUrl={profile?.cta_url ?? ''}
+            pinnedPostId={profile?.pinned_post_id ?? null}
+            leaderboardOptout={profile?.leaderboard_optout ?? false}
+            canLeaderboardPlacement={canFlag(flags, tier, 'leaderboard_placement')}
+            ownPosts={(ownPosts ?? []).map((p) => ({
+              id: p.id,
+              label: (p.attachment_type === 'trade' ? '[Trade] ' : p.attachment_type === 'images' ? '[Photo] ' : '') +
+                (p.body.trim() ? p.body.trim().slice(0, 60) : new Date(p.created_at).toLocaleDateString()),
+            }))}
+          />
 
-            <section id="creator-cover" className="ts-card settings-section">
-              <h2 className="ts-h2"><Icon name="image" size={18} /> Creator cover</h2>
-              <p className="ts-sub mb-5">
-                {canCreatorProfile
-                  ? 'Custom cover banner for your public profile.'
-                  : <>Custom cover is a Pro perk. <a href="/settings/billing">Upgrade</a> to set one.</>}
-              </p>
-              <CoverUploader current={profile?.cover_url ?? null} disabled={!canCreatorProfile} />
-            </section>
+          <section id="creator-cover" className="ts-card settings-section">
+            <h2 className="ts-h2"><Icon name="image" size={18} /> Creator cover</h2>
+            <p className="ts-sub mb-5">
+              {canCreatorProfile
+                ? 'Custom cover banner for your public profile.'
+                : <>Custom cover is a Pro perk. <a href="/settings/billing">Upgrade</a> to set one.</>}
+            </p>
+            <CoverUploader current={profile?.cover_url ?? null} disabled={!canCreatorProfile} />
+          </section>
 
-            <section id="trading" className="ts-card settings-section">
-              <h2 className="ts-h2"><Icon name="chart" size={18} /> Trading account</h2>
-              <p className="ts-sub mb-4">Used to size trades by risk % and show P/L in money.</p>
-              <form action={saveAccount} className="grid gap-3.5" style={{ maxWidth: 320 }}>
-                <label className="ts-field">
-                  <span className="ts-label">Account balance</span>
-                  <input name="account_balance" type="number" step="0.01" min="0"
-                    defaultValue={profile?.account_balance ?? 0} className="ts-input" />
-                </label>
-                <label className="ts-field">
-                  <span className="ts-label">Currency</span>
-                  <input name="account_currency" maxLength={3}
-                    defaultValue={profile?.account_currency ?? 'USD'} className="ts-input" />
-                </label>
-                <button className="btn btn-primary">Save account</button>
-              </form>
-            </section>
+          <section id="trading" className="ts-card settings-section">
+            <h2 className="ts-h2"><Icon name="chart" size={18} /> Trading account</h2>
+            <p className="ts-sub mb-4">Used to size trades by risk % and show P/L in money.</p>
+            <form action={saveAccount} className="grid gap-3.5" style={{ maxWidth: 320 }}>
+              <label className="ts-field">
+                <span className="ts-label">Account balance</span>
+                <input name="account_balance" type="number" step="0.01" min="0"
+                  defaultValue={profile?.account_balance ?? 0} className="ts-input" />
+              </label>
+              <label className="ts-field">
+                <span className="ts-label">Currency</span>
+                <input name="account_currency" maxLength={3}
+                  defaultValue={profile?.account_currency ?? 'USD'} className="ts-input" />
+              </label>
+              <button className="btn btn-primary">Save account</button>
+            </form>
+          </section>
 
-            <section id="billing" className="ts-card settings-section">
-              <h2 className="ts-h2"><Icon name="scale" size={18} /> Billing &amp; plan</h2>
-              <p className="ts-sub mb-4">
-                You&apos;re on the <b>{PLAN_LABEL[tier]}</b> plan
-                {sub?.status && sub.status !== 'active' ? ` · ${sub.status}` : ''}.
-                {sub?.cancelAtPeriodEnd && renews
-                  ? ` Cancels on ${renews} — access continues until then.`
-                  : renews ? ` Renews ${renews}.` : ''}
-              </p>
-              <a className="btn btn-ghost" href="/settings/billing">Manage plan</a>
-            </section>
+          <section id="billing" className="ts-card settings-section">
+            <h2 className="ts-h2"><Icon name="scale" size={18} /> Billing &amp; plan</h2>
+            <p className="ts-sub mb-4">
+              You&apos;re on the <b>{PLAN_LABEL[tier]}</b> plan
+              {sub?.status && sub.status !== 'active' ? ` · ${sub.status}` : ''}.
+              {sub?.cancelAtPeriodEnd && renews
+                ? ` Cancels on ${renews} — access continues until then.`
+                : renews ? ` Renews ${renews}.` : ''}
+            </p>
+            <a className="btn btn-ghost" href="/settings/billing">Manage plan</a>
+          </section>
 
-            <section id="account" className="ts-card settings-section">
-              <h2 className="ts-h2"><Icon name="sliders" size={18} /> Account</h2>
-              <p className="ts-sub mb-4">Your sign-in email and session.</p>
-              <div className="ts-field mb-4" style={{ maxWidth: 360 }}>
-                <span className="ts-label">Email</span>
-                <div className="settings-readonly">{user.email}</div>
-              </div>
-              <form action="/auth/signout" method="post">
-                <button className="btn btn-ghost">Log out</button>
-              </form>
-            </section>
+          <section id="account" className="ts-card settings-section">
+            <h2 className="ts-h2"><Icon name="sliders" size={18} /> Account</h2>
+            <p className="ts-sub mb-4">Your sign-in email and session.</p>
+            <div className="ts-field mb-4" style={{ maxWidth: 360 }}>
+              <span className="ts-label">Email</span>
+              <div className="settings-readonly">{user.email}</div>
+            </div>
+            <form action="/auth/signout" method="post">
+              <button className="btn btn-ghost">Log out</button>
+            </form>
+          </section>
 
-            <BrokerCard row={brokerRow} canAutosync={canFlag(flags, tier, 'mt5_autosync')} />
+          <BrokerCard row={brokerRow} canAutosync={canFlag(flags, tier, 'mt5_autosync')} />
 
-            <ExchangeCard row={exchangeRow} canImport={canFlag(flags, tier, 'crypto_import')} />
+          <ExchangeCard row={exchangeRow} canImport={canFlag(flags, tier, 'crypto_import')} />
 
-            <NotificationPrefs initial={(profile?.notification_prefs ?? {}) as Record<string, boolean>} />
+          <NotificationPrefs initial={(profile?.notification_prefs ?? {}) as Record<string, boolean>} />
 
-            <DangerZone username={profile?.username ?? ''} />
-          </div>
+          <DangerZone username={profile?.username ?? ''} />
         </div>
       </div>
     </div>
