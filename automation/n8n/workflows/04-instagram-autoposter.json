@@ -8,13 +8,13 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "7 * * * *"
+              "expression": "0 * * * *"
             }
           ]
         }
       },
       "id": "d4000000-0000-4000-8000-000000000001",
-      "name": "Schedule (hourly, window-guarded)",
+      "name": "Schedule (on the hour, window-guarded)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -406,7 +406,7 @@
         ]
       ]
     },
-    "Schedule (hourly, window-guarded)": {
+    "Schedule (on the hour, window-guarded)": {
       "main": [
         [
           {
