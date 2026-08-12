@@ -3,7 +3,7 @@ import { HeadSkeleton, RowsSkeleton, SkeletonPage, StatsSkeleton } from './_comp
 export default function Loading() {
   return (
     <SkeletonPage>
-      <HeadSkeleton />
+      <HeadSkeleton subLines={2} />
       <div style={{ display: 'grid', gap: 22 }}>
         <StatsSkeleton count={5} />
         <RowsSkeleton rows={6} />

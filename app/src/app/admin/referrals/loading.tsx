@@ -3,10 +3,11 @@ import { HeadSkeleton, SkeletonPage, StatsSkeleton, TableSkeleton } from '../_co
 export default function Loading() {
   return (
     <SkeletonPage>
-      <HeadSkeleton />
+      <HeadSkeleton subLines={2} />
       <div className="ad-stack">
         <StatsSkeleton count={4} />
-        <TableSkeleton rows={6} cols={7} />
+        {/* <Panel title="By referrer" flush scroll> */}
+        <TableSkeleton rows={6} cols={7} title />
       </div>
     </SkeletonPage>
   )
