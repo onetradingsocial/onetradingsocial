@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
-import { signTradeChartUpload, tradeChartPublicUrl } from '@/lib/storage'
+import { signTradeChartUpload, tradeChartUrl } from '@/lib/storage'
 import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
 
 // Signed upload URLs are the main storage-abuse vector, so they are throttled
@@ -34,5 +34,8 @@ export async function GET(request: NextRequest) {
 
   const signed = await signTradeChartUpload(user.id, tradeId, ct)
   if ('error' in signed) return NextResponse.json({ error: signed.error }, { status: 500 })
-  return NextResponse.json({ ...signed, publicUrl: tradeChartPublicUrl(user.id, tradeId, ct) })
+  // `bucket` tells the browser which bucket the token belongs to -- charts go to
+  // the private one, whose name is not in the client bundle. `url` is the
+  // app-relative read path, not an absolute storage URL.
+  return NextResponse.json({ ...signed, url: tradeChartUrl(user.id, tradeId, ct) })
 }

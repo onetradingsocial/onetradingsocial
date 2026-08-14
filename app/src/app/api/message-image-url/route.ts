@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { signMessageImageUpload, messageImagePublicUrl } from '@/lib/storage'
+import { signMessageImageUpload, messageImageUrl } from '@/lib/storage'
 import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
 
 const UPLOAD_MAX = 30
@@ -23,5 +23,8 @@ export async function GET(request: NextRequest) {
   if (!rl.ok) return tooMany(rl.retryAfter)
   const signed = await signMessageImageUpload(user.id, draftId, idx, ct)
   if ('error' in signed) return NextResponse.json({ error: signed.error }, { status: 500 })
-  return NextResponse.json({ ...signed, publicUrl: messageImagePublicUrl(user.id, draftId, idx, ct) })
+  // DM attachments are the sharpest private case, so they go to the private
+  // bucket too. `bucket` names it for uploadToSignedUrl; `url` is the
+  // app-relative read path stored on the message.
+  return NextResponse.json({ ...signed, url: messageImageUrl(user.id, draftId, idx, ct) })
 }
