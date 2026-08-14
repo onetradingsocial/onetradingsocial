@@ -64,6 +64,14 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
 
   const { pipSize, pipValuePerLot } = pipInfo(instrument, market)
 
+  // One clock read for the whole request. `closed_at` used to be stamped with
+  // its own `new Date()` a few lines above the `traded_at` fallback, so a
+  // quick entry that opened and closed in the same submission could land
+  // closed_at 1 ms BEFORE traded_at — an impossible trade. Three such rows
+  // exist in production and they are why the closed_at >= traded_at check in
+  // migration 0045 carries a one-second grace.
+  const now = new Date().toISOString()
+
   // Stop-less quick entry mirrors the MT5-import math: no risk figures, P/L
   // straight from pip movement × lot size. With a stop, the full model runs.
   let open: { slPips: number; tpPips: number | null; plannedRr: number | null; riskAmount: number }
@@ -81,7 +89,7 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
         status: 'closed', exit_price: exit, realized_pips: realizedPips,
         pnl_amount: pnl, r_multiple: null,
         outcome: pnl != null ? (pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'breakeven') : byPips,
-        closed_at: new Date().toISOString(),
+        closed_at: now,
       }
     }
   } else {
@@ -96,7 +104,7 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
       closeFields = {
         status: 'closed', outcome: c.outcome, exit_price: exit,
         r_multiple: c.rMultiple, pnl_amount: c.pnlAmount, realized_pips: c.realizedPips,
-        closed_at: new Date().toISOString(),
+        closed_at: now,
       }
     }
   }
@@ -106,7 +114,7 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   // a `max`, but that is only a hint: the check has to live here. A minute of
   // slack absorbs clock skew between the browser and the server.
   const tradedAtRaw = String(formData.get('traded_at') ?? '')
-  const tradedAt = tradedAtRaw || new Date().toISOString()
+  const tradedAt = tradedAtRaw || now
   const tradedAtMs = Date.parse(tradedAt)
   if (!Number.isFinite(tradedAtMs)) return { error: 'Invalid trade date.' }
   if (tradedAtMs > Date.now() + 60_000) return { error: 'Trade date cannot be in the future.' }

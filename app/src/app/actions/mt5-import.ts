@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
@@ -64,7 +65,15 @@ export async function commitMt5Import(deals: Mt5Deal[]): Promise<Mt5CommitState>
   const isPublic = profile?.is_public ?? true
 
   const rows = valid.deals.map((d) => mapDealToTrade(d, { userId: user.id, isPublic, source: 'statement' }))
-  const { data, error } = await supabase
+  // Provenance columns (`source`, `broker_deal_id`) are revoked from
+  // `authenticated` by migration 0045 — otherwise any logged-in user could POST
+  // {"source":"broker"} straight to /rest/v1/trades and mint the green-tick
+  // "Broker connected" badge. This import is a legitimate writer of both, so it
+  // goes through the service client. Ownership is not weakened by that: every
+  // row is built from `user.id`, which came from getUser() above, not from the
+  // client payload, and the tier gate has already run on the user client.
+  const svc = createServiceClient()
+  const { data, error } = await svc
     .from('trades')
     .upsert(rows, { onConflict: 'user_id,broker_deal_id', ignoreDuplicates: true })
     .select('id')
