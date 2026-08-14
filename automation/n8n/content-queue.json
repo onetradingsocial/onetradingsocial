@@ -23,11 +23,11 @@
     {
       "id": "tg-2026-08-07-a",
       "platform": "telegram",
-      "status": "pending",
+      "status": "skip",
       "scheduledFor": "",
       "text": "<b>Screenshots aren't proof.</b>\n\nAnyone can crop a winner. TradingSocial syncs directly to your broker, so the equity curve on your profile is the one your account actually produced — every trade, including the ones you'd rather forget.\n\nLeaderboards that can't be faked.\n\n<a href=\"https://tradingsocial.io\">See inside the platform</a>",
       "imageUrl": "",
-      "author": "nathan"
+      "author": "nathan / PARKED by audit 2026-08-14: both claims are currently false. 0 of 339 production trades are broker-synced and the only broker_accounts row is in an error state, so nothing 'syncs directly to your broker'. 'Leaderboards that can't be faked' is untrue while trades.source is client-writable (audit P0-3). Set back to pending once P0-3 ships AND broker sync has genuinely run."
     },
     {
       "id": "tt-2026-08-06-a",
@@ -52,42 +52,46 @@
     {
       "id": "ig-02-who-controls-the-fed",
       "platform": "instagram",
-      "status": "pending",
+      "status": "posted",
       "scheduledFor": "",
       "text": "The \"the Fed is a private bank\" line survives because the actual structure is rarely shown.\n\nThree branches, split deliberately between a federal agency, twelve regional banks, and the committee that actually votes.\n\nThe design is the answer to who controls it.\n\n#federalreserve #macro #tradingeducation #monetarypolicy #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/who-controls-the-fed.jpg",
       "videoUrl": "",
-      "author": "nathan (image) / drafted caption — review before publishing"
+      "author": "nathan (image) / drafted caption — review before publishing",
+      "postedAt": "2026-08-11T04:00:29.628Z"
     },
     {
       "id": "ig-03-fed-created-after-panic",
       "platform": "instagram",
-      "status": "pending",
+      "status": "posted",
       "scheduledFor": "",
       "text": "A failed attempt to corner the copper market ended with a private banker organising a rescue of the US financial system.\n\nThat was 1907. There was no central bank to call.\n\nSix years later there was one. Most institutions exist because something broke first.\n\n#financialhistory #federalreserve #macro #tradingeducation #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/fed-created-after-panic.jpg",
       "videoUrl": "",
-      "author": "nathan (image) / drafted caption — review before publishing"
+      "author": "nathan (image) / drafted caption — review before publishing",
+      "postedAt": "2026-08-12T04:00:29.649Z"
     },
     {
       "id": "ig-04-rate-decision-moves-markets",
       "platform": "instagram",
-      "status": "pending",
+      "status": "posted",
       "scheduledFor": "",
       "text": "A rate decision does not move markets. The gap between the decision and what was already expected moves markets.\n\nThat is why price can barely react to a hike, or move hard on a cut that everyone saw coming.\n\nIf you are trading the number instead of the expectation, you are reading the wrong variable.\n\n#markets #interestrates #macro #tradingeducation #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/rate-decision-moves-markets.jpg",
       "videoUrl": "",
-      "author": "nathan (image) / drafted caption — review before publishing"
+      "author": "nathan (image) / drafted caption — review before publishing",
+      "postedAt": "2026-08-13T04:00:29.370Z"
     },
     {
       "id": "ig-05-bad-news-stocks-higher",
       "platform": "instagram",
-      "status": "pending",
+      "status": "posted",
       "scheduledFor": "",
       "text": "Weak data pushing stocks up looks broken until you follow the chain: softer economy, lower expected rates, cheaper borrowing, support for asset prices.\n\nThe part people skip is where it stops working. Past a certain point the earnings damage outweighs the rate relief, and the same news flips sign.\n\nSame headline, opposite reaction, depending on where in that range you are.\n\n#markets #macro #tradingeducation #interestrates #tradingsocial",
       "imageUrl": "https://www.tradingsocial.io/assets/social/bad-news-stocks-higher.jpg",
       "videoUrl": "",
-      "author": "nathan (image) / drafted caption — review before publishing"
+      "author": "nathan (image) / drafted caption — review before publishing",
+      "postedAt": "2026-08-14T04:00:29.347Z"
     },
     {
       "id": "ig-06-why-countries-are-always-in-debt",
