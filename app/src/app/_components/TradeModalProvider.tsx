@@ -12,7 +12,6 @@ import { Mt5ImportTab } from './Mt5ImportTab'
 import { LivePriceChip } from './LivePriceChip'
 
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
-const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
 
 type Config = { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean }
 
@@ -127,9 +126,11 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
       const ct = chart.type === 'image/png' ? 'image/png' : 'image/jpeg'
       const supabase = createClient()
       const signed = await fetch(`/api/trade-chart-url?tradeId=${res.tradeId}&ct=${encodeURIComponent(ct)}`).then((r) => r.json())
-      if (signed?.path && signed?.token) {
-        await supabase.storage.from(BUCKET).uploadToSignedUrl(signed.path, signed.token, chart, { upsert: true })
-        await saveTradeChartUrl(res.tradeId, signed.publicUrl)
+      // The bucket comes back with the token: charts live in the private bucket,
+      // which is deliberately not named in the client bundle.
+      if (signed?.bucket && signed?.path && signed?.token) {
+        await supabase.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, chart, { upsert: true })
+        await saveTradeChartUrl(res.tradeId, signed.url)
       }
     }
     setPending(false); onSaved()

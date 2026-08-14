@@ -6,8 +6,13 @@ __pycache__/
 skills-lock.json
 
 seed-users.md
+# The script itself, not just the notes — it carries plaintext passwords for
+# accounts that are live in production, and this repo is public.
+scripts/seed-users.mjs
 scripts/seed-activity.log
 backups/
+# 231KB dump holding real staff addresses; regenerable, never worth committing.
+dev-bootstrap.sql
 
 # Secrets — never commit. .env.example is the only tracked env file.
 .env

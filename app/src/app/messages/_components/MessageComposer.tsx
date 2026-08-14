@@ -8,12 +8,14 @@ async function uploadImage(file: File, draftId: string, idx: number): Promise<st
   const ct = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
   const res = await fetch(`/api/message-image-url?draftId=${draftId}&idx=${idx}&ct=${ct}`)
   if (!res.ok) return null
-  const { token, path, publicUrl } = await res.json()
+  // Attachments go to the private bucket; the route names it alongside the token.
+  const { token, path, bucket, url } = await res.json()
+  if (!bucket || !path || !token) return null
   const { createClient } = await import('@/lib/supabase/client')
   const supabase = createClient()
-  const { error } = await supabase.storage.from('OneTradingSocial').uploadToSignedUrl(path, token, file)
+  const { error } = await supabase.storage.from(bucket).uploadToSignedUrl(path, token, file)
   if (error) return null
-  return publicUrl as string
+  return url as string
 }
 
 export function MessageComposer({

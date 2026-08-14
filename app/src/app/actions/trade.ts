@@ -11,6 +11,7 @@ import { insertSystemNotification } from '@/lib/notifications'
 import { analyzeCompliance, hasAnyRule } from '@/lib/rules'
 import { markReferralActivated } from '@/lib/server/referral'
 import { createServiceClient } from '@/lib/supabase/service'
+import { tradeChartPrefix } from '@/lib/storage'
 import {
   computeOpen, computeClose, DIRECTIONS, SIZING_MODES, CONFIDENCE_LEVELS, EMOTIONS, MISTAKE_TAGS,
   type Direction, type SizingMode,
@@ -219,14 +220,16 @@ export async function closeTrade(tradeId: string, exitPrice: number, mistakeTags
   return { ok: true }
 }
 
-export async function saveTradeChartUrl(tradeId: string, publicUrl: string): Promise<TradeState> {
+export async function saveTradeChartUrl(tradeId: string, chartUrl: string): Promise<TradeState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
-  const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/`
-  if (!publicUrl.startsWith(prefix)) return { error: 'Invalid chart URL.' }
+  // Charts now live in the private bucket and are read through
+  // /api/private-image. The prefix is scoped to the caller's own uid, so a
+  // crafted URL cannot point a trade at somebody else's object.
+  if (!chartUrl.startsWith(tradeChartPrefix(user.id))) return { error: 'Invalid chart URL.' }
   const { error } = await supabase.from('trades')
-    .update({ screenshot_url: publicUrl }).eq('id', tradeId).eq('user_id', user.id)
+    .update({ screenshot_url: chartUrl }).eq('id', tradeId).eq('user_id', user.id)
   if (error) return { error: error.message }
   return { ok: true }
 }
