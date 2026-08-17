@@ -8,6 +8,7 @@ import { HelpWidget } from './_components/HelpWidget'
 import { GoogleAnalytics } from './_components/GoogleAnalytics'
 import { PageViewTracker } from './_components/PageViewTracker'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { isAdmin } from '@/lib/server/admin'
 import { getEntitlements, type TrialGate, type WelcomeState } from '@/lib/server/entitlements'
 import type { Tier } from '@/lib/entitlements'
@@ -39,8 +40,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   if (user) {
     // One pass for tier + gate: they read the same two rows, so asking for them
     // separately cost two extra serialized profiles round trips per render.
+    // Service client: 0047 revokes SELECT on account_balance and is_internal
+    // from both client roles. Column grants are role-wide and cannot be
+    // conditioned on row ownership, so the owner's own read of its own private
+    // fields has to come from a path that holds the privilege. Filtered by
+    // user.id from getSessionUser(), so it still reads exactly one row -- the
+    // caller's -- and never widens what the page can see.
     const [{ data }, ent, flags] = await Promise.all([
-      supabase.from('profiles').select('account_balance, is_public, is_internal, username').eq('id', user.id).single(),
+      createServiceClient()
+        .from('profiles').select('account_balance, is_public, is_internal, username')
+        .eq('id', user.id).single(),
       getEntitlements(supabase, user.id),
       getFeatureFlags(),
     ])

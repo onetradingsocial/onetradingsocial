@@ -67,7 +67,11 @@ export async function POST(req: NextRequest) {
     if (isAdmin(user)) {
       isInternal = true
     } else {
-      const { data } = await supabase.from('profiles').select('is_internal').eq('id', user.id).single()
+      // Service client: 0047 revokes SELECT on is_internal from both client
+      // roles (it discloses which accounts are staff/seed). Scoped to user.id
+      // from getSessionUser(), so this reads only the caller's own flag.
+      const { data } = await createServiceClient()
+        .from('profiles').select('is_internal').eq('id', user.id).single()
       isInternal = data?.is_internal ?? false
     }
   }

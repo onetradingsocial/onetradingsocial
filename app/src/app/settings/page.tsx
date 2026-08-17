@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getTier, getSubscription } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
@@ -22,7 +23,14 @@ export default async function SettingsPage() {
   if (!user) redirect('/login')
 
   const [{ data: profile }, tier, sub, flags, { data: brokerRow }, { data: exchangeRow }, { data: ownPosts }] = await Promise.all([
-    supabase
+    // Service client: this is the owner's own settings form, and it reads two
+    // fields -- account_balance and notification_prefs -- that 0047 revokes
+    // from anon and authenticated. A column grant is role-wide and cannot be
+    // conditioned on `auth.uid() = id`, so "the owner may read their own" has
+    // to be expressed as a server-side read that holds the privilege rather
+    // than as a client select. Filtered on user.id from getSessionUser(), so
+    // the page still sees exactly one row: the caller's.
+    createServiceClient()
       .from('profiles')
       .select('username, display_name, bio, goal, avatar_url, experience_level, main_markets, trading_styles, is_public, account_balance, account_currency, custom_badge, cover_url, theme_color, tagline, cta_label, cta_url, pinned_post_id, leaderboard_optout, account_type, notification_prefs')
       .eq('id', user.id)

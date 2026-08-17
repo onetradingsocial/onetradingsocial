@@ -49,7 +49,15 @@ export async function exportMyData(): Promise<{ error?: string; json?: string }>
   const uid = user.id
 
   const [profile, trades, posts, comments, likes, follows, feedback, rules, subs, completions, brokers] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
+    // Service client, and it MUST stay `select('*')`: this is the GDPR export,
+    // so it has to return every column the platform holds about the user --
+    // including the ones 0047 revokes from client roles (account_balance,
+    // stripe_customer_id, is_internal, acquisition_source, the trial and
+    // lifecycle-email timestamps). PostgREST does not silently drop columns a
+    // role cannot read; `select('*')` fails outright with 42501, so the user
+    // client would have turned the whole export into an error the moment 0047
+    // landed. Scoped to uid from getUser() -- the caller's own row only.
+    createServiceClient().from('profiles').select('*').eq('id', uid).maybeSingle(),
     supabase.from('trades').select('*').eq('user_id', uid),
     supabase.from('posts').select('*').eq('author_id', uid),
     supabase.from('comments').select('*').eq('author_id', uid),

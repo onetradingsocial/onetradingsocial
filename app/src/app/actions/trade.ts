@@ -30,7 +30,10 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
 
-  const { data: profile } = await supabase
+  // Service client: 0047 revokes SELECT on account_balance from both client
+  // roles, and risk%-sized trades size themselves off it. Scoped to user.id
+  // from getUser(), so it reads only the caller's own row.
+  const { data: profile } = await createServiceClient()
     .from('profiles').select('account_balance, is_public').eq('id', user.id).single()
 
   const market = String(formData.get('market') ?? '')
@@ -218,7 +221,11 @@ export async function closeTrade(tradeId: string, exitPrice: number, mistakeTags
           hasStop: t.stop_price != null, rMultiple: c.rMultiple, pnlAmount: c.pnlAmount,
         }])
         if (res.broken > 0) {
-          await insertSystemNotification({ supabase, userId: user.id, type: 'rule_breach' })
+          // Service client: insertSystemNotification reads notification_prefs,
+          // which 0047 revokes from both client roles. (It also inserts into
+          // `notifications`, a table with no INSERT policy for clients, so the
+          // user client was never the right one here.)
+          await insertSystemNotification({ supabase: createServiceClient(), userId: user.id, type: 'rule_breach' })
         }
       }
     }

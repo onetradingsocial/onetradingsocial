@@ -58,7 +58,10 @@ export async function POST(request: NextRequest) {
   const stripe = getStripe()
 
   // Ensure a Stripe customer, store its id on the profile.
-  const { data: prof } = await supabase
+  // Service client for the READ as well as the write: 0047 revokes SELECT on
+  // stripe_customer_id from anon and authenticated (0042 had already revoked
+  // UPDATE). Scoped to user.id from getUser(), so it reads only the caller's row.
+  const { data: prof } = await createServiceClient()
     .from('profiles').select('stripe_customer_id').eq('id', user.id).single()
   let customerId = prof?.stripe_customer_id as string | null
   if (!customerId) {
