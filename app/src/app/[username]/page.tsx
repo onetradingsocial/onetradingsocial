@@ -250,7 +250,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   }
 
   const profileXp = profileId ? await getUserXp(supabase, profileId, { publicOnly: true }) : null
-  const badges = profileXp?.badges ?? []
+  // Learn hidden for now — we are not financial advisors. The lesson badges
+  // ('First Lesson', '5 Lessons', '25 Lessons') render on this PUBLIC page, and a
+  // locked one reads "1 more to unlock" — an offer we can't honour. Drop the
+  // `.filter` to restore; BADGES in lib/xp.ts is untouched, and /achievements'
+  // BadgeGrid already omits the 'lessons' group the same way.
+  const badges = (profileXp?.badges ?? []).filter((b) => b.category !== 'lessons')
   const earnedCount = badges.filter((b) => b.earned).length
 
   // Trading-style rows (only those backed by data).

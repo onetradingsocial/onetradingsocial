@@ -104,10 +104,14 @@ export function scoreTrader(viewer: ViewerProfile, c: CandidateTrader): Recommen
   if (c.publicTrades > 0) score += W.activity * Math.min(1, Math.log10(c.publicTrades + 1))
 
   // Learning progress: similar stage of the journey.
-  if (viewer.lessonsCompleted > 0 && c.lessonsCompleted > 0) {
-    const gap = Math.abs(viewer.lessonsCompleted - c.lessonsCompleted)
-    if (gap <= 3) { score += W.progress; reasons.push('Similar learning progress') }
-  }
+  // Learn hidden for now — we are not financial advisors. The 'Similar learning
+  // progress' reason renders on the suggested-traders card, so the whole signal
+  // is parked rather than just the string. `lessonsCompleted` is still carried
+  // on both types and still fetched, so restoring is uncommenting this block.
+  // if (viewer.lessonsCompleted > 0 && c.lessonsCompleted > 0) {
+  //   const gap = Math.abs(viewer.lessonsCompleted - c.lessonsCompleted)
+  //   if (gap <= 3) { score += W.progress; reasons.push('Similar learning progress') }
+  // }
 
   // Require at least one real affinity signal (not just verification/activity).
   const hasAffinity = sharedMarkets.length > 0 || sharedStyles.length > 0 ||

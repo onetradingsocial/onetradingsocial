@@ -85,8 +85,10 @@ export function TrialGateModal({ show }: { show: boolean }) {
           {/* h2, not h1: the page underneath already owns the document's h1. */}
           <h2 id="tg-title">Your {TRIAL_DAYS} days of Pro have ended.</h2>
           <p>
-            Keep the full toolkit — unlimited journal, advanced analytics, MT5 sync and premium
-            courses — or continue on Free with your last 30 trades, basic stats, the feed and the
+            {/* Learn hidden for now — we are not financial advisors. This line
+                ended '…MT5 sync and premium courses —'. Restore when compliant. */}
+            Keep the full toolkit — unlimited journal, advanced analytics and MT5 sync — or
+            continue on Free with your last 30 trades, basic stats, the feed and the
             leaderboard.
           </p>
         </div>

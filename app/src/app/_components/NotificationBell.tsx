@@ -52,7 +52,10 @@ function notifHref(n: Notification): string {
   if (n.type === 'weekly_report' || n.type === 'rule_breach' || n.type === 'import_done') return '/journal'
   if (n.type === 'sync_failed') return '/settings#broker'
   if (n.type === 'goal_completed') return '/journal'
-  if (n.type === 'new_learning') return '/learn'
+  // Learn hidden for now — we are not financial advisors. Restore the /learn
+  // target when compliant. Until then a new_learning notification falls through
+  // to '/' rather than a route that redirects.
+  // if (n.type === 'new_learning') return '/learn'
   if (n.entityType === 'post' && n.entityId) return `/#post-${n.entityId}`
   if (n.type === 'follow') return `/${n.actorUsername}`
   if (n.type === 'message' && n.entityId) return `/messages?c=${n.entityId}`

@@ -34,7 +34,8 @@ export const PAID_PLANS: PaidPlan[] = [
       { t: 'Automatic MT5 sync — hourly' },
       { t: 'Advanced analytics & reporting' },
       { t: 'Monthly downloadable reports' },
-      { t: 'Premium courses & psychology' },
+      // Learn hidden for now — we are not financial advisors. Restore
+      // `{ t: 'Premium courses & psychology' },` here when compliant.
       { t: 'Creator profile & Pro badge' },
       { t: 'Premium challenges & competitions' },
     ],

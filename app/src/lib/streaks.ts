@@ -36,6 +36,9 @@ export function computeStreaks(x: StreakInputs): Streak[] {
     mk('journal', 'Journaling', '📓', x.journalDays),
     mk('review', 'Weekly reviews', '📊', x.reviewDays),
     mk('compliance', 'Rule compliance', '✅', x.compliantDays),
-    mk('learning', 'Learning', '📚', x.learningDays),
+    // Learn hidden for now — we are not financial advisors. Restore
+    // `mk('learning', 'Learning', '📚', x.learningDays),` here when compliant
+    // (and put StreaksCard's grid back to 4 columns). `learningDays` is still
+    // computed and passed in, so nothing upstream needs changing to restore.
   ]
 }

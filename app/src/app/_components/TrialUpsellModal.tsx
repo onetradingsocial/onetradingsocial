@@ -81,8 +81,11 @@ export function TrialUpsellModal({
           </span>
           <h2 id="tu-title">Keep Pro after your trial.</h2>
           <p>
+            {/* Learn hidden for now — we are not financial advisors. This line read
+                '…MT5 sync and premium courses stay exactly where they are.'
+                Restore when compliant. */}
             You are on Pro until your trial ends. Subscribe now and nothing changes when it does —
-            unlimited journal, advanced analytics, MT5 sync and premium courses stay exactly where
+            unlimited journal, advanced analytics and MT5 sync stay exactly where
             they are. No charge until you subscribe.
           </p>
         </div>

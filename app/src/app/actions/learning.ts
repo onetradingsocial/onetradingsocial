@@ -10,7 +10,16 @@ import { gradeQuiz, learningStreakDays, streakBoostPct, type QuizAnswers, type L
 
 export type QuizResult = { passed: boolean; wrongQuestionIds: string[]; xpAwarded: number; bonusXp?: number; error?: string }
 
+// Learn hidden for now — we are not financial advisors. Flip to false when compliant.
+// The /learn pages already redirect, but a server action is a public POST endpoint:
+// without this guard the quiz could still be graded and XP still awarded by anyone
+// who kept the action id. Grading and the whole file are left intact for restore.
+const LEARN_HIDDEN = true
+
 export async function submitQuiz(lessonId: string, answers: QuizAnswers): Promise<QuizResult> {
+  if (LEARN_HIDDEN) {
+    return { passed: false, wrongQuestionIds: [], xpAwarded: 0, error: 'Learning is unavailable.' }
+  }
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { passed: false, wrongQuestionIds: [], xpAwarded: 0, error: 'Not authenticated.' }

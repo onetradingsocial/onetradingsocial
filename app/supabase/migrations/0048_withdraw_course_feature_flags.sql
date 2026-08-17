@@ -1,0 +1,49 @@
+-- Withdraw the Learning Hub entitlement flags.
+--
+-- WHY
+--
+-- The owner has withdrawn the Learning Hub / courses because TradingSocial does
+-- not hold an Australian financial services licence. The withdrawal is
+-- REVERSIBLE by design: no lesson content, no course rows, no completions and no
+-- route components are deleted. This migration follows the same principle --
+-- the two flag ROWS stay, they are only set false, so restoring the feature is a
+-- flip back to (false, true, true) / (false, false, true).
+--
+-- SEQUENCING (the fix-04 lesson: never land a DB change ahead of its code)
+--
+-- This one is safe to apply in EITHER order, before or after the code deploy,
+-- because nothing reads these two flags in either state:
+--
+--   * `canFlag(flags, tier, 'learning_intermediate')` and
+--     `canFlag(flags, tier, 'premium_courses')` do not appear anywhere in
+--     app/src. Verified by grep: the only references are the `Feature` union and
+--     FEATURE_MIN_TIER defaults in lib/entitlements.ts (191, 207-208) and the
+--     admin toggle board in app/admin/features/page.tsx (22-23, 32).
+--   * Course access was never gated on these flags. It is gated on
+--     `courses.min_tier` compared against TIER_RANK in learn/page.tsx:84 and
+--     learn/[course]/[lesson]/page.tsx:23. The admin board says so in its own
+--     note text: 'gated via course min_tier'.
+--   * Both /learn pages now `redirect('/')` behind LEARN_HIDDEN before any tier
+--     gate runs at all.
+--
+-- So this is defence in depth against a future code path, not the control that
+-- closes the feature. The control is the route redirect.
+--
+-- `xp_boosts` is deliberately LEFT ENABLED. It is grouped with the Learning Hub
+-- on the admin board but it is only ever consumed by learning code
+-- (learn/page.tsx:26, actions/learning.ts:41), which is now unreachable, so
+-- disabling it would change nothing today and would silently alter behaviour on
+-- restore.
+--
+-- ROLLBACK
+--
+--   update public.feature_flags set trader = true,  pro = true, updated_at = now()
+--     where feature = 'learning_intermediate';
+--   update public.feature_flags set trader = false, pro = true, updated_at = now()
+--     where feature = 'premium_courses';
+--
+-- (Those are the pre-withdrawal values seeded by 0015_feature_flags.sql:32,42.)
+
+update public.feature_flags
+   set free = false, trader = false, pro = false, updated_at = now()
+ where feature in ('learning_intermediate', 'premium_courses');
