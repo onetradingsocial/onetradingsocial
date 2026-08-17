@@ -12,6 +12,11 @@ import { track } from '@/lib/track'
 // rule already requires onboarding_completed, so this is belt-and-braces.
 const EXEMPT_PATHS = ['/onboarding', '/welcome']
 
+/** The mockup's schedule assumed six features per tier. It still drives the
+ *  animation clock, but the *displayed* count now comes from the tier's own
+ *  feats array (`total` below): with the learning-hub feature withdrawn — we are
+ *  not financial advisors — Trader and Pro have five, and a hardcoded 6 would
+ *  have told a paying customer "6 features just unlocked" above a list of five. */
 const TOTAL = 6
 const CONFETTI_COLORS = ['#3FB6E8', '#7C5CE6', '#C840BC', '#FF7A4D', '#ffffff']
 
@@ -57,6 +62,9 @@ export function WelcomeModal({
   const closeTimeout = useRef(0)
 
   const copy = WELCOME_TIERS[tier]
+  /** How many features this tier actually lists — the counter, the track and the
+   *  caption all read from here so they can never over-claim. */
+  const total = copy.feats.length
   const exempt = EXEMPT_PATHS.some((x) => pathname?.startsWith(x))
   const open = mounted && !gone && !exempt
 
@@ -134,11 +142,11 @@ export function WelcomeModal({
       interval = window.setInterval(() => {
         n += 1
         setP((s) => ({ ...s, segs: n }))
-        if (n >= TOTAL) window.clearInterval(interval)
+        if (n >= total) window.clearInterval(interval)
       }, SEG_EVERY)
     })
 
-    for (let i = 0; i < TOTAL; i++) {
+    for (let i = 0; i < total; i++) {
       at(T_FEATS + i * FEAT_EVERY, () => setP((s) => ({ ...s, feats: i + 1 })))
     }
     at(T_FINISH, () => setP((s) => ({ ...s, finish: true })))
@@ -239,16 +247,16 @@ export function WelcomeModal({
           <div className="wpop-progress-card">
             <div className="wpop-progress-head">
               <span className="lbl">Unlocking your plan</span>
-              <span className="val">{p.segs} / {TOTAL}</span>
+              <span className="val">{p.segs} / {total}</span>
             </div>
             <div className="wpop-track">
-              {Array.from({ length: TOTAL }).map((_, i) => (
+              {Array.from({ length: total }).map((_, i) => (
                 <div key={i} className={'wpop-seg' + (i < p.segs ? ' filled' : '')}>
                   {i < p.segs && <i />}
                 </div>
               ))}
             </div>
-            <div className="wpop-track-caption">{TOTAL} features just unlocked</div>
+            <div className="wpop-track-caption">{total} features just unlocked</div>
           </div>
 
           <ul className="wpop-feats">

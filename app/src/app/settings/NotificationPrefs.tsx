@@ -9,7 +9,10 @@ const PREFS: [string, string][] = [
   ['sync_failed', 'Broker sync failed'],
   ['goal_completed', 'Process goal completed'],
   ['rule_breach', 'Rule breach on a trade'],
-  ['new_learning', 'New learning material'],
+  // Learn hidden for now — we are not financial advisors. Restore this toggle
+  // when compliant. The 'new_learning' key stays valid in actions/notifications.ts
+  // so any stored preference survives untouched.
+  // ['new_learning', 'New learning material'],
   ['follow', 'New follower'],
   ['comment', 'Comments & replies'],
   ['mention', 'Mentions'],

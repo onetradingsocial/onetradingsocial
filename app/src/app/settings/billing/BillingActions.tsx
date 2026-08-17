@@ -58,7 +58,8 @@ const PLANS: PlanDef[] = [
       { t: 'Import MT5 history (statement upload)' },
       { t: 'Advanced stats & full performance dashboard' },
       { t: 'Strategy tracking & mistake tagging' },
-      { t: 'Full beginner & intermediate courses' },
+      // Learn hidden for now — we are not financial advisors. Restore
+      // `{ t: 'Full beginner & intermediate courses' },` here when compliant.
       { t: 'Advanced leaderboard filters' },
     ],
   },
@@ -70,7 +71,8 @@ const PLANS: PlanDef[] = [
       { t: 'Automatic MT5 sync — hourly' },
       { t: 'Advanced analytics & reporting' },
       { t: 'Monthly downloadable trader reports' },
-      { t: 'Premium courses & psychology modules' },
+      // Learn hidden for now — we are not financial advisors. Restore
+      // `{ t: 'Premium courses & psychology modules' },` here when compliant.
       { t: 'Creator profile & Pro badge' },
       { t: 'Premium challenges & competitions' },
     ],

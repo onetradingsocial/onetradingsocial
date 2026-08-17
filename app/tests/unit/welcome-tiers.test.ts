@@ -9,10 +9,18 @@ describe('WELCOME_TIERS', () => {
     for (const t of TIERS) expect(WELCOME_TIERS[t]).toBeDefined()
   })
 
-  it('gives every tier exactly six features with no blanks', () => {
+  // Learn hidden for now — we are not financial advisors. Every tier had exactly
+  // six features (verbatim from the client mockups). Trader's 'Full beginner &
+  // intermediate courses' and Pro's 'Premium courses & psychology modules' are
+  // withdrawn, so those two carry five. Put this back to a flat 6 when the
+  // learning hub is restored — WelcomeModal reads the count off `feats` now, so
+  // the "N features just unlocked" caption follows automatically.
+  const EXPECTED_FEATS: Record<Tier, number> = { free: 6, trader: 5, pro: 5 }
+
+  it('gives every tier its full feature list with no blanks', () => {
     for (const t of TIERS) {
       const c = WELCOME_TIERS[t]
-      expect(c.feats).toHaveLength(6)
+      expect(c.feats).toHaveLength(EXPECTED_FEATS[t])
       for (const f of c.feats) {
         expect(f.t.trim().length).toBeGreaterThan(0)
         expect(f.d.trim().length).toBeGreaterThan(0)

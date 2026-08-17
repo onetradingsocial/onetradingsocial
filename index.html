@@ -1040,7 +1040,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
    The Loop
    ============================================================ */
 .loop-wrap { position: relative; margin-top: 56px; }
-.loop { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; position: relative; }
+/* 5 columns while the "Learn" step is withdrawn — back to repeat(6,1fr) when restored. */
+.loop { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; position: relative; }
 .loop-track { position:absolute; top: 38px; left: 8%; right: 8%; height: 2px; background: var(--border-2); z-index:0; }
 .loop-track i { position:absolute; inset:0; width: 0%; background: var(--brand-grad); box-shadow: 0 0 12px rgba(124,92,230,0.5); }
 .loop-node { position: relative; z-index:1; text-align:center; padding-inline: 8px; }
@@ -1082,7 +1083,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .feat5 a.f h4 { color: #fff; display: flex; align-items: center; gap: 8px; }
 .feat5 a.f p { color: rgba(255,255,255,0.9); }
 .feat5 a.f:hover { transform: translateY(-4px); box-shadow: 0 28px 50px -22px rgba(200,64,188,0.55); }
-@media (max-width: 860px){ .feat5 { grid-template-columns: 1fr; } }
+/* 4 feature cards + the CTA = 5 items in a 3-up grid, which would leave a hole in
+   the last row. The CTA fills it. Drop this rule when the Learning Hub card
+   (withdrawn — we are not financial advisors) is restored and the count is 6 again. */
+.feat5 a.f { grid-column: span 2; }
+@media (max-width: 860px){ .feat5 { grid-template-columns: 1fr; } .feat5 a.f { grid-column: auto; } }
 
 /* ============================================================
    Problem section
@@ -1401,10 +1406,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
             <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
             <div><b>Leaderboards</b><span>Ranked on performance &amp; consistency</span></div>
           </a>
-          <a class="dd-link" href="#learn">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4L2 9l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M6 11v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-            <div><b>Learning Hub</b><span>Courses, XP and levels</span></div>
-          </a>
+          <!-- Learning Hub hidden for now — we are not financial advisors. Restore the dd-link to #learn when compliant. -->
         </div>
       </div>
       <div class="nav-item">
@@ -1513,7 +1515,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     <div class="ti"><span class="v grad-text">Journal</span><span class="k">Every trade, logged</span></div>
     <div class="ti"><span class="v grad-text">Track</span><span class="k">Real performance</span></div>
     <div class="ti"><span class="v grad-text">Compete</span><span class="k">Transparent boards</span></div>
-    <div class="ti"><span class="v grad-text">Learn</span><span class="k">Earn XP &amp; levels</span></div>
+    <!-- Learn item hidden for now — we are not financial advisors. Restore
+         <div class="ti"><span class="v grad-text">Learn</span><span class="k">Earn XP &amp; levels</span></div>
+         when compliant. The trustbar is a centred flex row, so 3 items still centre cleanly. -->
   </div>
 </section>
 
@@ -1698,21 +1702,23 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
           <div class="loop-dot"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="2"></circle><path d="M3.5 19a5.5 5.5 0 0111 0M16 6.5a3 3 0 010 5.6M19 19a5 5 0 00-3.5-4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></div>
           <span class="step">05</span><h4>Follow</h4><p>Learn from transparent track records you can trust.</p>
         </div>
-        <div class="loop-node">
-          <div class="loop-dot"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4L2 9l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M6 11v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
-          <span class="step">06</span><h4>Learn</h4><p>Structured courses turn weaknesses into skills.</p>
-        </div>
+        <!-- Step 06 "Learn — Structured courses turn weaknesses into skills." hidden
+             for now: we are not financial advisors. Restore the loop-node here AND put
+             .loop back to repeat(6,1fr) when compliant. The pulse JS reads nodes.length,
+             so it needs no change either way. -->
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ FEATURES (5) ============================ -->
+<!-- ============================ FEATURES ============================ -->
 <section class="section" id="features" style="background:var(--bg-2); border-block:1px solid var(--border)">
   <div class="wrap">
     <div class="section-head center reveal">
       <span class="eyebrow eyebrow--center" style="justify-content:center">Everything you need</span>
-      <h2 class="h2">Five tools. One transparent ecosystem.</h2>
+      <!-- Was "Five tools." — the Learning Hub card is withdrawn (we are not
+           financial advisors). Put it back to five when the card is restored. -->
+      <h2 class="h2">Four tools. One transparent ecosystem.</h2>
       <p class="lead">Each piece works on its own — and gets better when you use them together.</p>
     </div>
 
@@ -1730,18 +1736,18 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       <div class="f reveal">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
         <h4>Leaderboards</h4>
-        <p>Rank traders by performance, XP, consistency and learning progress — transparent and risk-adjusted.</p>
+        <!-- Was "…performance, XP, consistency and learning progress…" — learning
+             progress is withdrawn (we are not financial advisors). Restore when compliant. -->
+        <p>Rank traders by performance, XP and consistency — transparent and risk-adjusted.</p>
       </div>
       <div class="f reveal">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="2"></circle><path d="M3.5 19a5.5 5.5 0 0111 0M16 6.5a3 3 0 010 5.6M19 19a5 5 0 00-3.5-4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
         <h4>Trader Newsfeed</h4>
         <p>Follow traders, see real updates, and learn from their journey — signal over hype, always.</p>
       </div>
-      <div class="f reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4L2 9l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M6 11v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-        <h4>Learning Hub</h4>
-        <p>Complete trading courses, earn XP, and progress through levels as you close your real gaps.</p>
-      </div>
+      <!-- Learning Hub card hidden for now — we are not financial advisors.
+           Restore the .f card here (and drop .feat5 a.f's grid-column span, which
+           only exists to keep the last row full at 4 cards) when compliant. -->
       <a class="f reveal" href="https://app.tradingsocial.io/signup">
         <h4>Start Free Trial <svg viewBox="0 0 24 24" fill="none" style="width:20px;height:20px"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></h4>
         <p>Start free — no card required. Cancel anytime.</p>
@@ -1757,7 +1763,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     <div class="section-head center reveal">
       <span class="eyebrow eyebrow--center" style="justify-content:center">A look inside</span>
       <h2 class="h2">This is the real platform.</h2>
-      <p class="lead">Not a concept. Not a mockup. Explore the actual product traders are using right now.</p>
+      <p class="lead">Not a concept. Not a mockup — every screen below is the working product. The trader names and figures shown are sample data.</p>
     </div>
 
     <div class="show-tabs reveal">
@@ -1766,6 +1772,8 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       <button class="show-tab" data-show="capture"><span class="n">03</span> Quick Trade Capture</button>
       <button class="show-tab" data-show="leaderboard"><span class="n">04</span> Leaderboard</button>
     </div>
+
+    <p class="muted center" style="margin-top:14px; font-size:.85rem">Screens are from the live product. Trader names, balances and results are sample data, not real accounts.</p>
 
     <div class="show-panels">
       <!-- HOME -->
@@ -1833,7 +1841,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
             <p class="lead">Top performers, a hall of fame, daily quests and tips from verified pros. Ranked by profit, win rate and consistency — with daily quests that reward the right habits, not gambling.</p>
             <ul class="feature-list">
               <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Top performers podium</b><p>The traders worth watching, front and centre.</p></div></li>
-              <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Daily quests</b><p>Log a trade, review a course, study 15 minutes — earn your rank.</p></div></li>
+              <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Daily quests</b><p>Log a trade, tag a mistake, read your review — earn your rank.</p></div></li>
+              <!-- Was "Log a trade, review a course, study 15 minutes — earn your rank."
+                   Courses are withdrawn (we are not financial advisors). Restore when compliant. -->
               <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Verified pros</b><p>Tips from traders whose track record backs them up.</p></div></li>
             </ul>
           </div>
@@ -1847,70 +1857,16 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   </div>
 </section>
 
-<!-- ============================ LEARNING HUB ============================ -->
-<section class="section" id="learn" style="background:var(--bg-2); border-block:1px solid var(--border)">
-  <div class="wrap">
-    <div class="section-head center reveal">
-      <span class="eyebrow eyebrow--center" style="justify-content:center">The learning hub</span>
-      <h2 class="h2">Close the gap your journal exposes.</h2>
-      <p class="lead">Your data shows you what's broken. Structured, no-fluff courses show you how to fix it — and feed straight back into your XP and rank.</p>
-    </div>
-
-    <div class="courses">
-      <div class="course reveal">
-        <div class="course-top">
-          <span class="num">01</span>
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v14H4z" stroke="currentColor" stroke-width="2"></path><path d="M4 9h16M9 5v14" stroke="currentColor" stroke-width="2"></path></svg></span>
-        </div>
-        <div class="course-body">
-          <h4>Trading Foundations</h4>
-          <div class="course-meta">7 modules · Beginner</div>
-          <ul class="course-mods">
-            <li><span class="bullet"></span>Market types &amp; how they move</li>
-            <li><span class="bullet"></span>Risk and reward, properly</li>
-            <li><span class="bullet"></span>Why most traders lose</li>
-            <li><span class="bullet"></span>Building a trading plan</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="course reveal">
-        <div class="course-top">
-          <span class="num">02</span>
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg></span>
-        </div>
-        <div class="course-body">
-          <h4>Risk Management</h4>
-          <div class="course-meta">7 modules · Essential</div>
-          <ul class="course-mods">
-            <li><span class="bullet"></span>Position sizing that survives</li>
-            <li><span class="bullet"></span>Stop losses &amp; drawdown</li>
-            <li><span class="bullet"></span>Surviving losing streaks</li>
-            <li><span class="bullet"></span>Why survival beats prediction</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="course reveal">
-        <div class="course-top">
-          <span class="num">03</span>
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M5 4h11l3 3v13H5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M9 9h6M9 13h6M9 17h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-        </div>
-        <div class="course-body">
-          <h4>Trading Journal Mastery</h4>
-          <div class="course-meta">6 modules · Core to the platform</div>
-          <ul class="course-mods">
-            <li><span class="bullet"></span>What to actually log</li>
-            <li><span class="bullet"></span>How to review trades</li>
-            <li><span class="bullet"></span>Mistake tagging that sticks</li>
-            <li><span class="bullet"></span>Turning data into improvement</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
+<!-- ============================ LEARNING HUB ============================
+     Withdrawn for now — we are not financial advisors, so TradingSocial does not
+     currently offer courses. The whole <section class="section" id="learn"> (eyebrow
+     "The learning hub", h2 "Close the gap your journal exposes.", and the three
+     .course cards: Trading Foundations, Risk Management, Trading Journal Mastery)
+     lived here. Restore this section AND the links that pointed at #learn (nav
+     dropdown, footer "Learning hub", trust bar, the loop's step 06 and the
+     Learning Hub feature card) when compliant. The .courses / .course CSS above is
+     deliberately left in place so restoring is markup-only.
+     ======================================================================== -->
 <!-- ============================ TRUST / DISCLAIMER ============================ -->
 <section class="section integrity" id="about">
   <div class="wrap">
@@ -1924,7 +1880,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       <div class="int-card reveal">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
         <h4>We don't reward gambling</h4>
-        <p>XP and rank come from discipline — journaling, reviewing losses, finishing lessons. Never from bigger size, more leverage or chasing profit.</p>
+        <!-- Was "…journaling, reviewing losses, finishing lessons." Lessons are
+             withdrawn (we are not financial advisors). Restore when compliant. -->
+        <p>XP and rank come from discipline — journaling, reviewing losses, sticking to your rules. Never from bigger size, more leverage or chasing profit.</p>
       </div>
       <div class="int-card reveal">
         <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
@@ -1982,7 +1940,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         <a href="#features">Features</a>
         <a href="#showcase">Journal</a>
         <a href="#showcase">Leaderboards</a>
-        <a href="#learn">Learning hub</a>
+        <!-- Learning hub hidden for now — we are not financial advisors. Restore when compliant. -->
       </div>
       <div class="foot-col">
         <h5>Company</h5>
