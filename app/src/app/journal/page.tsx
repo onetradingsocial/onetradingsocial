@@ -49,7 +49,9 @@ export default async function JournalPage() {
     .eq('user_id', user.id)
     .order('traded_at', { ascending: false })
 
-  const { data: prof } = await supabase
+  // Service client: 0047 revokes SELECT on account_balance from both client
+  // roles. Scoped to user.id from getSessionUser() -- the caller's own row only.
+  const { data: prof } = await createServiceClient()
     .from('profiles').select('account_balance').eq('id', user.id).single()
   const noBalance = !prof?.account_balance
 
