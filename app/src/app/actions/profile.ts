@@ -17,6 +17,7 @@ import { canFlag } from '@/lib/feature-flags'
 import { onboardingToRow, type OnboardingInput, type ExperienceLevel, resolveVisibility, EXPERIENCE_LEVELS } from '@/lib/profile'
 import { CUSTOM_BADGES } from '@/lib/badges'
 import { THEME_PRESETS, sanitizeCtaUrl } from '@/lib/creator-profile'
+import { logError } from '@/lib/server/log'
 
 export type ProfileState = { error?: string; ok?: boolean }
 
@@ -67,7 +68,7 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
       .from('profiles')
       .update({ acquisition_source: refCookie.slice(0, 64) })
       .eq('id', user.id)
-    if (srcError) console.error('[saveOnboarding] acquisition_source', srcError)
+    if (srcError) logError('saveOnboarding', srcError, { note: 'acquisition_source' })
   }
   // ?signup=1 lets the home page fire the Reddit SignUp conversion once. This is
   // the single completion signal for both the email and Google signup paths,

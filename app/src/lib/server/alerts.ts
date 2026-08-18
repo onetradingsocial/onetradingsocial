@@ -1,5 +1,6 @@
 import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { logError } from '@/lib/server/log'
 
 /**
  * Raise a row in `system_alerts` — the same table api/cron/error-alert writes
@@ -34,12 +35,12 @@ export async function raiseAlert(
       kind, message, count: opts.count ?? 0, window_minutes: windowHours * 60,
     })
     if (error) {
-      console.error('[alerts] insert failed', kind, error.message)
+      logError('alerts', error.message, { note: 'insert failed', kind: kind })
       return false
     }
     return true
   } catch (err) {
-    console.error('[alerts] raise failed', kind, err)
+    logError('alerts', err, { note: 'raise failed', kind: kind })
     return false
   }
 }

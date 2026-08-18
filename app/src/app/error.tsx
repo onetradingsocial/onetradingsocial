@@ -2,12 +2,28 @@
 
 import { useEffect } from 'react'
 import { track } from '@/lib/track'
+import { classifyClientError } from '@/lib/redact'
 
-/** Route-segment error boundary: logs the error, offers retry. */
+/**
+ * Route-segment error boundary: reports the error, offers retry.
+ *
+ * ── Audit item 19, F1 ────────────────────────────────────────────────────────
+ * This used to send `error.message` verbatim. `/api/track` writes it into
+ * `analytics_events.props`, which had no retention policy and is joined to a
+ * named account by `anon_id` — so an uncontrolled string (a Postgres error
+ * echoing a column value, a failed fetch carrying a URL with its query string)
+ * became indefinitely-stored, attributable data. The 300-character truncation
+ * bounded the volume, not the sensitivity.
+ *
+ * It now sends a label from a fixed vocabulary plus `error.digest`, which is
+ * the value that actually correlates to the full server-side stack in Vercel.
+ * `kind` is the error's constructor name, which is bounded and author-written.
+ */
 export default function ErrorBoundary({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     track('client_error', {
-      message: String(error?.message ?? 'unknown').slice(0, 300),
+      code: classifyClientError(error?.message, error?.name),
+      kind: typeof error?.name === 'string' ? error.name.slice(0, 40) : 'Error',
       digest: error?.digest ?? null,
     })
   }, [error])

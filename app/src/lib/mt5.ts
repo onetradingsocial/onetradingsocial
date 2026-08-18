@@ -182,21 +182,129 @@ function extractPositions(rows: string[][]): Mt5ParseResult | { error: string } 
   return { deals, skipped }
 }
 
-export function parseMt5(buf: ArrayBuffer, filename: string): Mt5ParseResult | { error: string } {
+/**
+ * Sniff the real format from the leading bytes. Audit item 11, finding F3.
+ *
+ * `parseMt5` used to dispatch on the client-supplied `file.name` extension,
+ * which is fully attacker-controlled — naming a file `x.xlsx` forced its bytes
+ * into `XLSX.read` whatever they actually were, and the `accept` attribute on
+ * the input is cosmetic. The content is what decides now; the filename is only
+ * a tiebreaker between the two text formats, which genuinely cannot be told
+ * apart by their first four bytes.
+ *
+ * Exported so the behaviour is testable without constructing a whole report.
+ */
+export type Mt5Format = 'xlsx' | 'html' | 'csv' | 'unknown'
+
+export function sniffMt5Format(buf: ArrayBuffer, filename = ''): Mt5Format {
+  const head = new Uint8Array(buf.slice(0, 4))
+  // PK\x03\x04 — every ZIP container, which is what an XLSX is.
+  if (head[0] === 0x50 && head[1] === 0x4b && head[2] === 0x03 && head[3] === 0x04) return 'xlsx'
+  // Any other binary-looking signature is not a report we can read.
+  if (head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44) return 'unknown' // %PDF
+  if (head[0] === 0xd0 && head[1] === 0xcf) return 'unknown' // legacy OLE .xls
+
+  // Text from here. MT5's HTML export starts with a BOM, whitespace, `<html`
+  // or a doctype; a CSV starts with a column name.
+  const text = decodeReport(buf).slice(0, 512).trimStart().toLowerCase()
+  if (text.startsWith('<')) return 'html'
+  if (/<(html|table|!doctype)/.test(text)) return 'html'
+  if (text.includes(',') || text.includes(';') || text.includes('\t')) return 'csv'
+
   const ext = filename.toLowerCase().split('.').pop() ?? ''
+  if (ext === 'html' || ext === 'htm') return 'html'
+  if (ext === 'csv') return 'csv'
+  return 'unknown'
+}
+
+export function parseMt5(buf: ArrayBuffer, filename: string): Mt5ParseResult | { error: string } {
   try {
-    if (ext === 'html' || ext === 'htm') return extractPositions(htmlToRows(decodeReport(buf)))
-    if (ext === 'csv') return extractPositions(csvToRows(decodeReport(buf)))
-    if (ext === 'xlsx') return extractPositions(xlsxToRows(buf))
-    return { error: 'Unsupported file type. Upload an MT5 report as HTML, XLSX, or CSV.' }
-  } catch {
+    switch (sniffMt5Format(buf, filename)) {
+      case 'html': return extractPositions(htmlToRows(decodeReport(buf)))
+      case 'csv': return extractPositions(csvToRows(decodeReport(buf)))
+      case 'xlsx': return extractPositions(xlsxToRows(buf))
+      default:
+        return { error: 'Unsupported file type. Upload an MT5 report as HTML, XLSX, or CSV.' }
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message === ZIP_BOMB) return { error: ZIP_BOMB }
     return { error: 'Could not read this file. Export a fresh report from MT5 and try again.' }
   }
 }
 
+/**
+ * Decompression bound. Audit item 11, finding F3.
+ *
+ * An XLSX is a ZIP, and `XLSX.read` was called with no cap on the decompressed
+ * output — so a ~1 MB upload of highly-compressible sheet XML can inflate to
+ * hundreds of MB and take the serverless invocation down with an OOM. That is
+ * gated behind a Trader subscription and behind the request body limit, so it
+ * is a paid-account nuisance rather than an open DoS — but "buy one cheap
+ * subscription" is not a defence.
+ *
+ * The cap is applied where it is cheap and certain: the ZIP central directory
+ * records every entry's uncompressed size, so the total is known BEFORE any
+ * inflation happens. A legitimate MT5 XLSX of 500 positions is comfortably
+ * under a megabyte of sheet XML; 64 MB is roughly two orders of magnitude of
+ * headroom and still small enough that inflating it cannot exhaust the
+ * function.
+ *
+ * `MAX_COMMIT_ROWS = 500` further down stays as the backstop on what can
+ * actually reach the database.
+ */
+export const MAX_XLSX_INFLATED_BYTES = 64 * 1024 * 1024
+const ZIP_BOMB = 'That spreadsheet expands to far more data than an MT5 report should. Export a fresh report from MT5.'
+
+/**
+ * Sum the uncompressed sizes recorded in a ZIP's central directory.
+ *
+ * Returns null when the structure cannot be read, in which case the caller
+ * proceeds — an unreadable directory means `XLSX.read` is about to fail anyway,
+ * and refusing on a parse quirk would reject valid files.
+ */
+export function zipInflatedSize(buf: ArrayBuffer): number | null {
+  const b = new Uint8Array(buf)
+  // End of Central Directory: signature PK\x05\x06, within the last 64KB+22.
+  const start = Math.max(0, b.length - (0xffff + 22))
+  let eocd = -1
+  for (let i = b.length - 22; i >= start; i -= 1) {
+    if (b[i] === 0x50 && b[i + 1] === 0x4b && b[i + 2] === 0x05 && b[i + 3] === 0x06) { eocd = i; break }
+  }
+  if (eocd < 0) return null
+
+  const view = new DataView(buf)
+  const entries = view.getUint16(eocd + 10, true)
+  let offset = view.getUint32(eocd + 16, true)
+  if (offset >= b.length) return null
+
+  let total = 0
+  for (let n = 0; n < entries; n += 1) {
+    if (offset + 46 > b.length) return null
+    // Central directory file header: PK\x01\x02
+    if (!(b[offset] === 0x50 && b[offset + 1] === 0x4b && b[offset + 2] === 0x01 && b[offset + 3] === 0x02)) return null
+    total += view.getUint32(offset + 24, true) // uncompressed size
+    const nameLen = view.getUint16(offset + 28, true)
+    const extraLen = view.getUint16(offset + 30, true)
+    const commentLen = view.getUint16(offset + 32, true)
+    offset += 46 + nameLen + extraLen + commentLen
+  }
+  return total
+}
+
 function xlsxToRows(buf: ArrayBuffer): string[][] {
+  const inflated = zipInflatedSize(buf)
+  if (inflated !== null && inflated > MAX_XLSX_INFLATED_BYTES) throw new Error(ZIP_BOMB)
+
   const wb = XLSX.read(buf, { type: 'array' })
   const ws = wb.Sheets[wb.SheetNames[0]]
+  // Second bound, for the case the central directory lied or was unreadable:
+  // reject a sheet whose declared range is far larger than any MT5 report.
+  const ref = (ws as { '!ref'?: string })?.['!ref']
+  if (ref) {
+    const range = XLSX.utils.decode_range(ref)
+    const cells = (range.e.r - range.s.r + 1) * (range.e.c - range.s.c + 1)
+    if (cells > 2_000_000) throw new Error(ZIP_BOMB)
+  }
   const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: false, defval: '' })
   return raw.map((row) => row.map((c) => String(c ?? '').trim()))
 }

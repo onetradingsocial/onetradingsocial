@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { logError } from '@/lib/server/log'
 
 export type AckResult = { ok: true } | { ok: false; error: string }
 
@@ -22,7 +23,7 @@ export async function ackTrial(): Promise<AckResult> {
     .is('trial_ack_at', null)
 
   if (error) {
-    console.error('[ackTrial] failed', error)
+    logError('ackTrial', error, { note: 'failed' })
     return { ok: false, error: 'Could not save your choice. Please try again.' }
   }
 

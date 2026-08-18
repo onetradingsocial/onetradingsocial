@@ -7,6 +7,7 @@ import {
 } from '@/lib/billing-webhook'
 import { resolveUserId } from '@/lib/server/billing'
 import { raiseAlert } from '@/lib/server/alerts'
+import { logError, logInfo } from '@/lib/server/log'
 
 /**
  * Stripe → `public.subscriptions` reconciliation.
@@ -100,7 +101,7 @@ export async function reconcileBilling(
       if (!next) {
         out.unknownPrice++
         const priceId = sub.items?.data?.[0]?.price?.id ?? 'none'
-        console.error('[billing reconcile] unknown price', priceId, 'sub', sub.id)
+        logError('billing reconcile', undefined, { note: 'unknown price sub', priceId, id: sub.id })
         continue
       }
 
@@ -117,7 +118,7 @@ export async function reconcileBilling(
       }
       if (!userId) {
         out.unresolved++
-        console.error('[billing reconcile] could not resolve user for sub', sub.id)
+        logError('billing reconcile', undefined, { note: 'could not resolve user for sub', id: sub.id })
         continue
       }
 
@@ -129,7 +130,7 @@ export async function reconcileBilling(
       }
       if (existing) out.repaired++
       else out.created++
-      console.info('[billing reconcile] repaired', sub.id, existing ? `${existing.status}->${next.status}` : 'created')
+      logInfo('billing reconcile', { note: 'repaired', id: sub.id, transition: existing ? `${existing.status}->${next.status}` : 'created' })
     }
 
     if (!page.has_more) break
@@ -143,7 +144,7 @@ export async function reconcileBilling(
     (r) => !seen.has(r.id as string) && (r.status === 'active' || r.status === 'trialing'),
   )
   if (orphans.length > 0 && !out.truncated) {
-    console.error('[billing reconcile] mirror rows Stripe did not list', orphans.map((o) => o.id))
+    logError('billing reconcile', undefined, { note: 'mirror rows Stripe did not list', id: orphans.map((o) => o.id) })
     await raiseAlert(
       svc,
       'billing_orphan_mirror',

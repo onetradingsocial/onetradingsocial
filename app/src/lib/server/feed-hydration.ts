@@ -1,4 +1,5 @@
 import { tally } from '@/lib/feed'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { createClient } from '@/lib/supabase/server'
 import type { FeedItem, Attachment } from '@/app/feed/_components/PostCard'
 import type { TradeCard } from '@/app/feed/_components/attachments/TradeAttachment'
@@ -56,7 +57,19 @@ export async function hydrateFeedPosts(
     supabase.from('trades').select('id, instrument, direction, entry_price, stop_price, target_price, exit_price, r_multiple, pnl_amount, realized_pips, status, screenshot_url, setup_type, strategy_tags').in('id', F(tradeIds)),
     supabase.from('post_images').select('post_id, url, ord').in('post_id', F(imagePostIds)).order('ord', { ascending: true }),
     supabase.from('poll_options').select('id, post_id, label, ord').in('post_id', F(pollPostIds)).order('ord', { ascending: true }),
-    supabase.from('poll_votes').select('post_id, option_id').in('post_id', F(pollPostIds)),
+    // Audit item 8 F2. The tally is read with the SERVICE client, and only ever
+    // as `(post_id, option_id)` — never `user_id`. That is what lets migration
+    // 0058 narrow `poll_votes_select` to owner-only: a vote stops being
+    // publicly attributable, while the bar chart keeps working because a count
+    // is computed server-side and only the count crosses to the browser.
+    //
+    // Deliberately NOT the caller's `supabase` client: under the new policy
+    // that would return the viewer's own vote and nothing else, and every poll
+    // would render as "1 vote, all mine".
+    createServiceClient().from('poll_votes').select('post_id, option_id').in('post_id', F(pollPostIds)),
+    // The viewer's own vote stays on the user client — it is exactly what the
+    // narrowed policy still permits, and routing it through the service client
+    // would move an authorisation decision out of the database for no gain.
     supabase.from('poll_votes').select('post_id, option_id').eq('user_id', viewerId).in('post_id', F(pollPostIds)),
   ])
   const tradeById = new Map((tradeRowsAtt ?? []).map((t) => [t.id, t as unknown as TradeCard]))

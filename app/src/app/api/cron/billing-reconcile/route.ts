@@ -3,6 +3,7 @@ import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getStripe } from '@/lib/stripe'
 import { reconcileBilling } from '@/lib/server/billing-reconcile'
+import { logInfo } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -41,7 +42,7 @@ export async function GET(req: Request) {
   }
 
   const result = await reconcileBilling(createServiceClient(), stripe)
-  console.info('[billing reconcile]', JSON.stringify(result))
+  logInfo('billing reconcile', { result })
   // 200 even with errors in the payload: this is a report, and a non-2xx would
   // only make the platform retry a job that is safe but not free to repeat.
   return NextResponse.json({ ok: result.errors.length === 0, ...result })

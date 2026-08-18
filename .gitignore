@@ -29,3 +29,8 @@ automation/n8n/instagram-token.json
 automation/n8n/watchdog.log
 automation/n8n/n8n-console.log
 automation/n8n/n8n-console.err.log
+# Rotated generations of the three append-only logs above (audit item 19 F7 —
+# watchdog.ps1 now moves a file past 1 MB to <name>.1 rather than letting it
+# grow without bound).
+automation/n8n/*.log.1
+automation/n8n/post-log.jsonl.1

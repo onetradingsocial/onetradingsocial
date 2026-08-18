@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { prepareImageUpload, imageFileProblem } from '@/lib/image-prep'
 import { createPost, attachPostImages, type AttachmentType } from '@/app/actions/social'
 import { PrivacyNote } from '@/app/_components/LegalNotice'
 import { TradePickerModal } from './TradePickerModal'
@@ -28,7 +29,11 @@ export function PostComposer() {
 
   function onImages(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []).slice(0, 4)
-    if (files.length) { setImages(files); setType('images') }
+    // Reject oversized or wrong-typed files at selection time rather than at
+    // upload time, so the message names the file the user just picked.
+    const bad = files.map(imageFileProblem).find(Boolean)
+    if (bad) { setError(bad); return }
+    if (files.length) { setImages(files); setError(''); setType('images') }
   }
 
   function submit() {
@@ -40,10 +45,15 @@ export function PostComposer() {
         const supabase = createClient()
         const urls: string[] = []
         for (let i = 0; i < images.length; i++) {
-          const f = images[i]; const ct = f.type === 'image/png' ? 'image/png' : 'image/jpeg'
+          // Audit item 11 F2 + F4: cap the size and re-encode to strip EXIF
+          // before the bytes leave the browser. Post images are public content,
+          // so a phone photo's GPS would be readable by anyone.
+          const prepared = await prepareImageUpload(images[i])
+          if ('error' in prepared) { setError(prepared.error); continue }
+          const ct = prepared.contentType
           const signed = await fetch(`/api/post-image-url?postId=${res.postId}&idx=${i}&ct=${encodeURIComponent(ct)}`).then((r) => r.json())
           if (signed?.path && signed?.token) {
-            await supabase.storage.from(BUCKET).uploadToSignedUrl(signed.path, signed.token, f, { upsert: true })
+            await supabase.storage.from(BUCKET).uploadToSignedUrl(signed.path, signed.token, prepared.blob, { upsert: true })
             urls.push(signed.publicUrl)
           }
         }
@@ -95,12 +105,18 @@ export function PostComposer() {
       {error && <p className="ts-error" style={{ marginTop: 10 }}>{error}</p>}
       {/* APP 5, audit item 4 finding 6 / surface 10. posts_select and
           post_images_select are both `using (true)` and post images live in the
-          public bucket, so a post is readable by anonymous visitors. Poll votes
-          are the part nobody expects: poll_votes_select is `using (true)` too,
-          so a vote is attributable and public. */}
+          public bucket, so a post is readable by anonymous visitors.
+
+          Poll votes USED to be in that list — `poll_votes_select` was
+          `using (true)`, so any anonymous visitor could read who voted for
+          what. Audit item 8 F2; migration 0058 narrows that policy to
+          owner-only and the tally is now computed server-side, so the note
+          below says the opposite of what it used to. Keep the two in step: if
+          the policy is ever widened again, this copy has to change with it. */}
       <PrivacyNote>
-        Posts, images, comments and <b>poll votes</b> are public — readable by anyone on the
-        internet, including people without an account.
+        Posts, images and comments are public — readable by anyone on the internet, including
+        people without an account. <b>Poll votes are private</b>: only the totals are shown, and
+        no one else can see how you voted.
       </PrivacyNote>
 
       {picker && <TradePickerModal onClose={() => setPicker(false)} onPick={(t) => { setTrade(t); setType('trade'); setPicker(false) }} />}

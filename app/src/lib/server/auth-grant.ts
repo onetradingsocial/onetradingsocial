@@ -3,6 +3,7 @@ import 'server-only'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { parseRecoveryRequest, recoveryErrorRedirect, type OtpType } from '@/lib/auth-recovery'
+import { logError } from '@/lib/server/log'
 
 /**
  * Shared body of the two GoTrue email-link callbacks, `/auth/reset` and
@@ -49,7 +50,7 @@ export async function consumeGrant(
       token_hash: grant.tokenHash,
     })
     if (error) {
-      console.error(`${opts.label} verifyOtp`, error.message)
+      logError(`${opts.label} verifyOtp`, error.message)
       return NextResponse.redirect(`${base}${recoveryErrorRedirect('expired')}`)
     }
   } else {
@@ -59,7 +60,7 @@ export async function consumeGrant(
     // screen — the same fail-closed shape as auth/callback.
     const { error } = await supabase.auth.exchangeCodeForSession(grant.code)
     if (error) {
-      console.error(`${opts.label} exchangeCodeForSession`, error.message)
+      logError(`${opts.label} exchangeCodeForSession`, error.message)
       return NextResponse.redirect(`${base}${recoveryErrorRedirect('expired')}`)
     }
   }

@@ -77,6 +77,29 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname, '../'),
+  // Server Action request body cap. Audit item 11, finding F5.
+  //
+  // This was previously unset, so Next 15's default of 1 MB applied invisibly —
+  // while `actions/mt5-import.ts` enforced MAX_BYTES = 5 MB and the MT5 import
+  // UI advertised "up to 5MB". The framework rejected anything over 1 MB at its
+  // own boundary before the action body ever ran, so the 5 MB check was
+  // unreachable and a user with a 2 MB account history got a generic framework
+  // error instead of a message naming the limit.
+  //
+  // All three now agree at 1 MB, which is the tighter and therefore safer of
+  // the two numbers, and it is stated here rather than inherited so that the
+  // coupling is visible to whoever changes it next.
+  //
+  // TO RAISE IT: change this value, `MAX_BYTES` in
+  // `app/src/app/actions/mt5-import.ts`, and the copy in
+  // `app/src/app/_components/Mt5ImportTab.tsx` in the same commit. The XLSX
+  // decompression cap that made raising it safe is already in place
+  // (`MAX_XLSX_INFLATED_BYTES` in `app/src/lib/mt5.ts`), so the remaining
+  // consideration is only that this limit applies to EVERY server action, not
+  // just the one that takes a file.
+  experimental: {
+    serverActions: { bodySizeLimit: '1mb' },
+  },
   // ccxt is a large, server-only dependency (crypto exchange sync) that uses a
   // dynamic require in its base Exchange class. Keeping it external stops
   // webpack bundling it into the serverless functions — removes the benign

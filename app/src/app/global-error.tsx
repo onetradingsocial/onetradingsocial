@@ -1,14 +1,26 @@
 'use client'
 
 import { useEffect } from 'react'
+import { classifyClientError } from '@/lib/redact'
 
-/** Root-layout crash fallback. Must render its own <html>; keeps deps minimal. */
+/**
+ * Root-layout crash fallback. Must render its own <html>; keeps deps minimal.
+ *
+ * Same F1 change as `error.tsx`: a classified label and the digest, never the
+ * raw message. See the comment there and `lib/redact.ts` for why redacting the
+ * message would not have been enough.
+ */
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     try {
       const body = JSON.stringify({
         event: 'client_error',
-        props: { message: String(error?.message ?? 'unknown').slice(0, 300), digest: error?.digest ?? null, fatal: true },
+        props: {
+          code: classifyClientError(error?.message, error?.name),
+          kind: typeof error?.name === 'string' ? error.name.slice(0, 40) : 'Error',
+          digest: error?.digest ?? null,
+          fatal: true,
+        },
         path: location.pathname,
       })
       navigator.sendBeacon?.('/api/track', new Blob([body], { type: 'application/json' }))

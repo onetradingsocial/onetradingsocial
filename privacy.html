@@ -1155,11 +1155,14 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       image, bio, tagline, experience level, markets and trading styles, account type, badge, profile
       link, XP and level.</li>
       <li>Any trade you mark as public, including its notes and any screenshot attached to it.</li>
-      <li>Your posts and post images, your comments, your likes, the accounts you follow, and
-      <strong>how you voted in any poll</strong>.</li>
+      <li>Your posts and post images, your comments, your likes, and the accounts you follow.</li>
     </ul>
-    <p>Visible to other signed-in members: anything you post to the public roadmap, and the lessons
-    you completed while the learning hub existed.</p>
+    <p><strong>Poll votes are private.</strong> Only the totals for each option are shown. Nobody —
+    not other members, not anonymous visitors — can see which option you chose. This changed in
+    August 2026; before that, how you voted was readable by anyone.</p>
+    <p>Visible to other signed-in members: anything you post to the public roadmap.</p>
+    <p>Private to you: the lessons you completed while the learning hub existed. This also changed
+    in August 2026; before that, any signed-in member could read them.</p>
     <p>Private to you and the other participant: your direct messages and their attachments.</p>
     <p>Private to you: journal entries you have not marked public, your trading rules, process goals
     and templates, the traders you save, your notifications, your feedback, your billing details, the
@@ -1446,10 +1449,16 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     the email address. We cannot turn that hash back into an email address, no member can read these
     records, and we use them only to prevent fraud and abuse. Our lawful basis is our legitimate
     interest in preventing fraud and abuse on the platform.</p>
-    <p><strong>One thing we should be straight about.</strong> Apart from account deletion, we do not
-    yet run an automated job that deletes records when a period above expires. Those periods are the
-    policy we hold ourselves to and they are applied by hand; automating them is work we have not
-    finished.</p>
+    <p><strong>How these periods are enforced.</strong> Usage and analytics records, administrator
+    access records and moderation reports are now deleted automatically by a job that runs every
+    day. Billing records are held by our payment provider on their schedule, and sent email is held
+    by our email provider on theirs. Everything in the first row of the table above is kept until
+    you delete your account, and is removed by the deletion itself rather than by a timer.</p>
+    <p><strong>One thing we should be straight about.</strong> A few smaller records — your
+    in-app notifications, the click record on your referral link, and our own internal system
+    alerts — have no stated period above and no automatic deletion. They are removed when you
+    delete your account. We would rather say that than quietly set a period we had not told you
+    about.</p>
 
     <h2>14. Deleting your account</h2>
     <p>You can delete your account yourself at any time under <strong>Settings → Your data</strong>.

@@ -58,6 +58,38 @@ Write-Log "n8n not listening on $port -- starting it"
 $outLog = Join-Path $here 'n8n-console.log'
 $errLog = Join-Path $here 'n8n-console.err.log'
 
+# Rotate before redirecting. Audit item 19, finding F7.
+#
+# Write-Log above already bounds watchdog.log by line count, but the three
+# APPEND-ONLY files below had no bound at all: n8n's own stdout/stderr, which
+# this task redirects on every restart, and post-log.jsonl, which a workflow
+# appends to after every publish. They are small today (a few KB) and that is
+# precisely when to fix it -- this machine is a personal box that nobody is
+# monitoring for disk, and the failure mode of an unbounded log is silent
+# until it is not.
+#
+# Rotation and not truncation, because the whole reason these files exist is
+# to explain a failure after the fact: keeping one previous generation means a
+# crash loop that rotates the current file does not also destroy the evidence.
+#
+# The content itself was audited and is clean -- post-log.jsonl records
+# `captionChars` (a count) rather than caption text, and the sole "token" hit
+# in the console log is a workflow NAME. Rotation is about disk and about not
+# accumulating an ever-growing operational record, not about secrets.
+function Rotate-IfLarge([string]$path, [int]$maxBytes = 1MB) {
+    try {
+        if (-not (Test-Path $path)) { return }
+        if ((Get-Item $path).Length -le $maxBytes) { return }
+        $old = "$path.1"
+        if (Test-Path $old) { Remove-Item $old -Force -ErrorAction SilentlyContinue }
+        Move-Item -Path $path -Destination $old -Force
+    } catch { }
+}
+
+Rotate-IfLarge $outLog
+Rotate-IfLarge $errLog
+Rotate-IfLarge (Join-Path $here 'post-log.jsonl')
+
 Start-Process -FilePath 'powershell.exe' `
     -ArgumentList '-ExecutionPolicy', 'Bypass', '-File', "`"$starter`"" `
     -WindowStyle Hidden `
