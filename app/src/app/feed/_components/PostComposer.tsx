@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { createPost, attachPostImages, type AttachmentType } from '@/app/actions/social'
+import { PrivacyNote } from '@/app/_components/LegalNotice'
 import { TradePickerModal } from './TradePickerModal'
 
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
@@ -92,6 +93,15 @@ export function PostComposer() {
         <button type="button" className="btn btn-primary" disabled={pending} onClick={submit}>{pending ? 'Posting…' : 'Post'}</button>
       </div>
       {error && <p className="ts-error" style={{ marginTop: 10 }}>{error}</p>}
+      {/* APP 5, audit item 4 finding 6 / surface 10. posts_select and
+          post_images_select are both `using (true)` and post images live in the
+          public bucket, so a post is readable by anonymous visitors. Poll votes
+          are the part nobody expects: poll_votes_select is `using (true)` too,
+          so a vote is attributable and public. */}
+      <PrivacyNote>
+        Posts, images, comments and <b>poll votes</b> are public — readable by anyone on the
+        internet, including people without an account.
+      </PrivacyNote>
 
       {picker && <TradePickerModal onClose={() => setPicker(false)} onPick={(t) => { setTrade(t); setType('trade'); setPicker(false) }} />}
     </div>

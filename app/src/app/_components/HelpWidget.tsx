@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import { submitFeedback } from '@/app/actions/feedback'
 import { FEEDBACK_TYPES, FEEDBACK_TYPE_LABELS, FEEDBACK_MAX, type FeedbackType } from '@/lib/feedback'
 import { track } from '@/lib/track'
+import { PrivacyNote } from './LegalNotice'
 
 export function HelpWidget() {
   const [open, setOpen] = useState(false)
@@ -88,6 +89,15 @@ export function HelpWidget() {
                 />
               </label>
               {error && <p className="help-error">{error}</p>}
+              {/* APP 5.2(c), audit item 4 finding 10 / S8. actions/feedback.ts
+                  also records the user-agent, the page URL, viewport, device
+                  class and the most recent console error — none of which the
+                  form indicated. A console error can carry application state, so
+                  it is the field least likely to be expected. */}
+              <PrivacyNote>
+                We also record your browser, screen size, the page you&apos;re on and your
+                browser&apos;s most recent error, so we can reproduce the problem.
+              </PrivacyNote>
               <button type="button" className="btn btn-primary btn-block" onClick={send} disabled={pending || !message.trim()}>
                 {pending ? 'Sending…' : 'Send'}
               </button>

@@ -10,6 +10,7 @@ import { pipInfo } from '@/lib/instruments'
 import { InstrumentCombobox } from './InstrumentCombobox'
 import { Mt5ImportTab } from './Mt5ImportTab'
 import { LivePriceChip } from './LivePriceChip'
+import { PrivacyNote } from './LegalNotice'
 
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 
@@ -392,6 +393,16 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
                 <span className="faint" style={{ fontSize: 12 }}>PNG, JPG up to 5MB</span>
               </button>
               <input ref={dropRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => setChart(e.target.files?.[0] ?? null)} />
+              {/* APP 5, audit item 4 finding 6 / S7. The notice used to cover
+                  file size and format only. Since 0044 the chart goes to the
+                  PRIVATE bucket and is served through api/private-image, which
+                  re-checks trades_select — so its visibility follows the trade's
+                  own setting. That is the fact a user choosing "Private" above
+                  needs, and it is now true, which is why it can be said. */}
+              <PrivacyNote>
+                Charts are stored privately and follow this trade&apos;s visibility setting — a
+                private trade&apos;s chart is not viewable by anyone else.
+              </PrivacyNote>
             </div>
           )}
         </div>

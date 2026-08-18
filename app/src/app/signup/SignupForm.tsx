@@ -5,9 +5,10 @@ import { useActionState, useState } from 'react'
 import { signUp, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
 import { AuthShell, EyeIcon, LockIcon } from '@/app/_components/AuthShell'
+import { OAuthLegalNotice } from '@/app/_components/LegalNotice'
+import { LEGAL, EXTERNAL_LINK } from '@/lib/marketing'
 import { passwordProblem, scorePassword, STRENGTH_LABELS, PASSWORD_MIN_LENGTH } from '@/lib/password'
 
-const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
 const initial: ActionState = {}
 
 // Item 9 F5: the meter and the score now come from `lib/password`, the same
@@ -40,6 +41,10 @@ export function SignupForm() {
       sub="Build your trading profile. Prove your edge. Climb the leaderboard."
     >
       <GoogleButton className="fl-oauth" />
+      {/* The terms checkbox lives inside the <form> below and has never gated
+          this button, so an OAuth signup accepted nothing and saw no legal
+          link at all (audit item 4 finding 3). */}
+      <OAuthLegalNotice />
       <div className="fl-or"><span>or</span></div>
 
       <form action={action} className="fl-fields">
@@ -96,11 +101,16 @@ export function SignupForm() {
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </span>
+          {/* The privacy policy was missing from this list — the one moment in
+              the product where the user is asked to read and accept something
+              (audit item 4 finding 2). Keep the order matching the error string
+              in actions/auth.ts. */}
           <span className="tx">
             I agree to the{' '}
-            <a href={`${MARKETING}/terms`} target="_blank" rel="noopener noreferrer">Terms</a>{' '}
+            <a href={LEGAL.terms} {...EXTERNAL_LINK}>Terms</a>,{' '}
+            <a href={LEGAL.privacy} {...EXTERNAL_LINK}>Privacy Policy</a>{' '}
             and{' '}
-            <a href={`${MARKETING}/disclaimer`} target="_blank" rel="noopener noreferrer">financial disclaimer</a>.
+            <a href={LEGAL.disclaimer} {...EXTERNAL_LINK}>financial disclaimer</a>.
           </span>
         </label>
 

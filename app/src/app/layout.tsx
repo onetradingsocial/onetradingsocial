@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Space_Grotesk, Manrope, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AppNav } from './_components/AppNav'
+import { AppFooter } from './_components/AppFooter'
 import { TradeModalProvider } from './_components/TradeModalProvider'
 import { HelpWidget } from './_components/HelpWidget'
 import { GoogleAnalytics } from './_components/GoogleAnalytics'
@@ -93,6 +94,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <TrialEndingBanner daysLeft={gate.daysLeft} />
           )}
           {children}
+          {/* APP 5: the app had no footer and no link to the privacy policy on
+              any route (audit item 4 finding 1). This is the site-wide floor —
+              individual high-sensitivity surfaces carry their own notice too. */}
+          <AppFooter />
           {user && <HelpWidget />}
           {user && <TrialGateModal show={!!gate?.showWall} />}
           {user && welcome?.show && (

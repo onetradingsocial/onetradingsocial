@@ -42,9 +42,34 @@ describe('footer legal links are wired (no dead anchors)', () => {
 })
 
 describe('signup consent links to the legal pages', () => {
-  it('SignupForm references /terms and /disclaimer', () => {
+  // The links used to be inlined in SignupForm. They now come from
+  // lib/marketing.ts so every collection surface can reach them without
+  // re-deriving the marketing origin -- /privacy previously appeared nowhere
+  // in app/src at all. Assert the behaviour (the links resolve, and both
+  // signup paths show them), not which file the string sits in.
+  it('marketing.ts defines all four legal links on the marketing origin', () => {
+    const ts = read('app/src/lib/marketing.ts')
+    for (const path of ['/terms', '/privacy', '/disclaimer', '#subscriptions']) {
+      expect(ts).toContain(path)
+    }
+  })
+  it('the email signup path still gates on an explicit consent checkbox', () => {
     const tsx = read('app/src/app/signup/SignupForm.tsx')
-    expect(tsx).toContain('/terms')
-    expect(tsx).toContain('/disclaimer')
+    expect(tsx).toMatch(/type="checkbox"/)
+    expect(tsx).toContain('LEGAL.terms')
+    expect(tsx).toContain('LEGAL.disclaimer')
+  })
+  it('the Google path carries its own notice, since the checkbox never gated it', () => {
+    const tsx = read('app/src/app/signup/SignupForm.tsx')
+    expect(tsx).toContain('OAuthLegalNotice')
+    const notice = read('app/src/app/_components/LegalNotice.tsx')
+    expect(notice).toContain('LEGAL.terms')
+    expect(notice).toContain('LEGAL.privacy')
+    expect(notice).toContain('LEGAL.disclaimer')
+  })
+  it('legal links open in a new tab without handing over window.opener', () => {
+    const ts = read('app/src/lib/marketing.ts')
+    expect(ts).toContain('noopener')
+    expect(ts).toContain('noreferrer')
   })
 })

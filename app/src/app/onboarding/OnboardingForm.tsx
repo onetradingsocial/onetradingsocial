@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useActionState, type ReactNode } from 'react'
 import { saveOnboarding, type ProfileState } from '@/app/actions/profile'
 import { track } from '@/lib/track'
+import { LEGAL, EXTERNAL_LINK } from '@/lib/marketing'
 
 /* ───────────────── icons (subset of the home design system) ───────────────── */
 const IP = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
@@ -420,6 +421,21 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
             })}
           </div>
 
+          {/* APP 5, audit item 3 finding 4. "Public" here means readable by
+              anyone on the internet, not just by other members — posts,
+              comments, likes, follows and poll votes are all `using (true)` in
+              the database. The picker said "Most traders go public"; it did not
+              say who "public" is. */}
+          <p style={{ marginTop: 14, fontSize: 12.5, lineHeight: 1.55, color: 'var(--dim)' }}>
+            A public profile, and any trade you mark public, can be read by <b>anyone on the
+            internet</b> — including people without an account — and by search engines. Your posts,
+            comments, likes, follows and poll votes are public either way. Your account balance,
+            private journal entries and direct messages are not.{' '}
+            <a href={LEGAL.privacy} {...EXTERNAL_LINK} style={{ color: 'var(--violet-br)', fontWeight: 600 }}>
+              What other people can see
+            </a>
+          </p>
+
           {/* Account-type label — shown beside results so demo is never mistaken for live. */}
           <div style={{ marginTop: 18 }}>
             <p style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 8 }}>
@@ -529,6 +545,27 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
         </div>
 
         {state.error && <p className="ts-error" style={{ marginTop: 22 }}>{state.error} — <button type="button" onClick={() => go(0)} style={{ color: 'inherit', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>edit handle</button></p>}
+
+        {/* APP 5, audit item 4 S2. This submit calls saveOnboarding, which
+            sends Reddit a server-side conversion containing a hash of the
+            user's email and their RAW IP address and user agent
+            (actions/profile.ts -> lib/reddit-capi.ts). Nothing on this screen
+            said so, and no browser setting stops it. */}
+        <p style={{
+          maxWidth: 520, margin: '22px auto 0', fontSize: 12, lineHeight: 1.55,
+          color: 'rgba(255,255,255,0.62)', textAlign: 'left',
+        }}>
+          Finishing setup creates your profile and records an advertising conversion with Reddit and
+          Meta containing a one-way hash of your email address — and, for Reddit, your IP address and
+          browser, sent from our servers.{' '}
+          <a href={LEGAL.privacy} {...EXTERNAL_LINK} style={{ color: '#c9b8ff', fontWeight: 600 }}>
+            Privacy Policy
+          </a>{' '}
+          ·{' '}
+          <a href={LEGAL.terms} {...EXTERNAL_LINK} style={{ color: '#c9b8ff', fontWeight: 600 }}>
+            Terms
+          </a>
+        </p>
 
         <div className="ob-hero-cta" style={{ marginTop: 30 }}>
           <button type="button" className="ob-next" onClick={submit} disabled={pending}>

@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getAvatarUploadUrl, saveAvatarUrl } from '@/app/actions/avatar'
+import { PrivacyNote } from './LegalNotice'
 
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
 
@@ -42,6 +43,10 @@ export function AvatarUploader({ current }: { current: string | null }) {
         </button>
         <input ref={inputRef} type="file" accept="image/png,image/jpeg" onChange={onChange} className="hidden" />
         {status && <p className="faint mt-2" style={{ fontSize: 13 }}>{status}</p>}
+        {/* APP 5, audit item 4 finding 6. avatars/ and covers/ stay in the
+            PUBLIC bucket by design (0044) — the profile JSON-LD emits the URL
+            for anonymous crawlers, which cannot follow a signed URL. */}
+        <PrivacyNote>Your profile photo is stored on a public address so it can appear on your public profile and in search results.</PrivacyNote>
       </div>
     </div>
   )

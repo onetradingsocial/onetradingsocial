@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react'
 import { signIn, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
 import { AuthShell, EyeIcon, LockIcon } from '@/app/_components/AuthShell'
+import { OAuthLegalNotice } from '@/app/_components/LegalNotice'
 
 const initial: ActionState = {}
 
@@ -29,6 +30,10 @@ export function LoginForm({ deleted = false }: { deleted?: boolean }) {
       )}
 
       <GoogleButton className="fl-oauth" />
+      {/* signInWithOAuth CREATES an account when none exists, so this button is
+          a signup surface on the login page too — same APP 5 notice, same
+          reason (audit item 4 finding 3). */}
+      <OAuthLegalNotice />
       <div className="fl-or"><span>or</span></div>
 
       <form action={action} className="fl-fields">

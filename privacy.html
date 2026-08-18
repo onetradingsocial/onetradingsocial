@@ -947,6 +947,11 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 .legal li { margin: 0 0 7px; }
 .legal a { color: var(--accent, #6c8cff); text-decoration: underline; }
 .legal .legal-contact { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+.legal .legal-table { overflow-x: auto; margin: 0 0 18px; -webkit-overflow-scrolling: touch; }
+.legal table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+.legal th, .legal td { border: 1px solid var(--border); padding: 9px 11px; text-align: left; vertical-align: top; line-height: 1.55; color: var(--text-2, #c7ccda); }
+.legal th { font-weight: 700; color: var(--text, #eef1f8); background: rgba(255,255,255,.035); }
+.legal td code { font-size: 12.5px; }
 </style>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-M7NX0Y7NSC"></script>
@@ -1071,73 +1076,459 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 <main class="legal">
   <div class="wrap">
     <h1>Privacy Policy</h1>
-    <p class="legal-updated">Last updated: 24 June 2026</p>
+    <p class="legal-updated">Last updated: 18 August 2026</p>
 
-    <p>This policy explains how TradingSocial collects, uses, discloses and protects your
-    personal information. We handle personal information in accordance with the Privacy Act 1988
-    (Cth) and the Australian Privacy Principles (APPs).</p>
+    <p>This policy explains what personal information TradingSocial collects, how we collect it, why,
+    who we share it with, which countries it goes to, how long we keep it, and what you can do about
+    it. We handle personal information in accordance with the <em>Privacy Act 1988</em> (Cth) and the
+    Australian Privacy Principles (APPs).</p>
 
-    <h2>Information we collect</h2>
+    <!-- LEGAL ENTITY PLACEHOLDER — BLOCKING OWNER ACTION.
+         The operating entity, its ABN and its registered address are not recorded
+         anywhere in this repository, so they cannot be filled in here. APP 1.4(a)
+         assumes an identifiable entity a person can direct a request to and, if
+         necessary, complain about to the OAIC. The same gap exists in terms.html
+         and should be closed in both files at once.
+         Withheld rather than shipped with bracketed placeholders: rendering
+         "[LEGAL ENTITY NAME]" on a live privacy policy is worse than carrying no
+         entity clause at all. Restore the paragraph below with the real values.
+    <p>This policy is issued by <b>[LEGAL ENTITY NAME] Pty Ltd</b> (<b>ABN [NUMBER]</b>)
+    of <b>[registered address]</b>, Australia, trading as TradingSocial. In this policy,
+    "we", "us" and "our" mean that entity.</p>
+    -->
+
+    <p><b>Read section 4 first if you read nothing else.</b> TradingSocial is a social platform, and
+    a lot of what you create on it is public by default — visible to anyone on the internet,
+    including people without an account.</p>
+
+    <h2>1. Information we collect</h2>
     <ul>
-      <li><strong>Account &amp; sign-in:</strong> your email address and password (managed by our
-      authentication provider). If you sign in with Google, we receive your name and profile photo.</li>
-      <li><strong>Profile:</strong> username, display name, avatar, bio, trading goals and the
-      markets you select.</li>
+      <li><strong>Account and sign-in:</strong> your email address and password. Your password is
+      hashed by our authentication provider; we never see or store it in readable form. If you sign
+      in with Google, we receive your name, email address, profile photo and Google account
+      identifier.</li>
+
+      <li><strong>Profile:</strong> username, display name, avatar and cover images, bio, tagline,
+      experience level, the markets and trading styles you select, your account type, your stated
+      goal, your profile colour and any link you add to your card, your XP and level, your profile
+      visibility and leaderboard preference, and <strong>the account balance and currency you
+      enter</strong> (used to size your risk and to show your results in money).</li>
+
       <li><strong>Trading journal:</strong> the trades you log — instrument, entries and exits,
-      profit/loss, risk multiples, notes, and any screenshots you upload.</li>
-      <li><strong>Social activity:</strong> posts, comments, likes and the accounts you follow.</li>
-      <!-- The learning hub is withdrawn (we are not financial advisors) but the
-           records it produced are still held, so this stays a disclosure rather than
-           being deleted. Drop "(withdrawn)" and the trailing sentence when the hub
-           is restored. -->
-      <li><strong>Learning (withdrawn):</strong> which lessons you marked complete, and any XP
-      awarded for them. Quiz answers are not recorded. The hub is no longer available and no new
-      records are created; existing records are retained, and are included in your data export
-      and removed when you delete your account.</li>
-      <li><strong>Support:</strong> feedback and messages you send us.</li>
-      <li><strong>Technical:</strong> usage and log data, device/browser information, cookies and
-      analytics data.</li>
+      profit/loss, risk multiples, position size, your notes, how you tagged the trade (emotion,
+      confidence, mistakes, strategy), and any chart screenshot you attach.</li>
+
+      <li><strong>Connected trading accounts:</strong> if you connect MetaTrader 5, your MT5 login
+      number, broker server and the read-only investor password you supply. If you connect a crypto
+      exchange, the read-only API key and secret you supply. In both cases we then receive your
+      closed trade history from that service. See section 8.</li>
+
+      <li><strong>Payments:</strong> your subscription and trial status, your plan and billing
+      period, and a customer reference from our payment provider. <strong>We never receive or store
+      your card number.</strong> See section 7.</li>
+
+      <li><strong>Social activity:</strong> posts and post images, comments, likes, the accounts you
+      follow and who follows you, poll votes, the traders you save, and feature requests, comments
+      and votes on our public roadmap.</li>
+
+      <li><strong>Direct messages:</strong> the messages and images you send to other members.</li>
+
+      <li><strong>Reports and moderation:</strong> reports you make about another member or a trade,
+      and reports other members make about you.</li>
+
+      <li><strong>Referrals:</strong> your referral code, and a record of clicks on your referral
+      link.</li>
+
+      <li><strong>Learning (withdrawn):</strong> which lessons you marked complete and any XP awarded
+      for them. <strong>Quiz answers were never recorded</strong> — quizzes were marked in your
+      browser and the answers were never sent to us. The learning hub is no longer available and no
+      new records are created; the existing records are retained, are included in your data export,
+      and are removed when you delete your account.</li>
+
+      <li><strong>Support and feedback:</strong> the message you send, the page you were on, your
+      browser's user-agent string, your screen size, a device class, and the most recent error your
+      browser had logged — the last of these so that we can reproduce the bug you are reporting.</li>
+
+      <li><strong>Technical and usage:</strong> your IP address and browser user-agent are recorded
+      against your sign-in sessions. As you use the site we record page views against a random
+      identifier stored in your browser, together with the page path, the referring page, a device
+      class and the campaign source you arrived from.</li>
     </ul>
 
-    <h2>How we use your information</h2>
-    <p>We use your information to operate and provide the platform (including leaderboards and
-    social features), authenticate you, respond to support requests, keep the service secure, and
-    improve our features.</p>
+    <h2>2. How we collect it</h2>
+    <p>Most of it you give us directly, through forms and uploads. Some is collected automatically as
+    you use the site — the pages you visit, your IP address, your browser and how you arrived. Some
+    comes from other services: your name, email address and photo from Google if you sign in with
+    Google; your closed trade history from MetaApi or your exchange if you connect an account; and
+    your payment status and billing email from Stripe.</p>
 
-    <h2>Disclosure and service providers</h2>
-    <p>We do not sell your personal information. We share it with service providers who help us
-    run TradingSocial, including Vercel (website hosting), Supabase (database, authentication and
-    file storage) and Google (sign-in and analytics). Some of these providers may store data
-    outside Australia; where that occurs we take reasonable steps to ensure your information is
-    handled consistently with the APPs.</p>
+    <h2>3. Why we collect it</h2>
+    <p>To operate the platform and its social and leaderboard features; to authenticate you and keep
+    your account secure; to take payment and work out what your plan includes; to send you account,
+    trial and billing emails and a weekly review of your own trading; to answer support requests; to
+    detect fraud, abuse and manipulation of the leaderboards; to understand how the product is used
+    so we can improve it; to attribute referrals; and <strong>to measure and target our
+    advertising</strong>. That last purpose is separate from analytics and is described in
+    section 10.</p>
 
-    <h2>Cookies and analytics</h2>
-    <p>We use cookies and similar technologies, including Google Analytics, to understand how the
-    site is used and to improve it. You can control cookies through your browser settings.</p>
+    <h2>4. What other people can see</h2>
+    <p>Some of what you create is <strong>public — visible to anyone on the internet, including
+    people without an account, and to search engines</strong>:</p>
+    <ul>
+      <li>Your profile, if you have it set to public: your display name, username, avatar and cover
+      image, bio, tagline, experience level, markets and trading styles, account type, badge, profile
+      link, XP and level.</li>
+      <li>Any trade you mark as public, including its notes and any screenshot attached to it.</li>
+      <li>Your posts and post images, your comments, your likes, the accounts you follow, and
+      <strong>how you voted in any poll</strong>.</li>
+    </ul>
+    <p>Visible to other signed-in members: anything you post to the public roadmap, and the lessons
+    you completed while the learning hub existed.</p>
+    <p>Private to you and the other participant: your direct messages and their attachments.</p>
+    <p>Private to you: journal entries you have not marked public, your trading rules, process goals
+    and templates, the traders you save, your notifications, your feedback, your billing details, the
+    credentials for any account you connect, and <strong>the account balance you enter</strong>. Your
+    stated balance and your payment-provider reference are withheld at the database level from every
+    other user, including signed-in ones.</p>
+    <p>You can make your profile private, or opt out of the leaderboards, under
+    <strong>Settings → Privacy</strong>, and each journal entry has its own visibility setting.</p>
 
-    <h2>Security</h2>
-    <p>We take reasonable steps to protect your personal information from misuse, loss and
-    unauthorised access. No method of transmission or storage is completely secure, and we cannot
-    guarantee absolute security.</p>
+    <h2>5. Who we share your information with</h2>
+    <p>We use the service providers below to run TradingSocial. Each receives only what its job
+    requires.</p>
+    <div class="legal-table">
+    <table>
+      <thead><tr><th>Provider</th><th>What it receives</th><th>Why</th><th>Where it is processed</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Supabase</td>
+          <td>Your account, profile, trades, messages, uploaded files and session records</td>
+          <td>Database, authentication and file storage</td>
+          <td><strong>Australia — Sydney</strong>. Supabase Inc. is a United States company, and its
+          support and platform logs are held there</td>
+        </tr>
+        <tr>
+          <td>Vercel</td>
+          <td>Every request you make: IP address, browser, page address and cookies</td>
+          <td>Hosting for the website and the app</td>
+          <td>United States</td>
+        </tr>
+        <tr>
+          <td>Stripe</td>
+          <td>Your email address and account identifier; and, entered by you directly on Stripe's own
+          page, your name, billing address and card details</td>
+          <td>Subscription payments. <strong>We never receive or store your card number</strong></td>
+          <td>United States, European Union and India</td>
+        </tr>
+        <tr>
+          <td>Resend</td>
+          <td>Your email address and the content of the emails we send you — the weekly review email
+          contains your own trading statistics</td>
+          <td>Sending account, billing and summary emails</td>
+          <td>United States</td>
+        </tr>
+        <tr>
+          <td>MetaApi (Agilium Labs LLC)</td>
+          <td>If you connect MT5: your MT5 login number, broker server and <strong>investor
+          password</strong>, and your closed trade history</td>
+          <td>Automatic MT5 trade sync. <strong>We never store your investor password</strong></td>
+          <td>United States (Wyoming); the connected account is hosted on a node that defaults to the
+          <strong>United Kingdom</strong></td>
+        </tr>
+        <tr>
+          <td>Binance</td>
+          <td>If you connect an exchange: the read-only API key and secret you supply, and your fill
+          history</td>
+          <td>Automatic crypto trade sync</td>
+          <td>Lithuania and globally; our sync runs from Singapore</td>
+        </tr>
+        <tr>
+          <td>Google</td>
+          <td>Your IP address, browser, the pages you view and an analytics identifier; and, if you
+          sign in with Google, your name, email address and profile photo</td>
+          <td>Product analytics and Google sign-in</td>
+          <td>United States and globally</td>
+        </tr>
+        <tr>
+          <td>Meta (Facebook)</td>
+          <td>Your IP address, browser and the pages you view on our marketing site; and, when you
+          complete signup or subscribe, a <strong>one-way hash</strong> of your email address and
+          account identifier</td>
+          <td>Advertising measurement and matching</td>
+          <td>United States and Ireland</td>
+        </tr>
+        <tr>
+          <td>Reddit</td>
+          <td>The same as Meta, and in addition our servers send Reddit <strong>your IP address and
+          browser</strong> directly when you complete signup or subscribe</td>
+          <td>Advertising measurement and matching</td>
+          <td>United States</td>
+        </tr>
+        <tr>
+          <td>Twelve Data</td>
+          <td>The instrument names you search for. <strong>Nothing that identifies you is
+          sent</strong> — the request comes from our server, not your browser</td>
+          <td>Symbol search and live prices</td>
+          <td>Singapore</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Meta, Google and Reddit use what they receive for their own advertising purposes as well as
+    ours.</p>
+    <p><strong>On "selling" your information.</strong> We have never sold your personal information
+    and we receive no money for it. Rather than rely on the word, here is what we actually do: we
+    send Meta and Reddit a one-way hash of your email address, and Reddit your IP address and
+    browser, so that they can match you to an advertising audience. Under some overseas privacy laws
+    that counts as "selling" or "sharing". Section 10 tells you how to stop it.</p>
+    <p>We also disclose personal information where we are required or permitted to by law, and to
+    other members and the public as described in section 4.</p>
 
-    <h2>Access, correction and complaints</h2>
-    <p>You may request access to, or correction of, the personal information we hold about you by
-    contacting us. If you have a privacy complaint, contact us first and we will respond. If you
-    are not satisfied, you may contact the Office of the Australian Information Commissioner (OAIC)
-    at <a href="https://www.oaic.gov.au">oaic.gov.au</a>.</p>
+    <h2>6. Where your information goes</h2>
+    <p>Your account and everything in it is stored in <strong>Australia</strong>, in a database
+    hosted in Sydney. The providers in section 5 are, or may be, located in the
+    <strong>United States, the United Kingdom, Ireland, Singapore, Lithuania and India</strong>, and
+    Google processes data globally. The most sensitive single transfer we make is the MT5 investor
+    password described in section 8, which leaves Australia.</p>
+    <p>We rely on each provider's published privacy terms and security commitments. <strong>We have
+    not separately negotiated a data-processing agreement with every provider on that list.</strong>
+    Under Australian Privacy Principle 8.1 we remain accountable to you for how an overseas recipient
+    handles information we disclose to it, and you can complain to us about that under section 16.</p>
 
-    <h2>Retention and deletion</h2>
-    <p>We keep your information for as long as your account is active or as needed to provide the
-    service and meet legal obligations. You can request deletion of your account and associated
-    data by contacting us.</p>
+    <h2>7. Payments</h2>
+    <p>Subscriptions are billed through Stripe. When you start a checkout we send Stripe your email
+    address and your account identifier. You then enter your card number, name and billing address on
+    a page hosted by Stripe. <strong>Those details never pass through our servers and we never store
+    them.</strong> What we keep is your plan, your subscription status and period dates, and a
+    customer reference. Prices, renewal, cancellation and refunds are covered by our
+    <a href="/terms#subscriptions">subscription terms</a>.</p>
+    <p>If you have ever paid us, Stripe keeps your invoices and charge history after you delete your
+    account — see section 13.</p>
 
-    <h2>Children</h2>
-    <p>TradingSocial is not directed at people under 18, and we do not knowingly collect their
-    personal information.</p>
+    <h2>8. Connected trading and exchange accounts</h2>
+    <p><strong>MetaTrader 5.</strong> To sync your trades automatically we ask for your MT5 account
+    number, your broker's server, and your <strong>read-only investor password</strong>, which can
+    view an account but cannot place trades or move funds. We pass it once to
+    <strong>MetaApi</strong> (Agilium Labs LLC, a United States company), the service that runs the
+    sync for us and which holds it to keep the connection alive. <strong>We do not store it
+    ourselves — it is never written to our database.</strong> MetaApi hosts the connected account on
+    a node that defaults to the <strong>United Kingdom</strong>, so your broker login is held outside
+    Australia. We were not able to locate a privacy policy published by MetaApi at a public address;
+    if that matters to you, do not connect an MT5 account. Disconnecting the broker in Settings
+    removes the account and the password from MetaApi, and so does deleting your TradingSocial
+    account.</p>
+    <p><strong>Crypto exchanges.</strong> If you connect an exchange we ask for a read-only API key.
+    We encrypt the key and secret with AES-256-GCM before storing them; the encryption key is held in
+    our server environment and never in the database, so a copy of the database on its own cannot
+    read them. They are never displayed back to you, and the columns holding them are readable by no
+    user account of any kind. We use them from a server in Singapore to read your fills.
+    <strong>Only you can revoke a key at the exchange</strong> — if you delete your account we delete
+    our encrypted copy, but you should revoke the key at the exchange as well.</p>
 
-    <h2>Changes to this policy</h2>
-    <p>We may update this policy from time to time. The "last updated" date above reflects the
-    latest version.</p>
+    <h2>9. Direct messages</h2>
+    <p>Direct messages are readable by you and the person you are talking to. The database enforces
+    that: a request for a conversation you are not part of is refused. Images you attach are stored in
+    a private, non-public store and are served only through a route that re-checks you are a
+    participant and then issues a short-lived link. Messages are not end-to-end encrypted — we can
+    access them where we need to in order to investigate abuse or to comply with the law.</p>
+    <p>One consequence you should know about: <strong>deleting your account deletes your
+    conversations, including the messages the other person sent in them.</strong></p>
+
+    <h2>10. Cookies, analytics and advertising</h2>
+    <div class="legal-table">
+    <table>
+      <thead><tr><th>Cookie or identifier</th><th>Set by</th><th>Purpose</th><th>Expiry</th></tr></thead>
+      <tbody>
+        <tr><td><code>sb-*</code></td><td>TradingSocial</td><td>Keeps you signed in. Essential</td><td>Session</td></tr>
+        <tr><td><code>ts_ref</code></td><td>TradingSocial</td><td>Remembers who referred you</td><td>30 days</td></tr>
+        <tr><td><code>ts_anon_id</code> (browser storage)</td><td>TradingSocial</td><td>Links your visits before and after you sign up</td><td>Until you clear site data</td></tr>
+        <tr><td><code>ts_internal</code> (browser storage)</td><td>TradingSocial</td><td>Marks a browser as ours, so our own visits are excluded from analytics</td><td>Until you clear site data</td></tr>
+        <tr><td><code>_ga</code>, <code>_ga_*</code></td><td>Google Analytics</td><td>How the site is used</td><td>Up to 2 years</td></tr>
+        <tr><td><code>_fbp</code>, <code>_fbc</code></td><td>Meta</td><td>Advertising measurement</td><td>Up to 90 days</td></tr>
+        <tr><td><code>rdt_cid</code>, <code>_rdt_uuid</code></td><td>Reddit</td><td>Advertising measurement</td><td>Up to 2 years</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>We do not currently show a cookie consent banner.</strong> The analytics and
+    advertising cookies above are set when you load the site. You can block or delete them in your
+    browser settings, and Google, Meta and Reddit each offer their own opt-outs.</p>
+    <p><strong>Browser settings do not stop all of it, and you should know why.</strong> When you
+    complete signup or subscribe, <strong>our servers</strong> — not your browser — send Reddit and
+    Meta a record of that event containing a one-way hash of your email address and account
+    identifier, and in Reddit's case your IP address and browser as well. Because it is sent
+    server-to-server, no cookie or browser setting prevents it. If you want to be excluded from that,
+    email us at <a href="mailto:onetradingsocial@gmail.com">onetradingsocial@gmail.com</a> and we
+    will exclude your account.</p>
+
+    <h2>11. Security</h2>
+    <p>What we actually do:</p>
+    <ul>
+      <li>Your data is stored in Australia and encrypted in transit.</li>
+      <li>Every table in our database has row-level security, so the database itself refuses a
+      request for another person's records rather than relying on the application to remember.</li>
+      <li>Only the fields needed to render a public profile are readable by other users. Your account
+      balance, payment reference and notification settings are readable by you alone.</li>
+      <li>Trade screenshots and message attachments are held in a private store that is not
+      reachable from the internet, and are served only through a route that re-checks permission and
+      issues a short-lived link.</li>
+      <li>Exchange API keys are encrypted with AES-256-GCM using a key held outside the database.</li>
+      <li>Your MT5 investor password is never stored by us at all.</li>
+      <li>Passwords are hashed by our authentication provider and are never stored in readable
+      form.</li>
+      <li>Staff access to account records is restricted; email addresses are masked by default, and
+      every time one is revealed it is written to an audit log that cannot be edited or deleted.</li>
+    </ul>
+    <p>No method of transmission or storage is completely secure, and we cannot guarantee absolute
+    security.</p>
+
+    <h2>12. If something goes wrong</h2>
+    <p>If a data breach occurs that is likely to result in serious harm to you, we will notify you and
+    the Office of the Australian Information Commissioner, as required by the Notifiable Data Breaches
+    scheme in Part IIIC of the <em>Privacy Act 1988</em> (Cth). We will tell you what happened, what
+    information was involved, and what you should do about it.</p>
+
+    <h2>13. How long we keep your information</h2>
+    <div class="legal-table">
+    <table>
+      <thead><tr><th>Information</th><th>How long we keep it</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Your account, profile, trades, posts, comments, direct messages and uploaded images</td>
+          <td>Until you delete your account. We do not delete inactive accounts</td>
+        </tr>
+        <tr>
+          <td>Feature requests and comments you post to the public roadmap</td>
+          <td>Kept after you delete your account, with your name removed, so the roadmap stays
+          readable</td>
+        </tr>
+        <tr>
+          <td>Moderation reports made about your account</td>
+          <td><strong>3 years from the report, or until the matter is resolved, whichever is
+          longer.</strong> After you delete your account these are kept against a one-way salted hash
+          of your email address rather than your name — see below</td>
+        </tr>
+        <tr>
+          <td>Usage and analytics records</td>
+          <td>The identifiers are removed when you delete your account. What remains — an event name,
+          a device class, a campaign source and a date — is no longer linked to you or to your other
+          visits, and we keep it indefinitely as a count</td>
+        </tr>
+        <tr>
+          <td>Billing records</td>
+          <td>Held by Stripe. Australian record-keeping law requires records explaining a transaction
+          to be kept for five years</td>
+        </tr>
+        <tr>
+          <td>Administrator access records</td>
+          <td>24 months. The database refuses to alter or delete one inside that window</td>
+        </tr>
+        <tr>
+          <td>Emails we have sent you</td>
+          <td>Held in our email provider's sending logs, on their retention schedule</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Why we keep moderation reports.</strong> If a member is reported for suspicious or
+    abusive behaviour, deleting the account should not erase the report — otherwise the way to clear a
+    record would be to delete the account and sign up again. So when an account is deleted we keep the
+    report's reason, detail, status and date, and replace the identity with a one-way salted hash of
+    the email address. We cannot turn that hash back into an email address, no member can read these
+    records, and we use them only to prevent fraud and abuse. Our lawful basis is our legitimate
+    interest in preventing fraud and abuse on the platform.</p>
+    <p><strong>One thing we should be straight about.</strong> Apart from account deletion, we do not
+    yet run an automated job that deletes records when a period above expires. Those periods are the
+    policy we hold ourselves to and they are applied by hand; automating them is work we have not
+    finished.</p>
+
+    <h2>14. Deleting your account</h2>
+    <p>You can delete your account yourself at any time under <strong>Settings → Your data</strong>.
+    You will be asked to type your email address, and your password if your account has one. Deletion
+    is immediate, there is no grace period, and <strong>it cannot be undone</strong>. Your email
+    address is released, so you are free to sign up again later.</p>
+    <p>Deleting your account:</p>
+    <ul>
+      <li><strong>cancels an active subscription immediately</strong> and detaches your card, so
+      nothing further can be charged. The unused part of a period you have already paid for is not
+      refunded — see <a href="/terms#subscriptions">section 11 of the Terms</a>. If you want the time
+      you have paid for, cancel first and delete later;</li>
+      <li>removes any connected MT5 account from MetaApi, <strong>together with the investor password
+      it was holding</strong>;</li>
+      <li>deletes every image you have uploaded — avatars, cover images, post images, trade
+      screenshots and message attachments — from both of our storage locations;</li>
+      <li>removes the identifiers from your usage records, including visits from before you signed
+      up, so they can no longer be linked to you or to each other;</li>
+      <li>deletes your login and, with it, your profile, trades, posts, comments, likes, follows, poll
+      votes, saved traders, trading rules, goals, templates, notifications, subscription record and
+      your conversations.</li>
+    </ul>
+    <p>We send you a confirmation email listing what was removed and what was kept.</p>
+    <p><strong>What we cannot delete for you.</strong> Some companies hold identifiers that we have no
+    way to delete on your behalf. We would rather tell you than imply otherwise:</p>
+    <ul>
+      <li><strong>Stripe</strong> keeps your invoices and charge history if you ever paid, because
+      Australian tax law requires records explaining a transaction to be kept. Your subscription is
+      cancelled and your card detached, so nothing further can be charged. If you never paid, your
+      customer record is deleted outright.</li>
+      <li><strong>Meta</strong> holds browser-level advertising identifiers from pages you visited.
+      There is no deletion request we can send for you; you can remove it yourself under Facebook
+      Settings → Your activity off Meta technologies.</li>
+      <li><strong>Reddit</strong> holds a hashed version of your email address, and the IP address and
+      browser your requests came from. Reddit provides no per-user deletion endpoint. Email us and we
+      will pass the request on.</li>
+      <li><strong>Google Analytics</strong> holds browser-level analytics identifiers from the
+      marketing site. Clearing cookies for tradingsocial.io stops any further association; email us if
+      you want us to lodge a deletion request with Google.</li>
+      <li><strong>Resend</strong> holds copies of the emails we sent you, including your address, in
+      its sending logs. These age out on its own schedule; email us if you want them removed
+      sooner.</li>
+      <li>If you connected a <strong>crypto exchange</strong>, we delete our encrypted copy of your
+      API key, but <strong>only you can revoke the key at the exchange</strong>. Please do that
+      too.</li>
+    </ul>
+    <p>What we keep, and why, is in section 13.</p>
+
+    <h2>15. Accessing, correcting and downloading your information</h2>
+    <p>You can edit most of what we hold about you yourself, at any time, in <strong>Settings</strong>,
+    and you can download a copy under <strong>Settings → Your data → Export my data</strong>. That
+    export covers your profile, trades, posts, comments, likes, follows, feedback, trading rules,
+    subscription record, lesson completions and connected broker.</p>
+    <p><strong>The export does not yet cover everything we hold.</strong> Direct messages,
+    notifications, usage records, poll votes, saved traders, process goals, trade templates and
+    feature requests are not in it. If you want those, or anything else, ask us and we will provide
+    it.</p>
+    <p>To request access to, or correction of, personal information you cannot reach yourself, email
+    us at <a href="mailto:onetradingsocial@gmail.com">onetradingsocial@gmail.com</a>. We will
+    acknowledge your request within 5 business days and respond within 30 days, as Australian Privacy
+    Principle 12 requires. There is no charge for making a request.</p>
+
+    <h2>16. Complaints</h2>
+    <p>If you think we have mishandled your personal information, email us at
+    <a href="mailto:onetradingsocial@gmail.com">onetradingsocial@gmail.com</a> with the word
+    "privacy" in the subject line. We will acknowledge within 5 business days and give you a written
+    answer within 30 days.</p>
+    <p>If you are not satisfied with our answer, you can take the complaint to the Office of the
+    Australian Information Commissioner at <a href="https://www.oaic.gov.au">oaic.gov.au</a> or on
+    1300 363 992.</p>
+
+    <h2>17. Children</h2>
+    <p>TradingSocial is not directed at people under 18, our Terms require you to be at least 18, and
+    we do not knowingly collect the personal information of anyone younger. <strong>We do not verify
+    age at signup</strong>, so this depends on the account holder being honest with us. If you believe
+    someone under 18 has an account, tell us and we will close it and delete their information.</p>
+
+    <h2>18. Changes to this policy</h2>
+    <p>We may update this policy from time to time. The "last updated" date at the top reflects the
+    latest version. If a change materially affects how we handle information we already hold about
+    you, we will tell you by email.</p>
+    <p><em>August 2026 update: this policy was rewritten end to end. It now names every service
+    provider that receives personal information and the country each one processes it in; describes
+    payments, connected broker and exchange accounts, direct messages, and what is public by default;
+    states our retention periods per category and the records we keep after account deletion;
+    describes what deleting your account actually does, and what we cannot delete for you; adds a
+    Notifiable Data Breaches clause and response timeframes for access, correction and complaints;
+    and corrects two earlier statements — that browser settings control all of our tracking, and that
+    deleting your account required contacting us.</em></p>
 
     <div class="legal-contact">
       <p>Privacy questions or requests? Contact us at
