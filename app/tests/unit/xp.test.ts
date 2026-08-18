@@ -174,3 +174,80 @@ describe('evaluateBadges — lessons', () => {
     expect(badges.find((b) => b.id === 'lessons_25')).toMatchObject({ earned: false, current: 6 })
   })
 })
+
+// ── Audit item 15, F7 — quest bonuses are not retroactively farmable ────────
+//
+// XP is not a ledger: it is recomputed from the trades table on every read, and
+// quest bonuses are awarded per UTC calendar bucket. The bucket used to come
+// from `traded_at` / `closed_at`, both of which the user supplies, and
+// `createTrade` deliberately permits backdating. So bulk-inserting backdated
+// rows bought months of daily (30 XP) and weekly (150 XP) bonuses in one
+// sitting. Buckets now key on `created_at`, which is a Postgres default and is
+// excluded from the client INSERT and UPDATE grants by migration 0045.
+
+describe('quest bonuses bucket on created_at (item 15 F7)', () => {
+  const row = (traded: string, closed: string | null, created: string): XpTrade =>
+    ({ traded_at: traded, closed_at: closed, created_at: created, status: closed ? 'closed' : 'open', outcome: 'win' })
+
+  it('a backdated bulk insert collapses into ONE daily bucket, not one per day', () => {
+    // 30 trades dated across 30 different days, all written today.
+    const created = '2026-06-22T09:00:00Z'
+    const farm = Array.from({ length: 30 }, (_, i) => {
+      const d = `2026-05-${String(i + 1).padStart(2, '0')}`
+      return row(`${d}T01:00:00Z`, `${d}T02:00:00Z`, created)
+    })
+    // Two daily quests (log + close), both satisfied in the single created_at
+    // bucket. One bonus each, not 30 each.
+    expect(historicalDailyBonus(farm)).toBe(2 * XP.DAILY_QUEST_BONUS)
+  })
+
+  it('the same rows would have paid out ~30x under the old traded_at bucketing', () => {
+    const legacy = Array.from({ length: 30 }, (_, i) => {
+      const d = `2026-05-${String(i + 1).padStart(2, '0')}`
+      return mk(`${d}T01:00:00Z`, `${d}T02:00:00Z`) // no created_at -> old behaviour
+    })
+    expect(historicalDailyBonus(legacy)).toBe(60 * XP.DAILY_QUEST_BONUS)
+  })
+
+  it('a backdated bulk insert collapses into ONE weekly bucket too', () => {
+    const created = '2026-06-22T09:00:00Z'
+    // 10 logged + 10 closed in one created_at week satisfies both weekly quests
+    // exactly once, however many calendar weeks the trades claim to span.
+    const farm = Array.from({ length: 10 }, (_, i) =>
+      row(`2026-0${i < 5 ? 3 : 4}-1${i % 5}T01:00:00Z`, `2026-0${i < 5 ? 3 : 4}-1${i % 5}T02:00:00Z`, created))
+    expect(historicalWeeklyBonus(farm)).toBe(2 * XP.WEEKLY_QUEST_BONUS)
+  })
+
+  it('leaves genuine multi-day trading alone: one bonus per real day of work', () => {
+    const days = ['2026-06-20', '2026-06-21', '2026-06-22']
+    const real = days.map((d) => row(`${d}T01:00:00Z`, `${d}T02:00:00Z`, `${d}T01:00:00Z`))
+    expect(historicalDailyBonus(real)).toBe(3 * 2 * XP.DAILY_QUEST_BONUS)
+  })
+
+  it('a trade opened Monday and closed Wednesday still counts toward Wednesday', () => {
+    // closed_at is later than created_at, so the clamp does not move it — the
+    // ordinary swing-trade case is unchanged.
+    const t = row('2026-06-22T09:00:00Z', '2026-06-24T15:00:00Z', '2026-06-22T09:05:00Z')
+    const wed = Date.parse('2026-06-24T18:00:00Z')
+    expect(dailyQuestProgress([t], wed).find((q) => q.id === 'close_trade')?.done).toBe(true)
+  })
+
+  it('a backfilled already-closed trade counts on the day it was recorded', () => {
+    // Logged today, describing last month. The user did the work today, so
+    // today's "close a trade" quest is the one it can satisfy — and last
+    // month's is not retroactively re-opened.
+    const t = row('2026-05-10T09:00:00Z', '2026-05-10T15:00:00Z', '2026-06-22T09:00:00Z')
+    const today = Date.parse('2026-06-22T18:00:00Z')
+    expect(dailyQuestProgress([t], today).find((q) => q.id === 'close_trade')?.done).toBe(true)
+    const backThen = Date.parse('2026-05-10T18:00:00Z')
+    expect(dailyQuestProgress([t], backThen).find((q) => q.id === 'close_trade')?.done).toBe(false)
+  })
+
+  it('base XP per closed trade is untouched — this bounds bonuses, not volume', () => {
+    const created = '2026-06-22T09:00:00Z'
+    const farm = Array.from({ length: 30 }, (_, i) =>
+      row(`2026-05-${String(i + 1).padStart(2, '0')}T01:00:00Z`, `2026-05-${String(i + 1).padStart(2, '0')}T02:00:00Z`, created))
+    expect(closedCount(farm)).toBe(30)
+    expect(totalXpFromTrades(farm)).toBe(30 * XP.BASE_PER_TRADE + 2 * XP.DAILY_QUEST_BONUS + 2 * XP.WEEKLY_QUEST_BONUS)
+  })
+})

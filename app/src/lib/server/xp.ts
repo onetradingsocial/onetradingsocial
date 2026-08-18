@@ -42,7 +42,9 @@ export async function getUserXp(
   const now = opts.now ?? Date.now()
   let q = supabase
     .from('trades')
-    .select('traded_at, closed_at, status, outcome')
+    // created_at is load-bearing, not decoration: quest bonuses bucket on it
+    // rather than on the user-supplied traded_at/closed_at (item 15 F7).
+    .select('traded_at, closed_at, created_at, status, outcome')
     .eq('user_id', userId)
   if (opts.publicOnly) q = q.eq('is_public', true)
   const { data } = await q
@@ -80,7 +82,7 @@ export type XpRankedEntry = {
 export async function getXpRanking(supabase: SupabaseClient, period: Period, now = Date.now()): Promise<XpRankedEntry[]> {
   const { data: tradeRows } = await supabase
     .from('trades')
-    .select('user_id, traded_at, closed_at, status, outcome')
+    .select('user_id, traded_at, closed_at, created_at, status, outcome')
     .eq('is_public', true)
     .eq('status', 'closed')
   const tradeByUser = new Map<string, XpTrade[]>()

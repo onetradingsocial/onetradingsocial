@@ -5,6 +5,7 @@ import { getTier, getSubscription } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { saveAccount } from '@/app/actions/account'
+import { MAX_ACCOUNT_BALANCE } from '@/lib/trade'
 import { Icon } from '@/app/[username]/_components/Icon'
 import { SettingsNav } from './SettingsNav'
 import { ProfileSettingsForm } from './ProfileSettingsForm'
@@ -17,7 +18,10 @@ import './settings.css'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ balance?: string }> }) {
+  // saveAccount is a void <form action>, so a rejected balance comes back as a
+  // query flag rather than a return value (audit item 15, F3).
+  const balanceRejected = (await searchParams).balance === 'invalid'
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
@@ -131,11 +135,20 @@ export default async function SettingsPage() {
 
           <section id="trading" className="ts-card settings-section">
             <h2 className="ts-h2"><Icon name="chart" size={18} /> Trading account</h2>
-            <p className="ts-sub mb-4">Used to size trades by risk % and show P/L in money.</p>
+            <p className="ts-sub mb-4">
+              Used to size trades by risk % and show P/L in money. Trades are sized against the
+              balance in force when you log them — changing it now updates future trades and any
+              past trade that was never sized, and leaves the rest as they were recorded.
+            </p>
+            {balanceRejected && (
+              <p className="ts-sub mb-4" role="alert" style={{ color: 'var(--down-ink)', fontWeight: 600 }}>
+                That balance was not saved. Enter a number between 0 and {MAX_ACCOUNT_BALANCE.toLocaleString()}.
+              </p>
+            )}
             <form action={saveAccount} className="grid gap-3.5" style={{ maxWidth: 320 }}>
               <label className="ts-field">
                 <span className="ts-label">Account balance</span>
-                <input name="account_balance" type="number" step="0.01" min="0"
+                <input name="account_balance" type="number" step="0.01" min="0" max={MAX_ACCOUNT_BALANCE}
                   defaultValue={profile?.account_balance ?? 0} className="ts-input" />
               </label>
               <label className="ts-field">

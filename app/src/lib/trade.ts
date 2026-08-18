@@ -39,6 +39,65 @@ export type OpenInput = {
   pipValuePerLot?: number | null
 }
 
+/**
+ * Upper bound on the self-reported `profiles.account_balance` (audit item 15,
+ * F3). Enforced in `actions/account.ts` and again as a CHECK constraint in
+ * migration 0053, because the column carries a client UPDATE grant.
+ *
+ * The number is derived, not chosen by taste, and it has two anchors:
+ *
+ *   UPPER — migration 0045 caps `trades.pnl_amount` at 1e12 and `r_multiple`
+ *   at 1000. A risk-%-sized trade's P&L is `r_multiple × balance × risk%/100`,
+ *   so with risk% at its practical ceiling of 100 a balance above 1e9 can
+ *   produce a P&L that the pnl CHECK will reject — i.e. the user would be able
+ *   to save a balance that then makes closing a trade fail with an opaque
+ *   23514 they cannot act on. 1e9 × 1000 = 1e12 exactly, so the two bounds
+ *   meet instead of contradicting each other.
+ *
+ *   LOWER — it must not reject a real account in ANY currency.
+ *   `profiles.account_currency` is a free three-letter field and production
+ *   already holds a PHP account. 1e9 VND is roughly USD 40k and 1e9 IDR is
+ *   roughly USD 60k — both ordinary retail balances — so 1e9 sits above the
+ *   realistic ceiling even in the weakest currencies in circulation.
+ *   Production max today is 100,000.
+ *
+ * To be plain about what this is: a corruption floor, not an anti-fraud
+ * control. Nothing here makes a self-declared balance true. What stops the
+ * balance from rewriting a leaderboard is the removal of the retroactive
+ * rescale in `saveAccount`, not this number.
+ */
+export const MAX_ACCOUNT_BALANCE = 1_000_000_000
+
+/**
+ * Validate a submitted account balance. Returns the number, or a message.
+ *
+ * Deliberately NOT a clamp. The previous code did
+ * `Number.isFinite(n) && n >= 0 ? n : 0`, which turned a typo into a silent
+ * write of zero — and, with the old retroactive rescale attached to it, a
+ * silent rewrite of every risk-%-sized P&L the user had ever logged down to
+ * $0. Refusing is the only safe direction for a field that other rows are
+ * derived from.
+ */
+export function parseAccountBalance(value: unknown): { balance: number } | { error: string } {
+  // Blank is not zero. `Number('')` is 0 and `Number(null)` is 0, so an empty
+  // or missing field would otherwise sail through as a deliberate balance of
+  // nothing — the same silent coercion this function exists to stop, wearing a
+  // different hat. Someone clearing the box to edit the currency beside it
+  // must not have their balance zeroed as a side effect.
+  if (value == null || (typeof value === 'string' && value.trim() === '')) {
+    return { error: 'Enter your account balance, or 0 if you would rather not state one.' }
+  }
+  const n = Number(value)
+  if (!Number.isFinite(n)) return { error: 'Enter your account balance as a number.' }
+  if (n < 0) return { error: 'Account balance cannot be negative.' }
+  if (n > MAX_ACCOUNT_BALANCE) {
+    return { error: `Account balance cannot exceed ${MAX_ACCOUNT_BALANCE.toLocaleString()}.` }
+  }
+  // Money, so two decimals. Stops a 15-decimal float from reaching the column
+  // and re-emerging as a rounding difference in every derived risk_amount.
+  return { balance: Math.round(n * 100) / 100 }
+}
+
 export type OpenComputed = {
   slPips: number
   tpPips: number | null

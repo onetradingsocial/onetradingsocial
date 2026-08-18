@@ -23,7 +23,22 @@ import { signPrivateRead } from '@/lib/storage'
  */
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-const TRADE_KEY = new RegExp(`^trades/(${UUID})/(${UUID})\\.(png|jpg)$`, 'i')
+/**
+ * Two accepted trade-chart shapes, and both are required:
+ *
+ *   trades/{uid}/{tradeId}/{version}.{ext}  -- current (item 15 F8). The
+ *     version segment is what makes replacing a chart produce a new URL, and
+ *     therefore a trade_audits row, instead of overwriting evidence in silence.
+ *   trades/{uid}/{tradeId}.{ext}            -- legacy, pre-versioning.
+ *
+ * The legacy branch is not dead code kept for tidiness: production holds one
+ * object at the old key (the single trade in the whole database with a chart),
+ * migrated into the private bucket by 0044. Dropping the pattern would 400 it.
+ * Either shape captures the same two groups, uid then tradeId, so everything
+ * downstream is unchanged.
+ */
+const TRADE_KEY = new RegExp(`^trades/(${UUID})/(${UUID})/${UUID}\\.(png|jpg)$`, 'i')
+const TRADE_KEY_LEGACY = new RegExp(`^trades/(${UUID})/(${UUID})\\.(png|jpg)$`, 'i')
 const MESSAGE_KEY = new RegExp(`^messages/(${UUID})/${UUID}/[0-3]\\.(png|jpg)$`, 'i')
 
 function deny(status: number) {
@@ -34,7 +49,7 @@ export async function GET(request: NextRequest) {
   const key = new URL(request.url).searchParams.get('key')
   if (!key) return NextResponse.json({ error: 'bad request' }, { status: 400 })
 
-  const trade = TRADE_KEY.exec(key)
+  const trade = TRADE_KEY.exec(key) ?? TRADE_KEY_LEGACY.exec(key)
   const message = MESSAGE_KEY.exec(key)
   if (!trade && !message) return NextResponse.json({ error: 'bad request' }, { status: 400 })
 

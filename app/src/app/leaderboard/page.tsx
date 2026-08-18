@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
-import { getPerformanceRanking, type VerifyFilter } from '@/lib/server/ranking'
+import {
+  getPerformanceRanking, groupByCohort, COHORT_HEADING, COHORT_SUB, type VerifyFilter,
+} from '@/lib/server/ranking'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
@@ -61,23 +63,57 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   )
 }
 
+/**
+ * The performance board, rendered as one section per verification cohort
+ * (audit item 15, F5).
+ *
+ * Each cohort gets its own heading, its own podium and its own table with
+ * ranks starting at 1, because they are separate rankings — see the header of
+ * `lib/server/ranking.ts` for why. The podium is per cohort rather than one
+ * podium over the whole board: a single gold ring above a mixed list is
+ * precisely the "manual and broker-synced appear equivalent" problem, only
+ * larger.
+ *
+ * When no broker-verified trader ranks, the empty state says so out loud
+ * rather than leaving the reader to infer that everyone shown is verified.
+ * Today that line renders on every load: production holds zero broker-sourced
+ * trades and has never held one.
+ */
 async function PerformanceBoard({ supabase, period, sort, verify, minTrades, userId }: { supabase: Awaited<ReturnType<typeof createClient>>; period: Period; sort: PerfSort; verify: VerifyFilter; minTrades: number; userId: string }) {
   const entries = await getPerformanceRanking(supabase, period, sort, verify, minTrades)
-  const rows: BoardRow[] = entries.map((e) => ({
+  const groups = groupByCohort(entries)
+  const toRow = (e: (typeof entries)[number]): BoardRow => ({
     rank: e.rank, userId: e.userId, username: e.username, displayName: e.displayName, avatarUrl: e.avatarUrl,
     pnl: e.pnl, winRate: e.winRate, avgR: e.avgR, trades: e.trades,
     expectancy: e.expectancy, profitFactor: e.profitFactor,
     verification: e.verification, accountType: e.accountType,
-  }))
+  })
+
+  if (groups.length === 0) return <LeaderboardTable rows={[]} viewerId={userId} />
+
+  const hasBroker = groups.some((g) => g.cohort === 'broker_connected')
   return (
     <>
-      {rows.length > 0 && (
-        <section>
-          <div className="lb-section-h"><h2>Top performers</h2><span className="lb-section-sub">{PERIOD_LABEL[period]}</span></div>
-          <Podium top={rows.slice(0, 3)} viewerId={userId} />
-        </section>
+      {verify === 'all' && !hasBroker && (
+        <p className="lb-section-sub" style={{ margin: '0 0 14px' }}>
+          No broker-verified traders rank {PERIOD_LABEL[period]}. Everything below is ranked
+          separately by evidence quality — <a href="/verification">how verification works</a>.
+        </p>
       )}
-      <LeaderboardTable rows={rows} viewerId={userId} />
+      {groups.map(({ cohort, rows }) => {
+        const board = rows.map(toRow)
+        return (
+          <section key={cohort} style={{ marginBottom: 26 }}>
+            <div className="lb-section-h">
+              <h2>{COHORT_HEADING[cohort]}</h2>
+              <span className="lb-section-sub">{PERIOD_LABEL[period]}</span>
+            </div>
+            <p className="lb-section-sub" style={{ margin: '0 0 12px' }}>{COHORT_SUB[cohort]}</p>
+            <Podium top={board.slice(0, 3)} viewerId={userId} />
+            <LeaderboardTable rows={board} viewerId={userId} title={COHORT_HEADING[cohort]} />
+          </section>
+        )
+      })}
     </>
   )
 }
@@ -120,11 +156,17 @@ async function LeaderboardRail({ supabase, userId, cat, period, canRank }: { sup
   // Rank the rail to the SAME period as the board so the rank matches its period label.
   const board = await getPerformanceRanking(supabase, period)
   const me = board.find((e) => e.userId === userId) ?? null
-  const leader = board[0] ?? null
+  // Ranks are per cohort now (item 15 F5), so "#3 of 40" has to be read within
+  // the viewer's own cohort or the rail contradicts the table it sits beside.
+  // Same for the gap-to-leader bar: comparing a self-reported P&L against a
+  // broker-verified leader is the equivalence the split exists to remove.
+  const cohortRows = me ? board.filter((e) => e.cohort === me.cohort) : []
+  const leader = cohortRows[0] ?? null
   return (
     <YourStanding
       rank={me?.rank ?? null}
-      total={board.length}
+      total={cohortRows.length}
+      cohortLabel={me ? COHORT_HEADING[me.cohort].toLowerCase() : null}
       pnl={me?.pnl ?? 0}
       winRate={me?.winRate ?? 0}
       periodLabel={PERIOD_LABEL[period]}

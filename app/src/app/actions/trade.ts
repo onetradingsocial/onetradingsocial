@@ -249,10 +249,41 @@ export async function saveTradeChartUrl(tradeId: string, chartUrl: string): Prom
   return { ok: true }
 }
 
+/**
+ * Delete one of the caller's own trades.
+ *
+ * ── Audit item 15, F4 (P1) ───────────────────────────────────────────────────
+ *
+ * `trades_delete` was `using (auth.uid() = user_id)` with no source predicate,
+ * so a broker-synced or statement-imported trade — whose execution fields the
+ * 0028 trigger locks against EDITING, and which `/verification` describes to
+ * users as locked — could still simply be removed. Every board metric is
+ * recomputed over whatever rows survive (`lib/leaderboard.ts`), so deleting
+ * losses raises win rate, profit factor, expectancy and consistency at once,
+ * and the MT5 cursor (`last_deal_time`) has already moved past the deleted
+ * deal so the next sync will not restore it. Migration 0053 adds
+ * `and source = 'manual'` to the policy.
+ *
+ * The application check below is NOT belt-and-braces for its own sake. A
+ * DELETE refused by RLS is SILENT: PostgREST reports success having matched
+ * zero rows, so without this read the user would click Delete, see no error,
+ * and find the trade still there. The policy is the control; this is the
+ * error message.
+ */
 export async function deleteTrade(tradeId: string): Promise<TradeState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+
+  const { data: t } = await supabase
+    .from('trades').select('source').eq('id', tradeId).eq('user_id', user.id).maybeSingle()
+  if (!t) return { error: 'Trade not found.' }
+  if (t.source !== 'manual') {
+    return {
+      error: 'Imported trades cannot be deleted. Broker-synced and statement-imported results are a verified record, so they stay as the broker reported them. If a trade is wrong, use the Help button and we will look at it.',
+    }
+  }
+
   const { error } = await supabase.from('trades').delete().eq('id', tradeId).eq('user_id', user.id)
   if (error) return { error: error.message }
   revalidatePath('/journal')

@@ -5,6 +5,15 @@ export type XpTrade = {
   closed_at: string | null
   status: 'open' | 'closed'
   outcome: string
+  /**
+   * `trades.created_at` — when the row was written, not when the market moved.
+   *
+   * Load-bearing for quest bonuses; see `metricTime`. Optional only so that
+   * callers constructing partial rows (tests, fixtures) still typecheck; every
+   * production read selects it, and when it is absent the code falls back to
+   * the old user-controlled fields rather than silently awarding nothing.
+   */
+  created_at?: string | null
 }
 
 export const XP = {
@@ -63,10 +72,52 @@ export function weekKey(ms: number): string {
   return dayKey(utcWeekStart(ms))
 }
 
+/**
+ * When, for quest purposes, did the user DO the thing?
+ *
+ * ── Audit item 15, F7 (P2) ───────────────────────────────────────────────────
+ *
+ * XP is not a ledger. `profiles.xp` is never written; the number is recomputed
+ * from the trades table on every read, and quest bonuses are awarded per UTC
+ * calendar bucket. This function decides which bucket a trade lands in, so it
+ * decides how farmable XP is.
+ *
+ * It used to return `traded_at` for the 'created' metric and `closed_at` for
+ * the 'closed' one. Both are user-supplied. `createTrade` rejects only FUTURE
+ * dates — backdating is permitted by design, because logging last week's trade
+ * is a legitimate thing to do — so bulk-inserting backdated rows across the
+ * past 90 days retroactively awarded 90 daily bonuses (30 XP each) and ~13
+ * weekly bonuses (150 XP each) in a single sitting. The XP board is marketed
+ * as the fair-play alternative to the P&L board and was derived from exactly
+ * the same unconstrained input.
+ *
+ * The fix is to bucket on `created_at`, which is a Postgres column default and
+ * is excluded from the client INSERT and UPDATE grants by migration 0045 —
+ * verified live against `information_schema.column_privileges` — so it is the
+ * one time on the row that the row's owner cannot choose.
+ *
+ * The 'closed' metric keeps `closed_at`, CLAMPED to not precede `created_at`.
+ * The rule stated in words: a trade cannot be closed, as an act by a person,
+ * before it was recorded. Legitimate behaviour is untouched — open Monday,
+ * close Wednesday, and `closed_at` (Wednesday) is later than `created_at`
+ * (Monday), so it buckets on Wednesday exactly as before. Backfilling a
+ * already-closed trade from last month lands on today, because today is when
+ * the user did the work. And a bulk backdated insert collapses into a single
+ * bucket, which is worth one daily and one weekly bonus rather than months of
+ * them.
+ *
+ * Falls back to the old fields when `created_at` is absent, so a caller that
+ * forgets to select it degrades to the previous behaviour rather than silently
+ * awarding zero XP to everybody. Every production read passes it
+ * (`lib/server/xp.ts`).
+ */
 function metricTime(t: XpTrade, metric: QuestMetric): number | null {
-  if (metric === 'created') return Date.parse(t.traded_at)
-  if (t.status === 'closed' && t.closed_at) return Date.parse(t.closed_at)
-  return null
+  const created = t.created_at ? Date.parse(t.created_at) : NaN
+  if (metric === 'created') return Number.isFinite(created) ? created : Date.parse(t.traded_at)
+  if (t.status !== 'closed' || !t.closed_at) return null
+  const closed = Date.parse(t.closed_at)
+  if (!Number.isFinite(created)) return closed
+  return Math.max(closed, created)
 }
 function countInBucket(trades: XpTrade[], metric: QuestMetric, start: number, end: number): number {
   let n = 0

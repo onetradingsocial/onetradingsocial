@@ -17,6 +17,8 @@ const KIND_LABEL: Record<string, string> = {
   no_losses: 'No losing trades',
   profit_spike: 'Profit spike',
   locked_field_edit: 'Locked-field edit',
+  broker_unbacked: 'Broker claim unbacked',
+  deleted_trades: 'Deletions skewed to losses',
 }
 
 const REASON_LABEL: Record<string, string> = {
@@ -38,9 +40,16 @@ export default async function VerificationReviewPage() {
       .select('user_id, props, created_at')
       .eq('event', 'import_failed')
       .order('created_at', { ascending: false }).limit(20),
+    // Audit item 15, F4: this used to be `.eq('action', 'updated')`, so the
+    // `deleted` rows the trigger has been writing all along were recorded and
+    // then read by nothing. Deleting a losing trade is the cheapest and least
+    // detectable manipulation available, and it was the one this page could
+    // not see. WS3's trigger change means a `deleted` row now appears only
+    // when the owning profile still exists, so account deletion no longer
+    // fills this panel with a departing user's entire journal.
     svc.from('trade_audits')
-      .select('user_id, trade_id, action, changed_fields, created_at')
-      .eq('action', 'updated')
+      .select('user_id, trade_id, action, changed_fields, old_values, created_at')
+      .in('action', ['updated', 'deleted'])
       .order('created_at', { ascending: false }).limit(25),
     svc.from('trade_reports')
       .select('id, reporter_id, reported_user_id, reason, detail, status, created_at')
@@ -100,12 +109,13 @@ export default async function VerificationReviewPage() {
           </Panel>
         </Section>
 
-        <Section title="Suspicious accounts" sub="Heuristics over all non-internal accounts. A flag is a prompt to look, not a verdict.">
+        <Section title="Suspicious accounts" sub="Heuristics over every account, real accounts first. Internal and seeded accounts are labelled rather than hidden — synthetic data is exactly what you want to be able to sanity-check. A flag is a prompt to look, not a verdict.">
           <Panel flush>
             {suspicious.length === 0 ? <Empty ok>Nothing flagged.</Empty> : suspicious.map((f, i) => (
               <div key={i} className="ad-row">
                 <Link href={`/${f.username}`} style={{ fontWeight: 700 }}>@{f.username}</Link>
                 <span className="v-badge vb-failed">{KIND_LABEL[f.kind] ?? f.kind}</span>
+                {f.internal && <span className="v-badge vb-pending">internal</span>}
                 <span className="faint" style={{ fontSize: 13 }}>{f.detail}</span>
               </div>
             ))}
@@ -161,16 +171,24 @@ export default async function VerificationReviewPage() {
           </Panel>
         </Section>
 
-        <Section title="Recent trade edits" sub="Full immutable history lives in trade_audits; imported execution fields are DB-locked.">
+        <Section title="Recent trade edits and deletions" sub="Full immutable history lives in trade_audits; imported execution fields are DB-locked and imported trades can no longer be deleted at all. A deletion shows the outcome of the row that was removed — a run of deleted losses is what curation looks like.">
           <Panel flush>
-            {tradeEdits.length === 0 ? <Empty>No edits recorded yet.</Empty> : tradeEdits.map((e, i) => (
-              <div key={i} className="ad-row">
-                <span>@{uname.get(e.user_id) ?? e.user_id.slice(0, 8)}</span>
-                <span className="faint">edited</span>
-                <code className="ad-kv">{(e.changed_fields as string[]).join(', ')}</code>
-                <span className="sp"><When iso={e.created_at} short /></span>
-              </div>
-            ))}
+            {tradeEdits.length === 0 ? <Empty>No edits or deletions recorded yet.</Empty> : tradeEdits.map((e, i) => {
+              const deleted = e.action === 'deleted'
+              const old = (e.old_values ?? {}) as { outcome?: string; pnl_amount?: number | null; instrument?: string }
+              return (
+                <div key={i} className="ad-row">
+                  <span>@{uname.get(e.user_id) ?? e.user_id.slice(0, 8)}</span>
+                  <span className={deleted ? 'v-badge vb-failed' : 'faint'}>{deleted ? 'deleted' : 'edited'}</span>
+                  <code className="ad-kv">
+                    {deleted
+                      ? `${old.instrument ?? '?'} · ${old.outcome ?? 'unknown'}${old.pnl_amount != null ? ` · ${old.pnl_amount}` : ''}`
+                      : ((e.changed_fields as string[]) ?? []).join(', ')}
+                  </code>
+                  <span className="sp"><When iso={e.created_at} short /></span>
+                </div>
+              )
+            })}
           </Panel>
         </Section>
       </div>

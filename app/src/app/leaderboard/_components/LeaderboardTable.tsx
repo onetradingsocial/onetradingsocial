@@ -26,7 +26,9 @@ export type BoardRow = {
 
 const PAGE_SIZE = 8
 
-export function LeaderboardTable({ rows, viewerId }: { rows: BoardRow[]; viewerId: string }) {
+// `title` names the cohort this table ranks (item 15 F5). It defaults to the
+// old copy so the XP board and the empty state are unchanged.
+export function LeaderboardTable({ rows, viewerId, title = 'All Traders' }: { rows: BoardRow[]; viewerId: string; title?: string }) {
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
 
@@ -56,7 +58,7 @@ export function LeaderboardTable({ rows, viewerId }: { rows: BoardRow[]; viewerI
   return (
     <div className="lb-panel">
       <div className="lb-panel-h" style={{ flexWrap: 'wrap', rowGap: 10 }}>
-        <h2>All Traders</h2>
+        <h2>{title}</h2>
         <div className="lb-toolbar">
           <div className="lb-pager">
             <span className="cnt">{from}–{to} of {filtered.length}</span>

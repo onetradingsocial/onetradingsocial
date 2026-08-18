@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getTier } from '@/lib/server/entitlements'
@@ -32,10 +33,15 @@ export async function GET(request: NextRequest) {
   const advanced = canFlag(await getFeatureFlags(), await getTier(supabase, user.id), 'advanced_journal')
   if (!advanced) return NextResponse.json({ error: 'Chart upload is a Trader+ perk.' }, { status: 403 })
 
-  const signed = await signTradeChartUpload(user.id, tradeId, ct)
+  // A fresh version per upload request (item 15 F8). Minted server-side so the
+  // client cannot pin the key and overwrite an earlier chart: a replacement is
+  // always a new object at a new URL, which is what makes the swap visible in
+  // trade_audits instead of silent.
+  const version = randomUUID()
+  const signed = await signTradeChartUpload(user.id, tradeId, version, ct)
   if ('error' in signed) return NextResponse.json({ error: signed.error }, { status: 500 })
   // `bucket` tells the browser which bucket the token belongs to -- charts go to
   // the private one, whose name is not in the client bundle. `url` is the
   // app-relative read path, not an absolute storage URL.
-  return NextResponse.json({ ...signed, url: tradeChartUrl(user.id, tradeId, ct) })
+  return NextResponse.json({ ...signed, url: tradeChartUrl(user.id, tradeId, version, ct) })
 }

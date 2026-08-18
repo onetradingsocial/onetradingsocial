@@ -64,24 +64,52 @@ export async function signCoverUpload(userId: string, contentType: string) {
   return { path: data.path, token: data.token }
 }
 
-function tradeChartKey(userId: string, tradeId: string, contentType: string) {
-  return `trades/${userId}/${tradeId}.${contentType === 'image/png' ? 'png' : 'jpg'}`
+/**
+ * Trade chart keys are VERSIONED: `trades/{uid}/{tradeId}/{version}.{ext}`.
+ *
+ * ── Audit item 15, F8 (P2) ───────────────────────────────────────────────────
+ *
+ * The key used to be `trades/{uid}/{tradeId}.{ext}` — deterministic — and the
+ * signed upload URL was minted with `upsert: true`. Re-uploading therefore
+ * overwrote the object in place at a URL that never changed, so
+ * `trades.screenshot_url` did not change either, so the `trades_audit` trigger
+ * wrote nothing and the admin "recent trade edits" panel saw nothing. A chart
+ * posted as evidence for a trade could be swapped for a different chart at any
+ * time — after the trade was shared, after it was reported, after it was
+ * reviewed — leaving no trace anywhere in the system.
+ *
+ * That matters because `/verification` lists "confirmed reports of manipulated
+ * screenshots" as grounds for losing verification, which presumes a screenshot
+ * is evidence. Evidence has to be tamper-EVIDENT; it does not have to be
+ * immutable. A random version segment plus `upsert: false` is what buys that:
+ * a replacement necessarily writes a new key, which necessarily updates
+ * `screenshot_url`, which necessarily produces a `trade_audits` row recording
+ * that the chart changed and what it was before. The old object is still
+ * there, so the previous evidence survives rather than being destroyed by the
+ * replacement.
+ *
+ * `upsert: false` also removes a smaller hazard: with a random version segment
+ * a collision means someone guessed a uuid, and silently overwriting on that
+ * event is never the right answer.
+ */
+function tradeChartKey(userId: string, tradeId: string, version: string, contentType: string) {
+  return `trades/${userId}/${tradeId}/${version}.${contentType === 'image/png' ? 'png' : 'jpg'}`
 }
 
-export function tradeChartUrl(userId: string, tradeId: string, contentType: string) {
-  return privateImageUrl(tradeChartKey(userId, tradeId, contentType))
+export function tradeChartUrl(userId: string, tradeId: string, version: string, contentType: string) {
+  return privateImageUrl(tradeChartKey(userId, tradeId, version, contentType))
 }
 
 export function tradeChartPrefix(userId: string) {
   return privateImageUrl(`trades/${userId}/`)
 }
 
-export async function signTradeChartUpload(userId: string, tradeId: string, contentType: string) {
-  const path = tradeChartKey(userId, tradeId, contentType)
+export async function signTradeChartUpload(userId: string, tradeId: string, version: string, contentType: string) {
+  const path = tradeChartKey(userId, tradeId, version, contentType)
   const supabase = createServiceClient()
   const { data, error } = await supabase.storage
     .from(PRIVATE_BUCKET)
-    .createSignedUploadUrl(path, { upsert: true })
+    .createSignedUploadUrl(path, { upsert: false })
   if (error || !data) return { error: 'Could not create upload URL.' as const }
   return { bucket: PRIVATE_BUCKET, path: data.path, token: data.token }
 }
