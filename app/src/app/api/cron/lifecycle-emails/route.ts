@@ -1,14 +1,29 @@
 import { NextResponse } from 'next/server'
 import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendEmail, weeklyDigestHtml, recoveryHtml } from '@/lib/server/email'
+import { sendEmail, weeklyDigestHtml, recoveryHtml, trialExpiredHtml } from '@/lib/server/email'
 import { insertSystemNotification } from '@/lib/notifications'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { generateInsights } from '@/lib/insights'
+import { trialState, JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
+import { getStripe } from '@/lib/stripe'
+import { reconcileBilling } from '@/lib/server/billing-reconcile'
 
 export const maxDuration = 60
 
 const DAY = 864e5
+
+/** How recently a trial must have lapsed for us to email about it.
+ *
+ *  This is a "your trial has ended" notice, and it stops being a notice once
+ *  enough time has passed — mailing someone about a trial that ran out six
+ *  weeks ago reads as a system that has just woken up, which it has. The
+ *  window also protects the first run after deploy: 34 trials had already
+ *  expired unacknowledged in production when this was written, and blasting
+ *  all of them at once would be a spike of confusing mail, not a fix. They get
+ *  nothing by design; widen this constant temporarily if a deliberate backfill
+ *  is wanted. */
+const TRIAL_EXPIRY_NOTICE_WINDOW_DAYS = 7
 
 /**
  * Daily lifecycle emails (Sprint 4, rows 32 + 33) — one route because Vercel
@@ -22,6 +37,23 @@ export async function GET(req: Request) {
   }
   const svc = createServiceClient()
   const now = Date.now()
+
+  // ---- Billing reconciliation ------------------------------------------------
+  // Piggy-backed here rather than given its own vercel.json entry because the
+  // Hobby plan caps cron jobs at two and both are taken — the same constraint
+  // that put the weekly digest and the inactivity nudge in one route. The
+  // standalone endpoint at /api/cron/billing-reconcile still exists for manual
+  // runs and for the day this project moves to Pro.
+  //
+  // Strictly best-effort and first, so it gets the fresh end of the 60s budget
+  // and can never be the reason the emails do not go out.
+  let reconciled: unknown = 'skipped'
+  try {
+    reconciled = await reconcileBilling(svc, getStripe())
+  } catch (err) {
+    console.error('[lifecycle-emails] billing reconcile failed', err)
+    reconciled = { error: err instanceof Error ? err.message : 'failed' }
+  }
 
   const { data: users } = await svc
     .from('profiles')
@@ -105,5 +137,62 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, digests, nudges })
+  // ---- Trial expiry notice ---------------------------------------------------
+  // The 14-day Pro trial used to lapse in complete silence: TRIAL_WALL_ENABLED
+  // ships false, shouldShowWelcome explicitly suppresses the pro->free popup for
+  // exactly this transition, and nothing here had a trial branch. In production
+  // 34 trials had expired with zero acknowledgements of any kind. This is the
+  // acknowledgement. It does NOT enable the wall — that is a product decision.
+  //
+  // Its own query, NOT folded into the select above, for the same reason
+  // getEntitlements keeps welcome_tier_seen separate: last_trial_email is the
+  // newest column here, and if the code deploys ahead of its migration
+  // PostgREST returns 42703 for an unknown column and fails the WHOLE select it
+  // belongs to. Isolated like this, a missing column can only ever disable the
+  // trial notice — it can never take the weekly digests and inactivity nudges
+  // down with it. It also means this branch is inert until the migration lands,
+  // which is exactly the deploy order we want.
+  let trialNotices = 0
+  const nowDate = new Date(now)
+  const { data: trials, error: trialError } = await svc
+    .from('profiles')
+    .select('id, username, display_name, trial_started_at, trial_ack_at, last_trial_email')
+    .eq('is_internal', false)
+    .not('trial_started_at', 'is', null)
+    .is('last_trial_email', null)
+
+  if (trialError) {
+    console.error('[lifecycle-emails] trial notice skipped (migration not applied?)', trialError.message)
+  } else {
+    for (const t of trials ?? []) {
+      if (trialState(t.trial_started_at, t.trial_ack_at, nowDate) !== 'expired') continue
+      // Only recently lapsed trials — see TRIAL_EXPIRY_NOTICE_WINDOW_DAYS.
+      const expiredAt = Date.parse(t.trial_started_at) + 14 * DAY
+      if (now - expiredAt > TRIAL_EXPIRY_NOTICE_WINDOW_DAYS * DAY) continue
+
+      const email = await emailOf(t.id)
+      if (email) {
+        await sendEmail({
+          to: email,
+          subject: 'Your TradingSocial Pro trial has ended',
+          html: trialExpiredHtml({
+            name: t.display_name || t.username, kept: JOURNAL_FREE_LIMIT,
+          }),
+        })
+      }
+      await insertSystemNotification({ supabase: svc, userId: t.id, type: 'trial_expired' })
+      // Written whether or not the email went out, so a missing provider can
+      // never turn into the same user being mailed every day once one appears.
+      const { error: stampError } = await svc.from('profiles')
+        .update({ last_trial_email: new Date().toISOString() }).eq('id', t.id)
+      if (stampError) {
+        // Refuse to continue rather than re-notify this cohort tomorrow.
+        console.error('[lifecycle-emails] could not stamp last_trial_email, stopping', stampError.message)
+        break
+      }
+      trialNotices++
+    }
+  }
+
+  return NextResponse.json({ ok: true, digests, nudges, trialNotices, reconciled })
 }

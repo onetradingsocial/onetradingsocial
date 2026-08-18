@@ -6,6 +6,56 @@ export const JOURNAL_FREE_LIMIT = 30
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing'])
 
+/** Dunning grace window, in days, for a subscription Stripe has flipped to
+ *  `past_due`.
+ *
+ *  WHY A GRACE PERIOD EXISTS AT ALL. `past_due` means the RENEWAL invoice
+ *  failed — an expired card, a bank fraud hold, a temporary limit. The customer
+ *  has done nothing wrong and Stripe is still retrying. Without grace the tier
+ *  drops the instant the status flips, so paid features vanish mid-use with no
+ *  warning. Terms §10 says access "may be unavailable" while a payment is
+ *  outstanding, which permits that but does not require it; granting grace is
+ *  strictly more generous than the contract promises, so the code and the terms
+ *  agree either way.
+ *
+ *  WHY 14 DAYS.
+ *   1. Stripe's default Smart Retries make their attempts across roughly the
+ *      first week, so a fortnight covers essentially every recovery that is
+ *      going to happen. A customer who updates their card within two weeks
+ *      never experiences an outage at all.
+ *   2. It is strictly SHORTER than Stripe's ~3-week full retry cycle, so access
+ *      can never outlive the dunning process — and, critically, it still ends
+ *      even if the Stripe subscription setting after retries are exhausted is
+ *      "leave the subscription past_due", which would otherwise grant free
+ *      service forever.
+ *   3. Worst-case exposure is bounded at half a monthly period: A$15 on Trader,
+ *      A$25 on Pro. Acceptable at any scale this product will see soon.
+ *   4. It reuses the number already in the product (TRIAL_DAYS), so there is one
+ *      "14 days" to explain rather than two.
+ *
+ *  WHY IT IS MEASURED FROM `updated_at`. The obvious candidate,
+ *  `current_period_end`, does NOT work: Stripe advances the billing period when
+ *  the renewal invoice is CREATED, not when it is paid, so a past_due
+ *  subscription already has a period end a month in the future. Keying off it
+ *  would hand out a whole free month. `subscriptions.updated_at` is bumped by
+ *  the `subscriptions_touch_updated_at` trigger on the very UPDATE that writes
+ *  `status='past_due'`, so it is the closest thing we hold to "when did dunning
+ *  start". This is why the reconciliation cron must not rewrite rows that have
+ *  not changed — a no-op UPDATE would still fire the trigger and silently
+ *  restart the grace clock. See lib/server/billing-reconcile.ts. */
+export const PAST_DUE_GRACE_DAYS = 14
+const PAST_DUE_GRACE_MS = PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000
+
+/** The shape every tier decision needs. `updated_at` is optional so a caller
+ *  that did not select it degrades to the pre-grace behaviour (past_due drops
+ *  the tier immediately) rather than throwing or, worse, granting forever. */
+export type SubRow = {
+  tier: string
+  status: string
+  updated_at?: string | null
+  current_period_end?: string | null
+}
+
 /** Type guard: validates that a string is a known tier using an explicit
  *  allow-list rather than other["in"], which walks the prototype chain and
  *  would incorrectly accept Object.prototype keys like 'toString'. */
@@ -13,14 +63,80 @@ export function isTier(t: string): t is Tier {
   return t === 'free' || t === 'trader' || t === 'pro'
 }
 
-/** Effective tier = highest-ranked tier among active/trialing subs, else free. */
-export function tierFromSubscriptions(subs: { tier: string; status: string }[]): Tier {
+/** Whether one subscription row currently entitles its owner to its tier.
+ *
+ *  Fails CLOSED in every ambiguous direction: an unknown status, a missing
+ *  `updated_at` on a past_due row, or an unparseable timestamp all yield false.
+ *  Note `unpaid` deliberately gets NO grace — Stripe only reaches `unpaid` once
+ *  the retry schedule is exhausted, so it is the end of dunning, not the
+ *  middle of it. Nor does `incomplete`, where the FIRST payment never
+ *  succeeded and the customer has therefore never held the tier. */
+export function subscriptionGrantsTier(s: SubRow, now: Date): boolean {
+  if (ACTIVE_STATUSES.has(s.status)) return true
+  if (s.status !== 'past_due') return false
+  if (!s.updated_at) return false
+  const since = Date.parse(s.updated_at)
+  if (Number.isNaN(since)) return false
+  return now.getTime() - since < PAST_DUE_GRACE_MS
+}
+
+/** Days of grace left on a past_due row, rounded up, clamped to
+ *  [0, PAST_DUE_GRACE_DAYS]. 0 for any row that is not in grace. */
+export function graceDaysLeft(s: SubRow, now: Date): number {
+  if (s.status !== 'past_due' || !s.updated_at) return 0
+  const since = Date.parse(s.updated_at)
+  if (Number.isNaN(since)) return 0
+  const remaining = since + PAST_DUE_GRACE_MS - now.getTime()
+  if (remaining <= 0) return 0
+  return Math.min(PAST_DUE_GRACE_DAYS, Math.ceil(remaining / (24 * 60 * 60 * 1000)))
+}
+
+/** Effective tier = highest-ranked tier among rows that currently entitle,
+ *  else free. `now` defaults so existing call sites keep working; every server
+ *  path passes the same clock it uses for the trial. */
+export function tierFromSubscriptions(subs: SubRow[], now: Date = new Date()): Tier {
   let best: Tier = 'free'
   for (const s of subs) {
-    if (!ACTIVE_STATUSES.has(s.status)) continue
+    if (!subscriptionGrantsTier(s, now)) continue
     if (isTier(s.tier) && TIER_RANK[s.tier] > TIER_RANK[best]) best = s.tier
   }
   return best
+}
+
+/** Display rank for the billing UI, highest first:
+ *    2 — currently entitling (active / trialing / past_due inside grace)
+ *    1 — in trouble but recoverable (past_due out of grace, unpaid, incomplete)
+ *    0 — over (canceled, incomplete_expired, anything unknown)
+ *
+ *  Tier alone is NOT enough. `getSubscription` used to sort on tier only, so a
+ *  user who cancelled Pro and then bought Trader had their billing page driven
+ *  by the dead Pro row: wrong status, wrong renewal date, wrong "your plan"
+ *  marker, and a Checkout button for the plan they already hold. */
+export function subStatusRank(s: SubRow, now: Date): number {
+  if (subscriptionGrantsTier(s, now)) return 2
+  if (s.status === 'past_due' || s.status === 'unpaid' || s.status === 'incomplete') return 1
+  return 0
+}
+
+/** The row the billing UI should describe: entitling rows first, then higher
+ *  tier, then the later period end. Pure and total — returns null for [].
+ *
+ *  Sorting a COPY, and using a fully deterministic comparator, so the result
+ *  cannot depend on the order PostgREST happened to return rows in. */
+export function pickCurrentSubscription<T extends SubRow>(rows: T[], now: Date): T | null {
+  if (rows.length === 0) return null
+  const end = (r: SubRow) => {
+    if (!r.current_period_end) return -Infinity
+    const t = Date.parse(r.current_period_end)
+    return Number.isNaN(t) ? -Infinity : t
+  }
+  return [...rows].sort((a, b) => {
+    const byStatus = subStatusRank(b, now) - subStatusRank(a, now)
+    if (byStatus !== 0) return byStatus
+    const byTier = (TIER_RANK[b.tier as Tier] ?? -1) - (TIER_RANK[a.tier as Tier] ?? -1)
+    if (byTier !== 0) return byTier
+    return end(b) - end(a)
+  })[0]
 }
 
 /** The higher-ranked of two tiers (used to combine comp grants with Stripe subs). */
@@ -80,8 +196,9 @@ export type TierInput = {
   isAdmin?: boolean
   compTier?: string | null
   /** Rows for THIS user only. Pass [] when the read failed — see getEntitlements
-   *  on why an unknown subscription must not be treated as a paid one. */
-  subs: { tier: string; status: string }[]
+   *  on why an unknown subscription must not be treated as a paid one. Select
+   *  `updated_at` alongside tier/status or past_due rows get no grace. */
+  subs: SubRow[]
   trialStartedAt?: string | null
   trialAckAt?: string | null
 }
@@ -92,7 +209,7 @@ export function resolveTier(input: TierInput, now: Date): Tier {
   if (input.isAdmin) return 'pro'
   return effectiveTier(
     input.compTier,
-    tierFromSubscriptions(input.subs),
+    tierFromSubscriptions(input.subs, now),
     trialState(input.trialStartedAt, input.trialAckAt, now),
   )
 }
