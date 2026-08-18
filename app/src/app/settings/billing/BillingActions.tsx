@@ -185,6 +185,18 @@ export function PlanCards({ currentTier, currentInterval, hasSubscription, onTri
         <a href={`${MARKETING}/terms#subscriptions`} target="_blank" rel="noopener noreferrer">Subscription terms</a>
       </p>
 
+      {/* APP 5, audit item 4 finding 7 / S5. A payment was taken with no link to
+          any policy on the page. Checkout sends Stripe the user's email address
+          and account id (api/billing/checkout/route.ts:65-68) and then hands the
+          browser to Stripe for the card. "We never see or store your card
+          details" is true and is worth saying at exactly this moment. */}
+      <p className="ts-price-fine mt-3">
+        Payments are processed by <b>Stripe</b>. We send Stripe your email address and account
+        identifier; you enter your card on Stripe&apos;s own page and{' '}
+        <b>we never see or store your card details</b>.{' '}
+        <a href={`${MARKETING}/privacy`} target="_blank" rel="noopener noreferrer">How we handle your data</a>
+      </p>
+
       {hasSubscription && (
         <div className="mt-6" style={{ textAlign: 'center' }}>
           <button className="btn btn-ghost" disabled={busy} onClick={() => act(() => post('/api/billing/portal'))}>

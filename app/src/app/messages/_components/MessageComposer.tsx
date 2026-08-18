@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { TradePickerModal } from '@/app/feed/_components/TradePickerModal'
 import type { Attachment } from '@/lib/messaging'
+import { PrivacyNote } from '@/app/_components/LegalNotice'
 
 async function uploadImage(file: File, draftId: string, idx: number): Promise<string | null> {
   const ct = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
@@ -91,6 +92,16 @@ export function MessageComposer({
         />
         <button type="button" className="ts-msg-send" disabled={disabled || busy} onClick={() => void submit()}>▸</button>
       </div>
+      {/* APP 5, audit item 4 finding 6 / S6. The attach control is an unlabelled
+          "+" and the user was told nothing about where the image lands. Since
+          0044 attachments go to the private bucket and are served only through
+          api/private-image, which checks conversation participation — so the
+          reassurance below is true. The second sentence is the part people do
+          not expect: message bodies are not end-to-end encrypted. */}
+      <PrivacyNote>
+        Messages and images are visible only to you and the other person; images are stored
+        privately. They are not end-to-end encrypted.
+      </PrivacyNote>
       {showPicker && (
         <TradePickerModal
           onPick={(t) => { setAttachments((prev) => [...prev.filter((a) => a.type !== 'trade'), { type: 'trade', tradeId: t.id }]); setShowPicker(false) }}

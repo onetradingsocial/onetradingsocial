@@ -2631,3 +2631,27 @@ button.ts-burger-link {
   .wpop-seg.filled i { transform: scaleX(1); }
   .wpop-confetti, .wpop-burst { display: none; }
 }
+
+/* ============================================================
+   Collection notices and the app footer (audit item 4 / WS6)
+   ============================================================ */
+
+/* Passive APP 5 notice under the Google button. Sits between the button and
+   the "or" divider on /signup and /login, so it is impossible to reach the
+   OAuth control without the links being on screen. */
+.fl-oauth-legal { margin-top: 10px; font-size: 11.5px; line-height: 1.5; color: var(--faint); text-align: center; }
+.fl-oauth-legal a { color: var(--violet-br); font-weight: 600; }
+.fl-oauth-legal a:hover { text-decoration: underline; }
+
+/* One-line notice at a collection surface: upload dropzones, the message
+   composer, the feedback form, onboarding, checkout. */
+.ts-privacy-note { margin-top: 8px; font-size: 11.5px; line-height: 1.5; color: var(--faint); }
+.ts-privacy-note a { color: var(--violet-br); font-weight: 600; }
+.ts-privacy-note a:hover { text-decoration: underline; }
+
+.app-footer { max-width: 1040px; margin: 56px auto 0; padding: 20px var(--pad, 18px) 32px; border-top: 1px solid var(--line-2); text-align: center; }
+.app-footer nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-size: 12.5px; }
+.app-footer nav a { color: var(--dim); font-weight: 600; }
+.app-footer nav a:hover { color: var(--violet-br); text-decoration: underline; }
+.app-footer nav span { color: var(--faint2); }
+.app-footer p { margin-top: 10px; font-size: 11.5px; line-height: 1.55; color: var(--faint); }

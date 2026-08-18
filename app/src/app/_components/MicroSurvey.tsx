@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { submitFeedback } from '@/app/actions/feedback'
 import { track } from '@/lib/track'
+import { PrivacyNote } from './LegalNotice'
 
 /**
  * One-question contextual survey (Sprint 2, row 27). Each key fires at most
@@ -56,6 +57,14 @@ export function MicroSurvey({
               style={{ border: 0, background: 'none', cursor: 'pointer', color: 'var(--faint)', fontSize: 15, padding: '0 4px' }}>✕</button>
           </span>
         </div>
+      )}
+      {/* APP 5.2(c), audit item 4 finding 10. A single tap submits, and the row
+          written by actions/feedback.ts carries the user-agent, page URL,
+          viewport and device class alongside the answer. */}
+      {!sent && (
+        <PrivacyNote>
+          Your answer is saved with your account, along with your browser and the page you&apos;re on.
+        </PrivacyNote>
       )}
     </div>
   )

@@ -87,7 +87,9 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   const password = String(formData.get('password') ?? '')
   const terms = formData.get('terms')
 
-  if (!terms) return { error: 'You must accept the terms and disclaimer.' }
+  // Wording tracks the checkbox label in SignupForm — the privacy policy is now
+  // part of what the box accepts (audit item 4 finding 2).
+  if (!terms) return { error: 'You must accept the terms, privacy policy and disclaimer.' }
   const v = validateUsername(username)
   if (!v.ok) return { error: v.error }
   // Item 9 F5: one shared policy, enforced here and mirrored (never replaced)

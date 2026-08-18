@@ -1,32 +1,37 @@
--- Account deletion completeness. Audit item 6, findings F6.1 and F6.8.
+-- Account deletion completeness. Audit item 6, finding F6.1.
 --
 -- ***************************************************************************
--- ** NOT APPLIED. Hand this to the owner. Deploy the code FIRST, then this. **
+-- ** APPLIED. Section 1 below is live on jmpanzrjxflovdfwcbye -- verified:  **
+-- ** trade_audits_user_id_fkey exists and audit_trade_change() carries the  **
+-- ** profile-exists guard. Do not re-run casually; it is idempotent, but    **
+-- ** the VALIDATE takes a lock on a table that is now load-bearing.         **
+-- **                                                                        **
+-- ** F6.8 (moderation retention) was section 2 and is NO LONGER IN THIS     **
+-- ** FILE. It is 0054_moderation_retention.sql and is NOT applied.          **
 -- ***************************************************************************
---
--- Two independent problems, in opposite directions:
 --
 --   F6.1  Deleting an account CREATES a permanent copy of every trade. The
 --         trades_audit AFTER DELETE trigger writes old_values = to_jsonb(old)
---         -- the whole 35-column row -- into public.trade_audits, which has no
---         foreign key to anything (verified live: zero FKs on the table). An
---         erasure request therefore ends with MORE personal data stored than
---         before it, in a table the user cannot see and no job cleans up.
+--         -- the whole 35-column row -- into public.trade_audits, which had no
+--         foreign key to anything (verified live at the time: zero FKs on the
+--         table). An erasure request therefore ended with MORE personal data
+--         stored than before it, in a table the user cannot see and no job
+--         cleans up. Section 1 fixes that.
 --
 --   F6.8  Deleting an account ERASES the moderation reports filed AGAINST it.
---         trade_reports.reported_user_id is ON DELETE CASCADE, so the
---         documented way to clear your record is to delete and re-register.
---         This is the one thing in item 6 that should have been retained and
---         is not.
+--         Still true, still unfixed in production, and deliberately so: the
+--         fix creates a new retention (a salted email hash surviving erasure)
+--         and could not land before the privacy policy disclosing it. See
+--         section 2 below and 0054_moderation_retention.sql.
 --
 -- The code half of this workstream (actions/account.ts, lib/server/
--- account-deletion.ts) is written to be CORRECT WITHOUT THIS MIGRATION and
--- BETTER WITH IT. Specifically:
+-- account-deletion.ts) is written to be CORRECT WITHOUT EITHER MIGRATION and
+-- BETTER WITH THEM. Specifically:
 --
 --   * the moderation-hash stamp in preserveModerationRecords() targets a
 --     column that does not exist yet. PostgREST answers 42703 and the step
 --     records `skipped: no_hash_column` -- it does not throw and does not
---     abort the deletion. Until this lands, a report against a deleting user
+--     abort the deletion. Until 0054 lands, a report against a deleting user
 --     still cascades away; after it lands, the report survives.
 --   * nothing in the code depends on the trigger guard. The guard is what
 --     stops the audit copies being written at all.
@@ -170,97 +175,26 @@ comment on constraint trade_audits_user_id_fkey on public.trade_audits is
   'trigger would insert against a just-deleted profile and abort the cascade.';
 
 -- ---------------------------------------------------------------------------
--- 2. F6.8 -- moderation reports must survive the reported account.
+-- 2. F6.8 -- MOVED OUT OF THIS FILE.
 -- ---------------------------------------------------------------------------
 --
--- Today both sides are ON DELETE CASCADE (verified live), so deleting your
--- account destroys every report filed against you and every report you filed.
--- Item 6 Part 3 lists fraud/abuse records as the one category that SHOULD be
--- retained and is currently the only one being actively destroyed.
+-- The moderation-retention half (trade_reports.reported_user_hash, and the
+-- two CASCADE -> SET NULL changes that go with it) now lives in
+-- 0054_moderation_retention.sql and is NOT part of this file any more.
 --
--- Retained: the reason, the free-text detail, the status, the date, and a
--- salted hash of the reported account's email address.
--- Not retained: the user ids, the username, the email itself.
+-- Why it was split. Section 1 above only ever DELETES personal data, so it was
+-- safe to apply on its own and it has been: trade_audits_user_id_fkey exists
+-- on jmpanzrjxflovdfwcbye. Section 2 does the opposite -- it introduces a NEW
+-- retention, a salted hash of a reported account's email kept after erasure so
+-- a moderation record survives delete-and-re-register. A new retention must
+-- not be created before the privacy policy that discloses it, and at the time
+-- this file was written that disclosure did not exist. It does now (WS6:
+-- privacy.html, "How long we keep your information"), so 0054 is ready to
+-- apply alongside that page.
 --
--- WHY A HASH OF THE EMAIL AND NOT OF THE USER ID
---
--- The threat this retention answers is delete-and-re-register: an account is
--- reported, the holder deletes it, signs up again and starts clean. A hash of
--- the USER ID cannot detect that -- the new account has a new uuid, so the
--- hashes never match and the column buys nothing but the illusion of one. The
--- email address is the identity that persists across the re-registration, so
--- hashing that is the only version of this column that does any work.
---
--- The hash is stamped by the application at deletion time
--- (preserveModerationRecords, lib/server/account-deletion.ts) rather than by a
--- trigger here, because email addresses live in auth.users, which PostgREST
--- cannot reach and which a public-schema trigger has no business reading. It
--- is salted from DELETION_HASH_SALT so the column is not a rainbow-table of
--- every address that has ever been reported; with no salt configured the code
--- skips the stamp and logs, and the report row still survives -- the salt
--- gates the pseudonym, never the retention.
---
--- Lawful basis: legitimate interests / fraud and abuse prevention. Period:
--- 3 years from the report date, or until the matter is resolved, whichever is
--- longer. This must be stated in the privacy policy -- WS6 owns that text, and
--- this migration should not land without it.
-
-alter table public.trade_reports
-  add column if not exists reported_user_hash text;
-
-comment on column public.trade_reports.reported_user_hash is
-  'Audit item 6 F6.8. Salted SHA-256 of the reported account''s email, '
-  'stamped at account deletion so the report survives erasure without '
-  'retaining an identifier. Null while the account still exists -- '
-  'reported_user_id answers the question then. Legitimate interests '
-  '(fraud/abuse); retain 3 years or until resolved.';
-
-create index if not exists trade_reports_reported_hash_idx
-  on public.trade_reports (reported_user_hash)
-  where reported_user_hash is not null;
-
--- reporter_id is `uuid not null` today. SET NULL cannot fire against a NOT
--- NULL column, so the constraint has to come off first. A report with no
--- reporter is still a usable moderation signal -- who complained matters far
--- less than who was complained about -- and the alternative (cascade) throws
--- away a report about a DIFFERENT, still-live user because the person who
--- filed it happened to leave. That is somebody else's record being destroyed
--- by your deletion, which is the same class of bug as the conversations and
--- referrals both-sides cascades (F6.8's other two halves, NOT fixed here --
--- they need a product decision, see ws3-deletion.md).
-alter table public.trade_reports
-  alter column reporter_id drop not null;
-
-alter table public.trade_reports
-  drop constraint if exists trade_reports_reporter_id_fkey;
-alter table public.trade_reports
-  add constraint trade_reports_reporter_id_fkey
-  foreign key (reporter_id) references public.profiles(id) on delete set null;
-
-alter table public.trade_reports
-  drop constraint if exists trade_reports_reported_user_id_fkey;
-alter table public.trade_reports
-  add constraint trade_reports_reported_user_id_fkey
-  foreign key (reported_user_id) references public.profiles(id) on delete set null;
-
--- The anti-spam dedupe index is `unique (reporter_id, reported_user_id,
--- reason) where status = 'open'`. Postgres treats NULLs as distinct in a
--- unique index by default, so once either id is nulled the row stops
--- participating in the constraint. That is the behaviour we want: the index
--- exists to stop one live user spam-filing against another live user, and a
--- row with a null side has no live user on it to spam with. Restated rather
--- than changed -- and deliberately NOT switched to NULLS NOT DISTINCT, which
--- would collapse every anonymised report sharing a reason into one row and
--- silently block new legitimate reports.
---
--- No RLS change. trade_reports_select is `auth.uid() = reporter_id`; with a
--- null reporter_id that predicate is NULL, which RLS treats as false, so an
--- anonymised report is invisible to every client role and readable only
--- through the service role on /admin. That is exactly the desired reach.
---
--- /admin/verification already renders `uname.get(r.reported_user_id ?? '')
--- ?? 'unknown'`, so a null side degrades to "@unknown" rather than crashing.
--- Checked, not assumed (src/app/admin/verification/page.tsx:84-89).
+-- Do not re-add the SQL here. Two files asserting the same DDL is how a
+-- constraint gets dropped and recreated by the file that was supposed to be
+-- inert.
 
 -- ---------------------------------------------------------------------------
 -- 3. What this migration deliberately does NOT do

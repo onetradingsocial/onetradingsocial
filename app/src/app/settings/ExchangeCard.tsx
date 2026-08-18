@@ -3,6 +3,7 @@
 import { useActionState, useState, useTransition } from 'react'
 import { connectExchange, disconnectExchange, syncNow, type ExchangeState } from '@/app/actions/exchange'
 import { Icon } from '@/app/[username]/_components/Icon'
+import { PrivacyNote } from '@/app/_components/LegalNotice'
 
 export type ExchangeRowView = {
   status: string; symbols: string[]
@@ -80,6 +81,19 @@ export function ExchangeCard({ row, canImport }: { row: ExchangeRowView | null; 
         Paste a <strong>read-only</strong> Binance API key (enable “Reading” only — not trading or withdrawals).
         We store it encrypted and it can never move funds.
       </p>
+      {/* APP 5, audit item 4 S9. The copy above was already specific and true;
+          what was missing was the recipient, the algorithm and the one thing
+          only the user can do. secrets.ts encrypts with AES-256-GCM under a key
+          held in the server environment; crypto-sync/route.ts pins the calling
+          function to sin1 (Singapore); account deletion removes our encrypted
+          copy but cannot revoke the key at Binance. */}
+      <p className="ts-sub mt-2">
+        We encrypt the key and secret with <strong>AES-256-GCM</strong> before storing them and never
+        display them back to you. They are used from a server in Singapore to read your fills from
+        Binance. Deleting your account deletes our copy — <strong>only you can revoke the key at
+        Binance</strong>, so do that as well.
+      </p>
+      <PrivacyNote>What Binance receives, and where, is in section 8 of our privacy policy.</PrivacyNote>
       <details className="ts-help mt-2" style={{ fontSize: 13 }}>
         <summary style={{ cursor: 'pointer', color: 'var(--accent, #4f8cff)' }}>
           How do I get a read-only key?
