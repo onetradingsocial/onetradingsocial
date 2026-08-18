@@ -3,7 +3,23 @@ import { parseAdminEmails, emailIsAdmin, validateSlug, validateNonNegInt, valida
 
 describe('parseAdminEmails', () => {
   it('splits, trims, lowercases, drops empties', () => {
-    expect(parseAdminEmails(' Owner@Gmail.com , ,@Admin.Test ')).toEqual(['owner@gmail.com', '@admin.test'])
+    expect(parseAdminEmails(' Owner@Gmail.com , ,Second@Example.com ')).toEqual([
+      'owner@gmail.com',
+      'second@example.com',
+    ])
+  })
+  it('drops a bare @domain entry instead of treating it as a wildcard', () => {
+    // Regression guard. This used to parse as a domain suffix wildcard, so
+    // '@admin.tradingsocial.test' made every address under a permanently
+    // unclaimable RFC 6761 domain a production admin. Dropping it at parse
+    // time means an operator who pastes the old value gets NO admins from
+    // that entry rather than a whole namespace of them.
+    expect(parseAdminEmails('owner@gmail.com,@admin.test')).toEqual(['owner@gmail.com'])
+  })
+  it('drops malformed entries', () => {
+    expect(parseAdminEmails('no-at-sign,two@@ats.com,trailing@,owner@gmail.com')).toEqual([
+      'owner@gmail.com',
+    ])
   })
   it('handles undefined', () => {
     expect(parseAdminEmails(undefined)).toEqual([])
@@ -11,12 +27,15 @@ describe('parseAdminEmails', () => {
 })
 
 describe('emailIsAdmin', () => {
-  const allow = ['owner@gmail.com', '@admin.test']
+  const allow = ['owner@gmail.com', 'second@example.com']
   it('matches exact email case-insensitively', () => {
     expect(emailIsAdmin('Owner@Gmail.com', allow)).toBe(true)
   })
-  it('matches a @domain entry by suffix', () => {
-    expect(emailIsAdmin('anyone@admin.test', allow)).toBe(true)
+  it('does NOT grant a whole domain', () => {
+    // The escalation path: with open signup and email confirmation off,
+    // anyone could register under an unclaimable domain and inherit admin.
+    expect(emailIsAdmin('anyone@admin.test', allow)).toBe(false)
+    expect(emailIsAdmin('attacker@admin.test', [...allow, '@admin.test'])).toBe(false)
   })
   it('rejects non-listed', () => {
     expect(emailIsAdmin('user@tradingsocial.io', allow)).toBe(false)
