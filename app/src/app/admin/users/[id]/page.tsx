@@ -1,14 +1,20 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { requireAdmin } from '@/lib/server/admin'
+import { logAdminRead } from '@/lib/server/admin-audit'
 import { createServiceClient } from '@/lib/supabase/service'
 import { parseAdminEmails } from '@/lib/admin'
+import { maskEmail } from '@/lib/admin-mask'
 import { userTierSummary, isInternalRow } from '@/lib/admin-users'
+import { RevealEmail } from '../../_components/RevealEmail'
 import { PageHead, Section, Stat, Stats } from '../../_components/ui'
 import { CompTierControl } from '../_components/CompTierControl'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminUserDetail({ params }: { params: Promise<{ id: string }> }) {
+  // Audit item 18, F2 — see the note in admin/page.tsx.
+  const admin = await requireAdmin()
   const { id } = await params
   const svc = createServiceClient()
 
@@ -42,13 +48,20 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
 
   const internal = isInternalRow({ is_internal: prof.is_internal, email })
 
+  // Audit item 18, F4. THIS is the read the log exists for: one admin opening
+  // one identified person's record. It is logged after the row is confirmed to
+  // exist, so a probe for a non-existent id does not manufacture a row, and it
+  // records the uid and the username only — never the address, which would put
+  // the very identifier this screen masks straight back into the audit table.
+  await logAdminRead(admin, 'user.view', { type: 'user', id }, { username: prof.username })
+
   const comp = prof.comp_tier === 'trader' || prof.comp_tier === 'pro' ? prof.comp_tier : null
 
   return (
     <>
       <PageHead
         title={prof.username}
-        sub={email ?? undefined}
+        sub={email ? maskEmail(email) : undefined}
         right={
           <>
             {internal && <span className="ad-chip--test" style={{ marginLeft: 0 }}>test</span>}
@@ -75,6 +88,10 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
 
       <Section title="Profile">
         <div className="ad-kv" style={{ fontSize: 13, lineHeight: 1.9 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span>Email:</span>
+            <RevealEmail userId={id} masked={maskEmail(email)} context="detail" />
+          </div>
           <div>Display name: {prof.display_name ?? '—'}</div>
           <div>Joined: {new Date(prof.created_at).toLocaleString()}</div>
           <div>User ID: {id}</div>

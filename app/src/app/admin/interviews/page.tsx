@@ -1,7 +1,21 @@
 // Beta-user interview system (Sprint 4, row 28). Segments users the team may
 // want to talk to — engaged, broker-connected, or churned-after-engaging — with
 // a mailto invite. Read-only over service-role data.
+//
+// Audit item 18, F3. This screen used to resolve the email address of EVERY
+// user in all three segments on render, via one auth.admin.getUserById call
+// each, and print them into mailto: links. That made simply opening the page a
+// bulk disclosure of dozens of addresses that nobody had asked for and nothing
+// recorded. The addresses are no longer fetched at render time at all: the
+// "Reveal" control fetches one, for one user, through a server action that logs
+// it — and then offers the same pre-written invite. One extra click for the
+// admin, per person they actually intend to contact.
+//
+// A pleasant side effect: the page no longer makes N sequential GoTrue calls
+// before it can render.
+import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
+import { RevealEmail } from '../_components/RevealEmail'
 import { Empty, PageHead, Panel, Section } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
@@ -10,14 +24,14 @@ const DAY = 864e5
 
 type Seg = 'engaged' | 'connected' | 'churned'
 
-function InviteLink({ email, username }: { email: string | null; username: string }) {
-  if (!email) return <span className="faint">no email</span>
-  const subject = encodeURIComponent('Quick chat about your TradingSocial experience?')
-  const body = encodeURIComponent(`Hi @${username},\n\nWe're talking to a few early traders about what's working and what isn't. Would you be up for a 15-minute call?\n\nThanks,\nThe TradingSocial team`)
-  return <a href={`mailto:${email}?subject=${subject}&body=${body}`} className="btn btn-ghost btn-sm">Invite</a>
-}
+const INVITE_SUBJECT = 'Quick chat about your TradingSocial experience?'
+
+const inviteBody = (username: string) =>
+  `Hi @${username},\n\nWe're talking to a few early traders about what's working and what isn't. Would you be up for a 15-minute call?\n\nThanks,\nThe TradingSocial team`
 
 export default async function InterviewsPage() {
+  // Audit item 18, F2 — see the note in admin/page.tsx.
+  await requireAdmin()
   const svc = createServiceClient()
   const now = Date.now()
 
@@ -36,9 +50,7 @@ export default async function InterviewsPage() {
   }
   const connected = new Set((brokers ?? []).map((b) => b.user_id))
 
-  const emailOf = async (uid: string) => (await svc.auth.admin.getUserById(uid)).data.user?.email ?? null
-
-  const rows: { id: string; username: string; seg: Seg; trades: number; email: string | null }[] = []
+  const rows: { id: string; username: string; seg: Seg; trades: number }[] = []
   for (const p of profiles ?? []) {
     const n = tradeCount.get(p.id) ?? 0
     const last = lastTrade.get(p.id) ?? 0
@@ -46,10 +58,8 @@ export default async function InterviewsPage() {
     if (n >= 5 && last > now - 7 * DAY) seg = 'engaged'
     else if (connected.has(p.id)) seg = 'connected'
     else if (n >= 3 && last > 0 && last < now - 14 * DAY) seg = 'churned'
-    if (seg) rows.push({ id: p.id, username: p.username, seg, trades: n, email: null })
+    if (seg) rows.push({ id: p.id, username: p.username, seg, trades: n })
   }
-  // Resolve emails only for the (bounded) candidate set.
-  for (const r of rows) r.email = await emailOf(r.id)
 
   const groups: { seg: Seg; label: string; hint: string }[] = [
     { seg: 'engaged', label: 'Engaged', hint: '≥5 trades, active in last 7 days' },
@@ -61,7 +71,7 @@ export default async function InterviewsPage() {
     <>
       <PageHead
         title="Interviews"
-        sub="Users worth talking to, segmented by behaviour. Invite opens a pre-written mail in your client — nothing is sent from here."
+        sub="Users worth talking to, segmented by behaviour. Reveal an address to get the invite link — the reveal is recorded in the audit log, and nothing is sent from here."
       />
 
       <div className="ad-stack">
@@ -74,7 +84,14 @@ export default async function InterviewsPage() {
                   <div key={r.id} className="ad-row">
                     <span style={{ fontWeight: 600 }}>@{r.username}</span>
                     <span className="faint" style={{ fontSize: 12 }}>{r.trades} trades</span>
-                    <span className="sp"><InviteLink email={r.email} username={r.username} /></span>
+                    <span className="sp">
+                      <RevealEmail
+                        userId={r.id}
+                        masked="hidden"
+                        context="interviews"
+                        mailto={{ subject: INVITE_SUBJECT, body: inviteBody(r.username) }}
+                      />
+                    </span>
                   </div>
                 ))}
               </Panel>

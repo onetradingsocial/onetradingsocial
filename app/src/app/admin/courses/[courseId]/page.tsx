@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { setCoursePublished } from '@/app/actions/admin'
 import { CourseEditForm } from '../../_components/CourseEditForm'
@@ -7,6 +8,13 @@ import { PublishToggle } from '../../_components/PublishToggle'
 import { Empty, PageHead, Panel } from '../../_components/ui'
 
 export default async function CourseDetail({ params }: { params: Promise<{ courseId: string }> }) {
+  // Audit item 18, F2. The layout gate above this page is NOT the authorisation
+  // check: a layout does not re-execute on every navigation within its segment,
+  // so a crafted RSC request for a nested page can reach the page without it.
+  // Every page below therefore repeats the check itself, which makes the
+  // service-role query and its authorisation inseparable. The layout keeps its
+  // own call — it renders the nav and must not leak that either.
+  await requireAdmin()
   const { courseId } = await params
   const svc = createServiceClient()
   const { data: course } = await svc.from('courses')

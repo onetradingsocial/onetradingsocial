@@ -7,6 +7,7 @@ import {
 } from '@/lib/account-deletion'
 import {
   purgeUserStorage, scrubAnalytics, preserveModerationRecords,
+  pseudonymiseAdminAudit,
 } from '@/lib/server/account-deletion'
 
 const UID = '11111111-1111-4111-8111-111111111111'
@@ -597,6 +598,88 @@ describe('preserveModerationRecords', () => {
     vi.stubEnv('DELETION_HASH_SALT', 'pepper')
     const { client, seen } = fakeReports({ count: 0 })
     const out = await preserveModerationRecords(client as never, UID, null)
+    expect(out.ok).toBe(true)
+    expect(seen).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Audit item 18, F7 — the admin's own erasure right over the audit log.
+// ---------------------------------------------------------------------------
+
+/** admin_audit fake: update(...).eq(...).not(...) resolves. */
+function fakeAudit(result: { error?: { message: string; code?: string }; count?: number }) {
+  const seen: Record<string, unknown>[] = []
+  const client = {
+    from(_t: string) {
+      return {
+        update(values: Record<string, unknown>) {
+          seen.push(values)
+          const done = Promise.resolve({ error: result.error ?? null, count: result.count ?? 0 })
+          return { eq: () => ({ not: () => done }) }
+        },
+      }
+    },
+  }
+  return { client, seen }
+}
+
+describe('pseudonymiseAdminAudit (audit item 18, F7)', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('nulls the address and keeps a stable pseudonym', async () => {
+    vi.stubEnv('DELETION_HASH_SALT', 'pepper')
+    const { client, seen } = fakeAudit({ count: 3 })
+    const out = await pseudonymiseAdminAudit(client as never, UID, 'admin@example.com')
+    expect(out.ok).toBe(true)
+    expect(seen[0].actor_email).toBeNull()
+    expect(seen[0].actor_email_hash).toMatch(/^[0-9a-f]{64}$/)
+    expect(out).toMatchObject({ detail: { pseudonymised: 3 } })
+  })
+
+  it('reuses the WS3 pattern, not a second one — same salt, same input, same hash', async () => {
+    // The point of reusing preserveModerationRecords' formula is that one
+    // departed person carries ONE pseudonym across trade_reports and
+    // admin_audit. If these two ever diverge, that property is gone and this
+    // test is the thing that says so.
+    vi.stubEnv('DELETION_HASH_SALT', 'pepper')
+    const mod = fakeReports({ count: 1 })
+    await preserveModerationRecords(mod.client as never, UID, 'Admin@Example.com')
+    const aud = fakeAudit({ count: 1 })
+    await pseudonymiseAdminAudit(aud.client as never, UID, '  admin@example.com ')
+    expect(aud.seen[0].actor_email_hash).toBe(mod.seen[0].reported_user_hash)
+  })
+
+  it('writes nothing rather than an unsalted hash', async () => {
+    vi.stubEnv('DELETION_HASH_SALT', '')
+    const { client, seen } = fakeAudit({ count: 0 })
+    const out = await pseudonymiseAdminAudit(client as never, UID, 'x@y.z')
+    expect(out).toMatchObject({ detail: { skipped: 'no_salt' } })
+    expect(seen).toHaveLength(0)
+  })
+
+  it('is inert before migration 0052 adds the column', async () => {
+    vi.stubEnv('DELETION_HASH_SALT', 'pepper')
+    const { client } = fakeAudit({ error: { message: 'column does not exist', code: '42703' } })
+    const out = await pseudonymiseAdminAudit(client as never, UID, 'x@y.z')
+    expect(out).toMatchObject({ ok: true, detail: { skipped: 'no_hash_column' } })
+  })
+
+  it('NEVER aborts a deletion, even on a real database error', async () => {
+    // Unlike the moderation stamp this is housekeeping on our own records. A
+    // user asking to be erased must not be stranded because an admin_audit
+    // update failed.
+    vi.stubEnv('DELETION_HASH_SALT', 'pepper')
+    const { client } = fakeAudit({ error: { message: 'connection reset', code: '08006' } })
+    const out = await pseudonymiseAdminAudit(client as never, UID, 'x@y.z')
+    expect(out.ok).toBe(true)
+    expect(out.detail).toHaveProperty('failed')
+  })
+
+  it('is a no-op with no email on file', async () => {
+    vi.stubEnv('DELETION_HASH_SALT', 'pepper')
+    const { client, seen } = fakeAudit({ count: 0 })
+    const out = await pseudonymiseAdminAudit(client as never, UID, null)
     expect(out.ok).toBe(true)
     expect(seen).toHaveLength(0)
   })

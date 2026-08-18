@@ -1,9 +1,12 @@
 // Verification review dashboard (Sprint 2, row 6): pending/failed broker
 // connections, failed imports, suspicious accounts and recent trade edits.
 import Link from 'next/link'
+import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getSuspiciousAccounts } from '@/lib/server/suspicion'
+import { maskAccountId } from '@/lib/admin-mask'
 import { ReportStatus } from '../_components/ReportStatus'
+import { RevealBrokerLogin } from '../_components/RevealEmail'
 import { Empty, PageHead, Panel, Section, Stat, Stats, When } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
@@ -23,6 +26,8 @@ const REASON_LABEL: Record<string, string> = {
 }
 
 export default async function VerificationReviewPage() {
+  // Audit item 18, F2 — see the note in admin/page.tsx.
+  await requireAdmin()
   const svc = createServiceClient()
   const [suspicious, { data: brokers }, { data: failedImports }, { data: edits }, { data: reports }] = await Promise.all([
     getSuspiciousAccounts(svc),
@@ -63,7 +68,7 @@ export default async function VerificationReviewPage() {
     <>
       <PageHead
         title="Verification"
-        sub="Trust queue. Heuristics surface accounts worth a look — nothing here is auto-punished, every action is yours."
+        sub="Trust queue. Heuristics surface accounts worth a look — nothing here is auto-punished, every action is yours. Broker logins are masked to the last four digits; revealing one is recorded in the audit log."
       />
 
       <div className="ad-stack">
@@ -118,7 +123,17 @@ export default async function VerificationReviewPage() {
                     return (
                       <tr key={b.user_id}>
                         <td>@{p?.username ?? b.user_id.slice(0, 8)}</td>
-                        <td className="ad-kv">{b.login}</td>
+                        {/* Audit item 18, F3. The MT5 login is an account number at a
+                            third-party broker; last-4 is enough for an admin and a user
+                            to agree they mean the same connection, and a reveal is one
+                            logged click away for the cases that need the whole number
+                            (raising a case with MetaApi or the broker).
+
+                            The `server` beside it is NOT masked and should not be: it
+                            names the broker's server, which is a property of the broker
+                            and not of the person, and it is the field that most often
+                            explains why a connection is failing. */}
+                        <td><RevealBrokerLogin userId={b.user_id} masked={maskAccountId(b.login)} /></td>
                         <td className="ad-kv">{b.server}</td>
                         <td><span className={`v-badge ${b.status === 'pending' ? 'vb-pending' : 'vb-failed'}`}>{b.status}</span></td>
                         <td>{b.last_sync_at ? <When iso={b.last_sync_at} short /> : <span className="faint">—</span>}</td>

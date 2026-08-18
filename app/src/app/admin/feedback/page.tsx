@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { FEEDBACK_TYPE_LABELS, type FeedbackType } from '@/lib/feedback'
 import { FeedbackStatus } from '../_components/FeedbackStatus'
@@ -10,6 +11,13 @@ type Search = { status?: string; type?: string }
 const STATUS_TABS = ['open', 'triaged', 'closed', 'all']
 
 export default async function AdminFeedback({ searchParams }: { searchParams: Promise<Search> }) {
+  // Audit item 18, F2. The layout gate above this page is NOT the authorisation
+  // check: a layout does not re-execute on every navigation within its segment,
+  // so a crafted RSC request for a nested page can reach the page without it.
+  // Every page below therefore repeats the check itself, which makes the
+  // service-role query and its authorisation inseparable. The layout keeps its
+  // own call — it renders the nav and must not leak that either.
+  await requireAdmin()
   const { status = 'open', type } = await searchParams
   const svc = createServiceClient()
   let q = svc.from('feedback')

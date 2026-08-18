@@ -166,9 +166,12 @@ git commit -m "feat(app): sanitizeLessonHtml + sanitize-html dep"
 import { describe, it, expect } from 'vitest'
 import { parseAdminEmails, emailIsAdmin, validateSlug, validateNonNegInt, validateQuizOptions } from '@/lib/admin'
 
+// [REDACTED 2026-08-18 — audit item 18, F1.] The original spec asserted that a bare
+// `@domain` entry parsed as a wildcard and matched by suffix. Those two assertions are
+// now inverted regression guards; see the live app/tests/unit/admin.test.ts.
 describe('parseAdminEmails', () => {
-  it('splits, trims, lowercases, drops empties', () => {
-    expect(parseAdminEmails(' Owner@Gmail.com , ,@Admin.Test ')).toEqual(['owner@gmail.com', '@admin.test'])
+  it('splits, trims, lowercases, drops malformed entries', () => {
+    expect(parseAdminEmails(' Owner@Gmail.com , ,@Admin.Test ')).toEqual(['owner@gmail.com'])
   })
   it('handles undefined', () => {
     expect(parseAdminEmails(undefined)).toEqual([])
@@ -176,12 +179,12 @@ describe('parseAdminEmails', () => {
 })
 
 describe('emailIsAdmin', () => {
-  const allow = ['owner@gmail.com', '@admin.test']
+  const allow = ['owner@gmail.com']
   it('matches exact email case-insensitively', () => {
     expect(emailIsAdmin('Owner@Gmail.com', allow)).toBe(true)
   })
-  it('matches a @domain entry by suffix', () => {
-    expect(emailIsAdmin('anyone@admin.test', allow)).toBe(true)
+  it('does NOT grant a whole domain', () => {
+    expect(emailIsAdmin('anyone@admin.test', [...allow, '@admin.test'])).toBe(false)
   })
   it('rejects non-listed', () => {
     expect(emailIsAdmin('user@tradingsocial.io', allow)).toBe(false)
@@ -218,21 +221,27 @@ Expected: FAIL — cannot find module `@/lib/admin`.
 
 - [ ] **Step 3: Implement pure helpers**
 
+> **[REDACTED 2026-08-18 — audit item 18, F1.]** The implementation shown here
+> originally accepted an entry beginning with `@` as a **domain-suffix wildcard**, so a
+> single allowlist entry granted admin to an unbounded namespace of addresses. It was
+> replaced by an exact-address-only parser in commit `1c6ebce`. Read the live version at
+> `app/src/lib/admin.ts` — do not copy the historical one below.
+
 ```ts
-// app/src/lib/admin.ts
-/** Parse ADMIN_EMAILS: comma-separated, trimmed, lowercased, empties dropped.
- *  Entries may be an exact email or a "@domain" suffix match. */
+// app/src/lib/admin.ts — superseded; see the note above and the live file.
 export function parseAdminEmails(raw: string | undefined): string[] {
+  // Exact addresses only. Malformed entries — including a bare `@domain` — are
+  // dropped here rather than at match time, so a pasted wildcard yields NO admins.
   return (raw ?? '')
     .split(',')
     .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
+    .filter(isExactAddress)
 }
 
 export function emailIsAdmin(email: string | null | undefined, allow: string[]): boolean {
   if (!email) return false
-  const e = email.toLowerCase()
-  return allow.some((entry) => (entry.startsWith('@') ? e.endsWith(entry) : e === entry))
+  const e = email.trim().toLowerCase()
+  return isExactAddress(e) && allow.some((entry) => e === entry)
 }
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -1135,20 +1144,25 @@ git commit -m "feat(app): conditional Admin nav link for admins"
 
 **Files:**
 - Create: `app/tests/e2e/admin.spec.ts`
-- Modify: `app/.env.local` (add `ADMIN_EMAILS` including the e2e admin domain) — local only, untracked.
+- Modify: `app/.env.local` (add `ADMIN_EMAILS` for the e2e admin) — local only, untracked.
 
 **Interfaces:**
 - Consumes: the full admin surface.
 
 - [ ] **Step 1: Configure the admin allowlist for the test run**
 
-Add to `app/.env.local` (untracked):
-
-```
-ADMIN_EMAILS=onetradingsocial@gmail.com,@admin.tradingsocial.test
-```
-
-Restart the dev server so it picks up the env. The `@admin.tradingsocial.test` domain entry makes any e2e user signed up under that domain an admin, with a unique email per run (no collisions).
+> **[REDACTED 2026-08-18 — audit item 18, F1.]** This step originally published a
+> literal `ADMIN_EMAILS` value containing a **domain-suffix wildcard**, together with a
+> sentence explaining that any account registered under that domain became a full
+> production admin. This repository is public, so that was a published bypass recipe.
+>
+> The mechanism no longer exists: `parseAdminEmails()` accepts **exact addresses only**
+> and drops any bare `@domain` entry at parse time (`app/src/lib/admin.ts`, commit
+> `1c6ebce`). The wildcard was never present in the production environment.
+>
+> The e2e suite now seeds its admin from an exact address supplied by the test-only env
+> var `E2E_ADMIN_EMAIL`, which must also be the value of `ADMIN_EMAILS` on the dev
+> server. Neither value is committed. See `app/tests/e2e/admin.spec.ts`.
 
 - [ ] **Step 2: Write the e2e spec**
 
@@ -1180,7 +1194,7 @@ test('non-admin cannot reach the admin area', async ({ page }) => {
 })
 
 test('admin can publish a new course and it appears in Learn', async ({ page }) => {
-  await signUpAndOnboard(page, 'ad', 'admin.tradingsocial.test')
+  await signUpAndOnboard(page, 'ad', '<redacted — see the note in Task 10 Step 1>')
 
   // Create a course
   const slug = 'e2e-' + Date.now().toString(36)
@@ -1210,7 +1224,7 @@ test('admin can publish a new course and it appears in Learn', async ({ page }) 
 })
 
 test('admin can change feedback status', async ({ page }) => {
-  await signUpAndOnboard(page, 'fb', 'admin.tradingsocial.test')
+  await signUpAndOnboard(page, 'fb', '<redacted — see the note in Task 10 Step 1>')
   await page.goto('/app/admin/feedback')
   // If a feedback row exists, flipping its status persists across reload.
   const firstSelect = page.locator('select').first()

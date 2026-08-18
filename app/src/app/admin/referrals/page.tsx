@@ -1,6 +1,7 @@
 // Referral programme overview (Backlog row 39). Shows the funnel per referrer
 // so rewards can be applied manually while the programme is in beta.
 import Link from 'next/link'
+import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { earnedMonths } from '@/lib/referral'
 import { Empty, PageHead, Panel, Stat, Stats } from '../_components/ui'
@@ -8,6 +9,13 @@ import { Empty, PageHead, Panel, Stat, Stats } from '../_components/ui'
 export const dynamic = 'force-dynamic'
 
 export default async function AdminReferralsPage() {
+  // Audit item 18, F2. The layout gate above this page is NOT the authorisation
+  // check: a layout does not re-execute on every navigation within its segment,
+  // so a crafted RSC request for a nested page can reach the page without it.
+  // Every page below therefore repeats the check itself, which makes the
+  // service-role query and its authorisation inseparable. The layout keeps its
+  // own call — it renders the nav and must not leak that either.
+  await requireAdmin()
   const svc = createServiceClient()
   const [{ data: referrals }, { data: codes }, { data: clicks }] = await Promise.all([
     svc.from('referrals').select('referrer_id, status'),
