@@ -41,10 +41,17 @@ describe('WELCOME_TIERS', () => {
   })
 
   it('keeps the client copy verbatim, including Unicode punctuation', () => {
-    expect(WELCOME_TIERS.free.price).toBe('$0 / month · free forever')
-    expect(WELCOME_TIERS.trader.price).toBe('$30 / month · billed monthly')
-    expect(WELCOME_TIERS.pro.price).toBe('$50 / month · billed monthly')
+    expect(WELCOME_TIERS.free.price).toBe('A$0 / month · free forever')
+    expect(WELCOME_TIERS.trader.price).toBe('A$30 / month · billed monthly')
+    expect(WELCOME_TIERS.pro.price).toBe('A$50 / month · billed monthly')
     expect(WELCOME_TIERS.pro.em).toBe('Pro Trader')
+    // Owner-confirmed: the Stripe prices are AUD. A bare '$' in front of an
+    // Australian buyer is a price representation we cannot stand behind, so
+    // every quoted amount must carry the A$ prefix.
+    for (const t of ['free', 'trader', 'pro'] as const) {
+      expect(WELCOME_TIERS[t].price).toMatch(/^A\$/)
+      expect(WELCOME_TIERS[t].price).not.toMatch(/(^|[^A])\$/)
+    }
     expect(WELCOME_TIERS.trader.feats[0].d).toBe('No more 30-trade cap — log everything, forever')
     expect(WELCOME_TIERS.free.sub).toContain('—')
   })

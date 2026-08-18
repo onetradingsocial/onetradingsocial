@@ -1266,8 +1266,14 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 /* ---------- Billing toggle ---------- */
 .billing {
   display: flex; align-items: center; justify-content: center; gap: 14px;
-  margin-bottom: 34px;
+  margin-bottom: 14px;
 }
+.billing-note {
+  text-align: center; margin-bottom: 30px;
+  font-family: var(--body); font-size: 13px; line-height: 1.6; color: var(--dim);
+}
+.billing-note b { color: var(--text); font-weight: 600; }
+.billing-note a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; }
 .billing-switch {
   position: relative; display: inline-flex; align-items: center;
   background: #fff; border: 1px solid var(--border-2); border-radius: 999px;
@@ -1449,15 +1455,15 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '1056839790113606');fbq('track', 'PageView');
   </script>
   <!-- End Meta Pixel Code -->
-  <meta name="description" content="Simple, transparent pricing: Free forever, Trader at $30/month, Pro Trader at $50/month. Start with 14 days of Pro free — no card required, cancel anytime.">
+  <meta name="description" content="Simple, transparent pricing in Australian dollars: Free forever, Trader at A$30/month, Pro Trader at A$50/month. Start with 14 days of Pro free — no card required, cancel anytime.">
   <meta property="og:title" content="Trading Journal Pricing and Plans — TradingSocial">
-  <meta property="og:description" content="Simple, transparent pricing: Free forever, Trader at $30/month, Pro Trader at $50/month. Start with 14 days of Pro free — no card required, cancel anytime.">
+  <meta property="og:description" content="Simple, transparent pricing in Australian dollars: Free forever, Trader at A$30/month, Pro Trader at A$50/month. Start with 14 days of Pro free — no card required, cancel anytime.">
   <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
   <meta property="og:url" content="https://www.tradingsocial.io/pricing">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Trading Journal Pricing and Plans — TradingSocial">
-  <meta name="twitter:description" content="Simple, transparent pricing: Free forever, Trader at $30/month, Pro Trader at $50/month. Start with 14 days of Pro free — no card required, cancel anytime.">
+  <meta name="twitter:description" content="Simple, transparent pricing in Australian dollars: Free forever, Trader at A$30/month, Pro Trader at A$50/month. Start with 14 days of Pro free — no card required, cancel anytime.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
   <link rel="canonical" href="https://www.tradingsocial.io/pricing">
 </head>
@@ -1571,6 +1577,19 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       <span class="billing-save">Founding offer — 80% off yearly</span>
     </div>
 
+    <!-- GST PLACEHOLDER — OWNER DECISION REQUIRED.
+         A GST line belongs here once the operating entity's GST registration
+         status is confirmed. If registered, this must read "All prices include
+         GST" (ACL s48 single-price rule: the figure shown must be the total
+         payable). If not registered, say "No GST applies". Do NOT guess — an
+         incorrect GST statement is itself a misleading-price representation.
+         Same placeholder repeated on the comparison table and in terms.html. -->
+    <p class="billing-note">
+      All prices are in <b>Australian dollars (AUD)</b>. Paid plans renew
+      automatically until you cancel — see our
+      <a href="/terms#subscriptions">subscription terms</a>.
+    </p>
+
     <div class="pgrid">
 
       <!-- FREE -->
@@ -1580,7 +1599,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
           <span class="pcard-tag">Start building your trading profile.</span>
         </div>
         <div class="pcard-price">
-          <span class="cur">$</span><span class="amt" data-monthly="0" data-annual="0">0</span><span class="per">/month</span>
+          <span class="cur">A$</span><span class="amt" data-monthly="0" data-annual="0">0</span><span class="per">/month</span>
         </div>
         <div class="pcard-billed" data-billed-monthly="Free forever" data-billed-annual="Free forever">Free forever</div>
         <p class="pcard-desc">For traders who want to journal, track basic performance, follow others, and explore TradingSocial.</p>
@@ -1607,9 +1626,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
           <span class="pcard-tag">Build discipline and improve faster.</span>
         </div>
         <div class="pcard-price">
-          <span class="cur">$</span><span class="amt" data-monthly="30" data-annual="6">30</span><span class="per">/month</span>
+          <span class="cur">A$</span><span class="amt" data-monthly="30" data-annual="6">30</span><span class="per">/month</span>
         </div>
-        <div class="pcard-billed" data-billed-monthly="Billed monthly" data-billed-annual="$72 first year, then $300/yr">Billed monthly</div>
+        <div class="pcard-billed" data-billed-monthly="Billed monthly" data-billed-annual="A$72 first year, then A$300/yr">Billed monthly</div>
         <!-- Learning hub hidden for now — we are not financial advisors. This read
              "…strategy tracking, and full access to the learning hub." Restore when compliant. -->
         <p class="pcard-desc">For traders who want unlimited journaling, deeper analytics, strategy tracking, and a weekly performance review.</p>
@@ -1636,9 +1655,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
           <span class="pcard-tag">Advanced tools for serious traders.</span>
         </div>
         <div class="pcard-price">
-          <span class="cur">$</span><span class="amt" data-monthly="50" data-annual="10">50</span><span class="per">/month</span>
+          <span class="cur">A$</span><span class="amt" data-monthly="50" data-annual="10">50</span><span class="per">/month</span>
         </div>
-        <div class="pcard-billed" data-billed-monthly="Billed monthly" data-billed-annual="$120 first year, then $500/yr">Billed monthly</div>
+        <div class="pcard-billed" data-billed-monthly="Billed monthly" data-billed-annual="A$120 first year, then A$500/yr">Billed monthly</div>
         <!-- Courses hidden for now — we are not financial advisors. This read
              "…deeper performance insights, premium courses, advanced reporting,…" Restore when compliant. -->
         <p class="pcard-desc">For traders who want deeper performance insights, advanced reporting, creator tools, and future competition access.</p>
@@ -1671,6 +1690,11 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       <p class="lead">Free is genuinely useful — but not complete. Here's exactly what unlocks as you grow.</p>
     </div>
 
+    <!-- GST PLACEHOLDER — OWNER DECISION REQUIRED. See the note on the plan
+         cards above; a GST line is needed here too once registration status is
+         confirmed. -->
+    <p class="billing-note">All prices are in <b>Australian dollars (AUD)</b>.</p>
+
     <div class="ctable-scroll reveal">
       <table class="ctable">
         <colgroup>
@@ -1682,9 +1706,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         <thead>
           <tr class="ct-head">
             <th class="ct-h-feat">Feature</th>
-            <th class="ct-plan-h"><span class="pn">Free</span><span class="pp">$0/mo</span></th>
-            <th class="ct-plan-h pop"><span class="mini-badge">Popular</span><span class="pn">Trader</span><span class="pp">$30/mo</span></th>
-            <th class="ct-plan-h"><span class="pn">Pro Trader</span><span class="pp">$50/mo</span></th>
+            <th class="ct-plan-h"><span class="pn">Free</span><span class="pp">A$0/mo</span></th>
+            <th class="ct-plan-h pop"><span class="mini-badge">Popular</span><span class="pn">Trader</span><span class="pp">A$30/mo</span></th>
+            <th class="ct-plan-h"><span class="pn">Pro Trader</span><span class="pp">A$50/mo</span></th>
           </tr>
         </thead>
         <tbody>
@@ -1764,7 +1788,13 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       </div>
       <div class="faq-item reveal">
         <h4><span class="q">Q.</span>Can I change or cancel plans anytime?</h4>
-        <p>Upgrade, downgrade or cancel whenever you like. Changes take effect immediately, and your journal history and profile stay exactly where you left them.</p>
+        <p>Upgrade, downgrade or cancel whenever you like, from Settings → Billing. Cancelling takes effect at the end of the period you've already paid for — you keep your paid features until then and you aren't charged again. Your journal history and profile stay exactly where you left them.</p>
+      </div>
+      <div class="faq-item reveal">
+        <h4><span class="q">Q.</span>What currency are your prices in?</h4>
+        <!-- GST PLACEHOLDER — OWNER DECISION REQUIRED. Add the GST position to
+             this answer once the entity's registration status is confirmed. -->
+        <p>Australian dollars (AUD). Every price on this page and inside the app is AUD, and that's the currency your card is charged in. Paid plans renew automatically at the price shown until you cancel.</p>
       </div>
       <div class="faq-item reveal">
         <h4><span class="q">Q.</span>What happens to my data if I downgrade?</h4>
@@ -1772,7 +1802,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       </div>
       <div class="faq-item reveal">
         <h4><span class="q">Q.</span>How does the founding annual discount work?</h4>
-        <p>Annual plans are 80% off the monthly rate for your first year — Trader is $72 and Pro is $120, paid once. After the first year they renew at the standard annual price ($300 and $500, which still saves you 2 months versus monthly).</p>
+        <p>Annual plans are 80% off the monthly rate for your first year — Trader is A$72 and Pro is A$120, paid once. After the first year they renew at the standard annual price (A$300 and A$500, which still saves you 2 months versus monthly).</p>
       </div>
       <div class="faq-item reveal">
         <h4><span class="q">Q.</span>Do you reward bigger trades or leverage?</h4>

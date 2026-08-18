@@ -5,7 +5,10 @@
 // build the Subscribe event's params, so they live in a plain module both sides
 // can import.
 
-/** First-invoice amounts in USD (mirrors PLANS in settings/billing). */
+/** First-invoice amounts in AUD (mirrors PLANS in settings/billing). The Stripe
+ *  prices are Australian dollars, so the conversion value reported to Meta must
+ *  be AUD too — reporting these figures as USD misstates ad spend ROAS and is
+ *  the same wrong-currency defect the site's JSON-LD carried. */
 const SUBSCRIBE_VALUE: Record<string, number> = {
   trader_monthly: 30,
   trader_annual: 72,
@@ -17,5 +20,5 @@ const SUBSCRIBE_VALUE: Record<string, number> = {
  *  checkout route appends to its success URL. Unknown combos → no params. */
 export function subscribeParams(tier?: string, interval?: string) {
   const value = SUBSCRIBE_VALUE[`${tier}_${interval}`]
-  return value ? { value, currency: 'USD', content_name: `${tier}_${interval}` } : undefined
+  return value ? { value, currency: 'AUD', content_name: `${tier}_${interval}` } : undefined
 }
