@@ -9,6 +9,7 @@ import { getStripe } from '@/lib/stripe'
 import { raiseAlert } from '@/lib/server/alerts'
 import { sendEmail, accountDeletedHtml } from '@/lib/server/email'
 import { allowAuthAttempt, LOGIN_BUDGET } from '@/lib/server/auth-throttle'
+import { parseAccountBalance } from '@/lib/trade'
 import {
   runDeletionSteps, deletionErrorMessage, THIRD_PARTY_RESIDUE, type DeletionRun,
 } from '@/lib/account-deletion'
@@ -18,15 +19,70 @@ import {
   hardDeleteAuthUser,
 } from '@/lib/server/account-deletion'
 
-// Used directly as a <form action> from the (server-component) settings page,
-// so it takes FormData only and returns void.
+/**
+ * Save the trading-account settings (balance + currency).
+ *
+ * ── WHAT CHANGED, AND WHY (audit item 15, F3 — P1) ───────────────────────────
+ *
+ * This action used to end with an unconditional loop that rewrote
+ * `risk_amount` and `pnl_amount` on EVERY risk-%-sized trade the user had ever
+ * logged, from whatever number they had just typed into the balance box. The
+ * balance was validated as `>= 0` and nothing else.
+ *
+ * That is not a bounds bug with a bounds fix. It is a statement about what a
+ * leaderboard figure means. `pnl_amount` is the column every board metric is
+ * summed from (`lib/leaderboard.ts`), and under the old code it did not record
+ * what a trade made — it recorded what that trade WOULD have made at today's
+ * declared capital. A trader could restate their entire public history, by a
+ * factor of a thousand, through the ordinary settings form, with no API
+ * knowledge and no direct database access. It was the cheapest route to an
+ * arbitrary leaderboard P&L in the product, and it was the sanctioned one.
+ *
+ * It also disarmed the only heuristic that would have noticed: `profit_spike`
+ * in `lib/server/suspicion.ts` flags a trade whose P&L exceeds the stated
+ * balance, so raising the balance inflated the numbers and raised the
+ * detection threshold in the same write.
+ *
+ * ── THE DECISION: retroactive rescaling stops. ───────────────────────────────
+ *
+ * The snapshot this needs already exists and was being destroyed. `risk_amount`
+ * is written once at insert by `computeOpen` from the balance in force at that
+ * moment (`actions/trade.ts` -> `lib/trade.ts`), and `pnl_amount` is derived
+ * from it at close. A trade therefore already carries its own capital base.
+ * No new `balance_at_entry` column is needed — deleting the loop is what
+ * preserves the snapshot.
+ *
+ * ONE narrow backfill survives, and it is not the same thing. Trades logged
+ * while the balance was still 0 have `risk_amount = 0`, so their money P&L is
+ * stuck at $0 through no fault of the user — the real problem the loop was
+ * written for (43 such rows in production today). Those, and only those, are
+ * filled in. The rule is: a trade whose capital base was never established
+ * gets one, once. A trade that already has one keeps it forever.
+ *
+ * The consequence worth stating plainly: setting a balance for the first time
+ * still scales those unsized trades by that first number, and that number is
+ * still self-reported. What is gone is the ability to do it AGAIN — to raise
+ * the balance a second time and have history follow. The first value is a
+ * declaration; every value after it is a restatement, and restatement is the
+ * exploit.
+ *
+ * Used directly as a <form action> from the (server-component) settings page,
+ * so it takes FormData only and returns void. Rejections come back as a
+ * redirect the page renders, since a void action cannot return an error.
+ */
 export async function saveAccount(formData: FormData): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  const balanceRaw = Number(formData.get('account_balance') ?? 0)
-  const balance = Number.isFinite(balanceRaw) && balanceRaw >= 0 ? balanceRaw : 0
+  const parsed = parseAccountBalance(formData.get('account_balance'))
+  if ('error' in parsed) {
+    // Bad input leaves the stored balance ALONE. The old code coerced it to 0,
+    // which combined with the old backfill meant one mistyped character zeroed
+    // the user's whole money P&L history.
+    redirect(`/settings?balance=invalid#trading`)
+  }
+  const balance = parsed.balance
   const currency = String(formData.get('account_currency') ?? 'USD').trim().toUpperCase().slice(0, 3) || 'USD'
 
   await supabase
@@ -34,19 +90,25 @@ export async function saveAccount(formData: FormData): Promise<void> {
     .update({ account_balance: balance, account_currency: currency })
     .eq('id', user.id)
 
-  // Backfill: risk%-sized trades derive their risk amount (and money P/L) from the
-  // account balance. Changing the balance recomputes them so historical P/L isn't stuck at $0.
-  const { data: trades } = await supabase
-    .from('trades')
-    .select('id, risk_percent, r_multiple, status')
-    .eq('user_id', user.id)
-    .eq('sizing_mode', 'risk_percent')
+  // Seed-only backfill. `.or('risk_amount.is.null,risk_amount.eq.0')` is the
+  // whole control: a trade that already carries a non-zero risk_amount was
+  // sized against the balance in force when it was logged, and that figure is
+  // the historical fact. It is never recomputed from a later balance.
+  if (balance > 0) {
+    const { data: trades } = await supabase
+      .from('trades')
+      .select('id, risk_percent, r_multiple, status')
+      .eq('user_id', user.id)
+      .eq('sizing_mode', 'risk_percent')
+      .or('risk_amount.is.null,risk_amount.eq.0')
 
-  for (const t of trades ?? []) {
-    const riskAmount = balance * ((t.risk_percent ?? 0) / 100)
-    const update: { risk_amount: number; pnl_amount?: number } = { risk_amount: riskAmount }
-    if (t.status === 'closed' && t.r_multiple != null) update.pnl_amount = t.r_multiple * riskAmount
-    await supabase.from('trades').update(update).eq('id', t.id)
+    for (const t of trades ?? []) {
+      const riskAmount = balance * ((t.risk_percent ?? 0) / 100)
+      if (!(riskAmount > 0)) continue // no risk_percent on the row -> nothing to seed
+      const update: { risk_amount: number; pnl_amount?: number } = { risk_amount: riskAmount }
+      if (t.status === 'closed' && t.r_multiple != null) update.pnl_amount = t.r_multiple * riskAmount
+      await supabase.from('trades').update(update).eq('id', t.id)
+    }
   }
 
   revalidatePath('/settings')

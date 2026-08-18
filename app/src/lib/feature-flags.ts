@@ -24,6 +24,35 @@ export function canFlag(flags: FlagMap, tier: Tier, feature: Feature): boolean {
   return row ? row[tier] : can(tier, feature)
 }
 
+/**
+ * Who may appear on a public leaderboard, as a pure function of the three
+ * inputs the server has already gathered (audit item 15, F6).
+ *
+ * Lives here, away from the Supabase reads, so the decision itself is testable
+ * without a database. `lib/server/entitlements.ts#leaderboardEligibleIds` is a
+ * thin wrapper that fetches `tiers` (getTierMap), `flags` (getFeatureFlags)
+ * and `internal` (profiles.is_internal, service role) and calls this.
+ *
+ * Both rules fail CLOSED:
+ *   - a tier that is absent from `tiers` is UNKNOWN, not free, and does not
+ *     rank. getTierMap omits a user on any read error, so treating unknown as
+ *     eligible turned one transient error into a public board of seeded
+ *     personas;
+ *   - a user in `internal` never ranks, whatever their tier.
+ */
+export function boardEligibleIds(
+  ids: string[],
+  tiers: Map<string, Tier>,
+  flags: FlagMap,
+  internal: ReadonlySet<string>,
+): string[] {
+  return [...new Set(ids)].filter((id) => {
+    if (internal.has(id)) return false
+    const tier = tiers.get(id)
+    return tier !== undefined && canFlag(flags, tier, 'leaderboard_ranking')
+  })
+}
+
 /** The static default matrix for a feature — what "reset" restores. */
 export function defaultMatrix(feature: Feature): FlagValues {
   return {

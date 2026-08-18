@@ -2,10 +2,15 @@ import { fmtPL, fmtUSD } from './format'
 
 // Ink rail card: the viewer's position in the current board view + gap to #1.
 export function YourStanding({
-  rank, total, pnl, winRate, periodLabel, leaderPnl, leaderHandle, canRank = true,
+  rank, total, pnl, winRate, periodLabel, leaderPnl, leaderHandle, canRank = true, cohortLabel = null,
 }: {
   rank: number | null
+  /** Size of the viewer's OWN cohort, not the whole board. Ranks restart at 1
+   *  per verification cohort (item 15 F5), so "of N" has to match. */
   total: number
+  /** e.g. "self-reported traders" — names which board the rank is on, so the
+   *  number cannot be read as a position over every trader on the platform. */
+  cohortLabel?: string | null
   pnl: number
   winRate: number
   periodLabel: string
@@ -40,7 +45,7 @@ export function YourStanding({
       <span className="eyebrow">Your standing · {periodLabel}</span>
       <div className="bigrow">
         <span className="bigrank h-grad-text">#{rank}</span>
-        <span className="of">of {total} ranked</span>
+        <span className="of">of {total} ranked{cohortLabel ? ` · ${cohortLabel}` : ''}</span>
       </div>
       <div className="pods">
         <div className="pod"><div className="k">Total P/L</div><div className="v" style={{ color: pnl >= 0 ? 'var(--up-ink)' : 'var(--down-ink)' }}>{fmtPL(pnl)}</div></div>

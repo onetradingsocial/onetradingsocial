@@ -129,7 +129,11 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
       // The bucket comes back with the token: charts live in the private bucket,
       // which is deliberately not named in the client bundle.
       if (signed?.bucket && signed?.path && signed?.token) {
-        await supabase.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, chart, { upsert: true })
+        // upsert:false — the key now carries a server-minted version segment
+        // (item 15 F8), so every upload is a new object. An overwrite here
+        // would mean a uuid collision, and silently accepting that is never
+        // the right answer.
+        await supabase.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, chart, { upsert: false })
         await saveTradeChartUrl(res.tradeId, signed.url)
       }
     }

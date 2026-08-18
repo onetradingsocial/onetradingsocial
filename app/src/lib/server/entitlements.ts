@@ -7,7 +7,7 @@ import {
   type Tier, type TrialState,
 } from '@/lib/entitlements'
 import { parseAdminEmails, emailIsAdmin } from '@/lib/admin'
-import { canFlag } from '@/lib/feature-flags'
+import { canFlag, boardEligibleIds } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { createServiceClient } from '@/lib/supabase/service'
 
@@ -215,25 +215,68 @@ export async function getTierMap(userIds: string[], now = new Date()): Promise<M
   return out
 }
 
-/** The subset of `userIds` whose tier earns a spot on a public board.
+/** Ids among `userIds` that belong to an internal/seed account.
  *
- *  Ranking is a paid perk (feature key `leaderboard_ranking`, Trader+ by
- *  default and per-tier configurable in /admin/features), so free accounts are
- *  dropped. An active trial counts — during it the account IS Pro everywhere
- *  else in the app, and treating it differently here would put a user on the
- *  board only after they subscribe despite showing them Pro features all along.
+ *  Service client on purpose: migration 0047 revoked SELECT on
+ *  `profiles.is_internal` from `anon` and `authenticated`, and Postgres
+ *  requires SELECT privilege on any column named in a WHERE clause — not
+ *  merely in the projection. So `.eq('is_internal', false)` on the caller's
+ *  user client (the obvious fix, and the one item 15 F6 proposed) would fail
+ *  outright with 42501 and empty the board. The exclusion has to happen here,
+ *  behind the service role, which is also where the tier lookup already is.
  *
- *  Fails OPEN: an id whose tier could not be resolved is kept. A leaderboard
- *  that empties itself because one read failed is a far louder failure than a
- *  free account lingering on it for a render. */
+ *  Fails CLOSED: on a read error every candidate is reported as internal, so
+ *  leaderboardEligibleIds drops the lot. See its comment for why. */
+async function internalUserIds(ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set()
+  try {
+    const { data, error } = await createServiceClient()
+      .from('profiles').select('id, is_internal').in('id', ids)
+    if (error || !data) return new Set(ids)
+    return new Set(data.filter((p) => p.is_internal).map((p) => p.id as string))
+  } catch {
+    return new Set(ids)
+  }
+}
+
+/** The subset of `userIds` that may appear on a PUBLIC board.
+ *
+ *  Two independent gates, and the second one is new (audit item 15, F6).
+ *
+ *  1. TIER. Ranking is a paid perk (feature key `leaderboard_ranking`, Trader+
+ *     by default and per-tier configurable in /admin/features), so free
+ *     accounts are dropped. An active trial counts — during it the account IS
+ *     Pro everywhere else in the app, and treating it differently here would
+ *     put a user on the board only after they subscribe despite showing them
+ *     Pro features all along.
+ *
+ *  2. INTERNAL/SEED. `profiles.is_internal` covers the seeded demo personas
+ *     (0036) and the company's own team accounts. 420 of 457 production
+ *     profiles carry it, all of them public, onboarded and not opted out, some
+ *     with 15-25 fabricated public closed trades and P&L up to $3,542. Nothing
+ *     in the ranking code excluded them; they were absent from the live board
+ *     only because none of them happened to hold a subscription. That is a
+ *     coincidence, not a control.
+ *
+ *  THIS NOW FAILS CLOSED, and the reversal is deliberate. The old comment
+ *  argued that "a leaderboard that empties itself because one read failed is a
+ *  far louder failure than a free account lingering on it for a render". That
+ *  weighed the wrong two outcomes. `getTierMap` returns an EMPTY map on any
+ *  read error (see its `if (profError || subsError)` line), which made every
+ *  tier `undefined` and therefore every candidate eligible — so the failure
+ *  mode was not "one free account lingers", it was "one transient Supabase
+ *  error publishes 420 synthetic personas with invented P&L at the top of a
+ *  board the marketing site calls unfakeable". An empty board is a visibly
+ *  broken page; a board full of fabricated traders is a page that looks
+ *  perfectly fine and is a consumer-protection problem. Silence beats a
+ *  confident wrong answer here. */
 export async function leaderboardEligibleIds(userIds: string[]): Promise<string[]> {
   const ids = [...new Set(userIds)]
   if (ids.length === 0) return []
-  const [tiers, flags] = await Promise.all([getTierMap(ids), getFeatureFlags()])
-  return ids.filter((id) => {
-    const tier = tiers.get(id)
-    return tier === undefined || canFlag(flags, tier, 'leaderboard_ranking')
-  })
+  const [tiers, flags, internal] = await Promise.all([
+    getTierMap(ids), getFeatureFlags(), internalUserIds(ids),
+  ])
+  return boardEligibleIds(ids, tiers, flags, internal)
 }
 
 export type CurrentSub = {
