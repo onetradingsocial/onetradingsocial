@@ -1,41 +1,13 @@
 // app/tests/e2e/analytics.spec.ts
-import { test, expect, type Page } from '@playwright/test'
-import { dismissWelcome } from './utils/welcome'
+import { test, expect } from '@playwright/test'
+import { adminCreds, signInAsAdmin } from './utils/admin'
 
-async function signUpAndOnboard(page: Page, prefix: string, domain: string) {
-  const stamp = Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36)
-  const username = `${prefix}_${stamp}`.slice(0, 20)
-  await page.goto('/signup')
-  await page.fill('input[name="username"]', username)
-  await page.fill('input[name="email"]', `${username}@${domain}`)
-  await page.fill('input[name="password"]', 'password123')
-  await page.locator('label.fl-terms .fl-check').click()
-  await expect(page.locator('input[name="terms"]')).toBeChecked()
-  await page.click('button:has-text("Join the Beta")')
-  // Trial welcome step — 14 days of Pro, no card
-  await expect(page).toHaveURL(/\/welcome/, { timeout: 15000 })
-  await page.click('button:has-text("Start my trial")')
-  // Onboarding multi-step flow (5 steps + reveal)
-  await expect(page).toHaveURL(/\/onboarding/, { timeout: 15000 })
-  await page.click('button:has-text("Build my identity")')
-  await page.click('button:has-text("Forex")')
-  await page.click('button:has-text("Continue")')
-  await page.click('button:has-text("Beginner")')
-  await page.click('button:has-text("Continue")')
-  await page.click('button:has-text("Build consistency")')
-  await page.click('button:has-text("Continue")')
-  await page.click('button:has-text("Public")')
-  await page.click('button:has-text("Continue")')
-  await page.click('button:has-text("Log trades manually")')
-  await page.click('button:has-text("Create my profile")')
-  await page.click('button:has-text("Enter TradingSocial")')
-  await expect(page).toHaveURL('/', { timeout: 15000 })
-  await dismissWelcome(page)
-  return username
-}
+// See tests/e2e/utils/admin.ts — audit item 18, F1.
+const ADMIN = adminCreds()
 
 test('admin sees the analytics dashboard sections', async ({ page }) => {
-  await signUpAndOnboard(page, 'an', 'admin.tradingsocial.test')
+  test.skip(!ADMIN, 'E2E_ADMIN_EMAIL is not set')
+  await signInAsAdmin(page, ADMIN!)
   await page.goto('/admin/analytics')
   await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Engagement' })).toBeVisible()

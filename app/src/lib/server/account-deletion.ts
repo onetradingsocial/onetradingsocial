@@ -510,6 +510,68 @@ export async function preserveModerationRecords(
   }
 }
 
+/**
+ * Audit item 18, F7 — the admin's own erasure right over the audit log.
+ *
+ * `admin_audit.actor_id` is `on delete set null` but `actor_email` was
+ * denormalised specifically to survive profile deletion (`0034:7-9`), so an
+ * admin who exercises their own erasure right leaves their address in the log
+ * forever. The tension is real: audit integrity needs attribution, erasure
+ * needs removal.
+ *
+ * **Resolved with WS3's pattern rather than a second one.** This is the exact
+ * mechanism `preserveModerationRecords` uses for `trade_reports` — same salted
+ * SHA-256, same salt, same input (the normalised email, not the uuid) — so the
+ * same departed person gets the same pseudonym in both tables and there is one
+ * pseudonymisation rule in this codebase, not two. The record survives with
+ * stable attribution: two rows from the same departed admin still read as the
+ * same actor, and nothing in the row is their address.
+ *
+ * Why the email and not the uuid, again: `actor_id` is about to be nulled by
+ * the cascade, so a uuid hash would be a pseudonym for a value that no longer
+ * appears anywhere and could never be matched to anything. The email is the
+ * identity that persists across a re-registration, which is what makes the
+ * pseudonym worth keeping at all.
+ *
+ * **Non-fatal on purpose.** Unlike the moderation stamp this is housekeeping on
+ * *our* records, not a retention obligation, and a failure here must not strand
+ * a user mid-deletion. It logs and reports, it does not abort. Same standing as
+ * the `referral_clicks` scrub.
+ *
+ * Runs BEFORE the auth delete — afterwards `actor_id` is null and there is no
+ * way left to find the rows.
+ */
+export async function pseudonymiseAdminAudit(
+  svc: SupabaseClient, userId: string, email: string | null,
+  // The `ok: true` in the return type is the non-fatal contract, stated where
+  // the compiler enforces it: this function has no failure branch that can
+  // abort a deletion, and it must not grow one.
+): Promise<{ ok: true; detail?: Record<string, unknown> }> {
+  const salt = process.env.DELETION_HASH_SALT
+  if (!email) return { ok: true, detail: { skipped: 'no_email' } }
+  if (!salt) {
+    console.error('[deletion] DELETION_HASH_SALT unset — admin_audit keeps the actor email')
+    return { ok: true, detail: { skipped: 'no_salt' } }
+  }
+  try {
+    const hash = createHash('sha256').update(`${salt}:${email.trim().toLowerCase()}`).digest('hex')
+    const { error, count } = await svc
+      .from('admin_audit')
+      .update({ actor_email: null, actor_email_hash: hash }, { count: 'exact' })
+      .eq('actor_id', userId)
+      .not('actor_email', 'is', null)
+    if (error) {
+      if (error.code === UNDEFINED_COLUMN) return { ok: true, detail: { skipped: 'no_hash_column' } }
+      throw new Error(error.message)
+    }
+    return { ok: true, detail: { pseudonymised: count ?? 0 } }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'admin_audit pseudonymisation failed'
+    console.error('[deletion] admin_audit pseudonymisation failed', userId, message)
+    return { ok: true, detail: { failed: message } }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Step 6 — the local delete (unchanged, and it was already right)
 // ---------------------------------------------------------------------------

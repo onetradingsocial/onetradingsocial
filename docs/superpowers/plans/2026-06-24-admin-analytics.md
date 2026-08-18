@@ -16,7 +16,7 @@
 - All time-dependent pure functions take an injected `now: Date` for deterministic tests.
 - Service-role client is server-only (`src/lib/supabase/service.ts`); never import it into a client component.
 - Unit tests live in `tests/unit/`, e2e in `tests/e2e/` (repo convention; overrides the spec's `src/lib/*.test.ts` path).
-- e2e requires a warm dev server and email-confirm OFF; admin identity comes from an email matching `ADMIN_EMAILS` (test uses the `@admin.tradingsocial.test` domain, as in `tests/e2e/admin.spec.ts`).
+- e2e requires a warm dev server and email-confirm OFF; admin identity comes from an email matching `ADMIN_EMAILS` (the e2e admin address comes from the test-only `E2E_ADMIN_EMAIL` env var, which must match an exact entry in `ADMIN_EMAILS`; see `tests/e2e/admin.spec.ts`).
 
 ---
 
@@ -706,7 +706,7 @@ async function signUpAndOnboard(page: Page, prefix: string, domain: string) {
 }
 
 test('admin sees the analytics dashboard sections', async ({ page }) => {
-  await signUpAndOnboard(page, 'an', 'admin.tradingsocial.test')
+  await signUpAndOnboard(page, 'an', '<redacted>')
   await page.goto('/app/admin/analytics')
   await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Engagement' })).toBeVisible()

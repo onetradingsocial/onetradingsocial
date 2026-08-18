@@ -2,6 +2,12 @@
 import { test, expect, type Page } from '@playwright/test'
 import { deleteCourseBySlug } from './utils/db'
 import { dismissWelcome } from './utils/welcome'
+import { adminCreds, signInAsAdmin } from './utils/admin'
+
+// Audit item 18, F1. The admin specs used to mint an admin by signing up under
+// a wildcard `.test` domain. The wildcard is gone, so they log in to a seeded
+// admin instead — see tests/e2e/utils/admin.ts for the env vars.
+const ADMIN = adminCreds()
 
 // Course created by the publish test; removed in afterEach so failed runs
 // don't leave "E2E Course" rows behind in the shared database.
@@ -53,7 +59,8 @@ test('non-admin cannot reach the admin area', async ({ page }) => {
 })
 
 test('admin can publish a new course and it appears in Learn', async ({ page }) => {
-  await signUpAndOnboard(page, 'ad', 'admin.tradingsocial.test')
+  test.skip(!ADMIN, 'E2E_ADMIN_EMAIL is not set')
+  await signInAsAdmin(page, ADMIN!)
 
   // Create a course
   const slug = 'e2e-' + Date.now().toString(36)
@@ -84,7 +91,8 @@ test('admin can publish a new course and it appears in Learn', async ({ page }) 
 })
 
 test('admin can change feedback status', async ({ page }) => {
-  await signUpAndOnboard(page, 'fb', 'admin.tradingsocial.test')
+  test.skip(!ADMIN, 'E2E_ADMIN_EMAIL is not set')
+  await signInAsAdmin(page, ADMIN!)
   await page.goto('/admin/feedback')
   // If a feedback row exists, flipping its status persists across reload.
   const firstSelect = page.locator('select').first()

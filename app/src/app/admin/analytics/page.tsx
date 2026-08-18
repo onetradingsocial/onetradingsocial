@@ -1,4 +1,5 @@
 // app/src/app/admin/analytics/page.tsx
+import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAnalytics } from '@/lib/server/analytics'
 import { getFunnelDashboard } from '@/lib/server/funnel'
@@ -69,6 +70,13 @@ function FunnelBars({ rows }: { rows: { step: string; count: number }[] }) {
 }
 
 export default async function AnalyticsPage() {
+  // Audit item 18, F2. The layout gate above this page is NOT the authorisation
+  // check: a layout does not re-execute on every navigation within its segment,
+  // so a crafted RSC request for a nested page can reach the page without it.
+  // Every page below therefore repeats the check itself, which makes the
+  // service-role query and its authorisation inseparable. The layout keeps its
+  // own call — it renders the nav and must not leak that either.
+  await requireAdmin()
   const supabase = createServiceClient()
   const [d, f] = await Promise.all([getAnalytics(supabase), getFunnelDashboard(supabase)])
 

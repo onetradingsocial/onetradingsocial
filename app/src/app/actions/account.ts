@@ -14,7 +14,8 @@ import {
 } from '@/lib/account-deletion'
 import {
   collectDeletionContext, closeStripeForDeletion, removeMetaApiForDeletion,
-  purgeUserStorage, scrubAnalytics, preserveModerationRecords, hardDeleteAuthUser,
+  purgeUserStorage, scrubAnalytics, preserveModerationRecords, pseudonymiseAdminAudit,
+  hardDeleteAuthUser,
 } from '@/lib/server/account-deletion'
 
 // Used directly as a <form action> from the (server-component) settings page,
@@ -202,7 +203,17 @@ export async function deleteMyAccount(input: DeleteAccountInput): Promise<{ erro
       : { ok: true, detail: { skipped: 'no_broker' } }),
     storage: () => purgeUserStorage(svc, uid),
     analytics: () => scrubAnalytics(svc, uid, ctx.anonIds),
-    moderation: () => preserveModerationRecords(svc, uid, ctx.email),
+    // Two retention decisions, one step: the moderation report filed against
+    // this account survives with a pseudonym (WS3, F6.8), and the same person's
+    // own admin_audit rows keep their attribution while losing the address
+    // (WS4, audit item 18 F7). Same salt, same hash, same pseudonym — one rule.
+    // The admin_audit half never aborts a deletion; it reports and moves on.
+    moderation: async () => {
+      const mod = await preserveModerationRecords(svc, uid, ctx.email)
+      if (!mod.ok) return mod
+      const audit = await pseudonymiseAdminAudit(svc, uid, ctx.email)
+      return { ok: true, detail: { ...(mod.detail ?? {}), adminAudit: audit.detail ?? null } }
+    },
     auth: () => hardDeleteAuthUser(svc, uid),
   })
 

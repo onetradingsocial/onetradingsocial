@@ -624,7 +624,7 @@ git commit -m "feat(admin): segmented comp-tier control with saving state"
 
 - [ ] **Step 1: Verify end-to-end in the dev preview**
 
-With the dev server running and signed in as an admin (`claude@admin.tradingsocial.test`):
+With the dev server running and signed in as an admin (any address listed in `ADMIN_EMAILS`):
 1. `/admin/users` defaults to **Real users** — the `@tradingsocial.io` test rows (`lb_hi_…`, `hov_a_…`) are hidden.
 2. Switch Account → **Test / internal** — those rows appear, each with a **test** chip.
 3. Subscription filter (e.g. **Pro sub**) narrows to real paying Pro subs; **Comp = comped** shows comped users.

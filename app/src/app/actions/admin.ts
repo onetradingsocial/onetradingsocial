@@ -9,6 +9,76 @@ import { isFeature, type FlagValues } from '@/lib/feature-flags'
 import { FLAGS_TAG } from '@/lib/server/feature-flags'
 import { logAdminAction } from '@/lib/server/admin-audit'
 
+/**
+ * Read the columns a mutation is about to overwrite, so the audit row can carry
+ * `{ from, to }` rather than only `to`. Audit item 18, F5.
+ *
+ * Without a before-value the log tells you something was touched and not what
+ * it was — you cannot reconstruct state from it, only observe activity. Best
+ * effort: a failed pre-read must never block the mutation, so it degrades to
+ * `null` and the row says `from: null` rather than lying.
+ */
+async function before(
+  svc: ReturnType<typeof createServiceClient>,
+  table: string,
+  columns: string,
+  match: Record<string, string | number>,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const { data } = await svc.from(table).select(columns).match(match).maybeSingle()
+    return (data as Record<string, unknown> | null) ?? null
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reveals — the explicit, logged path to a masked identifier. Audit item 18, F3/F4.
+// ---------------------------------------------------------------------------
+
+/**
+ * Return one user's email address, and record that it was looked at.
+ *
+ * This is the whole point of the masking work: the address is still one click
+ * away for an admin who needs it, but the click is now an auditable event
+ * attributable to a named admin against a named user. `context` says which
+ * screen asked, because "found them in the directory" and "was working through
+ * the interview list" are different stories in an incident review.
+ */
+export async function revealUserEmail(
+  userId: string,
+  context: 'directory' | 'detail' | 'interviews' = 'directory',
+): Promise<{ email?: string; error?: string }> {
+  const admin = await requireAdmin()
+  const svc = createServiceClient()
+  const { data, error } = await svc.auth.admin.getUserById(userId)
+  if (error || !data.user) return { error: 'Could not load that user.' }
+  await logAdminAction(admin, 'user.email.reveal', { type: 'user', id: userId }, { context })
+  return { email: data.user.email ?? '' }
+}
+
+/**
+ * Return the full MT5 broker login for one user's connected account.
+ *
+ * Held separately from the email reveal because it is a different disclosure:
+ * an identifier at a *third party*, which an admin needs when raising a case
+ * with MetaApi or the broker and does not need to read a support ticket.
+ */
+export async function revealBrokerLogin(
+  userId: string,
+): Promise<{ login?: string; error?: string }> {
+  const admin = await requireAdmin()
+  const svc = createServiceClient()
+  const { data, error } = await svc
+    .from('broker_accounts')
+    .select('login')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error || !data) return { error: 'Could not load that connection.' }
+  await logAdminAction(admin, 'broker.login.reveal', { type: 'user', id: userId })
+  return { login: String(data.login ?? '') }
+}
+
 const FEEDBACK_STATUSES = ['open', 'triaged', 'closed'] as const
 type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number]
 
@@ -16,9 +86,10 @@ export async function setFeedbackStatus(id: string, status: FeedbackStatus): Pro
   const admin = await requireAdmin()
   if (!FEEDBACK_STATUSES.includes(status)) return { error: 'Bad status.' }
   const svc = createServiceClient()
+  const prev = await before(svc, 'feedback', 'status', { id })
   const { error } = await svc.from('feedback').update({ status }).eq('id', id)
   if (error) return { error: 'Update failed.' }
-  await logAdminAction(admin, 'feedback.status', { type: 'feedback', id }, { status })
+  await logAdminAction(admin, 'feedback.status', { type: 'feedback', id }, { from: prev?.status ?? null, to: status })
   revalidatePath('/admin/feedback')
   return {}
 }
@@ -32,9 +103,10 @@ export async function setFeedbackCategory(id: string, category: string | null): 
   const admin = await requireAdmin()
   if (category !== null && !FEEDBACK_CATEGORIES.has(category)) return { error: 'Bad category.' }
   const svc = createServiceClient()
+  const prev = await before(svc, 'feedback', 'category', { id })
   const { error } = await svc.from('feedback').update({ category }).eq('id', id)
   if (error) return { error: 'Update failed.' }
-  await logAdminAction(admin, 'feedback.category', { type: 'feedback', id }, { category })
+  await logAdminAction(admin, 'feedback.category', { type: 'feedback', id }, { from: prev?.category ?? null, to: category })
   revalidatePath('/admin/feedback')
   return {}
 }
@@ -45,9 +117,10 @@ export async function setFeatureStatus(id: number, status: string): Promise<{ er
   const admin = await requireAdmin()
   if (!FR_STATUSES.has(status)) return { error: 'Bad status.' }
   const svc = createServiceClient()
+  const prev = await before(svc, 'feature_requests', 'status', { id })
   const { error } = await svc.from('feature_requests').update({ status }).eq('id', id)
   if (error) return { error: 'Update failed.' }
-  await logAdminAction(admin, 'feature_request.status', { type: 'feature_request', id }, { status })
+  await logAdminAction(admin, 'feature_request.status', { type: 'feature_request', id }, { from: prev?.status ?? null, to: status })
   revalidatePath('/feature-board')
   return {}
 }
@@ -56,9 +129,10 @@ export async function setTradeReportStatus(id: number, status: string): Promise<
   const admin = await requireAdmin()
   if (!['open', 'reviewing', 'actioned', 'dismissed'].includes(status)) return { error: 'Bad status.' }
   const svc = createServiceClient()
+  const prev = await before(svc, 'trade_reports', 'status', { id })
   const { error } = await svc.from('trade_reports').update({ status }).eq('id', id)
   if (error) return { error: 'Update failed.' }
-  await logAdminAction(admin, 'trade_report.status', { type: 'trade_report', id }, { status })
+  await logAdminAction(admin, 'trade_report.status', { type: 'trade_report', id }, { from: prev?.status ?? null, to: status })
   revalidatePath('/admin/verification')
   return {}
 }
@@ -106,12 +180,16 @@ export async function updateCourse(id: string, input: CourseInput): Promise<{ er
   const err = checkCourse(input)
   if (err) return { error: err }
   const svc = createServiceClient()
+  const prev = await before(svc, 'courses', 'slug, title, ord, min_tier', { id })
   const { error } = await svc.from('courses').update({
     slug: input.slug, title: input.title, summary: input.summary || null,
     difficulty: input.difficulty || null, ord: input.ord, min_tier: input.minTier,
   }).eq('id', id)
   if (error) return { error: 'Update failed.' }
-  await logAdminAction(admin, 'course.update', { type: 'course', id }, { slug: input.slug, title: input.title })
+  await logAdminAction(admin, 'course.update', { type: 'course', id }, {
+    from: prev,
+    to: { slug: input.slug, title: input.title, ord: input.ord, min_tier: input.minTier },
+  })
   revalidatePath('/admin/courses')
   revalidatePath(`/admin/courses/${id}`)
   revalidatePath('/learn')
@@ -121,9 +199,10 @@ export async function updateCourse(id: string, input: CourseInput): Promise<{ er
 export async function setCoursePublished(id: string, published: boolean): Promise<{ error?: string }> {
   const admin = await requireAdmin()
   const svc = createServiceClient()
+  const prev = await before(svc, 'courses', 'published', { id })
   const { error } = await svc.from('courses').update({ published }).eq('id', id)
   if (error) return { error: 'Update failed.' }
-  await logAdminAction(admin, 'course.publish', { type: 'course', id }, { published })
+  await logAdminAction(admin, 'course.publish', { type: 'course', id }, { from: prev?.published ?? null, to: published })
   revalidatePath('/admin/courses')
   revalidatePath(`/admin/courses/${id}`)
   revalidatePath('/learn')
@@ -157,12 +236,18 @@ export async function updateLesson(id: string, input: LessonInput): Promise<{ er
   const err = checkLesson(input)
   if (err) return { error: err }
   const svc = createServiceClient()
+  // Metadata only, never the body. A lesson body is kilobytes of HTML and
+  // copying it into every audit row would turn the log into a content store.
+  const prev = await before(svc, 'lessons', 'slug, title, ord, xp_reward', { id })
   const { error } = await svc.from('lessons').update({
     slug: input.slug, title: input.title, body: sanitizeLessonHtml(input.body),
     ord: input.ord, xp_reward: input.xpReward,
   }).eq('id', id)
   if (error) return { error: 'Update failed.' }
-  await logAdminAction(admin, 'lesson.update', { type: 'lesson', id }, { slug: input.slug, title: input.title })
+  await logAdminAction(admin, 'lesson.update', { type: 'lesson', id }, {
+    from: prev,
+    to: { slug: input.slug, title: input.title, ord: input.ord, xp_reward: input.xpReward },
+  })
   revalidatePath(`/admin/courses/${id}`)
   revalidatePath('/learn')
   return {}
@@ -171,9 +256,10 @@ export async function updateLesson(id: string, input: LessonInput): Promise<{ er
 export async function setLessonPublished(id: string, published: boolean): Promise<{ error?: string }> {
   const admin = await requireAdmin()
   const svc = createServiceClient()
+  const prev = await before(svc, 'lessons', 'published', { id })
   const { error } = await svc.from('lessons').update({ published }).eq('id', id)
   if (error) return { error: 'Update failed.' }
-  await logAdminAction(admin, 'lesson.publish', { type: 'lesson', id }, { published })
+  await logAdminAction(admin, 'lesson.publish', { type: 'lesson', id }, { from: prev?.published ?? null, to: published })
   revalidatePath('/learn')
   return {}
 }
@@ -208,12 +294,14 @@ export async function setFeatureFlag(feature: string, values: FlagValues): Promi
   const admin = await requireAdmin()
   if (!isFeature(feature)) return { error: 'Unknown feature.' }
   const svc = createServiceClient()
+  const prev = await before(svc, 'feature_flags', 'free, trader, pro', { feature })
   const { error } = await svc.from('feature_flags').upsert({
     feature, free: values.free, trader: values.trader, pro: values.pro,
   })
   if (error) return { error: 'Update failed.' }
   // Feature flags change what every user can access — always audited.
-  await logAdminAction(admin, 'feature_flag.set', { type: 'feature', id: feature }, { ...values })
+  // `from: null` means no override row existed, i.e. the value was the coded default.
+  await logAdminAction(admin, 'feature_flag.set', { type: 'feature', id: feature }, { from: prev, to: { ...values } })
   revalidateTag(FLAGS_TAG)
   revalidatePath('/admin/features')
   return {}
@@ -223,9 +311,10 @@ export async function resetFeatureFlag(feature: string): Promise<{ error?: strin
   const admin = await requireAdmin()
   if (!isFeature(feature)) return { error: 'Unknown feature.' }
   const svc = createServiceClient()
+  const prev = await before(svc, 'feature_flags', 'free, trader, pro', { feature })
   const { error } = await svc.from('feature_flags').delete().eq('feature', feature)
   if (error) return { error: 'Reset failed.' }
-  await logAdminAction(admin, 'feature_flag.reset', { type: 'feature', id: feature })
+  await logAdminAction(admin, 'feature_flag.reset', { type: 'feature', id: feature }, { from: prev, to: null })
   revalidateTag(FLAGS_TAG)
   revalidatePath('/admin/features')
   return {}
@@ -240,13 +329,14 @@ export async function setCompTier(
   const admin = await requireAdmin()
   if (tier !== null && !COMP_TIERS.has(tier)) return { error: 'Invalid tier.' }
   const svc = createServiceClient()
+  const prev = await before(svc, 'profiles', 'comp_tier', { id: userId })
   const { error } = await svc.from('profiles').update({ comp_tier: tier }).eq('id', userId)
   if (error) return { error: 'Update failed.' }
   await logAdminAction(
     admin,
     tier ? 'user.comp_tier.set' : 'user.comp_tier.clear',
     { type: 'user', id: userId },
-    { tier },
+    { from: prev?.comp_tier ?? null, to: tier },
   )
   revalidatePath('/admin/users')
   revalidatePath(`/admin/users/${userId}`)
