@@ -9,6 +9,10 @@ const SECTIONS = [
   { id: 'privacy', label: 'Privacy', icon: 'shield' },
   { id: 'billing', label: 'Billing & plan', icon: 'scale' },
   { id: 'account', label: 'Account', icon: 'sliders' },
+  // The export and delete controls were reachable only by scrolling past the
+  // broker, exchange and notification cards, so the two things a user has an
+  // APP 11.2 / APP 12 right to do were the two hardest to find.
+  { id: 'account-data', label: 'Your data', icon: 'shield' },
 ] as const
 
 export function SettingsNav() {
