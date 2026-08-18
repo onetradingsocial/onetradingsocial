@@ -194,5 +194,27 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, digests, nudges, trialNotices, reconciled })
+  // Analytics retention (audit item 17, F4 + F10). Bounds the lifetime of the
+  // anonymous device identifier: deletes event rows for visitors who never
+  // signed up after 12 months, and nulls anon_id on rows belonging to live
+  // accounts so the count survives but the cross-visit device linkage does not.
+  //
+  // Rides on this route because Vercel Hobby caps the number of cron jobs and
+  // there is no pg_cron on the project. Tolerant of 0055_analytics_retention.sql
+  // not being applied yet, so the app can deploy ahead of the migration — but
+  // the retention promise in privacy.html is not honoured until it is applied.
+  let purged: { deleted: number; anonymised: number } | null = null
+  try {
+    const { data, error } = await svc.rpc('purge_analytics_events')
+    if (error) {
+      console.warn('[lifecycle-emails] analytics purge skipped:', error.message)
+    } else {
+      const row = Array.isArray(data) ? data[0] : data
+      purged = { deleted: Number(row?.deleted ?? 0), anonymised: Number(row?.anonymised ?? 0) }
+    }
+  } catch (err) {
+    console.warn('[lifecycle-emails] analytics purge failed', err)
+  }
+
+  return NextResponse.json({ ok: true, digests, nudges, trialNotices, reconciled, purged })
 }

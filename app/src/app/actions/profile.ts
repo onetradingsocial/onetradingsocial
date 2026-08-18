@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendRedditConversion } from '@/lib/server/reddit-capi'
+import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
 import { trackServer } from '@/lib/server/track'
 import { validateUsername } from '@/lib/username'
 import { getTier } from '@/lib/server/entitlements'
@@ -80,24 +81,38 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
   const conversionId = randomUUID()
   const hdrs = await headers()
   const cookieStore = await cookies()
-  const ip = hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null
-  const userAgent = hdrs.get('user-agent')
   const clickId = cookieStore.get('rdt_cid')?.value ?? null
   const email = user.email ?? null
 
+  // Advertising consent (audit item 17, findings 3 and 6). This is the one
+  // transfer a visitor cannot stop from their browser, so it has to be stopped
+  // here. The consent cookie is first-party on .tradingsocial.io, which means
+  // the answer given to the notice on the marketing site reaches this server
+  // action.
+  const adsConsent = parseConsent(cookieStore.get(CONSENT_COOKIE)?.value)?.ads ?? ADS_DEFAULT
+
+  // The IP is off by default and hashed when on. Set REDDIT_CAPI_SEND_IP=1 only
+  // if Reddit match rates prove to need it; hashed email + external_id +
+  // conversion_id already carry the attribution and the dedup.
+  const sendIp = process.env.REDDIT_CAPI_SEND_IP === '1'
+  const ip = sendIp ? (hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null) : null
+  const userAgent = sendIp ? hdrs.get('user-agent') : null
+
   // Best-effort Reddit SignUp conversion via CAPI, sent after the response so it
   // adds no signup latency. Never throws.
-  after(async () => {
-    await sendRedditConversion({
-      eventType: 'SignUp',
-      conversionId,
-      email,
-      externalId: user.id,
-      ip,
-      userAgent,
-      clickId,
+  if (adsConsent) {
+    after(async () => {
+      await sendRedditConversion({
+        eventType: 'SignUp',
+        conversionId,
+        email,
+        externalId: user.id,
+        ip,
+        userAgent,
+        clickId,
+      })
     })
-  })
+  }
 
   redirect(`/?signup=1&cid=${conversionId}`)
 }

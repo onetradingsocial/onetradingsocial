@@ -1,4 +1,5 @@
 import { LEGAL, EXTERNAL_LINK } from '@/lib/marketing'
+import { CookieSettingsLink } from './CookieNotice'
 
 /**
  * The app's first footer.
@@ -27,6 +28,11 @@ export function AppFooter() {
         <a href={LEGAL.privacy} {...EXTERNAL_LINK}>Privacy</a>
         <span aria-hidden="true">·</span>
         <a href={LEGAL.disclaimer} {...EXTERNAL_LINK}>Financial disclaimer</a>
+        <span aria-hidden="true">·</span>
+        {/* A tracking choice has to be changeable, not a one-shot on first
+            visit — otherwise "decline" is only available to people who happened
+            to read the banner before dismissing it. */}
+        <CookieSettingsLink />
         <span aria-hidden="true">·</span>
         <a href="mailto:onetradingsocial@gmail.com">Contact</a>
       </nav>

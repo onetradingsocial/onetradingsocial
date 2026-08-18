@@ -7,8 +7,6 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/favicon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
 <title>TradingSocial — Privacy Policy</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <style>/* cyrillic-ext */
 @font-face {
   font-family: 'JetBrains Mono';
@@ -953,31 +951,10 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 .legal th { font-weight: 700; color: var(--text, #eef1f8); background: rgba(255,255,255,.035); }
 .legal td code { font-size: 12.5px; }
 </style>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-M7NX0Y7NSC"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    // Internal traffic opt-out: visit any page with ?internal=1 once per browser.
-    try {
-      if (new URLSearchParams(location.search).get('internal') === '1') localStorage.setItem('ts_internal', '1');
-      if (localStorage.getItem('ts_internal') === '1') gtag('set', 'traffic_type', 'internal');
-    } catch (e) {}
-    // Cross-domain linker: keep sessions intact into app.tradingsocial.io.
-    gtag('config', 'G-M7NX0Y7NSC', { linker: { domains: ['tradingsocial.io', 'app.tradingsocial.io'] } });
-  </script>
-  <!-- Reddit Pixel -->
-  <script>
-  !function(w,d){if(!w.rdt){var p=w.rdt=function(){p.sendEvent?p.sendEvent.apply(p,arguments):p.callQueue.push(arguments)};p.callQueue=[];var t=d.createElement("script");t.src="https://www.redditstatic.com/ads/pixel.js?pixel_id=a2_jbawbd7fkiwo",t.async=!0;var s=d.getElementsByTagName("script")[0];s.parentNode.insertBefore(t,s)}}(window,document);rdt('init','a2_jbawbd7fkiwo');rdt('track', 'PageVisit');
-  </script>
-  <!-- DO NOT MODIFY UNLESS TO REPLACE A USER IDENTIFIER -->
-  <!-- End Reddit Pixel -->
-  <!-- Meta Pixel Code -->
-  <script>
-  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '1056839790113606');fbq('track', 'PageView');
-  </script>
-  <!-- End Meta Pixel Code -->
+  <!-- Analytics / advertising tags. Loaded by /consent.js only after the
+       consent gate allows the relevant tier (audit item 17, WS7). Do not
+       re-add inline gtag/fbq/rdt loaders here -- they cannot be declined. -->
+  <script src="/consent.js"></script>
   <meta name="description" content="How TradingSocial collects, uses and protects your personal information under the Australian Privacy Principles.">
   <meta property="og:title" content="Privacy Policy — TradingSocial">
   <meta property="og:description" content="How TradingSocial collects, uses and protects your personal information under the Australian Privacy Principles.">
@@ -991,7 +968,6 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   <link rel="canonical" href="https://www.tradingsocial.io/privacy">
 </head>
 <body>
-<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1056839790113606&ev=PageView&noscript=1"/></noscript>
 <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
 
 <!-- ============================ NAV ============================ -->
@@ -1255,12 +1231,14 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
           complete signup or subscribe, a <strong>one-way hash</strong> of your email address and
           account identifier</td>
           <td>Advertising measurement and matching</td>
-          <td>United States and Ireland</td>
+          <td>United States and Ireland. Meta also routes pixel events through a forwarding endpoint
+          it operates in <strong>Oregon, United States</strong></td>
         </tr>
         <tr>
           <td>Reddit</td>
-          <td>The same as Meta, and in addition our servers send Reddit <strong>your IP address and
-          browser</strong> directly when you complete signup or subscribe</td>
+          <td>The same as Meta. Our servers also send Reddit a signup or purchase event directly,
+          but only if you turned on Advertising in section 10. <strong>That event no longer contains
+          your IP address</strong></td>
           <td>Advertising measurement and matching</td>
           <td>United States</td>
         </tr>
@@ -1277,10 +1255,11 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     <p>Meta, Google and Reddit use what they receive for their own advertising purposes as well as
     ours.</p>
     <p><strong>On "selling" your information.</strong> We have never sold your personal information
-    and we receive no money for it. Rather than rely on the word, here is what we actually do: we
-    send Meta and Reddit a one-way hash of your email address, and Reddit your IP address and
-    browser, so that they can match you to an advertising audience. Under some overseas privacy laws
-    that counts as "selling" or "sharing". Section 10 tells you how to stop it.</p>
+    and we receive no money for it. Rather than rely on the word, here is what we actually do: if you
+    turn on Advertising in section 10, we send Meta and Reddit a one-way hash of your email address
+    so that they can match you to an advertising audience. Under some overseas privacy laws that
+    counts as "selling" or "sharing". It does not happen unless you turn it on, and section 10 tells
+    you how to turn it back off.</p>
     <p>We also disclose personal information where we are required or permitted to by law, and to
     other members and the public as described in section 4.</p>
 
@@ -1334,31 +1313,59 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     <p>One consequence you should know about: <strong>deleting your account deletes your
     conversations, including the messages the other person sent in them.</strong></p>
 
-    <h2>10. Cookies, analytics and advertising</h2>
+    <h2 id="cookies">10. Cookies, analytics and advertising</h2>
     <div class="legal-table">
     <table>
       <thead><tr><th>Cookie or identifier</th><th>Set by</th><th>Purpose</th><th>Expiry</th></tr></thead>
       <tbody>
         <tr><td><code>sb-*</code></td><td>TradingSocial</td><td>Keeps you signed in. Essential</td><td>Session</td></tr>
         <tr><td><code>ts_ref</code></td><td>TradingSocial</td><td>Remembers who referred you</td><td>30 days</td></tr>
-        <tr><td><code>ts_anon_id</code> (browser storage)</td><td>TradingSocial</td><td>Links your visits before and after you sign up</td><td>Until you clear site data</td></tr>
+        <tr><td><code>ts_consent</code></td><td>TradingSocial</td><td>Remembers your choice below. Essential — without it we would have to ask you on every page</td><td>180 days</td></tr>
+        <tr><td><code>ts_anon_id</code> (browser storage)</td><td>TradingSocial</td><td>Links your visits before and after you sign up</td><td><strong>180 days, then a new one is generated</strong></td></tr>
         <tr><td><code>ts_internal</code> (browser storage)</td><td>TradingSocial</td><td>Marks a browser as ours, so our own visits are excluded from analytics</td><td>Until you clear site data</td></tr>
-        <tr><td><code>_ga</code>, <code>_ga_*</code></td><td>Google Analytics</td><td>How the site is used</td><td>Up to 2 years</td></tr>
+        <tr><td><code>_ga</code>, <code>_ga_*</code></td><td>Google Analytics</td><td>How the site is used</td><td>13 months</td></tr>
         <tr><td><code>_fbp</code>, <code>_fbc</code></td><td>Meta</td><td>Advertising measurement</td><td>Up to 90 days</td></tr>
-        <tr><td><code>rdt_cid</code>, <code>_rdt_uuid</code></td><td>Reddit</td><td>Advertising measurement</td><td>Up to 2 years</td></tr>
+        <tr><td><code>rdt_cid</code>, <code>_rdt_uuid</code>, <code>_rdt_em</code></td><td>Reddit</td><td>Advertising measurement</td><td>90 days</td></tr>
       </tbody>
     </table>
     </div>
-    <p><strong>We do not currently show a cookie consent banner.</strong> The analytics and
-    advertising cookies above are set when you load the site. You can block or delete them in your
-    browser settings, and Google, Meta and Reddit each offer their own opt-outs.</p>
-    <p><strong>Browser settings do not stop all of it, and you should know why.</strong> When you
-    complete signup or subscribe, <strong>our servers</strong> — not your browser — send Reddit and
-    Meta a record of that event containing a one-way hash of your email address and account
-    identifier, and in Reddit's case your IP address and browser as well. Because it is sent
-    server-to-server, no cookie or browser setting prevents it. If you want to be excluded from that,
-    email us at <a href="mailto:onetradingsocial@gmail.com">onetradingsocial@gmail.com</a> and we
-    will exclude your account.</p>
+    <p><strong>Your choice, and what it actually does.</strong> On your first visit we show a
+    notice at the bottom of the page with three buttons. You can change your mind at any time using
+    the <strong>Cookie settings</strong> link in the footer of any page. There are two groups:</p>
+    <ul>
+      <li><strong>Analytics</strong> — Google Analytics and our own usage counts. <strong>On unless
+      you turn it off.</strong> This tells us which pages people use. If you turn it off, Google
+      Analytics is never loaded, we stop recording your visits entirely, and the identifiers above
+      are deleted from your browser.</li>
+      <li><strong>Advertising</strong> — the Meta and Reddit pixels. <strong>Off unless you turn it
+      on.</strong> We changed this: these used to load on every visit. They now do not load at all
+      unless you choose them, because they send identifiers to advertising companies that let those
+      companies recognise you across other sites.</li>
+    </ul>
+    <p>Declining is not cosmetic. The scripts are not loaded, no request is made to Google, Meta or
+    Reddit, and any identifiers they had already set are deleted. You can also block or delete
+    cookies in your browser settings, and Google, Meta and Reddit each offer their own opt-outs.</p>
+    <p><strong>The part your browser cannot control, and what we did about it.</strong> When you
+    complete signup or subscribe, <strong>our servers</strong> — not your browser — can send Reddit a
+    record of that event. Because it is sent server-to-server, no cookie setting, ad blocker or
+    browser control can prevent it. Two things follow from that:</p>
+    <ul>
+      <li><strong>We only send it if you turned Advertising on.</strong> Your choice above governs
+      this server-side event as well, which is the only way it can be governed at all.</li>
+      <li><strong>We no longer send Reddit your IP address.</strong> We previously sent it
+      unmodified. We stopped. If we ever re-enable it for advertising measurement it will be sent
+      only as a one-way hash, never in a readable form.</li>
+    </ul>
+    <p>What that event contains when it is sent: a one-way hash of your email address, a one-way hash
+    of your account identifier, and the amount if it was a purchase. If you would rather be excluded
+    from it entirely regardless of the setting, email us at
+    <a href="mailto:onetradingsocial@gmail.com">onetradingsocial@gmail.com</a> and we will exclude
+    your account.</p>
+    <p><strong>Meta's conversions gateway.</strong> When the Meta pixel is loaded, Meta's own script
+    also sends event data to a forwarding endpoint Meta operates on Amazon Web Services in
+    <strong>Oregon, United States</strong> (with a backup on Google Cloud in Iowa). This is
+    configured by Meta on their side, not by us. It is included in what turning Advertising off
+    prevents.</p>
 
     <h2>11. Security</h2>
     <p>What we actually do:</p>
@@ -1409,9 +1416,12 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         </tr>
         <tr>
           <td>Usage and analytics records</td>
-          <td>The identifiers are removed when you delete your account. What remains — an event name,
-          a device class, a campaign source and a date — is no longer linked to you or to your other
-          visits, and we keep it indefinitely as a count</td>
+          <td><strong>12 months.</strong> If you never created an account, these records are deleted
+          outright at 12 months. If you have an account, the browser identifier is removed from them
+          at 12 months and what remains — an event name, a device class, a campaign source and a date
+          — is no longer linked to you or to your other visits, and we keep that indefinitely as a
+          count. The identifiers are also removed immediately if you delete your account, and the
+          identifier in your browser is replaced with a new one every 180 days</td>
         </tr>
         <tr>
           <td>Billing records</td>
@@ -1473,8 +1483,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       <li><strong>Meta</strong> holds browser-level advertising identifiers from pages you visited.
       There is no deletion request we can send for you; you can remove it yourself under Facebook
       Settings → Your activity off Meta technologies.</li>
-      <li><strong>Reddit</strong> holds a hashed version of your email address, and the IP address and
-      browser your requests came from. Reddit provides no per-user deletion endpoint. Email us and we
+      <li><strong>Reddit</strong> holds a hashed version of your email address, if you had
+      Advertising turned on. It no longer receives your IP address from us at all. Reddit provides no
+      per-user deletion endpoint. Email us and we
       will pass the request on.</li>
       <li><strong>Google Analytics</strong> holds browser-level analytics identifiers from the
       marketing site. Clearing cookies for tradingsocial.io stops any further association; email us if

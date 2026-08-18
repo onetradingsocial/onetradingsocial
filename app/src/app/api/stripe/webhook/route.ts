@@ -4,6 +4,7 @@ import { getStripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
 import { subscriptionRow, paymentFailure, trialEnding, mirrorNeedsRepair } from '@/lib/billing-webhook'
 import { sendRedditConversion } from '@/lib/server/reddit-capi'
+import { ADS_DEFAULT } from '@/lib/consent'
 import { markReferralPaid } from '@/lib/server/referral'
 import { shouldAckTrialOnSubscription } from '@/lib/entitlements'
 import { raiseAlert } from '@/lib/server/alerts'
@@ -130,16 +131,26 @@ export async function POST(request: NextRequest) {
 
           // Best-effort Reddit Purchase conversion. session.id as conversion_id
           // makes webhook retries idempotent on Reddit's side. Never throws.
-          const customerId = customerIdOf(sub.customer) ?? ''
-          const userId = await resolveUserId(svc, stripe, customerId)
-          await sendRedditConversion({
-            eventType: 'Purchase',
-            conversionId: session.id,
-            email: session.customer_details?.email ?? null,
-            externalId: userId ?? undefined,
-            value: session.amount_total != null ? session.amount_total / 100 : undefined,
-            currency: session.currency ? session.currency.toUpperCase() : undefined,
-          })
+          //
+          // Advertising consent (audit item 17 finding 6) rides in on the
+          // session metadata, stamped by api/billing/checkout when it could
+          // still read the cookie. A session created before this shipped has no
+          // metadata key; those fall back to the documented default rather than
+          // being treated as consent.
+          const adsConsent = session.metadata?.ads_consent
+          const adsAllowed = adsConsent != null ? adsConsent === '1' : ADS_DEFAULT
+          if (adsAllowed) {
+            const customerId = customerIdOf(sub.customer) ?? ''
+            const userId = await resolveUserId(svc, stripe, customerId)
+            await sendRedditConversion({
+              eventType: 'Purchase',
+              conversionId: session.id,
+              email: session.customer_details?.email ?? null,
+              externalId: userId ?? undefined,
+              value: session.amount_total != null ? session.amount_total / 100 : undefined,
+              currency: session.currency ? session.currency.toUpperCase() : undefined,
+            })
+          }
         }
         break
       }
