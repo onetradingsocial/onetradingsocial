@@ -8,6 +8,9 @@ import { TradeModalProvider } from './_components/TradeModalProvider'
 import { HelpWidget } from './_components/HelpWidget'
 import { GoogleAnalytics } from './_components/GoogleAnalytics'
 import { PageViewTracker } from './_components/PageViewTracker'
+import { CookieNotice } from './_components/CookieNotice'
+import { cookies } from 'next/headers'
+import { CONSENT_COOKIE, CONSENT_DEFAULT, parseConsent } from '@/lib/consent'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isAdmin } from '@/lib/server/admin'
@@ -33,6 +36,12 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
+  // Tracking consent (audit item 17 finding 6). Read server-side so GA is never
+  // even rendered for someone who declined, and so the notice does not flash for
+  // someone who already answered on the marketing origin — the cookie is shared
+  // across .tradingsocial.io.
+  const consent =
+    parseConsent((await cookies()).get(CONSENT_COOKIE)?.value) ?? CONSENT_DEFAULT
   let config: { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean } | null = null
   let internalTraffic = false
   let gate: TrialGate | null = null
@@ -108,9 +117,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             />
           )}
         </TradeModalProvider>
-        <Analytics />
-        <GoogleAnalytics isInternal={internalTraffic} />
+        {/* Vercel Analytics is pseudonymous (a daily-rotating server-side hash,
+            no cookie) and served from a first-party path, so it is the mildest
+            thing on this page. It is still non-essential, and the notice tells
+            people that declining analytics stops us recording their visits — so
+            it is gated too, rather than quietly carved out. */}
+        {consent.analytics && <Analytics />}
+        <GoogleAnalytics isInternal={internalTraffic} consent={consent} />
         <PageViewTracker />
+        <CookieNotice initial={consent} />
       </body>
     </html>
   )

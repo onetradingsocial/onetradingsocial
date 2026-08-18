@@ -1,19 +1,26 @@
 'use client'
 
 import { useEffect } from 'react'
+import { readConsent } from '@/lib/consent'
 
 // Reddit Ads pixel. The base loader + PageVisit live on the marketing site
-// (static HTML). In the app we load it only on the auth funnel (PageVisit) and
-// to fire the SignUp conversion — never in the global layout, so authenticated
-// browsing of private journals is not streamed to Reddit.
+// (loaded by /consent.js). In the app we load it only on the auth funnel
+// (PageVisit) and to fire the SignUp conversion — never in the global layout, so
+// authenticated browsing of private journals is not streamed to Reddit.
+//
+// Consent (audit item 17 finding 6): the advertising tier is opt-in. When it is
+// denied, pixel.js is never requested. The matching server-side leg — the
+// Conversions API in lib/server/reddit-capi.ts — is gated on the same cookie,
+// because that one is the transfer no browser setting can reach.
 const PIXEL_ID = process.env.NEXT_PUBLIC_REDDIT_PIXEL_ID || 'a2_jbawbd7fkiwo'
 
 type RedditEvent = 'PageVisit' | 'SignUp'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function ensureLoaded() {
+function ensureLoaded(): boolean {
   const w = window as any
-  if (w.rdt) return
+  if (!readConsent().ads) return false
+  if (w.rdt) return true
   const rdt: any = (w.rdt = function () {
     rdt.sendEvent ? rdt.sendEvent.apply(rdt, arguments) : rdt.callQueue.push(arguments)
   })
@@ -23,6 +30,7 @@ function ensureLoaded() {
   t.async = true
   const s = document.getElementsByTagName('script')[0]
   s.parentNode?.insertBefore(t, s)
+  return true
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -53,7 +61,7 @@ export function RedditPixel({
       window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''))
     }
 
-    ensureLoaded()
+    if (!ensureLoaded()) return
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rdt = (window as any).rdt

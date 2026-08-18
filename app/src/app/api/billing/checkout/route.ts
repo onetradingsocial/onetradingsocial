@@ -6,6 +6,7 @@ import { priceForPlan, type Tier, type Interval } from '@/lib/entitlements'
 import { getReferralStats } from '@/lib/server/referral'
 import { earnedMonths } from '@/lib/referral'
 import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
+import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
 
 export const runtime = 'nodejs'
 
@@ -94,6 +95,9 @@ export async function POST(request: NextRequest) {
   // renewals bill at the full annual price. Remove the env var to end the promo.
   const betaCoupon = process.env.STRIPE_COUPON_BETA_ANNUAL
 
+  const adsConsent =
+    parseConsent(request.cookies.get(CONSENT_COOKIE)?.value)?.ads ?? ADS_DEFAULT
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,
@@ -110,6 +114,13 @@ export async function POST(request: NextRequest) {
     subscription_data: flow === 'referral'
       ? { trial_period_days: referralMonths * 30 } : undefined,
     payment_method_collection: flow === 'referral' ? 'always' : undefined,
+    // Advertising consent, carried to the webhook (audit item 17 finding 6).
+    // The Purchase conversion is fired from the Stripe webhook, which has no
+    // browser context and therefore cannot read the consent cookie. Stamping
+    // the answer on the session is how the visitor's choice survives the trip
+    // through Stripe — without it, declining advertising would silently stop
+    // the signup conversion but not the purchase one.
+    metadata: { ads_consent: adsConsent ? '1' : '0' },
     success_url: successUrl,
     cancel_url: cancelUrl,
   })

@@ -1,19 +1,26 @@
 'use client'
 
 import { useEffect } from 'react'
+import { readConsent } from '@/lib/consent'
 
 // Meta (Facebook) pixel. The base loader + PageView live on the marketing site
-// (static HTML). In the app we load it only on the auth/billing funnel to fire
-// specific standard events — never in the global layout, so authenticated
-// browsing of private journals is not streamed to Meta.
+// (loaded by /consent.js). In the app we load it only on the auth/billing funnel
+// to fire specific standard events — never in the global layout, so
+// authenticated browsing of private journals is not streamed to Meta.
+//
+// Consent (audit item 17 finding 6): the advertising tier is opt-in. When it is
+// denied, fbevents.js is never requested and no event is queued — the gate is in
+// ensureLoaded() and re-checked in trackMeta(), so neither the declarative
+// component nor an imperative click handler can slip past it.
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || '1056839790113606'
 
 type MetaEvent = 'PageView' | 'CompleteRegistration' | 'InitiateCheckout' | 'Subscribe'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function ensureLoaded() {
+function ensureLoaded(): boolean {
   const w = window as any
-  if (w.fbq) return
+  if (!readConsent().ads) return false
+  if (w.fbq) return true
   const fbq: any = (w.fbq = function () {
     fbq.callMethod ? fbq.callMethod.apply(fbq, arguments) : fbq.queue.push(arguments)
   })
@@ -27,6 +34,11 @@ function ensureLoaded() {
   t.src = 'https://connect.facebook.net/en_US/fbevents.js'
   const s = document.getElementsByTagName('script')[0]
   s.parentNode?.insertBefore(t, s)
+  // Limited Data Use (audit item 17 finding 5). (0,0) asks Meta to geolocate the
+  // visitor and apply LDU wherever a US state privacy law requires it. Must
+  // precede init.
+  w.fbq('dataProcessingOptions', ['LDU'], 0, 0)
+  return true
 }
 
 /** Imperative form for click handlers (e.g. InitiateCheckout before the
@@ -36,7 +48,7 @@ export function trackMeta(
   params?: Record<string, unknown>,
   match?: { email?: string | null; externalId?: string },
 ) {
-  ensureLoaded()
+  if (!ensureLoaded()) return
   const fbq = (window as any).fbq
   // Advanced-matching keys — fbevents.js SHA-256 hashes these client-side.
   const keys: Record<string, string> = {}

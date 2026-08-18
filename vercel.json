@@ -15,6 +15,13 @@
       ]
     },
     {
+      "//": "consent.js is the tracking gate. It must never be served from a stale cache -- /assets/* is immutable for a year, which is why this file lives at the root instead.",
+      "source": "/consent.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
@@ -29,8 +36,9 @@
           "value": "max-age=63072000; includeSubDomains; preload"
         },
         {
+          "//csp": "Still Report-Only, deliberately -- see app/next.config.ts for the full promotion criteria. What changed (audit item 17 finding 8, item 2 finding 3): a report-uri now exists, so violations are collected instead of computed and discarded; the dead Google Fonts and app.tradingsocial.io entries are gone (fonts are self-hosted under /assets/fonts, and the only fetch on this site is /data/posts.json); and img-src is no longer the 'https:' wildcard that silently permitted any image-shaped tracker on any host. www.google.com is allowed because Google Signals is a function of the GA property the business owns and is now gated by Consent Mode. The Meta CAPI Gateway hosts (fh-*.ecs.us-west-2.on.aws and its bded8a3c6ae-*.us-central1.run.app fallback) are deliberately NOT allowed -- keeping them in the reports is how the owner sees them until a decision is made about whether that gateway should exist.",
           "key": "Content-Security-Policy-Report-Only",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.redditstatic.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.reddit.com https://www.facebook.com https://app.tradingsocial.io; object-src 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.redditstatic.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https://www.tradingsocial.io https://lh3.googleusercontent.com https://www.google-analytics.com https://www.google.com https://www.facebook.com https://*.reddit.com; connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://www.google.com https://*.reddit.com https://www.facebook.com; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri https://app.tradingsocial.io/api/csp-report"
         }
       ]
     }

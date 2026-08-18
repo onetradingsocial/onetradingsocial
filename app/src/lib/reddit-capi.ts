@@ -27,12 +27,33 @@ export interface ConversionInput {
 }
 
 // Build the v3 conversion_events request body. Pure — no network, no env.
-// email/external_id are SHA-256 hex hashed; ip/user_agent are sent raw.
+//
+// Identifier handling (audit item 17 finding 3 — the highest-sensitivity
+// transfer on the platform):
+//
+//   email, external_id   SHA-256 hex hashed.
+//   ip_address           SHA-256 hex hashed. It used to be sent RAW. A raw IP
+//                        is directly identifying, this leg is server-to-server
+//                        so no ad blocker, cookie setting, ITP or Do Not Track
+//                        can reach it, and the recipient is overseas — APP 6
+//                        and APP 8 together, with no client-side mitigation
+//                        available to the person it describes.
+//   user_agent           Passed through. It is not an identifier on its own and
+//                        Reddit needs it to classify the event; it carries
+//                        weight only in combination with an IP, which is now
+//                        hashed.
+//
+// Note that hashing an IPv4 is weak pseudonymisation on its own — the space is
+// only 2^32 and a determined recipient can reverse it. That is why hashing is
+// the *second* line here and not the first: callers no longer send `ip` at all
+// unless REDDIT_CAPI_SEND_IP is explicitly set, and the advertising consent
+// tier gates the whole call. Hashing is the floor for the case where the
+// business turns the field back on for match-rate reasons.
 export function buildConversionBody(input: ConversionInput) {
   const user: Record<string, unknown> = {}
   if (input.email) user.email = hashSha256(normalizeEmail(input.email))
   if (input.externalId) user.external_id = hashSha256(input.externalId)
-  if (input.ip) user.ip_address = input.ip
+  if (input.ip) user.ip_address = hashSha256(input.ip)
   if (input.userAgent) user.user_agent = input.userAgent
 
   // conversion_id must be SHA-256 hashed to match the browser pixel, which hashes
