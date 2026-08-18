@@ -52,7 +52,25 @@ export function LoginForm() {
           </span>
         </div>
 
+        {/* Item 9 F1: without this link there is no way back into a password
+            account at all — 436 of 454 production identities are email+password
+            and not one had ever used recovery. */}
+        <div className="fl-remember" style={{ justifyContent: 'flex-end' }}>
+          <Link href="/forgot-password" className="fl-forgot">Forgot password?</Link>
+        </div>
+
         {state.error && <p className="fl-err">{state.error}</p>}
+
+        {/* Only reachable once Supabase "Confirm email" is on, and only when the
+            password was CORRECT — GoTrue returns this instead of a session. So
+            offering the resend here discloses nothing to someone guessing. */}
+        {state.unconfirmed && (
+          <p className="fl-secure" style={{ marginTop: 10, fontFamily: 'var(--body)', color: 'var(--dim)' }}>
+            <Link href="/check-email" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>
+              Resend the confirmation email
+            </Link>
+          </p>
+        )}
 
         <button disabled={pending} className="fl-submit">
           {pending ? 'Logging in…' : 'Log in'}

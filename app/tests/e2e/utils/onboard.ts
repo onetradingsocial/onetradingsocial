@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { SIGNUP_PASSWORD } from './creds'
 
 /** Walks the full signup funnel: /signup -> /welcome (trial) -> /onboarding -> /.
  *  Returns the generated username.
@@ -14,7 +15,7 @@ export async function signUpAndOnboard(page: Page, prefix = 'e2e'): Promise<stri
   await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `${username}@tradingsocial.io`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')

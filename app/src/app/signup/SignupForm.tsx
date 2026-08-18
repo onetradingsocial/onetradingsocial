@@ -5,27 +5,16 @@ import { useActionState, useState } from 'react'
 import { signUp, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
 import { AuthShell, EyeIcon, LockIcon } from '@/app/_components/AuthShell'
+import { passwordProblem, scorePassword, STRENGTH_LABELS, PASSWORD_MIN_LENGTH } from '@/lib/password'
 
 const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
 const initial: ActionState = {}
 
-const STRENGTH = [
-  { label: '', col: 'var(--line-2)' },
-  { label: 'Weak', col: 'var(--down)' },
-  { label: 'Fair', col: 'var(--xp)' },
-  { label: 'Good', col: 'var(--violet)' },
-  { label: 'Strong', col: 'var(--up)' },
-]
-
-function scorePassword(pw: string): number {
-  if (!pw) return 0
-  let s = 0
-  if (pw.length >= 8) s++
-  if (pw.length >= 12) s++
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++
-  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++
-  return Math.min(s, 4)
-}
+// Item 9 F5: the meter and the score now come from `lib/password`, the same
+// module the server action enforces with. The local copy that used to live here
+// scored a password the server had already accepted or rejected on different
+// rules, which is how "password" got through a "Weak" meter and a length check.
+const STRENGTH_COLOURS = ['var(--line-2)', 'var(--down)', 'var(--xp)', 'var(--violet)', 'var(--up)']
 
 export function SignupForm() {
   const [state, action, pending] = useActionState(signUp, initial)
@@ -39,7 +28,10 @@ export function SignupForm() {
   const [email, setEmail] = useState('')
 
   const score = scorePassword(pw)
-  const lvl = STRENGTH[score]
+  const strengthColour = STRENGTH_COLOURS[score]
+  // The SAME predicate the server action runs, so the button can never invite a
+  // submit the server will refuse — and can never allow one it would refuse.
+  const problem = pw ? passwordProblem(pw, [email, username]) : null
 
   return (
     <AuthShell
@@ -70,7 +62,7 @@ export function SignupForm() {
         <div className="fl-field">
           <label htmlFor="su-password">
             <span>Password</span>
-            {pw && <span style={{ color: lvl.col, textTransform: 'none', letterSpacing: 0 }}>{lvl.label}</span>}
+            {pw && <span style={{ color: strengthColour, textTransform: 'none', letterSpacing: 0 }}>{STRENGTH_LABELS[score]}</span>}
           </label>
           <span className="fl-input">
             <input
@@ -79,7 +71,7 @@ export function SignupForm() {
               type={show ? 'text' : 'password'}
               autoComplete="new-password"
               required
-              placeholder="At least 8 characters"
+              placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
               value={pw}
               onChange={(e) => setPw(e.target.value)}
             />
@@ -92,7 +84,7 @@ export function SignupForm() {
               <EyeIcon off={show} />
             </button>
           </span>
-          <span className={`fl-strength s${score}`} style={{ '--lvl-col': lvl.col } as React.CSSProperties}>
+          <span className={`fl-strength s${score}`} style={{ '--lvl-col': strengthColour } as React.CSSProperties}>
             <i /><i /><i /><i />
           </span>
         </div>
@@ -122,9 +114,10 @@ export function SignupForm() {
           <p>TradingSocial is an education and performance-tracking platform and does not provide financial advice.</p>
         </div>
 
+        {problem && <p className="fl-err">{problem}</p>}
         {state.error && <p className="fl-err">{state.error}</p>}
 
-        <button disabled={pending} className="fl-submit">
+        <button disabled={pending || !!problem || !pw} className="fl-submit">
           {pending ? 'Creating…' : 'Join the Beta'}
         </button>
       </form>
