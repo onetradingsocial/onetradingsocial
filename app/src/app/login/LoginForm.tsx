@@ -8,7 +8,7 @@ import { AuthShell, EyeIcon, LockIcon } from '@/app/_components/AuthShell'
 
 const initial: ActionState = {}
 
-export function LoginForm() {
+export function LoginForm({ deleted = false }: { deleted?: boolean }) {
   const [state, action, pending] = useActionState(signIn, initial)
   const [show, setShow] = useState(false)
   // Controlled: React resets the form after a failed action, which wiped the
@@ -18,6 +18,16 @@ export function LoginForm() {
 
   return (
     <AuthShell mode="login" heading="Welcome back" sub="Log in to keep tracking your edge.">
+      {/* deleteMyAccount has always redirected to /login?deleted=1 and nothing
+          has ever read the parameter, so the last thing a user saw after
+          irreversibly destroying their account was a blank login form. */}
+      {deleted && (
+        <p className="ts-callout" style={{ marginBottom: 16 }}>
+          <b>Your account has been deleted.</b> We&apos;ve emailed you a confirmation with what was
+          removed and the few things that are kept. This email address is free to sign up with again.
+        </p>
+      )}
+
       <GoogleButton className="fl-oauth" />
       <div className="fl-or"><span>or</span></div>
 

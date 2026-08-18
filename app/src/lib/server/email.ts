@@ -28,7 +28,13 @@ export async function sendEmail(args: {
 
 const APP = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.tradingsocial.io'
 
-function shell(title: string, body: string): string {
+// The default footer points at a preferences page inside the account. That is
+// right for every email except the one confirming the account no longer
+// exists, where both the claim and the link are false -- so it is overridable.
+const DEFAULT_FOOTER = `You're receiving this because you have a TradingSocial account.
+        <a href="${APP}/settings#notifications" style="color:#6B43E0">Manage emails</a>.`
+
+function shell(title: string, body: string, footer: string = DEFAULT_FOOTER): string {
   return `<!doctype html><html><body style="margin:0;background:#f6f6fb;font-family:system-ui,sans-serif;padding:24px">
     <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #ece9f5">
       <div style="padding:20px 24px;background:linear-gradient(115deg,#3FB6E8,#7C5CE6,#C840BC,#FF7A4D)">
@@ -39,8 +45,7 @@ function shell(title: string, body: string): string {
         ${body}
       </div>
       <div style="padding:16px 24px;color:#8b8799;font-size:12px;border-top:1px solid #ece9f5">
-        You're receiving this because you have a TradingSocial account.
-        <a href="${APP}/settings#notifications" style="color:#6B43E0">Manage emails</a>.
+        ${footer}
       </div>
     </div></body></html>`
 }
@@ -153,4 +158,52 @@ export function trialExpiredHtml(x: { name: string; kept: number }): string {
     ${button(`${APP}/settings/billing`, 'See the plans')}
     <p style="font-size:13px;line-height:1.6;color:#56536b">Happy on Free? Nothing more to do — keep logging.</p>
   `)
+}
+
+/** The account is gone. Sent AFTER the hard delete, to the address captured
+ *  before it — by then auth.users no longer holds it, which is the point.
+ *
+ *  This is the only remaining channel to a deleted user, so it carries the two
+ *  disclosures that have nowhere else to live (item 6 F6.6): what deletion
+ *  could not reach at third parties, and the exchange API keys we have no
+ *  power to revoke on their behalf. Saying "we deleted everything" and leaving
+ *  those out is the misrepresentation the audit flagged; this is the honest
+ *  version of the same sentence.
+ *
+ *  No login link, no "we're sorry to see you go" upsell, no reactivation
+ *  offer: there is no account to come back to, and pretending otherwise in an
+ *  email that confirms an erasure would be worse than useless. */
+export function accountDeletedHtml(x: {
+  residue: readonly { name: string; holds: string; removal: string }[]
+  exchanges: readonly string[]
+}): string {
+  const rows = x.residue.map((r) => `
+    <li style="margin-bottom:10px"><b>${r.name}</b> — ${r.holds}.<br />
+      <span style="color:#56536b">${r.removal}</span></li>`).join('')
+  const exchangeWarning = x.exchanges.length
+    ? `<p style="font-size:14px;line-height:1.6;padding:12px 14px;background:#fff6ed;border-radius:10px">
+         <b>Revoke your exchange API key.</b> Your ${x.exchanges.join(' and ')} API key has been deleted
+         from our database, but only you can revoke it at the exchange. Log in to your exchange account
+         and delete the key you created for TradingSocial.</p>`
+    : ''
+  return shell('Your TradingSocial account has been deleted', `
+    <p style="font-size:14px;line-height:1.6">Your account is gone. Your profile, trades, journal notes,
+    posts, messages and uploaded images have been permanently deleted, your subscription has been
+    cancelled and your card detached, and any connected broker account has been removed. This email
+    address is free to sign up again with if you ever want to.</p>
+    <p style="font-size:14px;line-height:1.6">If you did not ask for this, reply to this email
+    immediately.</p>
+    ${exchangeWarning}
+    <h2 style="font-size:15px;margin:22px 0 8px">What we could not delete for you</h2>
+    <p style="font-size:14px;line-height:1.6">These companies received information while you were using
+    TradingSocial. We have no way to delete it on your behalf, so here is exactly who holds what:</p>
+    <ul style="font-size:14px;line-height:1.6;padding-left:18px">${rows}</ul>
+    <h2 style="font-size:15px;margin:22px 0 8px">What we kept, and why</h2>
+    <p style="font-size:14px;line-height:1.6">Two things survive deliberately. If you ever paid us,
+    Australian tax law requires us to keep the invoice record for five years. And if anyone reported
+    your account to us, that report is kept without your name attached so the same issue can be
+    recognised if it recurs. Nothing else is retained.</p>
+    <p style="font-size:13px;line-height:1.6;color:#56536b">Questions about any of this: reply to this
+    email or write to onetradingsocial@gmail.com.</p>
+  `, 'This is the last email we will send to this address. There is no longer a TradingSocial account attached to it.')
 }

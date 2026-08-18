@@ -1,13 +1,16 @@
 import { createServiceClient } from '@/lib/supabase/service'
 
-const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
+// Exported because account deletion has to sweep BOTH buckets (item 6 F6.2)
+// and the one thing worse than not deleting a user's files is deleting them
+// from a bucket name that has drifted out of sync with the uploaders'.
+export const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
 
 // Private-by-intent uploads (trade charts, DM attachments) live in a second,
 // non-public bucket guarded by storage RLS -- see migration 0044. The name is
 // deliberately NOT NEXT_PUBLIC_: nothing in the browser bundle needs to know it.
 // The two upload routes hand it back to the client alongside the signed-upload
 // token, which is the only moment a browser has any business naming it.
-const PRIVATE_BUCKET = process.env.SUPABASE_PRIVATE_BUCKET || 'OneTradingSocial-private'
+export const PRIVATE_BUCKET = process.env.SUPABASE_PRIVATE_BUCKET || 'OneTradingSocial-private'
 
 // Private objects are never referenced by an absolute storage URL. The DB
 // stores an app-relative URL through this route, which authorises the viewer

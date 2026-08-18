@@ -22,7 +22,7 @@ export default async function SettingsPage() {
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
-  const [{ data: profile }, tier, sub, flags, { data: brokerRow }, { data: exchangeRow }, { data: ownPosts }] = await Promise.all([
+  const [{ data: profile }, tier, sub, flags, { data: brokerRow }, { data: exchangeRow }, { data: ownPosts }, identity] = await Promise.all([
     // Service client: this is the owner's own settings form, and it reads two
     // fields -- account_balance and notification_prefs -- that 0047 revokes
     // from anon and authenticated. A column grant is role-wide and cannot be
@@ -55,6 +55,10 @@ export default async function SettingsPage() {
       .neq('attachment_type', 'poll')
       .order('created_at', { ascending: false })
       .limit(20),
+    // getSessionUser() reads the JWT claims, which do not carry `identities`.
+    // The delete dialog needs to know whether there is a password to re-check
+    // (Google-only accounts have none), so this one call goes to GoTrue.
+    supabase.auth.getUser(),
   ])
 
   const canGoPrivate = tier !== 'free'
@@ -62,6 +66,17 @@ export default async function SettingsPage() {
   const renews = sub?.currentPeriodEnd
     ? new Date(sub.currentPeriodEnd).toLocaleDateString()
     : null
+
+  // Deleting a paid account cancels it immediately and forfeits the rest of the
+  // period (Terms §11 — no refund for a part-period you chose to leave). The
+  // delete dialog says so, but only when there is actually something to
+  // forfeit: a subscription that is already set to cancel, or one that is not
+  // currently entitling, has no unused period to lose.
+  const paidUntil = sub && !sub.cancelAtPeriodEnd
+    && (sub.status === 'active' || sub.status === 'trialing')
+    ? renews
+    : null
+  const hasPassword = (identity.data.user?.identities ?? []).some((i) => i.provider === 'email')
 
   return (
     <div className="settings-page">
@@ -162,7 +177,13 @@ export default async function SettingsPage() {
 
           <NotificationPrefs initial={(profile?.notification_prefs ?? {}) as Record<string, boolean>} />
 
-          <DangerZone username={profile?.username ?? ''} />
+          <DangerZone
+            email={user.email ?? ''}
+            hasPassword={hasPassword}
+            paidUntil={paidUntil}
+            exchanges={exchangeRow ? ['Binance'] : []}
+            hasBroker={!!brokerRow}
+          />
         </div>
       </div>
     </div>
