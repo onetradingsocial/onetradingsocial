@@ -1131,6 +1131,10 @@ button.ts-burger-link {
 .pcard-tag { font-size: 12.5px; color: var(--dim); line-height: 1.4; min-height: 34px; }
 .pcard-price { display: flex; align-items: flex-start; gap: 2px; margin-top: 14px; }
 .pcard-price .cur { font-family: var(--display); font-size: 20px; font-weight: 600; margin-top: 7px; color: var(--text); }
+/* Currency + auto-renewal disclosure under the plan grid. See .tg-fine. */
+.ts-price-fine { font-size: 12.5px; line-height: 1.6; color: var(--faint); text-align: center; max-width: 640px; margin-inline: auto; }
+.ts-price-fine b { color: var(--dim); font-weight: 600; }
+.ts-price-fine a { color: var(--dim); text-decoration: underline; }
 .pcard-price .amt { font-family: var(--display); font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: -0.03em; color: var(--text); }
 .pcard-price .per { font-family: var(--mono); font-size: 12px; color: var(--faint); align-self: flex-end; margin-bottom: 8px; margin-left: 4px; }
 .pcard-billed { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-top: 7px; min-height: 16px; }
@@ -2452,6 +2456,11 @@ button.ts-burger-link {
 .tg-feats .chk svg { width: 14px; height: 14px; }
 .tg-cta { width: 100%; }
 .tg-error { margin-top: 14px; font-size: 13px; color: var(--down); text-align: center; }
+/* Currency + auto-renewal disclosure. Must stay adjacent to every price block:
+   a bare '$' next to an Australian price is a representation we can't stand
+   behind, and a recurring charge has to say it recurs. */
+.tg-fine { margin-top: 12px; font-size: 12px; line-height: 1.55; color: var(--faint); text-align: center; }
+.tg-fine a { color: var(--faint); text-decoration: underline; }
 .tg-free { display: block; margin: 18px auto 0; padding: 8px 14px; font-size: 13px;
   font-weight: 600; background: none; border: 0; color: var(--faint);
   text-decoration: underline; cursor: pointer; }

@@ -1,6 +1,9 @@
 'use client'
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { trackMeta } from '@/app/_components/MetaPixel'
+import { CUR, CURRENCY_NOTE } from '@/lib/plans'
+
+const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
 
 type Tier = 'free' | 'trader' | 'pro'
 type Interval = 'monthly' | 'annual'
@@ -51,7 +54,7 @@ const PLANS: PlanDef[] = [
   },
   {
     tier: 'trader', name: 'Trader', pip: 'pip-trader', tag: 'Build discipline and improve faster.',
-    monthly: 30, annual: 6, billedM: 'Billed monthly', billedA: '$72 first year, then $300/yr',
+    monthly: 30, annual: 6, billedM: 'Billed monthly', billedA: 'A$72 first year, then A$300/yr',
     featsLabel: 'Everything in Free, plus',
     feats: [
       { t: 'Unlimited journal entries' },
@@ -65,7 +68,7 @@ const PLANS: PlanDef[] = [
   },
   {
     tier: 'pro', name: 'Pro Trader', pip: 'pip-pro', tag: 'Advanced tools for serious traders.',
-    monthly: 50, annual: 10, billedM: 'Billed monthly', billedA: '$120 first year, then $500/yr',
+    monthly: 50, annual: 10, billedM: 'Billed monthly', billedA: 'A$120 first year, then A$500/yr',
     featsLabel: 'Everything in Trader, plus',
     feats: [
       { t: 'Automatic MT5 sync — hourly' },
@@ -143,7 +146,7 @@ export function PlanCards({ currentTier, currentInterval, hasSubscription, onTri
                 <span className="pcard-tag">{p.tag}</span>
               </div>
               <div className="pcard-price">
-                <span className="cur">$</span><span className="amt">{amt}</span><span className="per">/month</span>
+                <span className="cur">{CUR}</span><span className="amt">{amt}</span><span className="per">/month</span>
               </div>
               <div className="pcard-billed">{billed}</div>
 
@@ -172,6 +175,15 @@ export function PlanCards({ currentTier, currentInterval, hasSubscription, onTri
           )
         })}
       </div>
+
+      {/* GST PLACEHOLDER — OWNER DECISION REQUIRED. A GST line belongs in this
+          block once the entity's GST registration status is confirmed. */}
+      <p className="ts-price-fine mt-6">
+        {CURRENCY_NOTE} Paid plans renew automatically at the price shown until you
+        cancel. Cancel any time via <b>Manage billing &amp; invoices</b> — access
+        continues to the end of the period you have already paid for.{' '}
+        <a href={`${MARKETING}/terms#subscriptions`} target="_blank" rel="noopener noreferrer">Subscription terms</a>
+      </p>
 
       {hasSubscription && (
         <div className="mt-6" style={{ textAlign: 'center' }}>

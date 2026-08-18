@@ -26,7 +26,7 @@ export type WelcomeCopy = {
 }
 
 /** Shown instead of the tier's own price while a no-card trial is active: a
- *  trialist holds Pro features but has paid nothing, so "$50 / month · billed
+ *  trialist holds Pro features but has paid nothing, so "A$50 / month · billed
  *  monthly" would be plainly false for them. */
 export const TRIAL_PRICE = '14 days free · then choose a plan'
 
@@ -36,7 +36,7 @@ export const WELCOME_TIERS: Record<Tier, WelcomeCopy> = {
     eyebrow: "You're on Free",
     em: 'Free',
     sub: 'Your trading profile is live. Log trades, follow traders, and start building your track record — no card required.',
-    price: '$0 / month · free forever',
+    price: 'A$0 / month · free forever',
     cta: 'Explore your Profile',
     href: '',
     icon: (
@@ -64,7 +64,7 @@ export const WELCOME_TIERS: Record<Tier, WelcomeCopy> = {
     // '…deeper analytics, and the full learning hub — everything to sharpen your
     // edge.' Restore when compliant.
     sub: 'You just unlocked unlimited journaling, deeper analytics, and strategy tracking — everything to sharpen your edge.',
-    price: '$30 / month · billed monthly',
+    price: 'A$30 / month · billed monthly',
     cta: 'Explore your Journal',
     href: '/journal',
     icon: <path d="M4 19V9M10 19V5M16 19v-7M22 19H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />,
@@ -87,7 +87,7 @@ export const WELCOME_TIERS: Record<Tier, WelcomeCopy> = {
     // '…advanced analytics, premium courses, a creator-style profile, and
     // competition eligibility.' Restore when compliant.
     sub: 'The full platform is yours — advanced analytics, monthly reports, a creator-style profile, and competition eligibility.',
-    price: '$50 / month · billed monthly',
+    price: 'A$50 / month · billed monthly',
     cta: 'Explore Journal',
     href: '/journal',
     icon: <path d="M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7l7-4z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />,

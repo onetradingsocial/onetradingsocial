@@ -157,7 +157,7 @@ export function ReferralModal({
 
             <p className="ref-fine">
               {months >= 1
-                ? 'A card is required to claim — $0 due today. After your free months end, Pro renews at the monthly rate and you can cancel anytime.'
+                ? 'A card is required to claim — A$0 due today. After your free months end, Pro renews automatically at A$50/month (Australian dollars) until you cancel, which you can do any time in Settings → Billing.'
                 : 'Rewards unlock when a referred trader logs their first trade. Self-referrals don’t count and each trader can only be referred once.'}
             </p>
           </div>

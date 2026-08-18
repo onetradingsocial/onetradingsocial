@@ -1071,10 +1071,30 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 <main class="legal">
   <div class="wrap">
     <h1>Terms of Service</h1>
-    <p class="legal-updated">Last updated: 24 June 2026</p>
+    <p class="legal-updated">Last updated: 18 August 2026</p>
 
     <p>These terms govern your access to and use of TradingSocial. By creating an account or using
     the platform, you agree to these terms. If you do not agree, do not use TradingSocial.</p>
+
+    <!-- LEGAL ENTITY PLACEHOLDER — BLOCKING OWNER ACTION.
+         The operating entity, its ABN and its registered address are not recorded
+         anywhere in this repository, so they cannot be filled in here. A contract
+         with no identified counterparty is weak no matter how well the rest of it
+         is drafted: a consumer cannot know who they contracted with, who to serve
+         or who to complain about, and section 16 below nominates South Australian
+         courts on behalf of a party this document never names. Replace the
+         paragraph below with the real entity name, ABN and street address before
+         relying on these terms. If no company exists yet, name the operating
+         individual and a postal address — do not leave it blank. The same gap
+         exists in privacy.html and should be fixed in both at once. -->
+    <!-- Withheld until the owner supplies the details, rather than shipped with
+         bracketed placeholders: rendering "[LEGAL ENTITY NAME - to be confirmed]"
+         on a live terms page is worse than carrying no entity clause at all.
+         Restore this paragraph with the real values filled in.
+    <p>TradingSocial is operated by <b>[LEGAL ENTITY NAME]</b>
+    (<b>ABN [NUMBER]</b>) of <b>[registered address]</b>, Australia.
+    In these terms, "we", "us" and "our" mean that entity.</p>
+    -->
 
     <h2>1. Eligibility</h2>
     <p>You must be at least 18 years old and able to form a binding contract to use TradingSocial.</p>
@@ -1109,23 +1129,142 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     <p>TradingSocial, its name, logo, design and software are owned by us or our licensors. These
     terms do not grant you any rights to them except as needed to use the platform.</p>
 
-    <h2>7. Australian Consumer Law</h2>
+    <h2 id="subscriptions">7. Plans, prices and payment</h2>
+    <p>TradingSocial has one free plan and two paid plans, <b>Trader</b> and <b>Pro Trader</b>. The
+    Free plan is free forever and needs no payment details. The paid plans can be bought monthly or
+    annually.</p>
+
+    <p><b>All prices are in Australian dollars (AUD).</b> The current prices are always the ones
+    shown on our <a href="/pricing">pricing page</a> and in Settings &rarr; Billing inside the app.
+    At the date of these terms they are:</p>
+
+    <!-- GST PLACEHOLDER — OWNER DECISION REQUIRED.
+         Whether these amounts include GST depends on the operating entity's GST
+         registration, which is a business fact not recorded anywhere in this
+         repository. Once confirmed, add ONE of the following to the paragraph
+         below: "These prices include GST." or "We are not registered for GST, so
+         no GST applies to these prices." Do NOT guess — under ACL s48 the price
+         quoted to a consumer must be the total amount actually payable, so an
+         incorrect GST line is itself a misleading price representation. The same
+         placeholder appears on pricing.html and on the in-app billing screens. -->
+    <ul>
+      <li><b>Trader</b> — A$30 per month, or A$300 per year.</li>
+      <li><b>Pro Trader</b> — A$50 per month, or A$500 per year.</li>
+    </ul>
+
+    <p>We sometimes run a founding-member offer that discounts the first annual invoice — currently
+    A$72 for Trader and A$120 for Pro Trader. <b>A promotional price applies to your first billing
+    period only.</b> After that, your subscription renews at the standard annual price shown above.</p>
+
+    <p>Paid plans are billed in advance and <b>renew automatically</b> — monthly plans every month,
+    annual plans every year — until you cancel. Payments are handled by Stripe; we never see or
+    store your card details. Your current plan, its price and its next renewal date are shown in
+    Settings &rarr; Billing.</p>
+
+    <p>Prices can change. If a change would increase what you pay, section 15 applies: we will give
+    you notice before it takes effect and you can cancel first.</p>
+
+    <h2>8. Your 14-day Pro trial</h2>
+    <p>Every new account gets <b>14 days of Pro Trader features, free</b>. This trial is exactly what
+    it sounds like:</p>
+    <ul>
+      <li><b>No payment details are required</b> — we do not ask for a card and we do not create a
+      subscription or any other billing record for it.</li>
+      <li><b>It does not convert into a paid subscription.</b> Nothing is ever charged, because
+      there is nothing to charge.</li>
+      <li>When the 14 days end, your account simply moves to the Free plan and the Pro-only features
+      close. Nothing you have logged is deleted, though the Free plan only shows your most recent 30
+      trades until you subscribe. You can subscribe at any time, before or after the trial ends.</li>
+    </ul>
+
+    <p>The one exception is our referral reward. If you claim free months of Pro that you have
+    earned by referring other traders, that reward <b>is</b> set up as a subscription: we ask for a
+    payment method, nothing is charged during your free months, and <b>when the free months end the
+    subscription renews automatically at the Pro Trader monthly price of A$50 per month</b> until
+    you cancel. You can cancel at any time during the free period and you will not be charged.</p>
+
+    <h2>9. Cancelling your subscription</h2>
+    <p>You can cancel at any time yourself, without contacting us. Go to Settings &rarr; Billing and
+    choose <b>Manage billing &amp; invoices</b>, which opens the secure Stripe billing portal for
+    your account. You can also update your payment method there.</p>
+
+    <p>Cancellation takes effect <b>at the end of the billing period you have already paid for</b>.
+    You keep your paid features until that date, and you are not charged again. We do not cut your
+    access off the moment you cancel.</p>
+
+    <p>Two things worth knowing:</p>
+    <ul>
+      <li><b>Deleting your TradingSocial account does not cancel your subscription.</b> Cancel first
+      in Settings &rarr; Billing, then delete your account.</li>
+      <li>If you cannot reach the billing portal for any reason, email us at
+      <a href="mailto:onetradingsocial@gmail.com">onetradingsocial@gmail.com</a> and we will cancel
+      the subscription for you.</li>
+    </ul>
+
+    <h2>10. If a payment fails</h2>
+    <p>If a renewal payment does not go through — an expired card, a bank hold, insufficient funds —
+    Stripe will retry it according to its normal schedule. While a payment is outstanding your
+    subscription is marked past due, and <b>access to paid features may be unavailable until the
+    payment succeeds</b>. Updating your card in the billing portal is usually enough to restore it.
+    If the payment is never made, the subscription is cancelled.</p>
+
+    <h2>11. Refunds</h2>
+    <p>Paid plans are charged in advance and you keep full access for the whole period you have paid
+    for, so <b>we do not offer refunds for a change of mind</b> — including for part of a period you
+    have already started, or for a period you did not get around to using.</p>
+
+    <p><b>This does not limit your rights under the Australian Consumer Law, and nothing in this
+    section is intended to.</b> If TradingSocial is not supplied with due care and skill, is not fit
+    for the purpose we have described, or otherwise fails to meet a consumer guarantee, you are
+    entitled to a remedy — and where the failure is a major one, that can include cancelling and
+    getting your money back. Section 13 sets this out. If you think something has gone wrong, email
+    us at <a href="mailto:onetradingsocial@gmail.com">onetradingsocial@gmail.com</a> and we will
+    work it out with you.</p>
+
+    <p>We also refund the unused part of a period in the two situations described in sections 12 and
+    15 — if we close a paid account for a reason that is not your fault, and if you cancel because
+    we have changed something to your disadvantage.</p>
+
+    <h2>12. Suspension and closure of a paid account</h2>
+    <p>Section 3 lets us suspend or close accounts that breach these terms. If we do that to an
+    account with a paid subscription, we may also cancel the subscription. Where we close a paid
+    account for a reason that is not your fault — for example because we stop offering the service —
+    <b>we will refund the unused portion of the period you have paid for</b>. Where the closure is
+    because of a serious breach by you, we will still refund the unused portion, less any amount you
+    genuinely owe us. Nothing in this section limits your rights under the Australian Consumer Law.</p>
+
+    <h2>13. Australian Consumer Law</h2>
     <p>Our services come with guarantees that cannot be excluded under the Australian Consumer Law.
     Nothing in these terms excludes, restricts or modifies those guarantees. To the extent
     permitted by law, our liability for failing to meet a consumer guarantee is limited to
     re-supplying the service or paying the cost of re-supply.</p>
 
-    <h2>8. Disclaimers and limitation of liability</h2>
+    <h2>14. Disclaimers and limitation of liability</h2>
     <p>The platform is provided "as is" and "as available". To the maximum extent permitted by law,
     and subject to the Australian Consumer Law, TradingSocial is not liable for any loss or damage
     (including trading losses) arising from your use of, or reliance on, the platform.</p>
 
-    <h2>9. Changes to the service or terms</h2>
-    <p>We may update the platform and these terms from time to time. We will update the "last
-    updated" date, and significant changes may be notified in-app or by email. Continued use after
-    changes means you accept the updated terms.</p>
+    <h2>15. Changes to the service or terms</h2>
+    <p>We may change the platform and these terms from time to time — to add or improve features, to
+    reflect how the service actually works, or to comply with the law. We will always update the
+    "last updated" date at the top of this page.</p>
 
-    <h2>10. Governing law</h2>
+    <p><b>If a change increases the price of a paid plan, or otherwise materially and adversely
+    affects you as a paying subscriber, we will tell you by email at least 30 days before it takes
+    effect.</b> If you do not want to continue on the new terms, you can cancel before the change
+    takes effect and we will refund the unused portion of the period you have already paid for.
+    Changes that do not disadvantage you — new features, clarifications, changes we are required by
+    law to make — take effect when we publish them.</p>
+
+    <p>Continuing to use TradingSocial after a change has taken effect means you accept the updated
+    terms. Earlier versions of these terms are available on request.</p>
+
+    <p><em>August 2026 update: added our plans, prices and currency, the terms of the 14-day Pro
+    trial and the referral reward, auto-renewal, cancellation, failed payments, refunds, and
+    suspension of a paid account; and replaced the previous change-of-terms clause with the notice
+    and cancellation rights above.</em></p>
+
+    <h2>16. Governing law</h2>
     <p>These terms are governed by the laws of South Australia, Australia, and you submit to the
     non-exclusive jurisdiction of the courts of that state.</p>
 

@@ -2,8 +2,10 @@
 
 import { useState, type ReactNode } from 'react'
 import type { Interval } from '@/lib/entitlements'
-import { PAID_PLANS } from '@/lib/plans'
+import { PAID_PLANS, CUR, CURRENCY_NOTE } from '@/lib/plans'
 import { trackMeta } from '@/app/_components/MetaPixel'
+
+const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
 
 const CHK: ReactNode = (
   <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -74,7 +76,7 @@ export function TrialPlanPicker({
           <div key={p.tier} className={`tg-card${p.tier === 'pro' ? ' pop' : ''}`}>
             <span className="tg-name"><span className={`fl-pip ${p.pip}`} />{p.name}</span>
             <div className="tg-price">
-              <span className="cur">$</span>
+              <span className="cur">{CUR}</span>
               <span className="amt">{billing === 'monthly' ? p.monthly : p.annual}</span>
               <span className="per">/mo</span>
             </div>
@@ -95,6 +97,14 @@ export function TrialPlanPicker({
           </div>
         ))}
       </div>
+
+      {/* GST PLACEHOLDER — OWNER DECISION REQUIRED. A GST line belongs in this
+          block once the entity's GST registration status is confirmed. */}
+      <p className="tg-fine">
+        {CURRENCY_NOTE} Paid plans renew automatically until you cancel, which you
+        can do at any time in Settings → Billing.{' '}
+        <a href={`${MARKETING}/terms#subscriptions`} target="_blank" rel="noopener noreferrer">Subscription terms</a>
+      </p>
 
       {error && <p className="tg-error" role="alert">{error}</p>}
     </>
