@@ -13,6 +13,7 @@ import { isAdmin } from '@/lib/server/admin'
 import { getEntitlements, type TrialGate, type WelcomeState } from '@/lib/server/entitlements'
 import type { Tier } from '@/lib/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { recoveryGuardSource } from '@/lib/auth-recovery'
 import { canFlag } from '@/lib/feature-flags'
 import { TrialGateModal } from './_components/TrialGateModal'
 import { TrialEndingBanner } from './_components/TrialEndingBanner'
@@ -73,6 +74,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
+        {/*
+          Item 9 F1 — implicit-flow containment. A raw inline <script> as the
+          first thing in <body>, so it executes during HTML parse: before
+          hydration, before <Analytics>, before GoogleAnalytics, and before the
+          Meta/Reddit pixels on `/`. Meta's fbevents.js reports
+          document.location.href fragment and all, so a Supabase recovery link
+          that lands as `#access_token=...` on `/` would be handed straight to
+          three third parties. This strips it first and sends the user to
+          request a fresh link down the safe route-handler path. Never fires in
+          the normal flow — `/auth/reset` and `/auth/confirm` receive their
+          grants in the query string, which the server consumes.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: recoveryGuardSource() }} />
         <TradeModalProvider config={config}>
           <AppNav tier={tier} gate={gate} />
           {gate?.state === 'active' && gate.daysLeft <= 3 && (

@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { dismissWelcome } from './utils/welcome'
+import { SIGNUP_PASSWORD } from './utils/creds'
 
 const stamp = Date.now()
 const username = `e2e_${stamp}`
 const email = `e2e_${stamp}@tradingsocial.io`
-const password = 'password123'
+const password = SIGNUP_PASSWORD
 
 test('signup -> onboarding -> profile, then logout', async ({ page }) => {
   await page.goto('/signup')
@@ -49,7 +50,7 @@ test('reserved username is rejected at signup', async ({ page }) => {
   await page.goto('/signup')
   await page.fill('input[name="username"]', 'login')
   await page.fill('input[name="email"]', `r_${Date.now()}@tradingsocial.io`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')
