@@ -1,5 +1,6 @@
 import 'server-only'
 import { buildConversionBody, type ConversionInput } from '@/lib/reddit-capi'
+import { logError } from '@/lib/server/log'
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_REDDIT_PIXEL_ID || 'a2_jbawbd7fkiwo'
 const ENDPOINT = `https://ads-api.reddit.com/api/v3/pixels/${PIXEL_ID}/conversion_events`
@@ -21,11 +22,17 @@ export async function sendRedditConversion(input: ConversionInput): Promise<void
       signal: controller.signal,
     })
     if (!res.ok) {
-      const detail = await res.text().catch(() => '')
-      console.error('[reddit-capi] non-ok response', res.status, detail)
+      // Audit item 19 F3. This used to log `await res.text()` — the Reddit API's
+      // response body — and that is the one thing in this call worth NOT
+      // printing. The request carries a hashed email and a hashed account id
+      // (and a hashed IP if REDDIT_CAPI_SEND_IP is ever turned on), and an API
+      // error conventionally echoes the rejected payload back. The status code
+      // is all the triage this best-effort call supports anyway: 401/403 is the
+      // token, 400 is the schema, 5xx is Reddit.
+      logError('reddit-capi', undefined, { note: 'non-ok response', status: res.status })
     }
   } catch (err) {
-    console.error('[reddit-capi] send failed', err)
+    logError('reddit-capi', err, { note: 'send failed' })
   } finally {
     clearTimeout(timer)
   }

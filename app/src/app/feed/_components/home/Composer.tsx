@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { prepareImageUpload, imageFileProblem } from '@/lib/image-prep'
 import { createPost, attachPostImages, type AttachmentType } from '@/app/actions/social'
 import { TradePickerModal } from '../TradePickerModal'
 import { Icon, Avatar } from './atoms'
@@ -32,7 +33,11 @@ export function Composer({ data }: { data: HomeData }) {
 
   function onImages(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []).slice(0, 4)
-    if (files.length) { setImages(files); setType('images') }
+    // Reject oversized or wrong-typed files at selection time rather than at
+    // upload time, so the message names the file the user just picked.
+    const bad = files.map(imageFileProblem).find(Boolean)
+    if (bad) { setError(bad); return }
+    if (files.length) { setImages(files); setError(''); setType('images') }
   }
 
   function submit() {
@@ -44,10 +49,15 @@ export function Composer({ data }: { data: HomeData }) {
         const supabase = createClient()
         const urls: string[] = []
         for (let i = 0; i < images.length; i++) {
-          const f = images[i]; const ct = f.type === 'image/png' ? 'image/png' : 'image/jpeg'
+          // Audit item 11 F2 + F4: cap the size and re-encode to strip EXIF
+          // before the bytes leave the browser. Post images are public content,
+          // so a phone photo's GPS would be readable by anyone.
+          const prepared = await prepareImageUpload(images[i])
+          if ('error' in prepared) { setError(prepared.error); continue }
+          const ct = prepared.contentType
           const signed = await fetch(`/api/post-image-url?postId=${res.postId}&idx=${i}&ct=${encodeURIComponent(ct)}`).then((r) => r.json())
           if (signed?.path && signed?.token) {
-            await supabase.storage.from(BUCKET).uploadToSignedUrl(signed.path, signed.token, f, { upsert: true })
+            await supabase.storage.from(BUCKET).uploadToSignedUrl(signed.path, signed.token, prepared.blob, { upsert: true })
             urls.push(signed.publicUrl)
           }
         }

@@ -8,6 +8,7 @@ import { getUserXp } from '@/lib/server/xp'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
+import { logError } from '@/lib/server/log'
 
 export type SocialState = { error?: string; ok?: boolean }
 
@@ -115,7 +116,7 @@ export async function votePoll(postId: string, optionId: string): Promise<{ erro
     { post_id: postId, user_id: user.id, option_id: optionId },
     { onConflict: 'post_id,user_id' },
   )
-  if (error) { console.error('votePoll', error.message); return { error: 'Could not record your vote. Try again.' } }
+  if (error) { logError('votePoll', error.message); return { error: 'Could not record your vote. Try again.' } }
   revalidatePath('/')
   return { ok: true }
 }
@@ -135,7 +136,7 @@ export async function deletePost(postId: string): Promise<SocialState> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
   const { error } = await supabase.from('posts').delete().eq('id', postId).eq('author_id', user.id)
-  if (error) { console.error('deletePost', error.message); return { error: 'Could not delete the post. Try again.' } }
+  if (error) { logError('deletePost', error.message); return { error: 'Could not delete the post. Try again.' } }
   revalidatePath('/')
   return { ok: true }
 }
@@ -189,7 +190,7 @@ export async function addComment(postId: string, body: string): Promise<SocialSt
   if (!text) return { error: 'Comment is empty.' }
   if (text.length > 1000) return { error: 'Comment too long.' }
   const { error } = await supabase.from('comments').insert({ post_id: postId, author_id: user.id, body: text })
-  if (error) { console.error('addComment', error.message); return { error: 'Could not post your comment. Try again.' } }
+  if (error) { logError('addComment', error.message); return { error: 'Could not post your comment. Try again.' } }
   // notify post author
   const { data: post } = await supabase.from('posts').select('author_id').eq('id', postId).maybeSingle()
   const service = createServiceClient()
@@ -213,7 +214,7 @@ export async function deleteComment(commentId: string): Promise<SocialState> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
   const { error } = await supabase.from('comments').delete().eq('id', commentId).eq('author_id', user.id)
-  if (error) { console.error('deleteComment', error.message); return { error: 'Could not delete the comment. Try again.' } }
+  if (error) { logError('deleteComment', error.message); return { error: 'Could not delete the comment. Try again.' } }
   return { ok: true }
 }
 
@@ -226,7 +227,7 @@ export async function follow(targetId: string): Promise<SocialState> {
     { follower_id: user.id, following_id: targetId },
     { onConflict: 'follower_id,following_id', ignoreDuplicates: true },
   )
-  if (error) { console.error('follow', error.message); return { error: 'Could not follow. Try again.' } }
+  if (error) { logError('follow', error.message); return { error: 'Could not follow. Try again.' } }
   const service = createServiceClient()
   await insertNotification({ supabase: service, userId: targetId, actorId: user.id, type: 'follow' })
   revalidatePath('/')
@@ -238,7 +239,7 @@ export async function unfollow(targetId: string): Promise<SocialState> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
   const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', targetId)
-  if (error) { console.error('unfollow', error.message); return { error: 'Could not unfollow. Try again.' } }
+  if (error) { logError('unfollow', error.message); return { error: 'Could not unfollow. Try again.' } }
   revalidatePath('/')
   return { ok: true }
 }
@@ -254,7 +255,7 @@ export async function favorite(targetId: string): Promise<SocialState> {
     { user_id: user.id, favorite_id: targetId },
     { onConflict: 'user_id,favorite_id', ignoreDuplicates: true },
   )
-  if (error) { console.error('favorite', error.message); return { error: 'Could not favourite. Try again.' } }
+  if (error) { logError('favorite', error.message); return { error: 'Could not favourite. Try again.' } }
   // Star implies follow. Deliberately no notification for the favourite itself
   // (favourites are private); the follow upsert is silent too to avoid
   // re-notifying users who were already followed.

@@ -3,20 +3,29 @@
 import { useState, useRef } from 'react'
 import { TradePickerModal } from '@/app/feed/_components/TradePickerModal'
 import type { Attachment } from '@/lib/messaging'
+import { prepareImageUpload } from '@/lib/image-prep'
 import { PrivacyNote } from '@/app/_components/LegalNotice'
 
-async function uploadImage(file: File, draftId: string, idx: number): Promise<string | null> {
-  const ct = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
-  const res = await fetch(`/api/message-image-url?draftId=${draftId}&idx=${idx}&ct=${ct}`)
-  if (!res.ok) return null
+async function uploadImage(
+  file: File, draftId: string, idx: number,
+): Promise<{ url: string } | { error: string }> {
+  // Audit item 11 F2 + F4. DM attachments were graded the worst path in the
+  // per-path matrix: the whole purpose of the feature is sending a link to
+  // another person, so an un-stripped phone photo hands a stranger the sender's
+  // GPS coordinates along with the picture.
+  const prepared = await prepareImageUpload(file)
+  if ('error' in prepared) return prepared
+
+  const res = await fetch(`/api/message-image-url?draftId=${draftId}&idx=${idx}&ct=${prepared.contentType}`)
+  if (!res.ok) return { error: 'Could not upload that image.' }
   // Attachments go to the private bucket; the route names it alongside the token.
   const { token, path, bucket, url } = await res.json()
-  if (!bucket || !path || !token) return null
+  if (!bucket || !path || !token) return { error: 'Could not upload that image.' }
   const { createClient } = await import('@/lib/supabase/client')
   const supabase = createClient()
-  const { error } = await supabase.storage.from(bucket).uploadToSignedUrl(path, token, file)
-  if (error) return null
-  return url as string
+  const { error } = await supabase.storage.from(bucket).uploadToSignedUrl(path, token, prepared.blob)
+  if (error) return { error: 'Could not upload that image.' }
+  return { url: url as string }
 }
 
 export function MessageComposer({
@@ -40,11 +49,12 @@ export function MessageComposer({
     const current = attachments.filter((a) => a.type === 'image').length
     const room = 4 - current
     const picked = Array.from(files).slice(0, room)
-    setBusy(true)
+    setBusy(true); setError(null)
     const uploaded: Attachment[] = []
     for (let i = 0; i < picked.length; i++) {
-      const url = await uploadImage(picked[i], draftId, current + i)
-      if (url) uploaded.push({ type: 'image', url })
+      const result = await uploadImage(picked[i], draftId, current + i)
+      if ('error' in result) { setError(result.error); continue }
+      uploaded.push({ type: 'image', url: result.url })
     }
     setAttachments((prev) => [...prev, ...uploaded])
     setBusy(false)

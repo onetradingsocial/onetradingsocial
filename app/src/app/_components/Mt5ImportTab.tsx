@@ -70,7 +70,7 @@ export function Mt5ImportTab({ canImport, onDone }: { canImport: boolean; onDone
         <button type="button" className="ts-dropzone" onClick={() => fileRef.current?.click()} disabled={pending}>
           <span className="ts-dropzone-icon">⬆</span>
           <span className="ts-dropzone-main">{pending ? 'Parsing…' : 'Upload MT5 history report'}</span>
-          <span className="faint" style={{ fontSize: 12 }}>HTML, XLSX or CSV up to 5MB</span>
+          <span className="faint" style={{ fontSize: 12 }}>HTML, XLSX or CSV up to 1MB</span>
         </button>
         <input
           ref={fileRef} type="file" accept=".html,.htm,.xlsx,.csv" className="hidden"

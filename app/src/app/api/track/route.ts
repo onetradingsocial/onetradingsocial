@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isAdmin } from '@/lib/server/admin'
-import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
+import { rateLimit, rateLimitShared, clientKey, tooMany } from '@/lib/server/rate-limit'
 
 // Funnel + product events accepted from the client. Whitelist keeps the
 // table from becoming a junk drawer (and blocks spam event names).
@@ -28,7 +28,33 @@ const ALLOWED = new Set([
 
 const MAX_PROPS_BYTES = 2048
 const RATE_WINDOW_MS = 60_000
-const RATE_MAX = 60
+
+/**
+ * Two independent budgets (audit item 10, finding 3).
+ *
+ * The old code CHOSE between them: it keyed on `body.anonId` when present and
+ * fell back to the IP only when it was absent. `anonId` is request-body input,
+ * so a caller sending a fresh random value per request landed in a fresh bucket
+ * every time and the limit never fired. This route is unauthenticated and
+ * writes to `analytics_events` through the service client, so the consequences
+ * were real: unbounded row growth, fabricated `signup_completed`/`subscribed`
+ * events poisoning what `api/stats` and the admin funnel report, and
+ * `api/cron/error-alert` — whose thresholds are 3 client errors and 50 404s in
+ * 24 h — forceable into alert spam or usable to bury real alerts under noise.
+ *
+ * Both budgets are now consumed on every request:
+ *
+ *   - the anonId bucket keeps the original intent, which is sound: one NAT'd
+ *     office IP should not throttle everyone behind it;
+ *   - the IP bucket is the one that actually binds, because the client cannot
+ *     reassign it. It is deliberately generous (5x) so a shared IP has room,
+ *     and it is the SHARED (Postgres-backed) limiter, because a per-instance
+ *     count of an unauthenticated write endpoint is close to meaningless.
+ *
+ * Either bucket tripping refuses the request.
+ */
+const RATE_MAX_PER_ANON = 60
+const RATE_MAX_PER_IP = 300
 
 export async function POST(req: NextRequest) {
   let body: {
@@ -49,12 +75,24 @@ export async function POST(req: NextRequest) {
   const event = typeof body.event === 'string' ? body.event : ''
   if (!ALLOWED.has(event)) return NextResponse.json({ error: 'unknown event' }, { status: 400 })
 
-  // Prefer the client's anon id so one shared NAT'd IP can't throttle everyone.
-  const rlKey = typeof body.anonId === 'string' && body.anonId ? `a:${body.anonId}` : clientKey(req)
-  const rl = rateLimit(rlKey, RATE_MAX, RATE_WINDOW_MS)
-  if (!rl.ok) return tooMany(rl.retryAfter)
+  // Per-IP first, and never short-circuited by the anon bucket: a caller that
+  // trips the anon budget must still count against its IP budget, or rotating
+  // anon ids would keep the IP bucket permanently empty — the very bypass this
+  // is fixing.
+  const byIp = await rateLimitShared(clientKey(req), RATE_MAX_PER_IP, RATE_WINDOW_MS)
+  const anonId = typeof body.anonId === 'string' && body.anonId ? body.anonId.slice(0, 64) : null
+  const byAnon = anonId
+    ? rateLimit(`track:a:${anonId}`, RATE_MAX_PER_ANON, RATE_WINDOW_MS)
+    : ({ ok: true } as const)
+  if (!byIp.ok) return tooMany(byIp.retryAfter)
+  if (!byAnon.ok) return tooMany(byAnon.retryAfter)
 
-  const props = body.props && typeof body.props === 'object' ? body.props : {}
+  const props = body.props && typeof body.props === 'object' ? { ...body.props } : {}
+  // Audit item 19 F1, defence in depth. The error boundaries no longer send a
+  // raw `message`, but a browser holding a cached bundle still will for as long
+  // as its chunks live — and this route is the thing that makes the value
+  // durable. Drop it here so the fix does not depend on every client updating.
+  if (event === 'client_error' && 'message' in props) delete (props as Record<string, unknown>).message
   if (JSON.stringify(props).length > MAX_PROPS_BYTES) {
     return NextResponse.json({ error: 'props too large' }, { status: 400 })
   }

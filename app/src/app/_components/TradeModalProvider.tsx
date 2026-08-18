@@ -11,6 +11,7 @@ import { InstrumentCombobox } from './InstrumentCombobox'
 import { Mt5ImportTab } from './Mt5ImportTab'
 import { LivePriceChip } from './LivePriceChip'
 import { PrivacyNote } from './LegalNotice'
+import { prepareImageUpload } from '@/lib/image-prep'
 
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 
@@ -124,7 +125,13 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
       })
     }
     if (chart && res.tradeId) {
-      const ct = chart.type === 'image/png' ? 'image/png' : 'image/jpeg'
+      // Audit item 11 F2 + F4. A chart exported from TradingView or MT5 carries
+      // no EXIF, which is the dominant case here — but "my setup" photos taken
+      // on a phone do, and the same pass is what enforces the 5 MB cap the UI
+      // has always advertised and nothing ever checked.
+      const prepared = await prepareImageUpload(chart)
+      if ('error' in prepared) { setError(prepared.error); setPending(false); return }
+      const ct = prepared.contentType
       const supabase = createClient()
       const signed = await fetch(`/api/trade-chart-url?tradeId=${res.tradeId}&ct=${encodeURIComponent(ct)}`).then((r) => r.json())
       // The bucket comes back with the token: charts live in the private bucket,
@@ -134,7 +141,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
         // (item 15 F8), so every upload is a new object. An overwrite here
         // would mean a uuid collision, and silently accepting that is never
         // the right answer.
-        await supabase.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, chart, { upsert: false })
+        await supabase.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, prepared.blob, { upsert: false })
         await saveTradeChartUrl(res.tradeId, signed.url)
       }
     }
@@ -390,7 +397,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
               <button type="button" className="ts-dropzone" onClick={() => dropRef.current?.click()}>
                 <span className="ts-dropzone-icon">⬆</span>
                 <span className="ts-dropzone-main">{chart ? chart.name : 'Click to upload'}</span>
-                <span className="faint" style={{ fontSize: 12 }}>PNG, JPG up to 5MB</span>
+                <span className="faint" style={{ fontSize: 12 }}>PNG, JPG up to 5MB — resized, and location data removed</span>
               </button>
               <input ref={dropRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => setChart(e.target.files?.[0] ?? null)} />
               {/* APP 5, audit item 4 finding 6 / S7. The notice used to cover

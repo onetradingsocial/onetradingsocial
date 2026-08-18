@@ -18,6 +18,7 @@ import {
   purgeUserStorage, scrubAnalytics, preserveModerationRecords, pseudonymiseAdminAudit,
   hardDeleteAuthUser,
 } from '@/lib/server/account-deletion'
+import { logError } from '@/lib/server/log'
 
 /**
  * Save the trading-account settings (balance + currency).
@@ -306,9 +307,9 @@ export async function deleteMyAccount(input: DeleteAccountInput): Promise<{ erro
         subject: 'Your TradingSocial account has been deleted',
         html: accountDeletedHtml({ residue: THIRD_PARTY_RESIDUE, exchanges: ctx.exchanges }),
       })
-      if (!res.sent) console.error('[deletion] confirmation email not sent', res.error)
+      if (!res.sent) logError('deletion', res.error, { note: 'confirmation email not sent' })
     } catch (err) {
-      console.error('[deletion] confirmation email threw', err)
+      logError('deletion', err, { note: 'confirmation email threw' })
     }
   }
 
@@ -340,6 +341,6 @@ async function logDeletionAttempt(
       },
     })
   } catch (err) {
-    console.error('[deletion] audit insert failed', uid, err)
+    logError('deletion', err, { note: 'audit insert failed', uid: uid })
   }
 }

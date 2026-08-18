@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isTier, type Tier } from '@/lib/entitlements'
+import { logError } from '@/lib/server/log'
 
 export type AckWelcomeResult = { ok: true } | { ok: false; error: string }
 
@@ -34,7 +35,7 @@ export async function ackWelcome(tier: Tier): Promise<AckWelcomeResult> {
     .eq('id', user.id)
 
   if (error) {
-    console.error('[ackWelcome] failed', error)
+    logError('ackWelcome', error, { note: 'failed' })
     return { ok: false, error: 'Could not save. Please try again.' }
   }
 

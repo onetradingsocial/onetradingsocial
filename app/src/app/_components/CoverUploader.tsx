@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getCoverUploadUrl, saveCoverUrl } from '@/app/actions/cover'
+import { prepareImageUpload } from '@/lib/image-prep'
 import { PrivacyNote } from './LegalNotice'
 
 const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'OneTradingSocial'
@@ -15,18 +16,24 @@ export function CoverUploader({ current, disabled }: { current: string | null; d
   async function onChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setStatus('Uploading…')
+    setStatus('Preparing…')
 
-    const signed = await getCoverUploadUrl(file.type)
+    // Audit item 11 F2 + F4 — see AvatarUploader for the reasoning; covers live
+    // in the same public bucket with the same predictable key shape.
+    const prepared = await prepareImageUpload(file)
+    if ('error' in prepared) { setStatus(prepared.error); return }
+
+    setStatus('Uploading…')
+    const signed = await getCoverUploadUrl(prepared.contentType)
     if ('error' in signed) { setStatus(signed.error ?? 'Upload failed.'); return }
 
     const supabase = createClient()
     const { error } = await supabase.storage
       .from(BUCKET)
-      .uploadToSignedUrl(signed.path, signed.token, file, { upsert: true })
+      .uploadToSignedUrl(signed.path, signed.token, prepared.blob, { upsert: true })
     if (error) { setStatus('Upload failed. Try again.'); return }
 
-    const saved = await saveCoverUrl(file.type)
+    const saved = await saveCoverUrl(prepared.contentType)
     if ('error' in saved) { setStatus(saved.error ?? 'Upload failed.'); return }
     setUrl(saved.publicUrl)
     setStatus('Saved.')

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { fetchQuote, TtlCache, type MarketQuote } from '@/lib/market-data'
+import { spendMarketCredit } from '@/lib/server/market-quota'
+import { tooMany } from '@/lib/server/rate-limit'
 
 const FRESH_MS = 60 * 1000
 const STALE_MS = 60 * 60 * 1000 // keep 1h; served only when provider rate-limits
@@ -17,6 +19,17 @@ export async function GET(request: NextRequest) {
   const hit = cache.get(symbol)
   if (hit && !hit.stale) {
     return NextResponse.json({ quote: hit.value }, { headers: { 'Cache-Control': 'private, max-age=30' } })
+  }
+
+  // Audit item 10 F2. Charged only here, on a cache miss, because this is the
+  // only branch that spends a Twelve Data credit. A stale entry is a better
+  // answer than a 429 when the caller is over budget, so serve it if we have
+  // one — the same degradation this route already does when the PROVIDER rate
+  // limits us.
+  const spend = await spendMarketCredit(user.id)
+  if (!spend.ok) {
+    if (hit) return NextResponse.json({ quote: hit.value, stale: true })
+    return tooMany(spend.retryAfter)
   }
 
   const result = await fetchQuote(symbol, process.env.TWELVEDATA_API_KEY ?? '')

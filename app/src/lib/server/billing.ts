@@ -5,6 +5,7 @@ import { PAST_DUE_GRACE_DAYS } from '@/lib/entitlements'
 import type { PaymentFailure, TrialEnding } from '@/lib/billing-webhook'
 import { insertSystemNotification } from '@/lib/notifications'
 import { sendEmail, paymentFailedHtml, trialEndingHtml } from '@/lib/server/email'
+import { logError } from '@/lib/server/log'
 
 /**
  * Shared billing-side server helpers: mapping a Stripe customer back to one of
@@ -38,7 +39,7 @@ export async function emailForUser(svc: SupabaseClient, userId: string): Promise
     const { data } = await svc.auth.admin.getUserById(userId)
     return data.user?.email ?? null
   } catch (err) {
-    console.error('[billing] email lookup failed', userId, err)
+    logError('billing', err, { note: 'email lookup failed', userId: userId })
     return null
   }
 }
@@ -84,13 +85,13 @@ export async function notifyPaymentFailed(
           invoiceUrl: failure.invoiceUrl,
         }),
       })
-      if (!res.sent) console.error('[billing] payment_failed email not sent', res.error)
+      if (!res.sent) logError('billing', res.error, { note: 'payment_failed email not sent' })
     } else {
-      console.error('[billing] no email on file for payment_failed', userId)
+      logError('billing', undefined, { note: 'no email on file for payment_failed', userId: userId })
     }
     await insertSystemNotification({ supabase: svc, userId, type: 'payment_failed' })
   } catch (err) {
-    console.error('[billing] notifyPaymentFailed failed', userId, err)
+    logError('billing', err, { note: 'notifyPaymentFailed failed', userId: userId })
   }
 }
 
@@ -120,13 +121,13 @@ export async function notifyTrialWillEnd(
           name, amount: notice.amount, interval: notice.interval, endsOn, willCharge,
         }),
       })
-      if (!res.sent) console.error('[billing] trial_will_end email not sent', res.error)
+      if (!res.sent) logError('billing', res.error, { note: 'trial_will_end email not sent' })
     } else {
-      console.error('[billing] no email on file for trial_will_end', userId)
+      logError('billing', undefined, { note: 'no email on file for trial_will_end', userId: userId })
     }
     await insertSystemNotification({ supabase: svc, userId, type: 'trial_ending' })
   } catch (err) {
-    console.error('[billing] notifyTrialWillEnd failed', userId, err)
+    logError('billing', err, { note: 'notifyTrialWillEnd failed', userId: userId })
   }
 }
 
@@ -150,7 +151,7 @@ export async function willChargeAtTrialEnd(
     if (!customer || customer.deleted) return false
     return !!(customer.invoice_settings?.default_payment_method || customer.default_source)
   } catch (err) {
-    console.error('[billing] customer payment-method lookup failed', customerId, err)
+    logError('billing', err, { note: 'customer payment-method lookup failed', customerId: customerId })
     return true // assume a charge is coming; never under-warn
   }
 }

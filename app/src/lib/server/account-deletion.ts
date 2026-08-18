@@ -9,6 +9,7 @@ import {
   isUserOwnedKey, userStoragePrefixes, stripeCloseoutPlan,
   type BucketKind, type StepOutcome,
 } from '@/lib/account-deletion'
+import { logError } from '@/lib/server/log'
 
 /**
  * The IO half of account deletion (item 6 F6.2-F6.6, F6.8). Ordering,
@@ -79,7 +80,7 @@ async function collectAnonIds(svc: SupabaseClient, userId: string): Promise<stri
     if (error) {
       // Not fatal to the preflight: the scrub still runs over the user_id
       // rows. Logged loudly because it means the anon rows were missed.
-      console.error('[deletion] anon_id enumeration failed', userId, error.message)
+      logError('deletion', error.message, { note: 'anon_id enumeration failed', userId: userId })
       break
     }
     const rows = (data ?? []) as { anon_id: string | null }[]
@@ -223,7 +224,7 @@ export async function closeStripeForDeletion(
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'stripe call failed'
-    console.error('[deletion] stripe closeout failed', customerId, message)
+    logError('deletion', message, { note: 'stripe closeout failed', customerId: customerId })
     return { ok: false, error: message }
   }
 }
@@ -257,7 +258,7 @@ export async function removeMetaApiForDeletion(accountId: string): Promise<StepO
     if (/not found|404/i.test(removal.error)) {
       return { ok: true, detail: { removed: 'already_absent' } }
     }
-    console.error('[deletion] metaapi remove failed', accountId, removal.error)
+    logError('deletion', removal.error, { note: 'metaapi remove failed', accountId: accountId })
     return { ok: false, error: removal.error }
   }
   return {
@@ -361,8 +362,8 @@ export async function purgeUserStorage(
         // Never silent. A non-zero count here means the enumeration produced a
         // path outside the user's namespace, which is a bug worth seeing even
         // though the guard already stopped it being acted on.
-        console.error('[deletion] storage enumeration produced foreign keys', {
-          bucket, prefix: spec.prefix, rejected,
+        logError('deletion', undefined, {
+          note: 'storage enumeration produced foreign keys', bucket, prefix: spec.prefix, rejected,
         })
       }
       if (owned.length) byBucket.set(bucket, [...(byBucket.get(bucket) ?? []), ...owned])
@@ -383,7 +384,7 @@ export async function purgeUserStorage(
     return { ok: true, detail: { removed, buckets: [...byBucket.keys()] } }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'storage purge failed'
-    console.error('[deletion] storage purge failed', userId, message)
+    logError('deletion', message, { note: 'storage purge failed', userId: userId })
     return { ok: false, error: message }
   }
 }
@@ -440,13 +441,13 @@ export async function scrubAnalytics(
         .from('referral_clicks').update({ anon_id: null }).in('anon_id', [...anonIds])
       // referral_clicks is a P3 nicety riding along, not the point of this
       // step. Its failure is logged and does not abort a deletion.
-      if (clicks.error) console.error('[deletion] referral_clicks scrub failed', clicks.error.message)
+      if (clicks.error) logError('deletion', clicks.error.message, { note: 'referral_clicks scrub failed' })
     }
 
     return { ok: true, detail: { anonIds: anonIds.length } }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'analytics scrub failed'
-    console.error('[deletion] analytics scrub failed', userId, message)
+    logError('deletion', message, { note: 'analytics scrub failed', userId: userId })
     return { ok: false, error: message }
   }
 }
@@ -487,7 +488,7 @@ export async function preserveModerationRecords(
   const salt = process.env.DELETION_HASH_SALT
   if (!email) return { ok: true, detail: { skipped: 'no_email' } }
   if (!salt) {
-    console.error('[deletion] DELETION_HASH_SALT unset — moderation reports keep no pseudonym')
+    logError('deletion', undefined, { note: 'DELETION_HASH_SALT unset — moderation reports keep no pseudonym' })
     return { ok: true, detail: { skipped: 'no_salt' } }
   }
   try {
@@ -505,7 +506,7 @@ export async function preserveModerationRecords(
     return { ok: true, detail: { stamped: count ?? 0 } }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'moderation stamp failed'
-    console.error('[deletion] moderation stamp failed', userId, message)
+    logError('deletion', message, { note: 'moderation stamp failed', userId: userId })
     return { ok: false, error: message }
   }
 }
@@ -550,7 +551,7 @@ export async function pseudonymiseAdminAudit(
   const salt = process.env.DELETION_HASH_SALT
   if (!email) return { ok: true, detail: { skipped: 'no_email' } }
   if (!salt) {
-    console.error('[deletion] DELETION_HASH_SALT unset — admin_audit keeps the actor email')
+    logError('deletion', undefined, { note: 'DELETION_HASH_SALT unset — admin_audit keeps the actor email' })
     return { ok: true, detail: { skipped: 'no_salt' } }
   }
   try {
@@ -567,7 +568,7 @@ export async function pseudonymiseAdminAudit(
     return { ok: true, detail: { pseudonymised: count ?? 0 } }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'admin_audit pseudonymisation failed'
-    console.error('[deletion] admin_audit pseudonymisation failed', userId, message)
+    logError('deletion', message, { note: 'admin_audit pseudonymisation failed', userId: userId })
     return { ok: true, detail: { failed: message } }
   }
 }
@@ -587,7 +588,7 @@ export async function hardDeleteAuthUser(
 ): Promise<StepOutcome> {
   const { error } = await svc.auth.admin.deleteUser(userId)
   if (error) {
-    console.error('[deletion] admin.deleteUser failed', userId, error.message)
+    logError('deletion', error.message, { note: 'admin.deleteUser failed', userId: userId })
     return { ok: false, error: error.message }
   }
   return { ok: true }

@@ -8,6 +8,7 @@ import { generateInsights } from '@/lib/insights'
 import { trialState, JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
 import { getStripe } from '@/lib/stripe'
 import { reconcileBilling } from '@/lib/server/billing-reconcile'
+import { logError, logWarn } from '@/lib/server/log'
 
 export const maxDuration = 60
 
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
   try {
     reconciled = await reconcileBilling(svc, getStripe())
   } catch (err) {
-    console.error('[lifecycle-emails] billing reconcile failed', err)
+    logError('lifecycle-emails', err, { note: 'billing reconcile failed' })
     reconciled = { error: err instanceof Error ? err.message : 'failed' }
   }
 
@@ -162,7 +163,7 @@ export async function GET(req: Request) {
     .is('last_trial_email', null)
 
   if (trialError) {
-    console.error('[lifecycle-emails] trial notice skipped (migration not applied?)', trialError.message)
+    logError('lifecycle-emails', trialError.message, { note: 'trial notice skipped (migration not applied?)' })
   } else {
     for (const t of trials ?? []) {
       if (trialState(t.trial_started_at, t.trial_ack_at, nowDate) !== 'expired') continue
@@ -187,7 +188,7 @@ export async function GET(req: Request) {
         .update({ last_trial_email: new Date().toISOString() }).eq('id', t.id)
       if (stampError) {
         // Refuse to continue rather than re-notify this cohort tomorrow.
-        console.error('[lifecycle-emails] could not stamp last_trial_email, stopping', stampError.message)
+        logError('lifecycle-emails', stampError.message, { note: 'could not stamp last_trial_email, stopping' })
         break
       }
       trialNotices++
@@ -207,14 +208,42 @@ export async function GET(req: Request) {
   try {
     const { data, error } = await svc.rpc('purge_analytics_events')
     if (error) {
-      console.warn('[lifecycle-emails] analytics purge skipped:', error.message)
+      logWarn('lifecycle-emails', error.message, { note: 'analytics purge skipped' })
     } else {
       const row = Array.isArray(data) ? data[0] : data
       purged = { deleted: Number(row?.deleted ?? 0), anonymised: Number(row?.anonymised ?? 0) }
     }
   } catch (err) {
-    console.warn('[lifecycle-emails] analytics purge failed', err)
+    logWarn('lifecycle-emails', err, { note: 'analytics purge failed' })
   }
 
-  return NextResponse.json({ ok: true, digests, nudges, trialNotices, reconciled, purged })
+  // The rest of the retention schedule (WS8). privacy.html section 13 now
+  // states a period per class of record; these are the three that are ours to
+  // enforce rather than a provider's, and until now only the analytics one
+  // actually ran. `admin_audit_prune` has existed since 0052 and was never
+  // scheduled — migration 0052 says so in its own comments and leaves the
+  // choice of scheduler open. This is that choice: the same catch-all daily
+  // route, for the same reason (Hobby caps cron jobs at 2, both taken, and
+  // there is no pg_cron on the project).
+  //
+  // Every one is best-effort and tolerant of its migration not being applied,
+  // so the app can deploy ahead of them. The corollary is the honest one: the
+  // periods printed in the policy are not honoured until the migrations are.
+  const retention: Record<string, number | 'skipped'> = {}
+  for (const fn of ['admin_audit_prune', 'purge_trade_reports', 'purge_rate_limits'] as const) {
+    try {
+      const { data, error } = await svc.rpc(fn)
+      if (error) {
+        retention[fn] = 'skipped'
+        logWarn('lifecycle-emails', error.message, { note: `${fn} skipped` })
+      } else {
+        retention[fn] = Number(Array.isArray(data) ? data[0] : data) || 0
+      }
+    } catch (err) {
+      retention[fn] = 'skipped'
+      logWarn('lifecycle-emails', err, { note: `${fn} failed` })
+    }
+  }
+
+  return NextResponse.json({ ok: true, digests, nudges, trialNotices, reconciled, purged, retention })
 }

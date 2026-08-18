@@ -10,7 +10,15 @@ import { parseMt5, validateDeals, mapDealToTrade, type Mt5Deal } from '@/lib/mt5
 import { trackServer } from '@/lib/server/track'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-const MAX_BYTES = 5 * 1024 * 1024
+/**
+ * Audit item 11, finding F5. This was 5 MB and unreachable: Next's Server
+ * Action body cap (1 MB by default, now stated explicitly in next.config.ts)
+ * rejects the request at the framework boundary first, so anything between
+ * 1 MB and 5 MB produced a generic framework error rather than this message.
+ * The three numbers — this, `experimental.serverActions.bodySizeLimit`, and the
+ * copy in Mt5ImportTab.tsx — must be changed together.
+ */
+const MAX_BYTES = 1024 * 1024
 const GATE_ERROR = 'MT5 import is available on the Trader plan and above.'
 
 async function gate(supabase: SupabaseClient, userId: string): Promise<string | null> {
@@ -31,7 +39,7 @@ export async function parseMt5Statement(formData: FormData): Promise<Mt5ParseSta
 
   const file = formData.get('file')
   if (!(file instanceof File)) return { error: 'No file received.' }
-  if (file.size > MAX_BYTES) return { error: 'File too large (max 5 MB).' }
+  if (file.size > MAX_BYTES) return { error: 'File too large (max 1 MB). Export a shorter date range from MT5.' }
 
   const parsed = parseMt5(await file.arrayBuffer(), file.name)
   if ('error' in parsed) return { error: parsed.error }

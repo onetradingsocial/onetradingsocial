@@ -7,6 +7,7 @@ import { getReferralStats } from '@/lib/server/referral'
 import { earnedMonths } from '@/lib/referral'
 import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
 import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
+import { logError } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
 
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     const { error: persistError } = await createServiceClient()
       .from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
     if (persistError) {
-      console.error('[billing checkout] failed to persist stripe_customer_id', persistError)
+      logError('billing checkout', persistError, { note: 'failed to persist stripe_customer_id' })
       return NextResponse.json({ error: 'could not save customer' }, { status: 500 })
     }
   }

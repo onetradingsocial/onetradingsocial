@@ -11,6 +11,7 @@ import { raiseAlert } from '@/lib/server/alerts'
 import {
   resolveUserId, notifyPaymentFailed, notifyTrialWillEnd, willChargeAtTrialEnd,
 } from '@/lib/server/billing'
+import { logError, logInfo } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
 
@@ -32,7 +33,7 @@ async function upsertFromSubscription(
     // raise a system_alert so it surfaces in /admin and the alert webhook.
     const priceId = (sub as unknown as { items?: { data?: Array<{ price?: { id?: string } }> } })
       .items?.data?.[0]?.price?.id ?? 'none'
-    console.error('[stripe webhook] unknown price', priceId, 'sub', sub.id, 'status', sub.status)
+    logError('stripe webhook', undefined, { note: 'unknown price sub status', priceId, id: sub.id, status: sub.status })
     await raiseAlert(
       svc,
       'billing_unknown_price',
@@ -44,7 +45,7 @@ async function upsertFromSubscription(
   const customerId = customerIdOf(sub.customer) ?? ''
   const userId = await resolveUserId(svc, stripe, customerId)
   if (!userId) {
-    console.error('[stripe webhook] could not resolve user for customer', customerId, 'sub', sub.id)
+    logError('stripe webhook', undefined, { note: 'could not resolve user for customer sub', customerId, id: sub.id })
     throw new Error(`could not resolve user for customer ${customerId}`)
   }
   // Only write when something actually changed. `subscriptions_touch_updated_at`
@@ -62,12 +63,12 @@ async function upsertFromSubscription(
     // PostgREST reports failures in the result object rather than throwing, so
     // without this an unwritten mirror row looks exactly like a successful one.
     if (error) {
-      console.error('[stripe webhook] mirror upsert failed', sub.id, error.message)
+      logError('stripe webhook', error.message, { note: 'mirror upsert failed', id: sub.id })
       throw new Error(`mirror upsert failed for ${sub.id}`)
     }
-    console.info('[stripe webhook] mirror written', sub.id, row.status, row.tier)
+    logInfo('stripe webhook', { note: 'mirror written', id: sub.id, status: row.status, tier: row.tier })
   } else {
-    console.info('[stripe webhook] mirror already current', sub.id, row.status)
+    logInfo('stripe webhook', { note: 'mirror already current', id: sub.id, status: row.status })
   }
 
   // Referral funnel (row 39): a live subscription promotes the referral to
@@ -85,7 +86,7 @@ async function upsertFromSubscription(
     try {
       const { data: prof, error: readError } = await svc.from('profiles')
         .select('trial_started_at, trial_ack_at').eq('id', userId).maybeSingle()
-      if (readError) console.error('[stripe webhook] trial read failed', readError)
+      if (readError) logError('stripe webhook', readError, { note: 'trial read failed' })
 
       if (prof && shouldAckTrialOnSubscription(prof.trial_started_at, prof.trial_ack_at, new Date())) {
         // .is(null) keeps this idempotent across webhook retries.
@@ -94,9 +95,9 @@ async function upsertFromSubscription(
           .eq('id', userId).is('trial_ack_at', null)
         // PostgREST returns failures in the result object rather than throwing,
         // so the enclosing try/catch would never see this one.
-        if (ackError) console.error('[stripe webhook] trial ack failed', ackError)
+        if (ackError) logError('stripe webhook', ackError, { note: 'trial ack failed' })
       }
-    } catch (err) { console.error('[stripe webhook] trial ack skipped', err) }
+    } catch (err) { logError('stripe webhook', err, { note: 'trial ack skipped' }) }
   }
 }
 
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
   // mirror row's updated_at had not moved since creation, and nothing in the
   // logs could tell "no events arrived" apart from "events arrived and did
   // nothing". This makes that distinction visible in Vercel logs immediately.
-  console.info('[stripe webhook] received', event.type, event.id)
+  logInfo('stripe webhook', { note: 'received', type: event.type, id: event.id })
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -179,13 +180,13 @@ export async function POST(request: NextRequest) {
         await upsertFromSubscription(svc, stripe, sub)
 
         if (!failure.notify) {
-          console.info('[stripe webhook] payment_failed attempt', failure.attempt, '- no notice this time')
+          logInfo('stripe webhook', { note: 'payment_failed attempt - no notice this time', attempt: failure.attempt })
           break
         }
         const customerId = customerIdOf(sub.customer) ?? ''
         const userId = await resolveUserId(svc, stripe, customerId)
         if (!userId) {
-          console.error('[stripe webhook] payment_failed for unresolvable customer', customerId)
+          logError('stripe webhook', undefined, { note: 'payment_failed for unresolvable customer', customerId: customerId })
           break
         }
         await notifyPaymentFailed(svc, userId, failure)
@@ -206,7 +207,7 @@ export async function POST(request: NextRequest) {
         const customerId = customerIdOf(sub.customer) ?? ''
         const userId = await resolveUserId(svc, stripe, customerId)
         if (!userId) {
-          console.error('[stripe webhook] trial_will_end for unresolvable customer', customerId)
+          logError('stripe webhook', undefined, { note: 'trial_will_end for unresolvable customer', customerId: customerId })
           break
         }
         const willCharge = await willChargeAtTrialEnd(stripe, customerId, notice)
@@ -218,7 +219,7 @@ export async function POST(request: NextRequest) {
         break // ignore unhandled types
     }
   } catch (err) {
-    console.error('[stripe webhook] handler error', err)
+    logError('stripe webhook', err, { note: 'handler error' })
     return NextResponse.json({ error: 'handler error' }, { status: 500 })
   }
   return NextResponse.json({ received: true })

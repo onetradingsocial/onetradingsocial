@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { logError } from '@/lib/server/log'
 
 export type NotificationType =
   | 'like' | 'comment' | 'follow' | 'post_share' | 'mention' | 'message'
@@ -70,7 +71,7 @@ export async function insertSystemNotification(args: {
   const { error } = await supabase.from('notifications').insert({
     user_id: userId, actor_id: null, type, entity_id: entityId ?? null, entity_type: entityType ?? null,
   })
-  if (error) console.error('[notifications] system insert failed', type, error.message)
+  if (error) logError('notifications', error.message, { note: 'system insert failed', type: type })
 }
 
 // Returns unique lowercase usernames mentioned with @username syntax.

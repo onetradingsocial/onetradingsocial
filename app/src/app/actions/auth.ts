@@ -15,6 +15,7 @@ import {
   RESET_BUDGET,
   SIGNUP_BUDGET,
 } from '@/lib/server/auth-throttle'
+import { logError } from '@/lib/server/log'
 
 export type ActionState = {
   error?: string
@@ -107,7 +108,7 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     options: { data: { username }, emailRedirectTo: authRedirectUrl('/auth/confirm') },
   })
   if (error) {
-    console.error('signUp', error.message)
+    logError('signUp', error.message)
     return { error: friendlyAuthError(error.message, 'Could not create your account. Please try again.') }
   }
 
@@ -161,7 +162,7 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     // session — the project setting and our flag have drifted apart. Send the
     // user somewhere useful instead of to /welcome, which would bounce them
     // straight back to /login with no explanation.
-    console.error('signUp', 'no session with AUTH_EMAIL_CONFIRMATION off — check the dashboard setting')
+    logError('signUp', undefined, { note: 'no session with AUTH_EMAIL_CONFIRMATION off — check the dashboard setting' })
     await stashPendingEmail(email)
     redirect('/check-email')
   }
@@ -183,7 +184,7 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) {
-    console.error('signIn', error.message)
+    logError('signIn', error.message)
     // "Email not confirmed" is only ever returned when the password was
     // CORRECT, so surfacing it discloses nothing an attacker did not already
     // have. Flagging it lets the form offer a resend link instead of a
@@ -226,7 +227,7 @@ export async function requestPasswordReset(_prev: ActionState, formData: FormDat
     })
     // Logged, never surfaced. A GoTrue rate-limit message shown to the user
     // would say "this address is real and we just tried to mail it".
-    if (error) console.error('requestPasswordReset', error.message)
+    if (error) logError('requestPasswordReset', error.message)
     await trackServer('password_reset_requested', null, {})
   }
 
@@ -257,7 +258,7 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
 
   const { error } = await supabase.auth.updateUser({ password })
   if (error) {
-    console.error('updatePassword', error.message)
+    logError('updatePassword', error.message)
     return { error: friendlyAuthError(error.message, 'Could not update your password. Please try again.') }
   }
 
@@ -269,7 +270,7 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
   try {
     await supabase.auth.signOut({ scope: 'others' })
   } catch (e) {
-    console.error('updatePassword signOut others', e instanceof Error ? e.message : String(e))
+    logError('updatePassword signOut others', e)
   }
 
   await trackServer('password_reset_completed', { id: user.id, email: user.email }, {})
@@ -293,7 +294,7 @@ export async function resendConfirmation(_prev: ActionState, formData: FormData)
       email,
       options: { emailRedirectTo: authRedirectUrl('/auth/confirm') },
     })
-    if (error) console.error('resendConfirmation', error.message)
+    if (error) logError('resendConfirmation', error.message)
   }
 
   return {

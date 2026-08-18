@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
+import { logWarn } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
 
@@ -53,12 +54,18 @@ export async function POST(req: NextRequest) {
       const blocked = String(r['blocked-uri'] ?? r['blockedURL'] ?? '')
       const source = String(r['source-file'] ?? r['sourceFile'] ?? '')
       if (IGNORED_SCHEMES.test(blocked) || IGNORED_SCHEMES.test(source)) continue
-      console.warn('[csp]', JSON.stringify({
+      // Routed through the house logger (item 19 F4) rather than a bare
+      // console.warn. It matters more here than almost anywhere else: a CSP
+      // report's `blocked-uri` and `document-uri` are browser-supplied URLs, so
+      // they arrive with whatever query string the page happened to carry, and
+      // this endpoint is unauthenticated — anyone can POST anything to it. The
+      // redaction layer strips query strings, tokens and emails out of both.
+      logWarn('csp', undefined, {
         directive: r['effective-directive'] ?? r['effectiveDirective'] ?? r['violated-directive'],
         blocked: blocked.slice(0, 300),
         document: String(r['document-uri'] ?? r['documentURL'] ?? '').slice(0, 300),
         disposition: r['disposition'] ?? 'report',
-      }))
+      })
     }
   } catch {
     // Malformed report — nothing actionable, and nothing worth logging.
