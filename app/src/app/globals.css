@@ -1131,6 +1131,16 @@ button.ts-burger-link {
 .pcard-tag { font-size: 12.5px; color: var(--dim); line-height: 1.4; min-height: 34px; }
 .pcard-price { display: flex; align-items: flex-start; gap: 2px; margin-top: 14px; }
 .pcard-price .cur { font-family: var(--display); font-size: 20px; font-weight: 600; margin-top: 7px; color: var(--text); }
+/* Attention block for a billing problem the user can act on (failed payment).
+   Amber rather than red: during the grace window nothing has been lost yet, so
+   this is a prompt, not an error. */
+.ts-callout {
+  display: block; font-size: 13.5px; line-height: 1.6; color: var(--text);
+  background: rgba(255,176,32,0.10); border: 1px solid rgba(255,176,32,0.42);
+  border-radius: 14px; padding: 12px 14px;
+}
+.ts-callout b { font-weight: 600; }
+
 /* Currency + auto-renewal disclosure under the plan grid. See .tg-fine. */
 .ts-price-fine { font-size: 12.5px; line-height: 1.6; color: var(--faint); text-align: center; max-width: 640px; margin-inline: auto; }
 .ts-price-fine b { color: var(--dim); font-weight: 600; }

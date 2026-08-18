@@ -2,8 +2,8 @@ import 'server-only'
 import { unstable_cache } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  TIER_RANK,
   trialState, trialDaysLeft, resolveTier, shouldShowWall, shouldShowWelcome,
+  pickCurrentSubscription, graceDaysLeft,
   type Tier, type TrialState,
 } from '@/lib/entitlements'
 import { parseAdminEmails, emailIsAdmin } from '@/lib/admin'
@@ -50,7 +50,10 @@ export async function getEntitlements(
       svc.from('profiles')
         .select('comp_tier, trial_started_at, trial_ack_at')
         .eq('id', userId).maybeSingle(),
-      supabase.from('subscriptions').select('tier, status').eq('user_id', userId),
+      // updated_at is selected because the past_due grace window is measured
+      // from it (see PAST_DUE_GRACE_DAYS). Omit it and every past_due customer
+      // silently loses their grace — the pre-WS1 behaviour.
+      supabase.from('subscriptions').select('tier, status, updated_at').eq('user_id', userId),
       // Deliberately its OWN query, not folded into the profiles select above.
       // welcome_tier_seen / onboarding_completed are the newest columns here
       // (Task 4); if a deploy ships the code before migration 0043 reaches a
@@ -184,17 +187,18 @@ export async function getTierMap(userIds: string[], now = new Date()): Promise<M
   const svc = createServiceClient()
   const [{ data: profs, error: profError }, { data: subs, error: subsError }, admins] = await Promise.all([
     svc.from('profiles').select('id, comp_tier, trial_started_at, trial_ack_at').in('id', ids),
-    svc.from('subscriptions').select('user_id, tier, status').in('user_id', ids),
+    // updated_at: same reason as getEntitlements — it carries the grace window.
+    svc.from('subscriptions').select('user_id, tier, status, updated_at').in('user_id', ids),
     adminUserIds(),
   ])
   // Either read failing makes EVERY tier unknown: a partial answer here would
   // silently demote real subscribers.
   if (profError || subsError || !profs || !subs) return out
 
-  const byUser = new Map<string, { tier: string; status: string }[]>()
-  for (const s of subs as { user_id: string; tier: string; status: string }[]) {
+  const byUser = new Map<string, { tier: string; status: string; updated_at: string | null }[]>()
+  for (const s of subs as { user_id: string; tier: string; status: string; updated_at: string | null }[]) {
     const arr = byUser.get(s.user_id) ?? []
-    arr.push({ tier: s.tier, status: s.status })
+    arr.push({ tier: s.tier, status: s.status, updated_at: s.updated_at })
     byUser.set(s.user_id, arr)
   }
 
@@ -238,26 +242,41 @@ export type CurrentSub = {
   priceId: string
   currentPeriodEnd: string | null
   cancelAtPeriodEnd: boolean
+  /** True while a failed payment is still inside its grace window. Drives the
+   *  "update your card" banner on /settings/billing. */
+  inGrace: boolean
+  /** Whole days of grace remaining; 0 when not in grace. */
+  graceDaysLeft: number
 }
 
-/** The highest-ranked subscription row for billing UI (renewal/cancel display). */
+/** The subscription row the billing UI should describe.
+ *
+ *  Ordering lives in pickCurrentSubscription (lib/entitlements) so it is pure
+ *  and testable. It used to sort on TIER alone, ignoring status entirely, so a
+ *  user who cancelled Pro and then subscribed to Trader had their whole billing
+ *  page driven by the dead Pro row: the wrong status, the wrong renewal date,
+ *  the "your plan" marker on the wrong card, and a Checkout button offering a
+ *  plan they already held. Status now comes first, tier second. */
 export async function getSubscription(
   supabase: SupabaseClient, userId: string,
 ): Promise<CurrentSub | null> {
   const { data } = await supabase
     .from('subscriptions')
-    .select('tier, status, price_id, current_period_end, cancel_at_period_end')
+    .select('tier, status, price_id, current_period_end, cancel_at_period_end, updated_at')
     .eq('user_id', userId)
   if (!data || data.length === 0) return null
-  const best = [...data].sort(
-    (a, b) => (TIER_RANK[b.tier as Tier] ?? -1) - (TIER_RANK[a.tier as Tier] ?? -1),
-  )[0]
+  const now = new Date()
+  const best = pickCurrentSubscription(data, now)
+  if (!best) return null
+  const grace = graceDaysLeft(best, now)
   return {
     tier: best.tier as Tier,
     status: best.status,
     priceId: best.price_id,
     currentPeriodEnd: best.current_period_end,
     cancelAtPeriodEnd: best.cancel_at_period_end,
+    inGrace: grace > 0,
+    graceDaysLeft: grace,
   }
 }
 

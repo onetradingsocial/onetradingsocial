@@ -72,6 +72,21 @@ export default async function BillingPage({
         )}
       </p>
 
+      {/* A failed renewal used to show as a bare " · past_due" appended to the
+          plan line, with no explanation and no call to action, while every paid
+          feature vanished the same instant. Now the tier is held for the grace
+          window (PAST_DUE_GRACE_DAYS) and this says so plainly. */}
+      {sub?.status === 'past_due' && (
+        <p className="ts-callout mt-3" role="status">
+          <b>We couldn&apos;t take your last payment.</b>{' '}
+          {sub.inGrace
+            ? `Your paid features stay on for another ${sub.graceDaysLeft} ${sub.graceDaysLeft === 1 ? 'day' : 'days'} while your bank retries.`
+            : 'Your paid features are paused until the payment goes through.'}{' '}
+          Update your card under <b>Manage billing &amp; invoices</b> below — nothing you&apos;ve
+          logged has been deleted.
+        </p>
+      )}
+
       <PlanCards
         currentTier={tier}
         currentInterval={currentInterval}

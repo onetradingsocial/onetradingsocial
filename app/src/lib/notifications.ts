@@ -4,10 +4,15 @@ export type NotificationType =
   | 'like' | 'comment' | 'follow' | 'post_share' | 'mention' | 'message'
   // System (no actor) — Sprint 4, row 31:
   | 'weekly_report' | 'import_done' | 'sync_failed' | 'goal_completed' | 'rule_breach' | 'new_learning'
+  // Billing lifecycle (WS1). Transactional, NOT in the PREF_KEYS allow-list in
+  // actions/notifications.ts, so they cannot be switched off — a customer must
+  // always be told their payment failed or their trial ended.
+  | 'payment_failed' | 'trial_ending' | 'trial_expired'
 
 // System notification types have no actor and are addressed to the user directly.
 export const SYSTEM_NOTIF_TYPES = [
   'weekly_report', 'import_done', 'sync_failed', 'goal_completed', 'rule_breach', 'new_learning',
+  'payment_failed', 'trial_ending', 'trial_expired',
 ] as const
 
 export interface InsertNotificationArgs {
@@ -58,9 +63,14 @@ export async function insertSystemNotification(args: {
   const { data: prof } = await supabase.from('profiles').select('notification_prefs').eq('id', userId).maybeSingle()
   const prefs = (prof?.notification_prefs ?? {}) as Record<string, boolean>
   if (prefs[type] === false) return // opted out
-  await supabase.from('notifications').insert({
+  // PostgREST returns failures in the result object rather than throwing, so
+  // without this an insert rejected by notifications_type_check is completely
+  // invisible — which is exactly how a new notification type shipped ahead of
+  // its migration would look like "the feature just doesn't work".
+  const { error } = await supabase.from('notifications').insert({
     user_id: userId, actor_id: null, type, entity_id: entityId ?? null, entity_type: entityType ?? null,
   })
+  if (error) console.error('[notifications] system insert failed', type, error.message)
 }
 
 // Returns unique lowercase usernames mentioned with @username syntax.
