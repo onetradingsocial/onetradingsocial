@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { validateUsername } from '@/lib/username'
 import { trackServer } from '@/lib/server/track'
 import { attributeReferral } from '@/lib/server/referral'
+import { recordTermsAcceptance } from '@/lib/server/terms-acceptance'
 import { passwordProblem, PASSWORD_MIN_LENGTH } from '@/lib/password'
 import { RESET_REQUEST_MESSAGE } from '@/lib/auth-recovery'
 import {
@@ -122,6 +123,17 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   // attributing against it would write nowhere and would fire a signup event
   // for a signup that did not happen.
   if (data.user && !alreadyRegistered) {
+    // The consent above is enforced but was, until WS9, never written down:
+    // the checkbox blocked the submit and then left no trace, so on any dispute
+    // there was nothing to produce. Recorded here rather than in the form
+    // because this is the point at which the acceptance was actually enforced.
+    //
+    // Deliberately BEFORE the email-confirmation branch below: the user ticked
+    // the box and agreed now, whether or not they ever click the link. And
+    // deliberately not awaited for its result — `recordTermsAcceptance` never
+    // throws and never blocks a signup (see its comment block).
+    await recordTermsAcceptance(createServiceClient(), data.user.id, 'signup_checkbox')
+
     // Attribution: the campaign/ref code captured by middleware sticks to the
     // profile at signup (service client: the trigger-created row is ours).
     const ref = (await cookies()).get('ts_ref')?.value ?? null

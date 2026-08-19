@@ -7,6 +7,7 @@ import { getReferralStats } from '@/lib/server/referral'
 import { earnedMonths } from '@/lib/referral'
 import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
 import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
+import { stripeTermsConsent } from '@/lib/terms-acceptance'
 import { logError } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
@@ -115,6 +116,11 @@ export async function POST(request: NextRequest) {
     subscription_data: flow === 'referral'
       ? { trial_period_days: referralMonths * 30 } : undefined,
     payment_method_collection: flow === 'referral' ? 'always' : undefined,
+    // Stripe's own terms acceptance (item 5 finding 2). Undefined unless
+    // STRIPE_TOS_CONSENT=on, because Stripe rejects this when no ToS URL is set
+    // in the Dashboard — see stripeTermsConsent() for the full reasoning and
+    // the order the two switches must be flipped in.
+    consent_collection: stripeTermsConsent(),
     // Advertising consent, carried to the webhook (audit item 17 finding 6).
     // The Purchase conversion is fired from the Stripe webhook, which has no
     // browser context and therefore cannot read the consent cookie. Stamping
