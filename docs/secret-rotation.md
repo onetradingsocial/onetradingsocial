@@ -34,7 +34,7 @@ alphabetically. `n/a` under Rotate means it is not a credential.
 
 | # | Secret | Where it lives | Blast radius if leaked | Rotate |
 |---|---|---|---|---|
-| 1 | **`EXCHANGE_KEY_SECRET`** | Vercel (app), `app/.env.local` | **Critical and currently irreversible.** AES-256-GCM master key for every user's exchange API key/secret. With a database dump it converts inert ciphertext into live exchange credentials | **Cannot be rotated safely today — see below.** Fix the design first |
+| 1 | **`EXCHANGE_KEY_SECRET`** | Vercel (app), `app/.env.local` | **Critical.** AES-256-GCM master key for every user's exchange API key/secret. With a database dump it converts inert ciphertext into live exchange credentials | **Yes, but by its own procedure — see below, not the generic one.** Two keys overlap, ciphertext is re-encrypted, and the old key is only dropped once proven unreferenced |
 | 2 | `SUPABASE_SERVICE_ROLE_KEY` | Vercel (app), `app/.env.local` (dev project's key), GitHub Actions | **Total** — bypasses all RLS, full read/write on every table. Used by 12+ routes | Every 90 days |
 | 3 | `STRIPE_SECRET_KEY` | Vercel (app) — live key. `.env.local` holds `sk_test_` only | **High** — can charge and refund customers | Every 90 days |
 | 4 | **n8n credential set** — `N8N_ENCRYPTION_KEY`, `IG_ACCESS_TOKEN`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_REFRESH_TOKEN`, `TELEGRAM_*` | `automation/n8n/.env` and `instagram-token.json`, both untracked, dev machine only | Medium — post as the brand on Instagram/TikTok/Telegram. `N8N_ENCRYPTION_KEY` decrypts n8n's own credential store | On laptop compromise or contributor offboarding |
@@ -58,36 +58,145 @@ sites anywhere in `app/src`. There is no Cloudflare credential to rotate; delete
 the five dead lines from `.env.local`. `ANTHROPIC_API_KEY` was likewise listed
 here and exists nowhere — a phantom entry.
 
-## `EXCHANGE_KEY_SECRET` — read this before touching it
+## `EXCHANGE_KEY_SECRET` — the rotation procedure
 
-`lib/server/secrets.ts:14-22` reads exactly one environment variable:
+> **Superseded by WS10.** Every earlier version of this section said *do not
+> rotate this key*, because `masterKey()` read exactly one value and
+> `decryptSecret` compared every envelope against one hardcoded constant, so
+> replacing the value made every `api_key_enc` / `api_secret_enc` row
+> permanently undecryptable. That is fixed. This is now a procedure, not a
+> warning. The one thing that survives from the warning is **step 5** below.
 
-```ts
-const raw = process.env.EXCHANGE_KEY_SECRET
+`lib/server/secrets.ts` now reads a key **set** and each envelope names the key
+that wrote it, so two keys can be live at once:
+
+```
+EXCHANGE_KEY_SECRET=<base64>                  one key — read as v1 (what is deployed)
+EXCHANGE_KEY_SECRET=v1:<base64>,v2:<base64>   a set — old and new held together
 ```
 
-There is no second key and no key selection on the `v1` envelope prefix, even
-though the prefix exists. So **rotating this secret makes every
-`api_key_enc` / `api_secret_enc` row permanently undecryptable.** Crypto sync
-fails for every Pro user who has connected an exchange, and there is no recovery
-path short of asking each of them to re-enter their Binance credentials.
+`encryptSecret` writes with the highest version number in the set;
+`decryptSecret` selects the key by the envelope's own prefix; a version the set
+does not hold fails closed with the same non-leaking error as any other unusable
+input. The bare form still means `v1`, so no rotation is *required* — nothing
+changes until you start one.
 
-This is the one entry in this document where following the standing rule
-("rotate immediately after any suspected exposure") destroys data. A key that
-cannot be rotated is a key that will not be rotated, so the fix is engineering
-work, not a procedure:
+### Before you start
 
-1. Change `masterKey()` to read a key **set**: `EXCHANGE_KEY_SECRET` (current,
-   used to encrypt) plus optional `EXCHANGE_KEY_SECRET_PREVIOUS` (decrypt-only).
-2. Select the key on the envelope's version prefix, and write new ciphertext
-   under a bumped prefix (`v2`).
-3. Re-encrypt existing rows lazily on next successful decrypt, or in one pass.
-4. Only then does the standard order of operations below apply to it.
+`exchange_accounts` had **zero rows** when this was built, so a rotation today
+migrates nothing and costs nothing. Once users have connected exchanges, take a
+database backup first (`scripts/backup-db.mjs` covers `exchange_accounts`) and
+expect the re-encryption pass to run for as long as there are rows.
 
-Until that lands: **do not rotate this value.** If it is ever exposed, the
-correct emergency action is to revoke the *exchange-side* API keys (which users
-can do at Binance, and which the account-deletion flow already tells them to
-do) rather than to rotate this key.
+Everything below runs against the deployed app, not your laptop — the pass has
+to execute where the key set already lives, so the production key never needs to
+be copied anywhere. All four calls are gated by `CRON_SECRET` and return counts,
+row ids and version labels only: no key material, no ciphertext, no plaintext.
+
+```bash
+ROTATE="https://app.tradingsocial.io/api/cron/exchange-key-rotate"
+AUTH="Authorization: Bearer $CRON_SECRET"
+```
+
+### 1. Add the new key alongside the old one
+
+Generate it: `openssl rand -base64 32`. Then in Vercel → Settings →
+Environment Variables set
+
+```
+EXCHANGE_KEY_SECRET=v1:<the current bare value>,v2:<the new value>
+```
+
+The current value moves in unchanged under the label `v1` — that is exactly what
+the bare form already meant, so nothing stored is affected. **Do not delete
+anything yet.**
+
+### 2. Redeploy
+
+Env changes need a new build. From this moment new writes are `v2` and old rows
+still decrypt under `v1`. Confirm the app picked the set up:
+
+```bash
+curl -sH "$AUTH" "$ROTATE?mode=scan"
+```
+
+Expect `"newest":"v2"` and `"known":["v1","v2"]`. If `missing` is anything other
+than `[]`, **stop** — data references a key this deploy does not hold, and
+re-encrypting would only spread the damage. Restore the missing key first.
+
+### 3. Rehearse the migration
+
+```bash
+curl -sH "$AUTH" "$ROTATE?mode=migrate&dryRun=1"
+```
+
+This decrypts and re-encrypts every value and writes nothing, which proves the
+deployed key set can read every row *before* a single row changes. Require
+`"failures":[]`. A `decrypt` failure here is the one problem that cannot be
+fixed after the fact, which is why this step is not optional.
+
+### 4. Run the migration
+
+```bash
+curl -sH "$AUTH" "$ROTATE?mode=migrate"
+```
+
+Safe with the app live: every column of a row is rewritten in one statement so a
+row is never half-migrated; both keys are held so a concurrent `crypto-sync`
+decrypts either state; and the write is a compare-and-swap on the ciphertext
+that was read, so a user reconnecting mid-pass wins and is reported as `raced`
+rather than clobbered. It is idempotent — re-running rewrites nothing — so if
+you are unsure whether it finished, run it again.
+
+If `done` is `false` (a large table hitting the 60 s function limit), repeat
+with the cursor it returned:
+
+```bash
+curl -sH "$AUTH" "$ROTATE?mode=migrate&cursor=<cursor from the response>"
+```
+
+Repeat until `done` is `true`, `failures` is empty and `rowsRaced` is `0`.
+
+### 5. Prove the old key is unreferenced — DO NOT SKIP
+
+```bash
+curl -sH "$AUTH" "$ROTATE?mode=retire&version=v1"
+```
+
+Require `"ok":true`. Anything else names the reason: outstanding ciphertext, a
+version the key set does not hold, or an attempt to retire the version new
+writes use. Cross-check the scan in the same response: `byVersion` should read
+`{"v2": N}` with no `v1`, and `retirable` should contain `v1`.
+
+**Removing a key while rows still need it is unrecoverable and silent** — the
+app keeps serving; nothing fails until the next sync touches an affected row,
+and by then the key is gone. This step exists because that is the failure the
+whole design was built to prevent.
+
+### 6. Drop the old key
+
+Set `EXCHANGE_KEY_SECRET=v2:<new value>` (or bare `<new value>`, which the code
+reads as `v1`; keep the label if you would rather the number kept climbing).
+Redeploy. Re-run `mode=scan` and confirm `fullyMigrated` is `true` and `missing`
+is `[]`. Then verify in the app: connect an exchange on a test account and run
+**Sync now** from `/settings`.
+
+### If it is exposed and you cannot rotate immediately
+
+Revoke the *exchange-side* API keys — users can do that at Binance, and the
+account-deletion flow already tells them how. That kills the value of the
+ciphertext regardless of who holds the master key, and it does not wait on a
+deploy.
+
+### Notes
+
+- The endpoint is **not** scheduled in `vercel.json` and must not be. It is
+  invoked by hand, a handful of times, during one rotation.
+- The re-encryption UPDATE fires the `touch_updated_at` trigger, so
+  `exchange_accounts.updated_at` bumps on every migrated row. Nothing renders
+  that column; it is noted so it is not mistaken later for user activity.
+- Nothing is re-encrypted lazily on read. A row moves only when the pass moves
+  it, which is what makes step 5 a real check rather than an estimate.
 
 **Also confirm, once:** whether the value in `app/.env.local` is the same as the
 production value. Vercel → project → Settings → Environment Variables → reveal
@@ -95,7 +204,8 @@ production value. Vercel → project → Settings → Environment Variables → 
 the local one. If they match, generate a distinct value for local development —
 otherwise laptop compromise plus a database dump exposes real user exchange
 credentials, and the "dev profile" reassurance above does not hold for this one
-variable.
+variable. With rotation now possible, the fix for a match is a rotation rather
+than a shrug.
 
 ## Order of operations (zero-downtime)
 
@@ -111,6 +221,10 @@ Supabase, Stripe, Resend and MetaApi all support two live keys at once. Always:
 
 Skipping the 1→5 ordering causes an outage. Revoking first is the classic
 mistake.
+
+`EXCHANGE_KEY_SECRET` does not follow this list — there is no provider console
+to roll it in, and the "old key" cannot be revoked until stored data has been
+moved off it. Use its own six-step procedure above.
 
 ## Per-secret notes
 
@@ -190,7 +304,9 @@ changes and they should all be recorded.
 ## If a secret is exposed
 
 1. Revoke **immediately** — accept the downtime, it is cheaper than the breach.
-   The one exception is `EXCHANGE_KEY_SECRET`; see its section above.
+   `EXCHANGE_KEY_SECRET` is the one secret you cannot simply revoke: follow its
+   own six-step procedure above, and if you need the exposure closed before a
+   rotation can finish, revoke the exchange-side API keys instead.
 2. Rotate as above.
 3. If `SUPABASE_SERVICE_ROLE_KEY` leaked: assume full data exposure. Review
    `admin_audit` and `trade_audits` for unexpected activity, and Supabase logs
