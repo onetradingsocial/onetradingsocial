@@ -7,6 +7,33 @@ export const runtime = 'nodejs'
 const size = { width: 1200, height: 630 }
 
 /**
+ * Cache headers. Audit item 10 finding 4 -- this route was uncached and
+ * unthrottled, and it is the expensive one: two queries plus a Satori layout
+ * and a PNG encode on every hit, with no session to rate-limit against.
+ *
+ * Caching is the right control here rather than a limiter. The callers are
+ * social scrapers (Slack, Discord, X, Facebook, LinkedIn) which refetch the
+ * same handful of URLs repeatedly, so a shared cache absorbs almost all of it
+ * -- whereas a limiter would add a database round trip to the very route we
+ * are trying to make cheap, and would throttle a genuinely viral profile.
+ *
+ * s-maxage is what matters: it is the CDN, not the browser, that sits in front
+ * of the scrapers. stale-while-revalidate means a popular card is never
+ * rendered on the critical path once it is warm -- the stale copy is served and
+ * the refresh happens behind it.
+ *
+ * The miss case is cached too, and deliberately for a much shorter window: a
+ * profile that is private, unfinished or simply does not exist returns the
+ * generic card, and that answer stops being true the moment somebody finishes
+ * onboarding or flips to public. Five minutes bounds how long a new profile
+ * shows the fallback, while still absorbing a flood of requests for names that
+ * do not exist -- which is the actual abuse shape for an unauthenticated route
+ * keyed by an arbitrary string.
+ */
+const CACHE_HIT = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
+const CACHE_MISS = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+
+/**
  * Branded share/OG card for a public profile (Sprint 4, rows 37 + 38).
  * Verified performance, TradingSocial branding, no raw currency — R and % only.
  */
@@ -26,7 +53,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ usernam
         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg, color: '#fff', fontSize: 48 }}>
           TradingSocial
         </div>
-      ), { ...size },
+      ), { ...size, headers: { 'Cache-Control': CACHE_MISS } },
     )
   }
 
@@ -78,6 +105,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ usernam
           <div style={{ fontSize: 24, color: '#8b8799' }}>Track. Prove. Improve.</div>
         </div>
       </div>
-    ), { ...size },
+    ), { ...size, headers: { 'Cache-Control': CACHE_HIT } },
   )
 }
