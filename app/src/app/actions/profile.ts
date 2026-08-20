@@ -18,6 +18,7 @@ import { onboardingToRow, type OnboardingInput, type ExperienceLevel, resolveVis
 import { CUSTOM_BADGES } from '@/lib/badges'
 import { THEME_PRESETS, sanitizeCtaUrl } from '@/lib/creator-profile'
 import { logError } from '@/lib/server/log'
+import { allowAction, PROFILE_BUDGET } from '@/lib/server/action-throttle'
 
 export type ProfileState = { error?: string; ok?: boolean }
 
@@ -25,6 +26,8 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  const gate = await allowAction(PROFILE_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   const username = String(formData.get('username') ?? '')
   const v = validateUsername(username)
@@ -128,6 +131,8 @@ export async function saveProfileSettings(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  const gate = await allowAction(PROFILE_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   const username = String(formData.get('username') ?? '').trim()
   const v = validateUsername(username)

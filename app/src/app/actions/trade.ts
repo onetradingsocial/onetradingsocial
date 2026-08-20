@@ -16,6 +16,7 @@ import {
   computeOpen, computeClose, DIRECTIONS, SIZING_MODES, CONFIDENCE_LEVELS, EMOTIONS, MISTAKE_TAGS,
   type Direction, type SizingMode,
 } from '@/lib/trade'
+import { allowAction, JOURNAL_BUDGET, UPLOAD_BUDGET } from '@/lib/server/action-throttle'
 
 export type TradeState = { error?: string; ok?: boolean; tradeId?: string }
 
@@ -29,6 +30,8 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(JOURNAL_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   // Service client: 0047 revokes SELECT on account_balance from both client
   // roles, and risk%-sized trades size themselves off it. Scoped to user.id
@@ -178,6 +181,8 @@ export async function closeTrade(tradeId: string, exitPrice: number, mistakeTags
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(JOURNAL_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   if (!Number.isFinite(exitPrice)) return { error: 'Invalid exit price.' }
 
   const { data: t } = await supabase
@@ -239,6 +244,8 @@ export async function saveTradeChartUrl(tradeId: string, chartUrl: string): Prom
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(UPLOAD_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   // Charts now live in the private bucket and are read through
   // /api/private-image. The prefix is scoped to the caller's own uid, so a
   // crafted URL cannot point a trade at somebody else's object.
@@ -274,6 +281,8 @@ export async function deleteTrade(tradeId: string): Promise<TradeState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(JOURNAL_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   const { data: t } = await supabase
     .from('trades').select('source').eq('id', tradeId).eq('user_id', user.id).maybeSingle()

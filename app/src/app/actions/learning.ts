@@ -7,6 +7,7 @@ import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { gradeQuiz, learningStreakDays, streakBoostPct, type QuizAnswers, type LearningCompletion } from '@/lib/learning'
+import { allowAction, JOURNAL_BUDGET } from '@/lib/server/action-throttle'
 
 export type QuizResult = { passed: boolean; wrongQuestionIds: string[]; xpAwarded: number; bonusXp?: number; error?: string }
 
@@ -23,6 +24,10 @@ export async function submitQuiz(lessonId: string, answers: QuizAnswers): Promis
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { passed: false, wrongQuestionIds: [], xpAwarded: 0, error: 'Not authenticated.' }
+  // Unreachable while LEARN_HIDDEN is true — wired now so restoring the feature
+  // does not restore an unthrottled XP-granting endpoint with it.
+  const gate = await allowAction(JOURNAL_BUDGET, user.id)
+  if (!gate.ok) return { passed: false, wrongQuestionIds: [], xpAwarded: 0, error: gate.message }
 
   const svc = createServiceClient()
   const { data: lesson } = await svc.from('lessons').select('id, xp_reward, published').eq('id', lessonId).maybeSingle()

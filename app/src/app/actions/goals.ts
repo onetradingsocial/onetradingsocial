@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { GOAL_META, type GoalKind } from '@/lib/goals'
+import { allowAction, JOURNAL_BUDGET } from '@/lib/server/action-throttle'
 
 export type GoalState = { error?: string; ok?: boolean }
 
@@ -12,6 +13,8 @@ export async function addGoal(input: { kind: string; target: number; windowDays:
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(JOURNAL_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   if (!(KINDS as string[]).includes(input.kind)) return { error: 'Invalid goal.' }
   const target = Number(input.target)
   if (!Number.isFinite(target) || target <= 0) return { error: 'Target must be positive.' }
@@ -30,6 +33,8 @@ export async function removeGoal(id: number): Promise<GoalState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(JOURNAL_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   await supabase.from('process_goals').delete().eq('id', id).eq('user_id', user.id)
   revalidatePath('/journal')
   return { ok: true }

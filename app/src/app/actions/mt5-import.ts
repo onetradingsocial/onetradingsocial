@@ -8,6 +8,7 @@ import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { parseMt5, validateDeals, mapDealToTrade, type Mt5Deal } from '@/lib/mt5'
 import { trackServer } from '@/lib/server/track'
+import { allowAction, IMPORT_BUDGET } from '@/lib/server/action-throttle'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
@@ -34,6 +35,8 @@ export async function parseMt5Statement(formData: FormData): Promise<Mt5ParseSta
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const throttle = await allowAction(IMPORT_BUDGET, user.id)
+  if (!throttle.ok) return { error: throttle.message }
   const gateErr = await gate(supabase, user.id)
   if (gateErr) return { error: gateErr }
 
@@ -62,6 +65,8 @@ export async function commitMt5Import(deals: Mt5Deal[]): Promise<Mt5CommitState>
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const throttle = await allowAction(IMPORT_BUDGET, user.id)
+  if (!throttle.ok) return { error: throttle.message }
   const gateErr = await gate(supabase, user.id)
   if (gateErr) return { error: gateErr }
 

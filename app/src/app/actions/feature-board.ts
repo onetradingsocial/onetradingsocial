@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { allowAction, REPORT_BUDGET, REACTION_BUDGET, COMMENT_BUDGET } from '@/lib/server/action-throttle'
 
 export type FrState = { error?: string; ok?: boolean; id?: number }
 
@@ -9,6 +10,8 @@ export async function submitFeatureRequest(input: { title: string; body?: string
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(REPORT_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const title = input.title.trim()
   if (title.length < 3 || title.length > 120) return { error: 'Title must be 3–120 characters.' }
   const body = (input.body ?? '').trim().slice(0, 2000) || null
@@ -29,6 +32,8 @@ export async function toggleFeatureVote(requestId: number): Promise<FrState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(REACTION_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   const { data: existing } = await supabase
     .from('feature_request_votes').select('request_id')
@@ -47,6 +52,8 @@ export async function commentOnFeature(requestId: number, body: string): Promise
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(COMMENT_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const text = body.trim()
   if (!text || text.length > 1000) return { error: 'Comment must be 1–1000 characters.' }
 

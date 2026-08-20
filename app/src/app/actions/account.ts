@@ -9,6 +9,9 @@ import { getStripe } from '@/lib/stripe'
 import { raiseAlert } from '@/lib/server/alerts'
 import { sendEmail, accountDeletedHtml } from '@/lib/server/email'
 import { allowAuthAttempt, LOGIN_BUDGET } from '@/lib/server/auth-throttle'
+import {
+  allowAction, PROFILE_BUDGET, EXPORT_BUDGET, ACCOUNT_DELETE_BUDGET,
+} from '@/lib/server/action-throttle'
 import { parseAccountBalance } from '@/lib/trade'
 import {
   runDeletionSteps, deletionErrorMessage, THIRD_PARTY_RESIDUE, type DeletionRun,
@@ -76,6 +79,13 @@ export async function saveAccount(formData: FormData): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
+  // saveAccount is a void <form action>, so a refusal has to travel back as a
+  // query flag — the same channel an invalid balance already uses. `retry`
+  // carries the seconds so the page renders the one shared message rather than
+  // inventing its own.
+  const gate = await allowAction(PROFILE_BUDGET, user.id)
+  if (!gate.ok) redirect(`/settings?balance=throttled&retry=${gate.retryAfter}#trading`)
+
   const parsed = parseAccountBalance(formData.get('account_balance'))
   if ('error' in parsed) {
     // Bad input leaves the stored balance ALONE. The old code coerced it to 0,
@@ -122,6 +132,8 @@ export async function exportMyData(): Promise<{ error?: string; json?: string }>
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(EXPORT_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const uid = user.id
 
   const [profile, trades, posts, comments, likes, follows, feedback, rules, subs, completions, brokers] = await Promise.all([
@@ -210,6 +222,12 @@ export async function deleteMyAccount(input: DeleteAccountInput): Promise<{ erro
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
   if (!user.email) return { error: 'This account has no email address on file. Please contact support.' }
+
+  // Bounds the Stripe / MetaApi / storage calls each attempt makes, and covers
+  // the Google-only path below, which has no password to check and so was
+  // reaching those calls with no limit of any kind.
+  const gate = await allowAction(ACCOUNT_DELETE_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   // Confirmation is the EMAIL, not the username. The username is the public
   // profile URL (`/[username]`), so anyone who has looked at the profile

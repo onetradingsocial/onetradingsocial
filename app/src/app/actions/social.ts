@@ -9,6 +9,10 @@ import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { logError } from '@/lib/server/log'
+import {
+  allowAction, POST_BUDGET, COMMENT_BUDGET, REACTION_BUDGET, GRAPH_BUDGET, UPLOAD_BUDGET,
+  AMBIENT_BUDGET,
+} from '@/lib/server/action-throttle'
 
 export type SocialState = { error?: string; ok?: boolean }
 
@@ -32,6 +36,8 @@ export async function createPost(input: CreatePostInput): Promise<{ postId?: str
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(POST_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   const body = (input.body ?? '').trim()
   const type = input.attachmentType
@@ -96,6 +102,8 @@ export async function attachPostImages(postId: string, urls: string[]): Promise<
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(UPLOAD_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/`
   const rows = urls.filter((u) => u.startsWith(prefix)).slice(0, 4).map((url, ord) => ({ post_id: postId, url, ord }))
   if (rows.length === 0) return { error: 'No valid images.' }
@@ -110,6 +118,8 @@ export async function votePoll(postId: string, optionId: string): Promise<{ erro
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(REACTION_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const { data: opt } = await supabase.from('poll_options').select('id').eq('id', optionId).eq('post_id', postId).maybeSingle()
   if (!opt) return { error: 'Invalid option.' }
   const { error } = await supabase.from('poll_votes').upsert(
@@ -135,6 +145,8 @@ export async function deletePost(postId: string): Promise<SocialState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(POST_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const { error } = await supabase.from('posts').delete().eq('id', postId).eq('author_id', user.id)
   if (error) { logError('deletePost', error.message); return { error: 'Could not delete the post. Try again.' } }
   revalidatePath('/')
@@ -145,6 +157,8 @@ export async function toggleLike(postId: string): Promise<{ liked: boolean; coun
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(REACTION_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const { data: existing } = await supabase.from('likes')
     .select('post_id').eq('post_id', postId).eq('user_id', user.id).maybeSingle()
   if (existing) {
@@ -173,6 +187,10 @@ export async function toggleLike(postId: string): Promise<{ liked: boolean; coun
 export async function getComments(postId: string): Promise<CommentItem[]> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  // Unbounded row count per post and no error channel (CommentItem[]), so a
+  // throttled read returns the empty list the UI already renders for a post
+  // with no comments.
+  if (!(await allowAction(AMBIENT_BUDGET, user?.id ?? null)).ok) return []
   const { data } = await supabase.from('comments')
     .select('id, body, created_at, author_id, author:profiles!comments_author_id_fkey(username, display_name, avatar_url)')
     .eq('post_id', postId).order('created_at', { ascending: true })
@@ -186,6 +204,8 @@ export async function addComment(postId: string, body: string): Promise<SocialSt
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(COMMENT_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const text = body.trim()
   if (!text) return { error: 'Comment is empty.' }
   if (text.length > 1000) return { error: 'Comment too long.' }
@@ -213,6 +233,8 @@ export async function deleteComment(commentId: string): Promise<SocialState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(COMMENT_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const { error } = await supabase.from('comments').delete().eq('id', commentId).eq('author_id', user.id)
   if (error) { logError('deleteComment', error.message); return { error: 'Could not delete the comment. Try again.' } }
   return { ok: true }
@@ -222,6 +244,8 @@ export async function follow(targetId: string): Promise<SocialState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(GRAPH_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   if (targetId === user.id) return { error: "You can't follow yourself." }
   const { error } = await supabase.from('follows').upsert(
     { follower_id: user.id, following_id: targetId },
@@ -238,6 +262,8 @@ export async function unfollow(targetId: string): Promise<SocialState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(GRAPH_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const { error } = await supabase.from('follows').delete().eq('follower_id', user.id).eq('following_id', targetId)
   if (error) { logError('unfollow', error.message); return { error: 'Could not unfollow. Try again.' } }
   revalidatePath('/')
@@ -248,6 +274,8 @@ export async function favorite(targetId: string): Promise<SocialState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(GRAPH_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   if (targetId === user.id) return { error: "You can't favourite yourself." }
   const tier = await getTier(supabase, user.id)
   if (!canFlag(await getFeatureFlags(), tier, 'saved_traders')) return { error: FAVORITE_GATE_ERROR }
@@ -271,6 +299,8 @@ export async function unfavorite(targetId: string): Promise<SocialState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(GRAPH_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   await supabase.from('favorites').delete().eq('user_id', user.id).eq('favorite_id', targetId)
   revalidatePath('/')
   return { ok: true }
@@ -286,6 +316,9 @@ export async function getTraderCardData(userId: string): Promise<TraderCardData 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+  // Six queries including a full scan of the target's public closed trades.
+  // `null` is what the card already renders as "unavailable".
+  if (!(await allowAction(AMBIENT_BUDGET, user.id)).ok) return null
   const [{ data: profile }, { data: closed }, xp, { data: vf }, { data: vfav }, tier] = await Promise.all([
     supabase.from('profiles').select('username, display_name, avatar_url').eq('id', userId).maybeSingle(),
     supabase.from('trades').select('r_multiple').eq('user_id', userId).eq('is_public', true).eq('status', 'closed'),

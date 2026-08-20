@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
+import { allowAction, JOURNAL_BUDGET, AMBIENT_BUDGET } from '@/lib/server/action-throttle'
 
 export type TradeTemplate = {
   id: string
@@ -38,6 +39,8 @@ async function requireTemplates() {
 export async function listTradeTemplates(): Promise<{ templates?: TradeTemplate[]; error?: string }> {
   const ctx = await requireTemplates()
   if ('error' in ctx) return { error: ctx.error }
+  const gate = await allowAction(AMBIENT_BUDGET, ctx.user.id)
+  if (!gate.ok) return { error: gate.message }
   const { data, error } = await ctx.supabase
     .from('trade_templates')
     .select('id, name, payload')
@@ -50,6 +53,8 @@ export async function listTradeTemplates(): Promise<{ templates?: TradeTemplate[
 export async function saveTradeTemplate(name: string, payload: TemplatePayload): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireTemplates()
   if ('error' in ctx) return { error: ctx.error }
+  const gate = await allowAction(JOURNAL_BUDGET, ctx.user.id)
+  if (!gate.ok) return { error: gate.message }
   const clean = name.trim().slice(0, 40)
   if (!clean) return { error: 'Template needs a name.' }
   const { count } = await ctx.supabase
@@ -70,6 +75,8 @@ export async function saveTradeTemplate(name: string, payload: TemplatePayload):
 export async function deleteTradeTemplate(id: string): Promise<{ ok?: boolean; error?: string }> {
   const ctx = await requireTemplates()
   if ('error' in ctx) return { error: ctx.error }
+  const gate = await allowAction(JOURNAL_BUDGET, ctx.user.id)
+  if (!gate.ok) return { error: gate.message }
   const { error } = await ctx.supabase
     .from('trade_templates').delete().eq('id', id).eq('user_id', ctx.user.id)
   if (error) return { error: error.message }

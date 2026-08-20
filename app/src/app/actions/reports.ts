@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { trackServer } from '@/lib/server/track'
 import { REPORT_REASON_KEYS } from '@/lib/reports'
+import { allowAction, REPORT_BUDGET } from '@/lib/server/action-throttle'
 
 export type ReportState = { error?: string; ok?: boolean }
 
@@ -15,6 +16,8 @@ export async function submitReport(input: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(REPORT_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   if (!REPORT_REASON_KEYS.has(input.reason)) return { error: 'Pick a valid reason.' }
 
   const { data: target } = await supabase
