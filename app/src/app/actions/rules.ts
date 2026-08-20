@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { type TradingRules, type TradingSession } from '@/lib/rules'
+import { allowAction, JOURNAL_BUDGET } from '@/lib/server/action-throttle'
 
 export type RulesState = { error?: string; ok?: boolean }
 
@@ -25,6 +26,8 @@ export async function saveTradingRules(_prev: RulesState, formData: FormData): P
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(JOURNAL_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   const sessionRaw = String(formData.get('session') ?? '').trim()
   const session = (SESSIONS as readonly string[]).includes(sessionRaw) ? (sessionRaw as TradingSession) : null

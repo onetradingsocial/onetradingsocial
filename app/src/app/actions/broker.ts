@@ -6,6 +6,7 @@ import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { provisionAccount, removeAccount, undeployAccount } from '@/lib/server/metaapi'
+import { allowAction, EXTERNAL_BUDGET } from '@/lib/server/action-throttle'
 
 export type BrokerState = { ok?: boolean; error?: string }
 
@@ -13,6 +14,8 @@ export async function connectBroker(_prev: BrokerState, formData: FormData): Pro
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(EXTERNAL_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const tier = await getTier(supabase, user.id)
   const flags = await getFeatureFlags()
   if (!canFlag(flags, tier, 'mt5_autosync')) return { error: 'Auto-sync is available on the Pro plan.' }
@@ -49,6 +52,8 @@ export async function disconnectBroker(): Promise<BrokerState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(EXTERNAL_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   const { data: row } = await supabase
     .from('broker_accounts').select('id, metaapi_account_id').eq('user_id', user.id).maybeSingle()

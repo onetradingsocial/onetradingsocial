@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { signAvatarUpload, avatarPublicUrl } from '@/lib/storage'
+import { allowAction, UPLOAD_BUDGET, PROFILE_BUDGET } from '@/lib/server/action-throttle'
 
 function isAllowed(ct: string): ct is 'image/png' | 'image/jpeg' {
   return ct === 'image/png' || ct === 'image/jpeg'
@@ -12,6 +13,8 @@ export async function getAvatarUploadUrl(contentType: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' as const }
+  const gate = await allowAction(UPLOAD_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   return signAvatarUpload(user.id, contentType)
 }
 
@@ -20,6 +23,8 @@ export async function saveAvatarUrl(contentType: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' as const }
+  const gate = await allowAction(PROFILE_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   // Rebuild URL server-side from the session user id; never trust a client URL.
   // Cache-bust query so the browser drops the previous avatar after re-upload.
   const publicUrl = `${avatarPublicUrl(user.id, contentType)}?v=${Date.now()}`

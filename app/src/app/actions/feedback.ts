@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { validateFeedback } from '@/lib/feedback'
 import { trackServer } from '@/lib/server/track'
+import { allowAction, REPORT_BUDGET } from '@/lib/server/action-throttle'
 
 export type FeedbackState = { error?: string; ok?: boolean }
 
@@ -18,6 +19,8 @@ export async function submitFeedback(input: SubmitFeedbackInput): Promise<Feedba
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(REPORT_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
 
   const valid = validateFeedback({ type: input.type, message: input.message })
   if (!valid.ok) return { error: valid.error }

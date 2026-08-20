@@ -10,6 +10,7 @@ import { verifyReadOnly, type ExchangeCreds } from '@/lib/server/binance'
 import { validatePairs } from '@/lib/crypto/exchange-symbols'
 import { encryptSecret } from '@/lib/server/secrets'
 import { syncExchangeAccount, type ExchangeRow } from '@/lib/server/crypto-sync'
+import { allowAction, EXTERNAL_BUDGET } from '@/lib/server/action-throttle'
 
 export type ExchangeState = { ok?: boolean; error?: string }
 const IMPORT_GATE = 'Crypto sync is available on the Pro plan.'
@@ -24,6 +25,8 @@ export async function connectExchange(_prev: ExchangeState, formData: FormData):
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const throttle = await allowAction(EXTERNAL_BUDGET, user.id)
+  if (!throttle.ok) return { error: throttle.message }
   const gateErr = await gateImport(supabase, user.id)
   if (gateErr) return { error: gateErr }
 
@@ -57,6 +60,8 @@ export async function disconnectExchange(): Promise<ExchangeState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(EXTERNAL_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const { error } = await supabase
     .from('exchange_accounts').delete().eq('user_id', user.id).eq('exchange', 'binance')
   if (error) return { error: error.message }
@@ -70,6 +75,8 @@ export async function syncNow(): Promise<SyncNowResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const throttle = await allowAction(EXTERNAL_BUDGET, user.id)
+  if (!throttle.ok) return { error: throttle.message }
   const gateErr = await gateImport(supabase, user.id)
   if (gateErr) return { error: gateErr }
 

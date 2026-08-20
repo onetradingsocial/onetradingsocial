@@ -6,6 +6,7 @@ import { validateAttachments, PENDING_MESSAGE_LIMIT, type Attachment } from '@/l
 import { messageImagePrefix } from '@/lib/storage'
 import { areMutualFollowers, getOrCreateConversation } from '@/lib/server/messaging'
 import { insertNotification } from '@/lib/notifications'
+import { allowAction, MESSAGE_BUDGET, AMBIENT_BUDGET } from '@/lib/server/action-throttle'
 
 export async function sendMessage(
   recipientId: string,
@@ -15,6 +16,8 @@ export async function sendMessage(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(MESSAGE_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   if (recipientId === user.id) return { error: 'You cannot message yourself.' }
 
   const text = (body ?? '').trim()
@@ -93,6 +96,8 @@ export async function acceptMessageRequest(conversationId: string): Promise<{ er
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(AMBIENT_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const { data: c } = await supabase
     .from('conversations').select('user_a, user_b, status, requester_id').eq('id', conversationId).maybeSingle()
   if (!c || (c.user_a !== user.id && c.user_b !== user.id)) return { error: 'Conversation not found.' }
@@ -108,6 +113,8 @@ export async function declineMessageRequest(conversationId: string): Promise<{ e
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+  const gate = await allowAction(AMBIENT_BUDGET, user.id)
+  if (!gate.ok) return { error: gate.message }
   const { data: c } = await supabase
     .from('conversations').select('user_a, user_b, status, requester_id').eq('id', conversationId).maybeSingle()
   if (!c || (c.user_a !== user.id && c.user_b !== user.id)) return { error: 'Conversation not found.' }
@@ -125,6 +132,10 @@ export async function markThreadRead(conversationId: string): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
+  // Void return type: a throttled call is a silent no-op, exactly as an
+  // unauthenticated one already is. There is no error channel to use and the
+  // user took no deliberate action to be told about.
+  if (!(await allowAction(AMBIENT_BUDGET, user.id)).ok) return
   // confirm participant
   const { data: c } = await supabase
     .from('conversations').select('user_a, user_b').eq('id', conversationId).maybeSingle()
@@ -141,6 +152,7 @@ export async function deleteMessage(messageId: string): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
+  if (!(await allowAction(AMBIENT_BUDGET, user.id)).ok) return
   const service = createServiceClient()
   // own message only
   await service.from('messages')

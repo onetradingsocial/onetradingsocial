@@ -1,8 +1,9 @@
 // app/src/app/actions/search.ts
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { normalizeQuery, escapeIlike, type SearchResults, type UserResult, type PostResult } from '@/lib/search'
+import { allowAction, SEARCH_BUDGET } from '@/lib/server/action-throttle'
 
 const EMPTY: SearchResults = { users: [], posts: [] }
 
@@ -11,6 +12,13 @@ export async function search(rawQuery: string): Promise<SearchResults> {
   if (!q) return EMPTY
 
   const supabase = await createClient()
+
+  // Signed-in callers are keyed on their own id; anonymous ones fall back to
+  // their IP inside allowAction. `su?.id ?? null` is a session-derived value —
+  // `rawQuery` is the client input here and must never reach the bucket key.
+  const su = await getSessionUser(supabase)
+  if (!(await allowAction(SEARCH_BUDGET, su?.id ?? null)).ok) return EMPTY
+
   const like = `%${escapeIlike(q)}%`
 
   const [usersRes, postsRes] = await Promise.all([

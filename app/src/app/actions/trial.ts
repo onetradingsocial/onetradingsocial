@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { logError } from '@/lib/server/log'
+import { allowAction, PROFILE_BUDGET } from '@/lib/server/action-throttle'
 
 export type AckResult = { ok: true } | { ok: false; error: string }
 
@@ -15,6 +16,8 @@ export async function ackTrial(): Promise<AckResult> {
   // A mutation, so getUser() rather than getSessionUser().
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { ok: false, error: 'Not signed in.' }
+  const gate = await allowAction(PROFILE_BUDGET, user.id)
+  if (!gate.ok) return { ok: false, error: gate.message }
 
   const { error } = await createServiceClient()
     .from('profiles')

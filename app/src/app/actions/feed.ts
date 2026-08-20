@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { assembleFeed } from '@/lib/feed'
 import { FEED_POST_SELECT, hydrateFeedPosts, type RawPost } from '@/lib/server/feed-hydration'
 import type { FeedTabItem } from '@/app/feed/_components/FeedTabs'
+import { allowAction, FEED_BUDGET } from '@/lib/server/action-throttle'
 
 const FEED_PAGE_SIZE = 20
 
@@ -18,6 +19,10 @@ export async function loadOlderFeed(cursor: string): Promise<FeedPage> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { items: [], hasMore: false }
+  // Void of an error channel: FeedPage has no error field, and an empty page
+  // with hasMore:false is exactly how the component already renders "nothing
+  // more to load", so a throttled scroll stops rather than breaking.
+  if (!(await allowAction(FEED_BUDGET, user.id)).ok) return { items: [], hasMore: false }
   if (!cursor || Number.isNaN(Date.parse(cursor))) return { items: [], hasMore: false }
 
   const [{ data: follows }, { data: favRows }] = await Promise.all([

@@ -14,14 +14,21 @@ import { ExchangeCard } from './ExchangeCard'
 import { DangerZone } from './DangerZone'
 import { NotificationPrefs } from './NotificationPrefs'
 import { CoverUploader } from '@/app/_components/CoverUploader'
+import { throttleMessage } from '@/lib/server/action-throttle'
 import './settings.css'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ balance?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ balance?: string; retry?: string }> }) {
   // saveAccount is a void <form action>, so a rejected balance comes back as a
-  // query flag rather than a return value (audit item 15, F3).
-  const balanceRejected = (await searchParams).balance === 'invalid'
+  // query flag rather than a return value (audit item 15, F3). The throttled
+  // case (WS11) uses the same channel and renders the shared throttle copy, so
+  // the wording cannot drift from the fifty actions that return it directly.
+  const sp = await searchParams
+  const balanceRejected = sp.balance === 'invalid'
+  const balanceThrottled = sp.balance === 'throttled'
+    ? throttleMessage(Number(sp.retry) || 60)
+    : null
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
@@ -140,6 +147,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               balance in force when you log them — changing it now updates future trades and any
               past trade that was never sized, and leaves the rest as they were recorded.
             </p>
+            {balanceThrottled && (
+              <p className="ts-sub mb-4" role="alert" style={{ color: 'var(--down-ink)', fontWeight: 600 }}>
+                {balanceThrottled}
+              </p>
+            )}
             {balanceRejected && (
               <p className="ts-sub mb-4" role="alert" style={{ color: 'var(--down-ink)', fontWeight: 600 }}>
                 That balance was not saved. Enter a number between 0 and {MAX_ACCOUNT_BALANCE.toLocaleString()}.
