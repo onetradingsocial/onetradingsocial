@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { LoginForm } from './LoginForm'
 import { RedditPixel } from '@/app/_components/RedditPixel'
 import { MetaPixel } from '@/app/_components/MetaPixel'
+
+export const metadata: Metadata = { title: 'Log in — TradingSocial' }
 
 export default async function LoginPage({
   searchParams,

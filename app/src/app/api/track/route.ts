@@ -3,6 +3,7 @@ import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isAdmin } from '@/lib/server/admin'
 import { rateLimit, rateLimitShared, clientKey, tooMany } from '@/lib/server/rate-limit'
+import { CONSENT_COOKIE, consentFromCookie } from '@/lib/consent'
 
 // Funnel + product events accepted from the client. Whitelist keeps the
 // table from becoming a junk drawer (and blocks spam event names).
@@ -57,6 +58,31 @@ const RATE_MAX_PER_ANON = 60
 const RATE_MAX_PER_IP = 300
 
 export async function POST(req: NextRequest) {
+  /**
+   * Analytics consent, enforced server-side (audit item 17 finding 6).
+   *
+   * This tier used to be gated only in `lib/track.ts`, which meant a stale
+   * client, a cached bundle, an in-flight beacon or any direct caller still
+   * wrote rows for a visitor who had opted out — contradicting what
+   * `CookieNotice` promises this endpoint does.
+   *
+   * The model is opt-OUT and must stay that way: an ABSENT or unparseable
+   * cookie is ACCEPTED (`ANALYTICS_DEFAULT` is true, justified under APP 1.4),
+   * and only an explicit `a:0` is dropped. Blocking on a missing cookie would
+   * silently lose every first-time visitor. `consentFromCookie` is the same
+   * function the client reads through, so the two cannot disagree.
+   *
+   * A declined event is dropped SILENTLY with the ordinary 200 {"ok":true}:
+   * `sendBeacon` and the keepalive fetch ignore the status, so changing the
+   * contract only risks client breakage and leaks the policy to callers.
+   *
+   * This is the first statement in the handler — ahead of the rate-limit
+   * buckets and every read and write — so a declined visitor costs nothing.
+   */
+  if (!consentFromCookie(req.cookies.get(CONSENT_COOKIE)?.value).analytics) {
+    return NextResponse.json({ ok: true })
+  }
+
   let body: {
     event?: string
     props?: Record<string, unknown>

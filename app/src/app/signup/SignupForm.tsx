@@ -41,9 +41,10 @@ export function SignupForm() {
       sub="Build your trading profile. Prove your edge. Climb the leaderboard."
     >
       <GoogleButton className="fl-oauth" />
-      {/* The terms checkbox lives inside the <form> below and has never gated
-          this button, so an OAuth signup accepted nothing and saw no legal
-          link at all (audit item 4 finding 3). */}
+      {/* The terms checkbox lives inside the <form> below, where it gates that
+          form's submit — but it cannot gate THIS button, which sits outside the
+          form, so an OAuth signup accepted nothing and saw no legal link at all
+          (audit item 4 finding 3). Hence the passive notice underneath. */}
       <OAuthLegalNotice />
       <div className="fl-or"><span>or</span></div>
 
@@ -125,9 +126,16 @@ export function SignupForm() {
         </div>
 
         {problem && <p className="fl-err">{problem}</p>}
+        {/* Only once the password is filled and clean is the checkbox the sole
+            remaining blocker — say so then, rather than scolding the user about
+            a control they have not reached yet. Username and email carry
+            `required`, so the browser explains those itself. */}
+        {!problem && pw && !agreed && (
+          <p className="fl-err">Please accept the Terms, Privacy Policy and financial disclaimer to continue.</p>
+        )}
         {state.error && <p className="fl-err">{state.error}</p>}
 
-        <button disabled={pending || !!problem || !pw} className="fl-submit">
+        <button disabled={pending || !!problem || !pw || !agreed} className="fl-submit">
           {pending ? 'Creating…' : 'Join the Beta'}
         </button>
       </form>

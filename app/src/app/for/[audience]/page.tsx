@@ -60,11 +60,16 @@ export default async function LandingPage({ params }: { params: Promise<{ audien
         </div>
       </section>
 
-      {/* Static, no user input: fills the proof count from the live stats API. */}
+      {/* Static, no user input: fills the proof count from the live stats API.
+          The server-rendered '—' is the empty state and MUST survive a zero, a
+          missing/malformed field, a non-OK response or a failed fetch — writing
+          "0" under "Traders on TradingSocial" is worse proof than no number. */}
       <Script id="landing-proof-fill" strategy="afterInteractive">{`
         fetch('/api/stats').then(function(r){return r.ok?r.json():null}).then(function(d){
-          if(!d) return; var el=document.getElementById('landing-proof');
-          if(el) el.textContent = (d.tradesJournaled||0).toLocaleString();
+          var n = d && d.activeBetaUsers;
+          if(typeof n !== 'number' || !isFinite(n) || n <= 0) return;
+          var el=document.getElementById('landing-proof');
+          if(el) el.textContent = n.toLocaleString();
         }).catch(function(){});
       `}</Script>
     </main>

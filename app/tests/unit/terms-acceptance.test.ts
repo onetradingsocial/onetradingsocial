@@ -341,6 +341,20 @@ describe('both signup paths write a record', () => {
     expect(auth).toContain("recordTermsAcceptance(createServiceClient(), data.user.id, 'signup_checkbox')")
   })
 
+  it('the email path\'s checkbox actually gates the submit button', () => {
+    // What makes this record "express consent" rather than passive is that the
+    // box had to be ticked before the button would go. The button used to
+    // ignore `agreed` entirely, so the control looked mandatory and was not —
+    // the server rejected it, but only after a round-trip.
+    const form = read('app/src/app/signup/SignupForm.tsx')
+    const disabled = form.match(/<button disabled=\{([^}]*)\} className="fl-submit"/)
+    expect(disabled, 'could not find the fl-submit button').not.toBeNull()
+    expect((disabled as RegExpMatchArray)[1]).toContain('!agreed')
+    // And the reason is stated inline in the same style as the password error,
+    // so a disabled button is never unexplained.
+    expect(form).toContain('!problem && pw && !agreed')
+  })
+
   it('the Google path records the notice it now shows', () => {
     const cb = read('app/src/app/auth/callback/route.ts')
     expect(cb).toContain("recordTermsAcceptance(createServiceClient(), data.user.id, 'oauth_notice')")

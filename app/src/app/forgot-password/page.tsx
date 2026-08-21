@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { ForgotPasswordForm } from './ForgotPasswordForm'
+
+export const metadata: Metadata = { title: 'Reset your password — TradingSocial' }
 
 /**
  * Step 1 of password recovery (item 9 F1).

@@ -78,11 +78,31 @@ export function consentSignal(s: ConsentState): Record<string, 'granted' | 'deni
   }
 }
 
+/**
+ * Isomorphic core of the read: turn a raw `ts_consent` cookie value into a
+ * state, falling back to the documented defaults when it is absent or
+ * unreadable. Shared by the client `readConsent()` below and by the server-side
+ * gate in `/api/track`, so the two enforcement points cannot drift apart.
+ *
+ * Note this is the OPT-OUT default: no cookie means analytics is on. Only an
+ * explicitly parsed `a:0` yields `analytics: false`.
+ */
+export function consentFromCookie(raw: string | null | undefined): ConsentState {
+  if (raw == null) return CONSENT_DEFAULT
+  let value = raw
+  try {
+    value = decodeURIComponent(raw)
+  } catch {
+    // Malformed percent-escape: fall back to the raw value rather than throwing.
+  }
+  return parseConsent(value) ?? CONSENT_DEFAULT
+}
+
 /** Client-side read. Returns the documented defaults when nothing is stored. */
 export function readConsent(): ConsentState {
   if (typeof document === 'undefined') return CONSENT_DEFAULT
   const m = document.cookie.match(/(?:^|;\s*)ts_consent=([^;]*)/)
-  return parseConsent(m ? decodeURIComponent(m[1]) : null) ?? CONSENT_DEFAULT
+  return consentFromCookie(m ? m[1] : null)
 }
 
 function cookieDomain(hostname: string): string {

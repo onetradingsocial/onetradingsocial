@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import {
   getPerformanceRanking, groupByCohort, COHORT_HEADING, COHORT_SUB, type VerifyFilter,
@@ -16,6 +17,8 @@ import { Podium } from './_components/Podium'
 import { LeaderboardTable, type BoardRow } from './_components/LeaderboardTable'
 import { XpTable, type XpRow } from './_components/XpTable'
 import { YourStanding } from './_components/YourStanding'
+
+export const metadata: Metadata = { title: 'Leaderboard — TradingSocial' }
 
 const PERIOD_LABEL: Record<Period, string> = { day: 'today', week: 'this week', month: 'this month', all: 'all time' }
 

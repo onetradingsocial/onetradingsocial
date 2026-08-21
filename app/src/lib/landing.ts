@@ -7,6 +7,9 @@ export type Landing = {
   headline: string
   sub: string
   points: { title: string; body: string }[]
+  // Caption under the shared social-proof number, which comes from /api/stats.
+  // That figure is SITE-WIDE — no stats field is scoped to an audience — so this
+  // line must not claim to count "forex traders" or "crypto traders" specifically.
   proof: string
   cta: string
 }
@@ -22,7 +25,7 @@ export const LANDINGS: Record<string, Landing> = {
       { title: 'Session analytics', body: 'See whether your London or New York trades actually carry your account.' },
       { title: 'Verified track record', body: 'Connect MT5 and your closed trades sync automatically, tamper-proof.' },
     ],
-    proof: 'Traders journaling forex on TradingSocial',
+    proof: 'Traders on TradingSocial',
     cta: 'Start journaling forex free',
   },
   crypto: {
@@ -35,7 +38,7 @@ export const LANDINGS: Record<string, Landing> = {
       { title: 'Mistake tracking', body: 'Tag FOMO and revenge trades and watch what they cost over time.' },
       { title: 'Emotional check-ins', body: 'Correlate how you felt with how you performed.' },
     ],
-    proof: 'Crypto traders building verified records',
+    proof: 'Traders on TradingSocial',
     cta: 'Start journaling crypto free',
   },
   futures: {
@@ -48,7 +51,7 @@ export const LANDINGS: Record<string, Landing> = {
       { title: 'Consistency scoring', body: 'The leaderboard rewards consistency and risk-adjusted return, not one lucky day.' },
       { title: 'Rule compliance', body: 'Set your rules and see the cost of breaking them.' },
     ],
-    proof: 'Futures traders tracking their edge',
+    proof: 'Traders on TradingSocial',
     cta: 'Start journaling futures free',
   },
   mt5: {
@@ -61,7 +64,7 @@ export const LANDINGS: Record<string, Landing> = {
       { title: 'Auto-sync', body: 'Connect once and new closed trades sync on their own, verified.' },
       { title: 'Locked execution data', body: 'Imported prices and results can\'t be edited — that\'s what makes them trustworthy.' },
     ],
-    proof: 'Trades imported from MT5',
+    proof: 'Traders on TradingSocial',
     cta: 'Connect MT5 free',
   },
   journal: {
@@ -74,7 +77,7 @@ export const LANDINGS: Record<string, Landing> = {
       { title: 'Personalised insights', body: 'Statistically-grounded patterns — with the sample size behind each one.' },
       { title: 'Process goals', body: 'Track journaling consistency and rule compliance, not just profit.' },
     ],
-    proof: 'Traders journaling on TradingSocial',
+    proof: 'Traders on TradingSocial',
     cta: 'Start your journal free',
   },
   'prop-firm': {
@@ -87,7 +90,7 @@ export const LANDINGS: Record<string, Landing> = {
       { title: 'Account-type labels', body: 'Prop, live, demo and competition accounts are clearly labelled.' },
       { title: 'Rule compliance', body: 'Set max risk and session rules and get flagged when you break them.' },
     ],
-    proof: 'Prop traders tracking their challenges',
+    proof: 'Traders on TradingSocial',
     cta: 'Track your challenge free',
   },
   educators: {
@@ -100,7 +103,7 @@ export const LANDINGS: Record<string, Landing> = {
       { title: 'Creator profile', body: 'Custom cover, tagline, CTA and pinned post for your audience.' },
       { title: 'Shareable cards', body: 'Branded performance cards for every platform.' },
     ],
-    proof: 'Educators building verified profiles',
+    proof: 'Traders on TradingSocial',
     cta: 'Build your profile free',
   },
 }
