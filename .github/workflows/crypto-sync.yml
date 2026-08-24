@@ -30,3 +30,11 @@ jobs:
           cat /tmp/out; echo
           echo "HTTP ${code}"
           test "${code}" = "200"
+          # 200 means the route ran, not that it synced — see mt5-sync.yml.
+          ok=$(jq -r '.synced // 0' /tmp/out)
+          total=$(jq -r '.total // 0' /tmp/out)
+          echo "synced=${ok} of ${total}"
+          if [ "${total}" -gt 0 ] && [ "${ok}" -lt "${total}" ]; then
+            echo "::error::crypto-sync: only ${ok}/${total} account(s) succeeded. See exchange_accounts.sync_error for the cause."
+            exit 1
+          fi

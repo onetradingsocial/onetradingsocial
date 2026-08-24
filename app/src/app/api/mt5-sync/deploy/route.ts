@@ -22,18 +22,27 @@ export async function GET(req: Request) {
 
   let deployed = 0
   for (const row of rows ?? []) {
+    // Stamp the phase and time alongside every error this route writes. collect
+    // runs ten minutes later and used to overwrite whatever we put here with its
+    // own downstream symptom, hiding the real cause; it now checks these two
+    // columns and leaves a same-cycle deploy error alone (migration 0061).
+    const failed = (msg: string) => svc.from('broker_accounts').update({
+      sync_error: msg,
+      sync_error_phase: 'deploy',
+      sync_error_at: new Date().toISOString(),
+    }).eq('id', row.id)
+
     // getTier, not a raw subscriptions read: same gate as connectBroker,
     // including the admin-email → pro override (admins have no sub rows).
     const tier = await getTier(svc, row.user_id)
     if (!canFlag(flags, tier, 'mt5_autosync')) {
-      await svc.from('broker_accounts')
-        .update({ sync_error: 'Pro plan required for auto-sync.' }).eq('id', row.id)
+      await failed('Pro plan required for auto-sync.')
       continue
     }
 
     const r = await deployAccount(row.metaapi_account_id)
     if ('error' in r) {
-      await svc.from('broker_accounts').update({ sync_error: `deploy: ${r.error}` }).eq('id', row.id)
+      await failed(`deploy: ${r.error}`)
     } else {
       deployed++
     }

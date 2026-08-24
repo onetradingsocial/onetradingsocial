@@ -50,3 +50,16 @@ jobs:
           cat /tmp/out; echo
           echo "HTTP ${code}"
           test "${code}" = "200"
+          # A 200 only means the route ran, not that it synced anything: both
+          # phases return 200 after their loop regardless of how many accounts
+          # failed inside it. Checking the status code alone is how a sync that
+          # had never once imported a trade reported green for 48 days. Assert
+          # on the counts the route reports instead.
+          key=$([ "$PHASE" = deploy ] && echo deployed || echo synced)
+          ok=$(jq -r --arg k "$key" '.[$k] // 0' /tmp/out)
+          total=$(jq -r '.total // 0' /tmp/out)
+          echo "${key}=${ok} of ${total}"
+          if [ "${total}" -gt 0 ] && [ "${ok}" -lt "${total}" ]; then
+            echo "::error::MT5 ${PHASE}: only ${ok}/${total} account(s) succeeded. See broker_accounts.sync_error (and sync_error_phase) for the cause."
+            exit 1
+          fi
