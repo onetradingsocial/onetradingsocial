@@ -21,7 +21,10 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
+          # Retry connection-level failures only — see mt5-sync.yml. Safe to repeat:
+          # the sync upserts on user_id,broker_deal_id with ignoreDuplicates.
           code=$(curl -sS -o /tmp/out -w '%{http_code}' \
+            --retry 3 --retry-all-errors --retry-delay 10 --retry-max-time 300 --max-time 75 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
             "https://app.tradingsocial.io/api/cron/crypto-sync")
           cat /tmp/out; echo

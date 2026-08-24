@@ -39,7 +39,12 @@ jobs:
             PHASE=collect
           fi
           echo "Phase: $PHASE"
+          # Retry connection-level failures only (an edge-side TLS reset — curl 35 —
+          # failed ~50 runs over 22–24 Aug 2026); real HTTP replies pass through
+          # untouched. Worst-case budget ~225s, inside timeout-minutes, so a stalled
+          # deploy can never still hold the concurrency group when collect fires.
           code=$(curl -sS -o /tmp/out -w '%{http_code}' \
+            --retry 3 --retry-all-errors --retry-delay 5 --retry-max-time 150 --max-time 75 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
             "https://app.tradingsocial.io/api/mt5-sync/${PHASE}")
           cat /tmp/out; echo
