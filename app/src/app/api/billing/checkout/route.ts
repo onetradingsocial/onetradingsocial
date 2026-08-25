@@ -8,6 +8,7 @@ import { earnedMonths } from '@/lib/referral'
 import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
 import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
 import { stripeTermsConsent } from '@/lib/terms-acceptance'
+import { trackServer } from '@/lib/server/track'
 import { logError } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
@@ -53,9 +54,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'bad request' }, { status: 400 })
   }
 
-  const price = flow === 'referral'
-    ? priceForPlan('pro', 'monthly', env)
-    : priceForPlan(tier as Tier, interval as Interval, env)
+  // What the customer is actually being sold, after the referral flow's
+  // server-side override. Used for the price lookup and stamped onto the
+  // session so the webhook can report the plan on the `subscribed` event.
+  const soldTier: Tier = flow === 'referral' ? 'pro' : (tier as Tier)
+  const soldInterval: Interval = flow === 'referral' ? 'monthly' : (interval as Interval)
+
+  const price = priceForPlan(soldTier, soldInterval, env)
   if (!price) return NextResponse.json({ error: 'price not configured' }, { status: 500 })
 
   const stripe = getStripe()
@@ -127,10 +132,34 @@ export async function POST(request: NextRequest) {
     // the answer on the session is how the visitor's choice survives the trip
     // through Stripe — without it, declining advertising would silently stop
     // the signup conversion but not the purchase one.
-    metadata: { ads_consent: adsConsent ? '1' : '0' },
+    //
+    // tier/interval/flow ride along for the same reason: the `subscribed`
+    // funnel event is fired from the webhook, which knows the price id but not
+    // the plan the customer thought they were buying.
+    metadata: {
+      ads_consent: adsConsent ? '1' : '0',
+      tier: soldTier,
+      interval: soldInterval,
+      flow: flow ?? 'direct',
+    },
     success_url: successUrl,
     cancel_url: cancelUrl,
   })
   if (!session.url) return NextResponse.json({ error: 'no session url' }, { status: 500 })
+
+  // Funnel: checkout_started. The bottom two steps of the admin funnel
+  // (`checkout_started`, `subscribed`) were in the dashboard query and in the
+  // client allowlist but had no emitter anywhere, so both rows read zero no
+  // matter how many people actually paid. This is the first of the two.
+  //
+  // Fired here rather than from the client because this is the point at which
+  // a Stripe session genuinely exists — a click that fails validation or rate
+  // limiting above is not a started checkout.
+  await trackServer('checkout_started', user, {
+    tier: soldTier,
+    interval: soldInterval,
+    flow: flow ?? 'direct',
+  })
+
   return NextResponse.json({ url: session.url })
 }
