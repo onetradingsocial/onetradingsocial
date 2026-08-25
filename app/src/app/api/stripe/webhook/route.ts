@@ -11,6 +11,7 @@ import { raiseAlert } from '@/lib/server/alerts'
 import {
   resolveUserId, notifyPaymentFailed, notifyTrialWillEnd, willChargeAtTrialEnd,
 } from '@/lib/server/billing'
+import { trackServer } from '@/lib/server/track'
 import { logError, logInfo } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
@@ -130,6 +131,35 @@ export async function POST(request: NextRequest) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string)
           await upsertFromSubscription(svc, stripe, sub)
 
+          // Resolved once and shared by the two best-effort side effects below.
+          // It used to be resolved inside the ads branch, which meant declining
+          // advertising also skipped the lookup — fine when the conversion was
+          // the only consumer, wrong now that the funnel event needs it too.
+          const customerId = customerIdOf(sub.customer) ?? ''
+          const userId = await resolveUserId(svc, stripe, customerId)
+
+          // Funnel: subscribed. The other half of the pair fixed in
+          // api/billing/checkout — this step was queried by the admin funnel
+          // and allowlisted for the client, but nothing ever emitted it, so
+          // the bottom of the funnel read zero regardless of real revenue.
+          //
+          // Fired here rather than on the billing success page because the
+          // success redirect is not guaranteed (closed tab, blocked
+          // redirect) while the webhook is retried until it succeeds.
+          // Passing the resolved user lets trackServer apply the same
+          // is_internal filter every other funnel figure honours.
+          await trackServer(
+            'subscribed',
+            userId ? { id: userId, email: session.customer_details?.email ?? null } : null,
+            {
+              tier: session.metadata?.tier ?? null,
+              interval: session.metadata?.interval ?? null,
+              flow: session.metadata?.flow ?? null,
+              value: session.amount_total != null ? session.amount_total / 100 : null,
+              currency: session.currency ? session.currency.toUpperCase() : null,
+            },
+          )
+
           // Best-effort Reddit Purchase conversion. session.id as conversion_id
           // makes webhook retries idempotent on Reddit's side. Never throws.
           //
@@ -141,8 +171,6 @@ export async function POST(request: NextRequest) {
           const adsConsent = session.metadata?.ads_consent
           const adsAllowed = adsConsent != null ? adsConsent === '1' : ADS_DEFAULT
           if (adsAllowed) {
-            const customerId = customerIdOf(sub.customer) ?? ''
-            const userId = await resolveUserId(svc, stripe, customerId)
             await sendRedditConversion({
               eventType: 'Purchase',
               conversionId: session.id,

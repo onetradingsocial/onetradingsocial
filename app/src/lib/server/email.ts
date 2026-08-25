@@ -51,7 +51,13 @@ function shell(title: string, body: string, footer: string = DEFAULT_FOOTER): st
 }
 
 export function weeklyDigestHtml(x: {
-  name: string; trades: number; winRate: number; netR: number
+  name: string; trades: number; winRate: number
+  /** Null when no closed trade that week carried an r_multiple — a stop-less
+   *  entry has a P/L but no R. Rendering that as "+0.0R" would state a
+   *  break-even week as fact when the truth is that R was never measured, which
+   *  is the one thing a performance email must never do. The row is omitted
+   *  instead, and the cron swaps in an action that explains how to get it. */
+  netR: number | null
   improvement: string; mistake: string; insight: string; action: string
 }): string {
   const row = (k: string, v: string) => `<tr><td style="padding:6px 0;color:#56536b">${k}</td><td style="padding:6px 0;text-align:right;font-weight:700">${v}</td></tr>`
@@ -59,7 +65,7 @@ export function weeklyDigestHtml(x: {
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px">
       ${row('Trades closed', String(x.trades))}
       ${row('Win rate', `${Math.round(x.winRate * 100)}%`)}
-      ${row('Net R', `${x.netR >= 0 ? '+' : ''}${x.netR.toFixed(1)}R`)}
+      ${x.netR == null ? '' : row('Net R', `${x.netR >= 0 ? '+' : ''}${x.netR.toFixed(1)}R`)}
     </table>
     <p style="font-size:14px;line-height:1.6"><b>Biggest improvement:</b> ${x.improvement}</p>
     <p style="font-size:14px;line-height:1.6"><b>Main mistake:</b> ${x.mistake}</p>

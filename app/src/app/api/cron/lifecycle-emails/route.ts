@@ -3,7 +3,7 @@ import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendEmail, weeklyDigestHtml, recoveryHtml, trialExpiredHtml } from '@/lib/server/email'
 import { insertSystemNotification } from '@/lib/notifications'
-import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
+import { computeMetrics, isClosed, rValues, type TradeForMetrics } from '@/lib/trade'
 import { generateInsights } from '@/lib/insights'
 import { trialState, JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
 import { getStripe } from '@/lib/stripe'
@@ -69,6 +69,39 @@ export async function GET(req: Request) {
 
   let digests = 0, nudges = 0
 
+  /**
+   * Delivery accounting.
+   *
+   * `sendEmail` returns `{ sent: false, error }` rather than throwing — it
+   * no-ops entirely when RESEND_API_KEY is absent — and every call site here
+   * used to discard that result. The counters below therefore reported
+   * `digests: 12` whether twelve emails were delivered or none were, and the
+   * route returned `ok: true` either way. That is the same failure shape as the
+   * silently-green MT5 sync: a green signal that carries no information.
+   *
+   * These count what actually left the building, and the summary at the end
+   * refuses to claim ok when nothing did.
+   */
+  let delivered = 0, undelivered = 0
+  const failures = new Map<string, number>()
+
+  const deliver = async (to: string | null, subject: string, html: string): Promise<boolean> => {
+    if (!to) {
+      undelivered++
+      failures.set('no_address', (failures.get('no_address') ?? 0) + 1)
+      return false
+    }
+    const res = await sendEmail({ to, subject, html })
+    if (res.sent) {
+      delivered++
+      return true
+    }
+    undelivered++
+    const reason = res.error ?? 'unknown'
+    failures.set(reason, (failures.get(reason) ?? 0) + 1)
+    return false
+  }
+
   for (const u of users) {
     const name = u.display_name || u.username
     const prefs = (u.notification_prefs ?? {}) as Record<string, boolean>
@@ -80,9 +113,19 @@ export async function GET(req: Request) {
     const lastTradeMs = rows[0] ? Date.parse(rows[0].traded_at) : null
 
     // ---- Weekly digest: at most every 7 days, needs ≥1 trade this week ----
+    //
+    // Membership is CLOSED + in-window, and nothing else. It used to also
+    // require `r_multiple != null`, which is the exact trap lib/trade.ts
+    // documents having already been fixed once in the journal/profile stats: a
+    // stop-less quick entry carries an outcome and a P/L but no R, so gating on
+    // R erases it. In production that gate was total, not partial — every
+    // closed trade had a null r_multiple, so `weekTrades` was always empty and
+    // this digest had never sent once to anybody. Win/loss comes from
+    // `outcome`, the one field every closed trade has; only the R figure below
+    // looks at r_multiple, and it skips the nulls.
     const weekAgo = now - 7 * DAY
     const dueWeekly = !u.last_weekly_email || Date.parse(u.last_weekly_email) < weekAgo
-    const weekTrades = rows.filter((t) => t.status === 'closed' && Date.parse(t.traded_at) >= weekAgo && t.r_multiple != null)
+    const weekTrades = rows.filter((t) => isClosed(t) && Date.parse(t.traded_at) >= weekAgo)
     if (dueWeekly && weekTrades.length > 0 && prefs.weekly_report !== false) {
       const m = computeMetrics(weekTrades.map((t): TradeForMetrics => ({
         status: 'closed', outcome: t.outcome as TradeForMetrics['outcome'], rMultiple: t.r_multiple,
@@ -92,7 +135,11 @@ export async function GET(req: Request) {
         rMultiple: t.r_multiple, pnlAmount: t.pnl_amount, tradedAt: t.traded_at,
         setupType: t.setup_type, strategyTags: t.strategy_tags ?? [], mistakeTags: t.mistake_tags ?? [],
       })))
-      const netR = weekTrades.reduce((s, t) => s + (t.r_multiple ?? 0), 0)
+      // Null, not zero, when nothing that week was R-denominated — see the
+      // netR note on weeklyDigestHtml. `?? 0` here would have quietly asserted
+      // a break-even week.
+      const weekR = rValues(weekTrades.map((t) => t.r_multiple))
+      const netR = weekR.length ? weekR.reduce((s, r) => s + r, 0) : null
       const mc = new Map<string, number>()
       for (const t of weekTrades) for (const mm of t.mistake_tags ?? []) mc.set(mm, (mc.get(mm) ?? 0) + 1)
       const worstMistake = [...mc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
@@ -102,10 +149,14 @@ export async function GET(req: Request) {
         improvement: m.winRate >= 0.5 ? 'Your win rate held above 50% this week.' : 'You stayed active and logged your trades — consistency compounds.',
         mistake: worstMistake ? `You tagged "${worstMistake}" most often — worth a closer look.` : 'No recurring mistakes tagged this week.',
         insight: insights[0]?.text ?? 'Log a few more trades to unlock deeper insights.',
-        action: netR < 0 ? 'Review your losing trades before your next session.' : 'Keep doing what worked — and size consistently.',
+        action: netR == null
+          ? 'Add a stop price when you log a trade — that is what turns your P/L into R, and R is what makes a week comparable to any other.'
+          : netR < 0
+            ? 'Review your losing trades before your next session.'
+            : 'Keep doing what worked — and size consistently.',
       })
       const email = await emailOf(u.id)
-      if (email) await sendEmail({ to: email, subject: 'Your weekly trading review', html })
+      await deliver(email, 'Your weekly trading review', html)
       await insertSystemNotification({ supabase: svc, userId: u.id, type: 'weekly_report' })
       await svc.from('profiles').update({ last_weekly_email: new Date().toISOString() }).eq('id', u.id)
       digests++
@@ -132,7 +183,7 @@ export async function GET(req: Request) {
 
     if (reason) {
       const email = await emailOf(u.id)
-      if (email) await sendEmail({ to: email, subject: 'Your TradingSocial journal is waiting', html: recoveryHtml(name, reason, cta, href) })
+      await deliver(email, 'Your TradingSocial journal is waiting', recoveryHtml(name, reason, cta, href))
       await svc.from('profiles').update({ last_recovery_email: new Date().toISOString() }).eq('id', u.id)
       nudges++
     }
@@ -172,15 +223,11 @@ export async function GET(req: Request) {
       if (now - expiredAt > TRIAL_EXPIRY_NOTICE_WINDOW_DAYS * DAY) continue
 
       const email = await emailOf(t.id)
-      if (email) {
-        await sendEmail({
-          to: email,
-          subject: 'Your TradingSocial Pro trial has ended',
-          html: trialExpiredHtml({
-            name: t.display_name || t.username, kept: JOURNAL_FREE_LIMIT,
-          }),
-        })
-      }
+      await deliver(
+        email,
+        'Your TradingSocial Pro trial has ended',
+        trialExpiredHtml({ name: t.display_name || t.username, kept: JOURNAL_FREE_LIMIT }),
+      )
       await insertSystemNotification({ supabase: svc, userId: t.id, type: 'trial_expired' })
       // Written whether or not the email went out, so a missing provider can
       // never turn into the same user being mailed every day once one appears.
@@ -245,5 +292,33 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, digests, nudges, trialNotices, reconciled, purged, retention })
+  // ---- Delivery summary ------------------------------------------------------
+  // `digests`/`nudges`/`trialNotices` count users PROCESSED. `delivered` counts
+  // mail that actually left. They are reported separately because conflating
+  // them is precisely how a lifecycle system runs for months with no provider
+  // configured while reporting success every night.
+  const failureBreakdown = Object.fromEntries(failures)
+  if (undelivered > 0) {
+    // no_provider means RESEND_API_KEY is unset — the whole email programme is
+    // off, not one message failing. Loud, and distinguished from per-message
+    // errors, because the fix is one environment variable.
+    if (failures.has('no_provider')) {
+      logError('lifecycle-emails', 'RESEND_API_KEY is not configured — no lifecycle email is being delivered', {
+        note: 'every message this run fell back to in-app notifications only',
+        undelivered,
+      })
+    } else {
+      logWarn('lifecycle-emails', `${undelivered} message(s) not delivered`, { failures: failureBreakdown })
+    }
+  }
+
+  return NextResponse.json({
+    // Not ok if we processed users but delivered nothing — that is the silent
+    // failure this endpoint existed to hide.
+    ok: undelivered === 0,
+    emailConfigured: !failures.has('no_provider'),
+    processed: { digests, nudges, trialNotices },
+    delivery: { delivered, undelivered, failures: failureBreakdown },
+    reconciled, purged, retention,
+  })
 }
