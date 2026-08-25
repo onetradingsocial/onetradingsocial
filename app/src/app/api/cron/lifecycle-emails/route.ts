@@ -3,7 +3,7 @@ import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendEmail, weeklyDigestHtml, recoveryHtml, trialExpiredHtml } from '@/lib/server/email'
 import { insertSystemNotification } from '@/lib/notifications'
-import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
+import { computeMetrics, isClosed, rValues, type TradeForMetrics } from '@/lib/trade'
 import { generateInsights } from '@/lib/insights'
 import { trialState, JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
 import { getStripe } from '@/lib/stripe'
@@ -113,9 +113,19 @@ export async function GET(req: Request) {
     const lastTradeMs = rows[0] ? Date.parse(rows[0].traded_at) : null
 
     // ---- Weekly digest: at most every 7 days, needs ≥1 trade this week ----
+    //
+    // Membership is CLOSED + in-window, and nothing else. It used to also
+    // require `r_multiple != null`, which is the exact trap lib/trade.ts
+    // documents having already been fixed once in the journal/profile stats: a
+    // stop-less quick entry carries an outcome and a P/L but no R, so gating on
+    // R erases it. In production that gate was total, not partial — every
+    // closed trade had a null r_multiple, so `weekTrades` was always empty and
+    // this digest had never sent once to anybody. Win/loss comes from
+    // `outcome`, the one field every closed trade has; only the R figure below
+    // looks at r_multiple, and it skips the nulls.
     const weekAgo = now - 7 * DAY
     const dueWeekly = !u.last_weekly_email || Date.parse(u.last_weekly_email) < weekAgo
-    const weekTrades = rows.filter((t) => t.status === 'closed' && Date.parse(t.traded_at) >= weekAgo && t.r_multiple != null)
+    const weekTrades = rows.filter((t) => isClosed(t) && Date.parse(t.traded_at) >= weekAgo)
     if (dueWeekly && weekTrades.length > 0 && prefs.weekly_report !== false) {
       const m = computeMetrics(weekTrades.map((t): TradeForMetrics => ({
         status: 'closed', outcome: t.outcome as TradeForMetrics['outcome'], rMultiple: t.r_multiple,
@@ -125,7 +135,11 @@ export async function GET(req: Request) {
         rMultiple: t.r_multiple, pnlAmount: t.pnl_amount, tradedAt: t.traded_at,
         setupType: t.setup_type, strategyTags: t.strategy_tags ?? [], mistakeTags: t.mistake_tags ?? [],
       })))
-      const netR = weekTrades.reduce((s, t) => s + (t.r_multiple ?? 0), 0)
+      // Null, not zero, when nothing that week was R-denominated — see the
+      // netR note on weeklyDigestHtml. `?? 0` here would have quietly asserted
+      // a break-even week.
+      const weekR = rValues(weekTrades.map((t) => t.r_multiple))
+      const netR = weekR.length ? weekR.reduce((s, r) => s + r, 0) : null
       const mc = new Map<string, number>()
       for (const t of weekTrades) for (const mm of t.mistake_tags ?? []) mc.set(mm, (mc.get(mm) ?? 0) + 1)
       const worstMistake = [...mc.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
@@ -135,7 +149,11 @@ export async function GET(req: Request) {
         improvement: m.winRate >= 0.5 ? 'Your win rate held above 50% this week.' : 'You stayed active and logged your trades — consistency compounds.',
         mistake: worstMistake ? `You tagged "${worstMistake}" most often — worth a closer look.` : 'No recurring mistakes tagged this week.',
         insight: insights[0]?.text ?? 'Log a few more trades to unlock deeper insights.',
-        action: netR < 0 ? 'Review your losing trades before your next session.' : 'Keep doing what worked — and size consistently.',
+        action: netR == null
+          ? 'Add a stop price when you log a trade — that is what turns your P/L into R, and R is what makes a week comparable to any other.'
+          : netR < 0
+            ? 'Review your losing trades before your next session.'
+            : 'Keep doing what worked — and size consistently.',
       })
       const email = await emailOf(u.id)
       await deliver(email, 'Your weekly trading review', html)
