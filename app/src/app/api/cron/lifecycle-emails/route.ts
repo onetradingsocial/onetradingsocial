@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { sendEmail, weeklyDigestHtml, recoveryHtml, trialExpiredHtml } from '@/lib/server/email'
 import { insertSystemNotification } from '@/lib/notifications'
 import { computeMetrics, isClosed, rValues, type TradeForMetrics } from '@/lib/trade'
+import { recoveryDue, recoveryNudge } from '@/lib/recovery'
 import { generateInsights } from '@/lib/insights'
 import { trialState, JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
 import { getStripe } from '@/lib/stripe'
@@ -163,25 +164,33 @@ export async function GET(req: Request) {
       continue // don't also nudge the same user this run
     }
 
-    // ---- Inactivity recovery: throttle to once per 7 days ----
-    const recentlyNudged = u.last_recovery_email && Date.parse(u.last_recovery_email) > now - 7 * DAY
-    if (recentlyNudged) continue
+    // ---- Inactivity recovery ----
+    //
+    // Eligibility and cadence both live in lib/recovery.ts. The rules here used
+    // to cap on `ageDays <= 30` and `since last trade <= 30 days`, which looked
+    // like throttling but acted as permanent exclusion — 24 of 40 production
+    // users matched no condition at all and never would again. Contact now
+    // decays (weekly → 3-weekly → 6-weekly) and stops at six months, so lapsed
+    // users stay reachable without being nagged indefinitely.
+    const daysSinceSignup = (now - Date.parse(u.created_at)) / DAY
+    const daysSinceLastTrade = lastTradeMs == null ? null : (now - lastTradeMs) / DAY
+    const lapsedDays = rows.length === 0 ? daysSinceSignup : (daysSinceLastTrade ?? daysSinceSignup)
 
-    const ageDays = (now - Date.parse(u.created_at)) / DAY
-    let reason: string | null = null
-    let cta = 'Log your first trade', href = '/journal'
+    if (!recoveryDue({
+      lapsedDays,
+      daysSinceLastRecoveryEmail: u.last_recovery_email
+        ? (now - Date.parse(u.last_recovery_email)) / DAY
+        : null,
+    })) continue
 
-    if (rows.length === 0 && ageDays >= 2 && ageDays <= 30) {
-      reason = 'You signed up but haven\'t logged a trade yet. It takes under a minute — and your stats start building immediately.'
-    } else if (rows.length === 1 && lastTradeMs && now - lastTradeMs >= 7 * DAY) {
-      reason = 'You logged one trade and then went quiet. One trade isn\'t a track record — log a few more to see real patterns.'
-      cta = 'Log another trade'
-    } else if (lastTradeMs && now - lastTradeMs >= 7 * DAY && now - lastTradeMs <= 30 * DAY) {
-      reason = 'It\'s been over a week since your last logged trade. Your journal is waiting.'
-      cta = 'Back to your journal'
-    }
+    const nudge = recoveryNudge({
+      tradeCount: rows.length,
+      daysSinceSignup,
+      daysSinceLastTrade,
+    })
 
-    if (reason) {
+    if (nudge) {
+      const { reason, cta, href } = nudge
       const email = await emailOf(u.id)
       await deliver(email, 'Your TradingSocial journal is waiting', recoveryHtml(name, reason, cta, href))
       await svc.from('profiles').update({ last_recovery_email: new Date().toISOString() }).eq('id', u.id)
