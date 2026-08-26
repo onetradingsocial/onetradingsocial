@@ -40,7 +40,7 @@ export function JournalEmptyState({ canImport }: { canImport: boolean }) {
 
       <div className="mt-5" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <button type="button" className="btn btn-primary" onClick={open}>+ Log your first trade</button>
-        <Link href="/settings#broker" className="btn">Connect MT5</Link>
+        <Link href="/settings?from=journal#broker" className="btn">Connect MT5</Link>
         <Link href="/verification" className="faint" style={{ fontSize: 13 }}>How verification works →</Link>
       </div>
 

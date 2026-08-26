@@ -21,6 +21,10 @@ const HINTS: Record<string, string> = {
   'Weekly review viewed': 'Users who opened their weekly review at least once.',
   'Checkout started': 'Users who began Stripe checkout for a paid plan.',
   Subscribed: 'Users who completed a paid subscription.',
+  // Broker connect (last 30 days, internal traffic excluded)
+  'Broker card viewed': 'Times the MT5 auto-sync card was rendered on /settings — the step before any attempt.',
+  'Connect submitted': 'Times the connect form was actually submitted, counted before the Pro gate so a blocked attempt still registers.',
+  'Broker connected': 'Attempts that ended in a live broker connection.',
   // Lifecycle buckets (DB truth, each user in exactly one bucket)
   Registered: 'Every genuine account. The base all other lifecycle buckets are carved from.',
   Onboarding: 'Signed up but never finished onboarding. Stuck at the very first step — 0 trades.',
@@ -48,10 +52,13 @@ const HINTS: Record<string, string> = {
   'Client errors': 'Client-side JS errors reported in the last 30 days.',
 }
 
-function FunnelBars({ rows }: { rows: { step: string; count: number }[] }) {
+function FunnelBars({ rows, title = 'Signup → activation' }: {
+  rows: { step: string; count: number }[]
+  title?: string
+}) {
   const max = Math.max(1, ...rows.map((r) => r.count))
   return (
-    <Panel title="Signup → activation">
+    <Panel title={title}>
       {rows.map((r, i) => {
         const prev = i > 0 ? rows[i - 1].count : null
         const conv = prev && prev > 0 ? Math.round((r.count / prev) * 100) : null
@@ -101,6 +108,20 @@ export default async function AnalyticsPage() {
                   </span>
                 ))}
               </div>
+            </Panel>
+          )}
+        </Section>
+
+        <Section title="Broker connect" sub="The differentiator's own funnel. broker_accounts only records successes, so these events are the only way to tell an untried feature from a failing one.">
+          <FunnelBars rows={f.brokerFunnel} title="Card → attempt → connection" />
+          {f.brokerFailures.length > 0 && (
+            <Panel title="Why attempts failed" flush>
+              {f.brokerFailures.map((r) => (
+                <div key={r.reason} className="ad-row">
+                  <code className="ad-kv">{r.reason}</code>
+                  <span className="sp faint" style={{ fontVariantNumeric: 'tabular-nums' }}>{r.count}</span>
+                </div>
+              ))}
             </Panel>
           )}
         </Section>

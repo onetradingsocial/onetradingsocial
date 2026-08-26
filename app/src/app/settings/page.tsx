@@ -15,11 +15,12 @@ import { DangerZone } from './DangerZone'
 import { NotificationPrefs } from './NotificationPrefs'
 import { CoverUploader } from '@/app/_components/CoverUploader'
 import { throttleMessage } from '@/lib/server/action-throttle'
+import { trackServer } from '@/lib/server/track'
 import './settings.css'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ balance?: string; retry?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ balance?: string; retry?: string; from?: string }> }) {
   // saveAccount is a void <form action>, so a rejected balance comes back as a
   // query flag rather than a return value (audit item 15, F3). The throttled
   // case (WS11) uses the same channel and renders the shared throttle copy, so
@@ -88,6 +89,26 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     ? renews
     : null
   const hasPassword = (identity.data.user?.identities ?? []).some((i) => i.provider === 'email')
+
+  // Top of the broker-connect funnel. `connectBroker` can only ever see people
+  // who submitted the form; this is the step before that — the card was put in
+  // front of the user, either as a form or as the Pro upsell. Without it a zero
+  // submit count is unreadable, because "never saw it" and "saw it and walked
+  // away" look identical.
+  //
+  // Fires once per settings page load (the sections are anchors on one page, so
+  // switching tabs does not re-fire). Not deduped per user: repeat views of the
+  // card without a submit are themselves the signal.
+  const brokerGated = !canFlag(flags, tier, 'mt5_autosync')
+  await trackServer('broker_card_viewed', user, {
+    gated: brokerGated,
+    connected: !!brokerRow,
+    tier,
+    // Which entry point delivered them. `?from=journal` is stamped on the
+    // journal empty-state CTA — the only in-product signpost to this card —
+    // so its pull can be measured against people who found /settings alone.
+    from: sp.from === 'journal' ? 'journal' : 'direct',
+  })
 
   return (
     <div className="settings-page">
@@ -196,7 +217,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </form>
           </section>
 
-          <BrokerCard row={brokerRow} canAutosync={canFlag(flags, tier, 'mt5_autosync')} />
+          <BrokerCard row={brokerRow} canAutosync={!brokerGated} />
 
           <ExchangeCard row={exchangeRow} canImport={canFlag(flags, tier, 'crypto_import')} />
 
