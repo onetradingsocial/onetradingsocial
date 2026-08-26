@@ -32,8 +32,19 @@ $watchdog = Join-Path $here 'watchdog.ps1'
 
 if (-not (Test-Path $watchdog)) { throw "Cannot find $watchdog" }
 
-$action = New-ScheduledTaskAction -Execute 'powershell.exe' `
-    -Argument "-ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File `"$watchdog`""
+# Launched through conhost --headless so nothing flashes on screen.
+#
+# -WindowStyle Hidden alone is not enough. Task Scheduler creates the console
+# host for an Interactive-logon task in the desktop session BEFORE powershell.exe
+# starts, so the window is already up by the time the flag is read. With this
+# task firing every 5 minutes and exiting in milliseconds whenever n8n is
+# already listening, that showed as a window blinking open and shut all day.
+#
+# --headless gives the child a pseudoconsole with no visible window at all, and
+# unlike the S4U principal noted below it needs no elevation to register.
+$conhost = Join-Path $env:SystemRoot 'System32\conhost.exe'
+$action = New-ScheduledTaskAction -Execute $conhost `
+    -Argument "--headless powershell.exe -ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File `"$watchdog`""
 
 $triggers = @()
 
@@ -57,6 +68,13 @@ $settings = New-ScheduledTaskSettingsSet `
     -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
     -WakeToRun
 
+# Interactive keeps n8n tied to a signed-in session, which is what we want on a
+# personal laptop -- there is no point serving localhost:5678 when nobody is
+# here. The flashing window is solved by the conhost wrapper above, not here.
+#
+# To keep n8n alive while signed out, re-register with -LogonType S4U instead.
+# That needs an ELEVATED PowerShell, and n8n then runs in session 0 where you
+# cannot see it or stop it from your own desktop.
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
 
 if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
