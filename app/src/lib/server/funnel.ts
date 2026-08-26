@@ -30,15 +30,52 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
   const d7 = new Date(now.getTime() - 7 * DAY).toISOString()
   const d30 = since
 
-  const eventCount = async (event: string) => {
-    const { count } = await svc
+  // Who is internal RIGHT NOW.
+  //
+  // `analytics_events.is_internal` is a COPY of `profiles.is_internal` taken at
+  // write time (lib/server/track.ts, api/track/route.ts). Seed and demo
+  // accounts were flagged internal AFTER they had already generated events, so
+  // those rows are stamped `false` forever and no amount of re-flagging fixes
+  // them. Measured 2026-08-26: 1,115 such events across 91 users.
+  //
+  // This is LATENT, not currently visible. Every one of those events was
+  // written 2026-07-16..07-20, and the funnel below is scoped to 30 days, so
+  // they fall outside the window and today's dashboard reads correctly. The
+  // gap between the all-time event counts and the tables (100 signups vs 40)
+  // is not what this page displays.
+  //
+  // Worth fixing anyway: nothing stops it recurring inside the window. Another
+  // seed run, or the 3-hourly demo activity routine that migration 0041 was
+  // careful not to disturb, writes events under a not-yet-flagged profile and
+  // this page silently inflates — on the one screen the roadmap tells the
+  // founder to take baselines from, where a wrong number is worse than none.
+  //
+  // The stamped column is kept as a pre-filter rather than replaced, because a
+  // stamped `true` is never wrong and carries something the profiles table does
+  // not: trackServer marks ADMIN traffic internal by email allowlist
+  // (lib/server/admin.ts), and an admin's own profile is not necessarily
+  // flagged. Dropping the column filter would start counting admin sessions.
+  //
+  // So: `false` on the row means "not known to be internal when written", and
+  // the profiles table — read now — is the authority on everything since.
+  const { data: internalRows } = await svc
+    .from('profiles').select('id').eq('is_internal', true)
+  const internalIds = new Set((internalRows ?? []).map((r) => r.id))
+
+  /** Events in-window, minus internal traffic by both tests. A null user_id is
+   *  an anonymous visitor, which is genuine — it is kept. */
+  const realEvents = async (event: string): Promise<{ user_id: string | null }[]> => {
+    const { data } = await svc
       .from('analytics_events')
-      .select('id', { count: 'exact', head: true })
+      .select('user_id')
       .eq('event', event)
       .eq('is_internal', false)
       .gte('created_at', since)
-    return count ?? 0
+      .limit(20000)
+    return (data ?? []).filter((r) => !r.user_id || !internalIds.has(r.user_id))
   }
+
+  const eventCount = async (event: string) => (await realEvents(event)).length
 
   const [signups, onboarded, firstTrades, imports, reviews, checkouts, subscribed] = await Promise.all([
     eventCount('signup_completed'),
@@ -60,13 +97,14 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
   // actions/broker.ts, so these group cleanly without normalisation.
   const { data: failRows } = await svc
     .from('analytics_events')
-    .select('props')
+    .select('props, user_id')
     .eq('event', 'broker_connect_failed')
     .eq('is_internal', false)
     .gte('created_at', since)
     .limit(20000)
   const failCounts = new Map<string, number>()
   for (const r of failRows ?? []) {
+    if (r.user_id && internalIds.has(r.user_id)) continue
     const reason = String((r.props as { reason?: string })?.reason ?? 'unknown')
     failCounts.set(reason, (failCounts.get(reason) ?? 0) + 1)
   }
@@ -79,17 +117,23 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
     .eq('is_internal', false)
     .gte('created_at', since)
     .limit(20000)
-  const visitors = new Set((pv ?? []).map((r) => r.user_id ?? r.anon_id).filter(Boolean)).size
+  const visitors = new Set(
+    (pv ?? [])
+      .filter((r) => !r.user_id || !internalIds.has(r.user_id))
+      .map((r) => r.user_id ?? r.anon_id)
+      .filter(Boolean),
+  ).size
 
   const { data: stepRows } = await svc
     .from('analytics_events')
-    .select('props')
+    .select('props, user_id')
     .eq('event', 'onboarding_step')
     .eq('is_internal', false)
     .gte('created_at', since)
     .limit(20000)
   const stepCounts = new Map<number, number>()
   for (const r of stepRows ?? []) {
+    if (r.user_id && internalIds.has(r.user_id)) continue
     const s = Number((r.props as { step?: number })?.step)
     if (Number.isFinite(s)) stepCounts.set(s, (stepCounts.get(s) ?? 0) + 1)
   }
