@@ -266,6 +266,10 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
       <input type="hidden" name="goal" value={goal?.title ?? ''} />
       <input type="hidden" name="is_public" value={data.visibility === 'public' ? 'public' : 'private'} />
       <input type="hidden" name="account_type" value={data.accountType} />
+      {/* Step 5's answer. It was already fired as an analytics prop in submit()
+          below; this is the copy that lands on the profile row, so the intent
+          survives the session and can be acted on later (migration 0062). */}
+      <input type="hidden" name="intended_source" value={data.connect} />
     </form>
   )
 
