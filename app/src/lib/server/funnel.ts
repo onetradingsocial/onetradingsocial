@@ -4,6 +4,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 export type FunnelDashboard = {
   // Core funnel counts, last 30 days, internal traffic excluded.
   funnel: { step: string; count: number }[]
+  // Broker-connect funnel + why attempts failed. Event-based on purpose: the
+  // `broker_accounts` table only records successes, so it cannot tell a
+  // product nobody tried from one everybody failed at.
+  brokerFunnel: { step: string; count: number }[]
+  brokerFailures: { reason: string; count: number }[]
   // Onboarding step reach (props.step -> count), for abandonment analysis.
   onboardingSteps: { step: number; count: number }[]
   // Lifecycle snapshot from DB truth (independent of event volume).
@@ -44,6 +49,27 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
     eventCount('checkout_started'),
     eventCount('subscribed'),
   ])
+
+  const [brokerViews, brokerSubmits, brokerConnects] = await Promise.all([
+    eventCount('broker_card_viewed'),
+    eventCount('broker_connect_submitted'),
+    eventCount('broker_connected'),
+  ])
+
+  // Failure reasons, grouped. `reason` is a closed set written by
+  // actions/broker.ts, so these group cleanly without normalisation.
+  const { data: failRows } = await svc
+    .from('analytics_events')
+    .select('props')
+    .eq('event', 'broker_connect_failed')
+    .eq('is_internal', false)
+    .gte('created_at', since)
+    .limit(20000)
+  const failCounts = new Map<string, number>()
+  for (const r of failRows ?? []) {
+    const reason = String((r.props as { reason?: string })?.reason ?? 'unknown')
+    failCounts.set(reason, (failCounts.get(reason) ?? 0) + 1)
+  }
 
   // Distinct visitors (anon ids + users) from app page views in the window.
   const { data: pv } = await svc
@@ -180,6 +206,14 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
       { step: 'Checkout started', count: checkouts },
       { step: 'Subscribed', count: subscribed },
     ],
+    brokerFunnel: [
+      { step: 'Broker card viewed', count: brokerViews },
+      { step: 'Connect submitted', count: brokerSubmits },
+      { step: 'Broker connected', count: brokerConnects },
+    ],
+    brokerFailures: [...failCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([reason, count]) => ({ reason, count })),
     onboardingSteps: [...stepCounts.entries()].sort((a, b) => a[0] - b[0]).map(([step, count]) => ({ step, count })),
     lifecycle: [
       { status: 'Registered', count: registered },
