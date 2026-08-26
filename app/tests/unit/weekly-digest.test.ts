@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { weeklyDigestHtml } from '@/lib/server/email'
+import { journaledCloseAt, type XpTrade } from '@/lib/xp'
 
 /**
  * The weekly digest reports a trader's own numbers back to them, so a figure it
@@ -45,5 +46,99 @@ describe('weeklyDigestHtml — Net R is omitted, never fabricated', () => {
     // Zero is a real answer when it was actually computed. Only null is absent,
     // so the two cases must stay distinguishable.
     expect(weeklyDigestHtml({ ...base, netR: 0 })).toContain('+0.0R')
+  })
+})
+
+/**
+ * ── Which week a trade belongs to ───────────────────────────────────────────
+ *
+ * The digest used to select its week with `traded_at >= weekAgo`, which
+ * measures when the market moved — not when the user did anything.
+ *
+ * The only back-log in production traded 2026-08-05 20:38Z and was journaled
+ * 08-12 09:33Z, and it cleared the seven-day window by roughly seven hours.
+ * It was not dropped; it came close. A back-log a day later, or any write-up
+ * of a week older than seven days, produces no review for the week the work
+ * actually happened in.
+ *
+ * The rule is now `journaledCloseAt` — XP's own bucketing, exported rather
+ * than reimplemented so the two can never disagree about which week a trade
+ * falls in.
+ */
+describe('journaledCloseAt — the digest buckets on journaling, not trade date', () => {
+  const t = (over: Partial<XpTrade> = {}): XpTrade => ({
+    traded_at: '2026-08-05T00:00:00.000Z',
+    closed_at: '2026-08-05T00:00:00.000Z',
+    created_at: '2026-08-05T00:00:00.000Z',
+    status: 'closed',
+    outcome: 'win',
+    ...over,
+  })
+  const at = (iso: string) => Date.parse(iso)
+
+  it('credits a back-logged trade to the week it was logged, not traded', () => {
+    // The real production row: traded 08-05, logged and closed 08-12.
+    const ts = journaledCloseAt(t({
+      traded_at: '2026-08-05T00:00:00.000Z',
+      created_at: '2026-08-12T09:33:37.905Z',
+      closed_at: '2026-08-12T09:33:37.905Z',
+    }))
+    expect(ts).toBe(at('2026-08-12T09:33:37.905Z'))
+  })
+
+  it('still credits it when the trade date has fallen out of the window', () => {
+    // The case the old rule could not survive: written up more than a week
+    // after the trade. `traded_at` is long gone; the work happened today.
+    const ts = journaledCloseAt(t({
+      traded_at: '2026-08-01T00:00:00.000Z',
+      created_at: '2026-08-20T00:00:00.000Z',
+      closed_at: '2026-08-20T00:00:00.000Z',
+    }))!
+    const weekAgo = at('2026-08-21T00:00:00.000Z') - 7 * 864e5
+    expect(ts).toBeGreaterThanOrEqual(weekAgo)
+    expect(at('2026-08-01T00:00:00.000Z')).toBeLessThan(weekAgo)
+  })
+
+  it('leaves a same-day trader exactly where they were', () => {
+    expect(journaledCloseAt(t())).toBe(at('2026-08-05T00:00:00.000Z'))
+  })
+
+  it('buckets an open-Monday close-Wednesday trade on the Wednesday', () => {
+    expect(journaledCloseAt(t({
+      created_at: '2026-08-03T00:00:00.000Z',
+      closed_at: '2026-08-05T00:00:00.000Z',
+    }))).toBe(at('2026-08-05T00:00:00.000Z'))
+  })
+
+  it('never precedes the moment the row was written', () => {
+    // A user-supplied closed_at before created_at is an impossible act; three
+    // such rows exist in production. It must not drag the trade into an
+    // earlier week than the one the work happened in.
+    expect(journaledCloseAt(t({
+      created_at: '2026-08-12T00:00:00.000Z',
+      closed_at: '2026-08-05T00:00:00.000Z',
+    }))).toBe(at('2026-08-12T00:00:00.000Z'))
+  })
+
+  it('returns null for a trade that is not closed', () => {
+    expect(journaledCloseAt(t({ status: 'open', closed_at: null }))).toBeNull()
+  })
+
+  it('gives every closed trade exactly one instant, so no digest double-counts', () => {
+    // The alternative considered was `traded_at in window OR created_at in
+    // window`, which puts the back-logged trade above in BOTH the 08-05 and
+    // the 08-12 week — the same trade reported in two consecutive reviews, in
+    // the one email whose whole job is to be trustworthy about numbers.
+    const back = t({
+      traded_at: '2026-08-05T00:00:00.000Z',
+      created_at: '2026-08-12T09:33:37.905Z',
+      closed_at: '2026-08-12T09:33:37.905Z',
+    })
+    const inWeekEnding = (end: string) => {
+      const ts = journaledCloseAt(back)!
+      return ts >= at(end) - 7 * 864e5 && ts < at(end)
+    }
+    expect(inWeekEnding('2026-08-12T00:00:00.000Z')).toBe(false)
+    expect(inWeekEnding('2026-08-19T00:00:00.000Z')).toBe(true)
   })
 })

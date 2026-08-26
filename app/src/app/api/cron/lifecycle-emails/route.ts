@@ -6,6 +6,7 @@ import { insertSystemNotification } from '@/lib/notifications'
 import { computeMetrics, isClosed, rValues, type TradeForMetrics } from '@/lib/trade'
 import { recoveryDue, recoveryNudge } from '@/lib/recovery'
 import { generateInsights } from '@/lib/insights'
+import { journaledCloseAt } from '@/lib/xp'
 import { trialState, JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
 import { getStripe } from '@/lib/stripe'
 import { reconcileBilling } from '@/lib/server/billing-reconcile'
@@ -108,7 +109,7 @@ export async function GET(req: Request) {
     const prefs = (u.notification_prefs ?? {}) as Record<string, boolean>
 
     const { data: trades } = await svc
-      .from('trades').select('r_multiple, pnl_amount, outcome, status, traded_at, setup_type, strategy_tags, mistake_tags')
+      .from('trades').select('r_multiple, pnl_amount, outcome, status, traded_at, closed_at, created_at, setup_type, strategy_tags, mistake_tags')
       .eq('user_id', u.id).order('traded_at', { ascending: false }).limit(500)
     const rows = trades ?? []
     const lastTradeMs = rows[0] ? Date.parse(rows[0].traded_at) : null
@@ -126,7 +127,42 @@ export async function GET(req: Request) {
     // looks at r_multiple, and it skips the nulls.
     const weekAgo = now - 7 * DAY
     const dueWeekly = !u.last_weekly_email || Date.parse(u.last_weekly_email) < weekAgo
-    const weekTrades = rows.filter((t) => isClosed(t) && Date.parse(t.traded_at) >= weekAgo)
+    // Bucketed on when the trade was JOURNALED, not when the market moved.
+    //
+    // This filtered on `traded_at`, which measures the wrong act. Journaling is
+    // the behaviour this product exists to build and the behaviour the digest
+    // exists to reinforce, and `traded_at` measures neither — it measures when
+    // the market moved, which the user does not control and did not choose.
+    //
+    // The margin is thinner than it looks. The only back-log in production
+    // traded 2026-08-05 20:38Z and was journaled 08-12 09:33Z: six days and
+    // thirteen hours later, against a seven-day window on a cron that runs
+    // ~13:20Z. It landed in window with about seven hours to spare. Log the
+    // same trade after 20:38 that evening, or take a week off before writing
+    // up the week, and the review for the week you did the work silently does
+    // not exist.
+    //
+    // `journaledCloseAt` is XP's own bucketing rule, exported rather than
+    // reimplemented so the digest and the quest board can never disagree about
+    // which week a trade belongs to. max(closed_at, created_at) is also the
+    // only choice with no gaps and no overlaps: it is a single instant per
+    // trade, so nothing is counted in two consecutive digests, and a trade
+    // opened one week and closed the next lands in the week it closed instead
+    // of falling between both.
+    const weekTrades = rows.filter((t) => {
+      if (!isClosed(t)) return false
+      // Mapped explicitly rather than cast, the same way the row is mapped to
+      // TradeForMetrics below: `status` is a plain string off the wire, and a
+      // blanket cast would hide a column being dropped from the select.
+      const at = journaledCloseAt({
+        traded_at: t.traded_at,
+        closed_at: t.closed_at,
+        created_at: t.created_at,
+        status: 'closed',
+        outcome: String(t.outcome),
+      })
+      return at != null && at >= weekAgo
+    })
     if (dueWeekly && weekTrades.length > 0 && prefs.weekly_report !== false) {
       const m = computeMetrics(weekTrades.map((t): TradeForMetrics => ({
         status: 'closed', outcome: t.outcome as TradeForMetrics['outcome'], rMultiple: t.r_multiple,
