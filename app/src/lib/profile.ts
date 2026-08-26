@@ -10,6 +10,21 @@ export const TRADING_STYLES = [
 
 export type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number]
 
+/** Onboarding step 5, "How will you add your trades?" — mandatory, so every
+ *  completed onboarding has one. Null only for users who onboarded before the
+ *  answer was persisted (migration 0062). */
+export const INTENDED_SOURCES = ['broker', 'statement', 'manual'] as const
+export type IntendedSource = (typeof INTENDED_SOURCES)[number]
+
+/** Null rather than a default: an unparseable value means we did not learn the
+ *  answer, and guessing "manual" would put words in the user's mouth in the one
+ *  field that records what they asked us for. Also the CHECK constraint in
+ *  migration 0062 rejects anything else, and a rejected value must never reach
+ *  the database. */
+export function parseIntendedSource(raw: unknown): IntendedSource | null {
+  return INTENDED_SOURCES.includes(raw as IntendedSource) ? (raw as IntendedSource) : null
+}
+
 export type OnboardingInput = {
   username: string
   experience_level: ExperienceLevel

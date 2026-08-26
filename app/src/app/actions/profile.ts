@@ -14,7 +14,7 @@ import { validateUsername } from '@/lib/username'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
-import { onboardingToRow, type OnboardingInput, type ExperienceLevel, resolveVisibility, EXPERIENCE_LEVELS } from '@/lib/profile'
+import { onboardingToRow, parseIntendedSource, type OnboardingInput, type ExperienceLevel, resolveVisibility, EXPERIENCE_LEVELS } from '@/lib/profile'
 import { CUSTOM_BADGES } from '@/lib/badges'
 import { THEME_PRESETS, sanitizeCtaUrl } from '@/lib/creator-profile'
 import { logError } from '@/lib/server/log'
@@ -42,6 +42,8 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
     is_public: formData.get('is_public') === 'public',
   }
 
+  const intendedSource = parseIntendedSource(formData.get('intended_source'))
+
   const requestedType = String(formData.get('account_type') ?? '').trim()
   const account_type = (['live', 'demo', 'prop', 'competition'] as const).includes(requestedType as never)
     ? requestedType
@@ -66,6 +68,24 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
   // must not be able to rewrite it. Separate statement for the same reason; the
   // row is still scoped to the caller's own id. Best-effort: losing an
   // attribution tag must never fail onboarding.
+  // Onboarding step 5's answer (migration 0062).
+  //
+  // Its OWN statement, deliberately not folded into the update above, for the
+  // reason the trial notice in the lifecycle cron documents: if this code
+  // deploys ahead of its migration, PostgREST answers an unknown column with
+  // 42703 and fails the ENTIRE write it belongs to. Migrations here are applied
+  // by hand, so that ordering is not guaranteed. Isolated like this, a missing
+  // column can only ever lose the declared intent — it can never stop someone
+  // finishing onboarding.
+  //
+  // Best-effort for the same reason attribution below is: losing this must
+  // never fail onboarding.
+  if (intendedSource) {
+    const { error: sourceError } = await supabase
+      .from('profiles').update({ intended_source: intendedSource }).eq('id', user.id)
+    if (sourceError) logError('saveOnboarding', sourceError, { note: 'intended_source (migration 0062 applied?)' })
+  }
+
   if (refCookie) {
     const { error: srcError } = await createServiceClient()
       .from('profiles')
