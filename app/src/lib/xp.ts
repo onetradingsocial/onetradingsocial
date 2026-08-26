@@ -119,6 +119,21 @@ function metricTime(t: XpTrade, metric: QuestMetric): number | null {
   if (!Number.isFinite(created)) return closed
   return Math.max(closed, created)
 }
+/**
+ * When the user did the work of closing this trade in their journal, as
+ * opposed to when the market moved. `max(closed_at, created_at)`, i.e.
+ * `metricTime(t, 'closed')` — exported so the weekly digest buckets a trade
+ * into the same week XP does, and the two rules cannot drift apart.
+ *
+ * Null for a trade that is not closed. See metricTime's note for why this is
+ * the honest clock: `created_at` is the one timestamp on the row its owner
+ * cannot choose (migration 0045), so back-logging last month's trade lands on
+ * today — the day the work happened — rather than retroactively.
+ */
+export function journaledCloseAt(t: XpTrade): number | null {
+  return metricTime(t, 'closed')
+}
+
 function countInBucket(trades: XpTrade[], metric: QuestMetric, start: number, end: number): number {
   let n = 0
   for (const t of trades) {
