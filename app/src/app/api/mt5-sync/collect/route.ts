@@ -9,6 +9,8 @@ import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { insertSystemNotification } from '@/lib/notifications'
 import { isForexOpen } from '@/lib/market-hours'
+import { trackServer } from '@/lib/server/track'
+import { redactText } from '@/lib/redact'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const maxDuration = 60
@@ -21,6 +23,34 @@ const CYCLE_MS = 50 * 60 * 1000
 
 // How long a broken account may stay quiet before it re-notifies its owner.
 const RENOTIFY_MS = 24 * 60 * 60 * 1000
+
+// ---------------------------------------------------------------------------
+// Durable per-cycle record
+//
+// `broker_accounts` carries the CURRENT state and nothing else: a success sets
+// `sync_error` back to null, so the failure it replaces leaves no trace. State
+// answers "is sync working now"; it cannot answer "what fraction of cycles
+// worked", which is the number the trust page has to publish. So each account's
+// outcome is written once per cycle to `analytics_events`, which is append-only
+// and already has a retention policy (0055).
+//
+//   broker_sync_succeeded  — deals fetched and the account marked active
+//   broker_sync_failed     — reliability failure; props.phase is 'deploy' when
+//                            this cycle's deploy is the root cause, else 'collect'
+//   broker_sync_skipped    — the account was NOT ATTEMPTED because the user has
+//                            no entitlement. Deliberately a third event, not a
+//                            failure: a downgrade is a product decision, and
+//                            counting it as a fault would make the published
+//                            reliability rate fall every time somebody's plan
+//                            lapses.
+//
+//   rate = succeeded / (succeeded + failed)   -- skipped is not in either term
+//
+// Nothing is emitted when the market is closed: no attempt was made, and a
+// weekend of "not attempted" in the denominator would understate reliability by
+// about 30%. `trackServer` is fire-and-forget and marks internal profiles, so
+// the founder's own test account stays out of any real-user figure.
+// ---------------------------------------------------------------------------
 
 // True if this user already got a sync_failed notification inside the window.
 // Fails safe: on a query error we report "already notified" so a logging blip
@@ -64,7 +94,7 @@ export async function GET(req: Request) {
     // the account should not be running at all, which is `stop: true` below.
     // A transient fetch error must NOT undeploy: the next cycle would pay
     // another start fee to recover from a blip that may already be over.
-    const fail = async (msg: string, opts: { stop?: boolean } = {}) => {
+    const fail = async (msg: string, opts: { stop?: boolean; entitlement?: boolean } = {}) => {
       // Don't bury the deploy phase's error under our own. If deploy failed
       // earlier in this same hourly cycle, that message is the root cause and
       // ours is only its symptom: an account that was never deployed always
@@ -100,17 +130,29 @@ export async function GET(req: Request) {
       if (row.status !== 'error' || stale) {
         await insertSystemNotification({ supabase: svc, userId: row.user_id, type: 'sync_failed' })
       }
+
+      // The reason is redacted, not trimmed: a fetch failure puts the upstream
+      // URL in the message and `props` is kept for the life of the account.
+      await trackServer(
+        opts.entitlement ? 'broker_sync_skipped' : 'broker_sync_failed',
+        { id: row.user_id },
+        {
+          phase: opts.entitlement ? 'entitlement' : deployFailedThisCycle ? 'deploy' : 'collect',
+          reason: redactText(msg),
+        },
+      )
     }
     try {
       // Same gate as connectBroker (incl. admin override) — see deploy route.
       const tier = await getTier(svc, row.user_id)
-      if (!canFlag(flags, tier, 'mt5_autosync')) { await fail('Pro plan required for auto-sync.', { stop: true }); continue }
+      if (!canFlag(flags, tier, 'mt5_autosync')) { await fail('Pro plan required for auto-sync.', { stop: true, entitlement: true }); continue }
 
       const since = row.last_deal_time ?? row.created_at
       const fetched = await fetchDealsSince(row.metaapi_account_id, row.region, since)
       if ('error' in fetched) { await fail(`fetch: ${fetched.error}`); continue }
 
       const { trades, maxDealTime } = pairDealsToTrades(fetched.deals as MetaApiDeal[])
+      let imported = 0
       if (trades.length > 0) {
         const { data: profile } = await svc
           .from('profiles').select('is_public').eq('id', row.user_id).single()
@@ -121,7 +163,8 @@ export async function GET(req: Request) {
           .upsert(mapped, { onConflict: 'user_id,broker_deal_id', ignoreDuplicates: true })
           .select('id')
         if (upErr) { await fail(`upsert: ${upErr.message}`); continue }
-        if ((inserted?.length ?? 0) > 0) {
+        imported = inserted?.length ?? 0
+        if (imported > 0) {
           await insertSystemNotification({ supabase: svc, userId: row.user_id, type: 'import_done' })
         }
       }
@@ -135,6 +178,7 @@ export async function GET(req: Request) {
         ...(maxDealTime ? { last_deal_time: maxDealTime } : {}),
       }).eq('id', row.id)
       synced++
+      await trackServer('broker_sync_succeeded', { id: row.user_id }, { trades: imported })
     } catch (e) {
       await fail(e instanceof Error ? e.message : 'sync failed')
     }
