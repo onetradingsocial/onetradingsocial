@@ -1,7 +1,16 @@
 # Hourly MT5 sync trigger. Vercel Hobby crons are daily-only, so GitHub
-# Actions drives the two sync phases instead:
-#   :00 deploy  — boot MetaApi accounts (tier-gated inside the route)
-#   :10 collect — fetch closed deals into journals, then undeploy
+# Actions drives the sync phases instead:
+#   :00 deploy   — ensure MetaApi accounts are running (tier-gated in the route)
+#   :10 collect  — fetch closed deals into journals
+#   Fri 22:05Z undeploy — weekend shutdown
+#
+# Accounts are NOT undeployed between hourly cycles any more. MetaApi bills a
+# flat fee per START (~US$0.072 on G2), so the old deploy/undeploy-every-hour
+# pattern paid 720 start fees a month — about US$51.84 per account — to save
+# hourly hosting that costs US$8.64 for the entire month. It cost roughly six
+# times what it saved. Deploy is now a no-op on an already-running account, and
+# the only shutdown is the weekend, when no deal can be created anyway.
+#
 # Requires repo secret CRON_SECRET matching the Vercel env var of the same name.
 name: MT5 sync
 
@@ -9,14 +18,19 @@ on:
   schedule:
     - cron: '0 * * * *'
     - cron: '10 * * * *'
+    # Friday 22:05 UTC — just after the forex close in lib/market-hours.ts.
+    # Deliberately after, not on, the boundary: the deploy/collect routes read
+    # the same constant, so firing early would race a cycle that still believes
+    # the market is open and redeploy what this just stopped.
+    - cron: '5 22 * * 5'
   workflow_dispatch:
     inputs:
       phase:
-        description: 'Which phase to run (deploy | collect)'
+        description: 'Which phase to run (deploy | collect | undeploy)'
         required: true
         default: 'collect'
         type: choice
-        options: [deploy, collect]
+        options: [deploy, collect, undeploy]
 
 concurrency:
   group: mt5-sync
@@ -35,6 +49,8 @@ jobs:
             PHASE="${{ inputs.phase }}"
           elif [ "${{ github.event.schedule }}" = "0 * * * *" ]; then
             PHASE=deploy
+          elif [ "${{ github.event.schedule }}" = "5 22 * * 5" ]; then
+            PHASE=undeploy
           else
             PHASE=collect
           fi
@@ -55,10 +71,19 @@ jobs:
           # failed inside it. Checking the status code alone is how a sync that
           # had never once imported a trade reported green for 48 days. Assert
           # on the counts the route reports instead.
-          key=$([ "$PHASE" = deploy ] && echo deployed || echo synced)
+          case "$PHASE" in
+            deploy)   key=deployed ;;
+            undeploy) key=undeployed ;;
+            *)        key=synced ;;
+          esac
           ok=$(jq -r --arg k "$key" '.[$k] // 0' /tmp/out)
           total=$(jq -r '.total // 0' /tmp/out)
           echo "${key}=${ok} of ${total}"
+          # A weekend skip reports total=0 and falls through the assert below
+          # untouched, so the hourly schedule stays green while the market is
+          # shut instead of alarming on "0 of 0" every hour for 48 hours.
+          skipped=$(jq -r '.skipped // ""' /tmp/out)
+          if [ -n "${skipped}" ]; then echo "skipped: ${skipped}"; fi
           if [ "${total}" -gt 0 ] && [ "${ok}" -lt "${total}" ]; then
             echo "::error::MT5 ${PHASE}: only ${ok}/${total} account(s) succeeded. See broker_accounts.sync_error (and sync_error_phase) for the cause."
             exit 1

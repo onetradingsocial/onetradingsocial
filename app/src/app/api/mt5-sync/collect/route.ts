@@ -8,6 +8,7 @@ import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { insertSystemNotification } from '@/lib/notifications'
+import { isForexOpen } from '@/lib/market-hours'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const maxDuration = 60
@@ -40,6 +41,13 @@ export async function GET(req: Request) {
   if (!authorizedCron(req.headers.get('authorization'))) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
+  // Accounts are undeployed over the weekend, so fetching would fail for every
+  // one of them and mark a healthy account as errored — and notify its owner
+  // that their sync is broken, every hour, all weekend. Skip instead.
+  if (!isForexOpen(new Date())) {
+    return NextResponse.json({ synced: 0, total: 0, skipped: 'market_closed' })
+  }
+
   const svc = createServiceClient()
   const flags = await getFeatureFlags()
   const { data: rows, error } = await svc
@@ -50,9 +58,13 @@ export async function GET(req: Request) {
 
   let synced = 0
   for (const row of rows ?? []) {
-    // Hourly burst sync (deploy :00 → collect :10): accounts run only for
-    // the window, so every exit path undeploys to stop MetaApi billing.
-    const fail = async (msg: string) => {
+    // Accounts stay deployed between cycles (see lib/market-hours.ts for why
+    // the old deploy/undeploy-every-hour pattern cost about six times what it
+    // saved). So this route no longer undeploys on its way out — EXCEPT when
+    // the account should not be running at all, which is `stop: true` below.
+    // A transient fetch error must NOT undeploy: the next cycle would pay
+    // another start fee to recover from a blip that may already be over.
+    const fail = async (msg: string, opts: { stop?: boolean } = {}) => {
       // Don't bury the deploy phase's error under our own. If deploy failed
       // earlier in this same hourly cycle, that message is the root cause and
       // ours is only its symptom: an account that was never deployed always
@@ -73,7 +85,10 @@ export async function GET(req: Request) {
           sync_error_at: new Date().toISOString(),
         }),
       }).eq('id', row.id)
-      await undeployAccount(row.metaapi_account_id)
+      // Only when the account has lost its entitlement to run. Leaving a
+      // downgraded user's account deployed would bill hosting indefinitely for
+      // somebody who is no longer paying.
+      if (opts.stop) await undeployAccount(row.metaapi_account_id)
 
       // Notify the owner their verification is at risk (row 31). This runs
       // hourly, so notifying on every failure would spam an upstream outage —
@@ -89,7 +104,7 @@ export async function GET(req: Request) {
     try {
       // Same gate as connectBroker (incl. admin override) — see deploy route.
       const tier = await getTier(svc, row.user_id)
-      if (!canFlag(flags, tier, 'mt5_autosync')) { await fail('Pro plan required for auto-sync.'); continue }
+      if (!canFlag(flags, tier, 'mt5_autosync')) { await fail('Pro plan required for auto-sync.', { stop: true }); continue }
 
       const since = row.last_deal_time ?? row.created_at
       const fetched = await fetchDealsSince(row.metaapi_account_id, row.region, since)
@@ -111,7 +126,6 @@ export async function GET(req: Request) {
         }
       }
 
-      await undeployAccount(row.metaapi_account_id)
       await svc.from('broker_accounts').update({
         status: 'active',
         sync_error: null,

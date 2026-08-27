@@ -58,6 +58,32 @@ export async function provisionAccount(p: { login: string; password: string; ser
   return { accountId: id, region }
 }
 
+/** MetaApi account lifecycle states we care about. DEPLOYING is treated as
+ *  deployed on purpose: a second deploy call while one is in flight is at best
+ *  wasted and at worst a second start-up fee. */
+const RUNNING_STATES = new Set(['DEPLOYED', 'DEPLOYING'])
+
+/**
+ * Whether the account is already running, read from MetaApi rather than from
+ * our own column.
+ *
+ * A local `deployed_at` flag would drift the moment MetaApi undeploys an
+ * account on its own (deploy failure, maintenance, an undeploy we lost the
+ * response to), and a stale "already deployed" belief means the sync quietly
+ * reads nothing forever. Reading the provider's own state cannot drift, and
+ * the MetaApi REST API is free — only deployment and uptime are billed.
+ *
+ * Fails CLOSED on error: an unknown state reports `false`, so the caller
+ * deploys. Paying one extra start fee is strictly better than a sync that
+ * never runs because we assumed the account was up.
+ */
+export async function isAccountRunning(accountId: string): Promise<boolean> {
+  const r = await call(`${PROVISIONING}/users/current/accounts/${accountId}`)
+  if ('error' in r) return false
+  const state = (r.body as { state?: string } | null)?.state
+  return typeof state === 'string' && RUNNING_STATES.has(state)
+}
+
 export async function deployAccount(accountId: string) {
   const r = await call(`${PROVISIONING}/users/current/accounts/${accountId}/deploy`, { method: 'POST' })
   return 'error' in r ? r : { ok: true as const }
