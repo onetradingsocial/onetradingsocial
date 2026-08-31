@@ -55,6 +55,57 @@ describe('recoveryNudge — reachability', () => {
   })
 })
 
+/**
+ * The never-traded nudge used to send EVERY such user to /journal to type a
+ * trade in by hand — the workflow auto-sync exists to replace, and the opposite
+ * of the activation action the product is built around.
+ *
+ * Fixing that opens a worse failure: MT5 auto-sync is Pro-gated, so broker copy
+ * sent to a free account is a promise that lands on an upgrade wall. These
+ * pin both directions.
+ */
+describe('recoveryNudge — never traded, routed by what the account can do', () => {
+  it('sends a Pro-capable user to connect a broker, not to type', () => {
+    const n = recoveryNudge({
+      tradeCount: 0, daysSinceSignup: 10, daysSinceLastTrade: null, canAutosync: true,
+    })
+    expect(n?.cta).toBe('Connect your broker')
+    expect(n?.href).toBe('/settings#broker')
+  })
+
+  it('never offers auto-sync to an account that cannot use it', () => {
+    const n = recoveryNudge({
+      tradeCount: 0, daysSinceSignup: 10, daysSinceLastTrade: null, canAutosync: false,
+    })
+    expect(n?.cta).toBe('Log your first trade')
+    expect(n?.href).toBe('/journal')
+    expect(n?.reason).not.toContain('MT5')
+  })
+
+  it('defaults to the manual CTA when entitlements were never looked up', () => {
+    // The default matters more than the branch: a caller that forgets to pass
+    // canAutosync must not thereby promise a paid feature.
+    const n = recoveryNudge({ tradeCount: 0, daysSinceSignup: 10, daysSinceLastTrade: null })
+    expect(n?.href).toBe('/journal')
+  })
+
+  it('stops asking a connected user to connect', () => {
+    const n = recoveryNudge({
+      tradeCount: 0, daysSinceSignup: 10, daysSinceLastTrade: null,
+      canAutosync: true, hasBroker: true,
+    })
+    expect(n?.cta).toBe('Check your connection')
+    expect(n?.reason).toContain('closed')
+  })
+
+  it('leaves the throttle and stop rules alone', () => {
+    // The new branches must not become a way around either gate.
+    const fresh = { tradeCount: 0, daysSinceLastTrade: null, canAutosync: true, hasBroker: false }
+    expect(recoveryNudge({ ...fresh, daysSinceSignup: 1 })).toBeNull()
+    expect(recoveryNudge({ ...fresh, daysSinceSignup: 400 })).toBeNull()
+  })
+})
+
 describe('recoveryGapDays — contact decays, then ends', () => {
   it('widens the gap as someone stays lapsed', () => {
     expect(recoveryGapDays(3)).toBe(7)

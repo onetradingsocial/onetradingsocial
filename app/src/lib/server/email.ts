@@ -82,10 +82,37 @@ export function recoveryHtml(name: string, reason: string, cta: string, ctaHref:
   `)
 }
 
-/* ── Billing lifecycle ────────────────────────────────────────────────────── */
-
 const button = (href: string, label: string) =>
   `<a href="${href}" style="display:inline-block;margin-top:12px;padding:10px 20px;background:#6B43E0;color:#fff;border-radius:10px;text-decoration:none;font-weight:600">${label}</a>`
+
+export function welcomeHtml(x: {
+  name: string
+  /** profiles.intended_source: 'broker' | 'statement' | 'manual', or null for
+   *  anyone who onboarded before 0062 existed. NULL means "never asked". */
+  intent: string | null
+  canAutosync: boolean
+}): string {
+  const wantsBroker = x.intent === 'broker'
+
+  // Three states, in order of how much the product can do for them right now.
+  const next = wantsBroker && x.canAutosync
+    ? `<p style="font-size:14px;line-height:1.6">You said you'd add trades by connecting your broker, so start there. Connect your MT5 account once and every closed trade lands in your journal automatically, every hour — nothing to type, nothing to import.</p>
+       ${button(`${APP}/settings#broker`, 'Connect your MT5 account')}
+       <p style="font-size:13px;line-height:1.6;color:#56536b">It takes your account number, server and password. Read-only where your broker supports it.</p>`
+    : wantsBroker
+      ? `<p style="font-size:14px;line-height:1.6">You said you'd add trades by connecting your broker. Being straight with you: MT5 auto-sync is a <b>Pro</b> feature, and your account isn't on Pro right now — so the fastest way to get your first trade in today is to log it by hand.</p>
+         ${button(`${APP}/journal`, 'Log your first trade')}
+         <p style="font-size:13px;line-height:1.6;color:#56536b">Auto-sync is waiting in Settings → MT5 auto-sync whenever you upgrade. Nothing you log manually is lost when you switch.</p>`
+      : `<p style="font-size:14px;line-height:1.6">One trade is all it takes to start. Log it with the entry, the exit and what you were thinking — the stats, the win rate and the patterns all build from there, and none of them exist until the first one is in.</p>
+         ${button(`${APP}/journal`, 'Log your first trade')}`
+
+  return shell(`Welcome, ${x.name}`, `
+    <p style="font-size:14px;line-height:1.6">Your TradingSocial account is set up. Here's the one thing worth doing first.</p>
+    ${next}
+    <p style="font-size:13px;line-height:1.6;color:#56536b;margin-top:20px">Reply to this email if anything doesn't work — it reaches a person.</p>
+  `)
+}
+
 
 /** A renewal payment failed.
  *
@@ -95,6 +122,23 @@ const button = (href: string, label: string) =>
  *  where it is "this was the last try". Naming the grace window in the email is
  *  deliberate — it is the difference between a customer who updates their card
  *  and one who assumes they have already been cut off. */
+/* ── Billing lifecycle ────────────────────────────────────────────────────── */
+
+/** The day-0 email. Sent once, at onboarding completion, by
+ *  lib/server/welcome-email.ts.
+ *
+ *  Routed on what the user themselves said at onboarding step 5
+ *  (`profiles.intended_source`, migration 0062) rather than on a guess, because
+ *  that answer exists by the time this sends and measuring it was the whole
+ *  point of storing it. `canAutosync` is checked SEPARATELY from that intent:
+ *  MT5 auto-sync is Pro-gated (FEATURE_MIN_TIER.mt5_autosync), so a user who
+ *  asked for broker sync but cannot currently use it must not be handed a CTA
+ *  that lands on an upgrade wall. They get told the truth instead.
+ *
+ *  No positioning claims, no proof, no competitor framing: this says what
+ *  happens next and links to it. That is deliberate — the homepage rewrite is
+ *  parked pending customer interviews, and copy that made claims would be
+ *  making them up. */
 export function paymentFailedHtml(x: {
   name: string
   amount: string | null

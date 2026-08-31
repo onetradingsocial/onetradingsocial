@@ -5,6 +5,8 @@ import { saveNotificationPrefs } from '@/app/actions/notifications'
 
 const PREFS: [string, string][] = [
   ['weekly_report', 'Weekly review ready'],
+  ['getting_started', 'Getting started emails'],
+  ['recovery_email', "Reminders when you've been away"],
   ['import_done', 'Trade import completed'],
   ['sync_failed', 'Broker sync failed'],
   ['goal_completed', 'Process goal completed'],

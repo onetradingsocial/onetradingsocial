@@ -25,9 +25,15 @@ export async function markAllNotificationsRead(): Promise<void> {
   await markAllRead(service, user.id)
 }
 
+// 'getting_started' and 'recovery_email' gate the two lifecycle emails that had
+// no switch: the day-0 welcome and the inactivity nudge. Contrast the billing
+// and trial notices added in 0049, which are deliberately absent here — a user
+// may not switch off being told their payment failed. These two are marketing,
+// not notice, so they get a toggle.
 const PREF_KEYS = new Set([
   'weekly_report', 'import_done', 'sync_failed', 'goal_completed', 'rule_breach', 'new_learning',
   'follow', 'comment', 'mention', 'like', 'post_share', 'message',
+  'getting_started', 'recovery_email',
 ])
 
 export async function saveNotificationPrefs(prefs: Record<string, boolean>): Promise<void> {

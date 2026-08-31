@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendRedditConversion } from '@/lib/server/reddit-capi'
+import { sendWelcomeEmail } from '@/lib/server/welcome-email'
 import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
 import { trackServer } from '@/lib/server/track'
 import { validateUsername } from '@/lib/username'
@@ -100,6 +101,18 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
   await trackServer('onboarding_completed', user, {
     markets: input.main_markets.join(','),
     experience: input.experience_level,
+  })
+
+  // Day-0 welcome email. Deliberately HERE and not in signUp: `intended_source`
+  // is written a few lines above and is what the copy routes on, so sending any
+  // earlier would mean sending without knowing what the user asked for. Both
+  // the email and Google signup paths converge on this action, so both get it.
+  //
+  // Inside after() so it adds no latency to onboarding, and best-effort for the
+  // same reason attribution is — sendWelcomeEmail never throws, and a welcome
+  // email must never be the reason someone cannot finish signing up.
+  after(async () => {
+    await sendWelcomeEmail(createServiceClient(), user.id, user.email ?? null)
   })
 
   const conversionId = randomUUID()
