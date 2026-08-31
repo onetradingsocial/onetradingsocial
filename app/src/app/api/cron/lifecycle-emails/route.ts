@@ -2,12 +2,16 @@ import { NextResponse } from 'next/server'
 import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendEmail, weeklyDigestHtml, recoveryHtml, trialExpiredHtml } from '@/lib/server/email'
+import { sendWelcomeEmail } from '@/lib/server/welcome-email'
 import { insertSystemNotification } from '@/lib/notifications'
 import { computeMetrics, isClosed, rValues, type TradeForMetrics } from '@/lib/trade'
 import { recoveryDue, recoveryNudge } from '@/lib/recovery'
 import { generateInsights } from '@/lib/insights'
 import { journaledCloseAt } from '@/lib/xp'
-import { trialState, JOURNAL_FREE_LIMIT } from '@/lib/entitlements'
+import { trialState, JOURNAL_FREE_LIMIT, type Tier } from '@/lib/entitlements'
+import { getTierMap } from '@/lib/server/entitlements'
+import { getFeatureFlags } from '@/lib/server/feature-flags'
+import { canFlag } from '@/lib/feature-flags'
 import { getStripe } from '@/lib/stripe'
 import { reconcileBilling } from '@/lib/server/billing-reconcile'
 import { logError, logWarn } from '@/lib/server/log'
@@ -27,6 +31,13 @@ const DAY = 864e5
  *  nothing by design; widen this constant temporarily if a deliberate backfill
  *  is wanted. */
 const TRIAL_EXPIRY_NOTICE_WINDOW_DAYS = 7
+
+/** How many never-welcomed accounts the backfill mails per nightly run.
+ *
+ *  Deliberately small. See the block in the route for why: no sending
+ *  reputation, and a burst is how a new domain earns a complaint rate it cannot
+ *  undo. Raise it once a few nights have gone out clean. */
+const WELCOME_BACKFILL_PER_RUN = 10
 
 /**
  * Daily lifecycle emails (Sprint 4, rows 32 + 33) — one route because Vercel
@@ -63,6 +74,33 @@ export async function GET(req: Request) {
     .select('id, username, display_name, created_at, last_weekly_email, last_recovery_email, notification_prefs')
     .eq('is_internal', false)
   if (!users) return NextResponse.json({ error: 'no users' }, { status: 500 })
+
+  /**
+   * Who can actually use MT5 auto-sync, and who already has a broker attached.
+   *
+   * Both are needed by the never-traded nudge, which used to send everyone to
+   * /journal to type a trade in by hand. Fetched in two batch reads outside the
+   * per-user loop rather than per user — the loop already does one trades query
+   * each and this route shares a 60s budget with billing reconciliation.
+   *
+   * Both fail CLOSED. getTierMap returns an empty map on any read error and an
+   * absent tier is treated as "cannot auto-sync", because the failure that
+   * matters is mailing a free user a CTA that lands on an upgrade wall.
+   */
+  const userIds = users.map((u) => u.id)
+  let tiers = new Map<string, Tier>()
+  let flags: Awaited<ReturnType<typeof getFeatureFlags>> = {}
+  try {
+    ;[tiers, flags] = await Promise.all([getTierMap(userIds), getFeatureFlags()])
+  } catch (err) {
+    logWarn('lifecycle-emails', err, { note: 'entitlement lookup failed; nudges will assume no auto-sync' })
+  }
+  const { data: brokerRows, error: brokerError } = await svc
+    .from('broker_accounts').select('user_id')
+  if (brokerError) {
+    logWarn('lifecycle-emails', brokerError.message, { note: 'broker lookup failed; nudges will assume none' })
+  }
+  const withBroker = new Set((brokerRows ?? []).map((r) => r.user_id as string))
 
   const emailOf = async (uid: string): Promise<string | null> => {
     const { data } = await svc.auth.admin.getUserById(uid)
@@ -219,13 +257,21 @@ export async function GET(req: Request) {
         : null,
     })) continue
 
+    const tier = tiers.get(u.id)
     const nudge = recoveryNudge({
       tradeCount: rows.length,
       daysSinceSignup,
       daysSinceLastTrade,
+      canAutosync: tier ? canFlag(flags, tier, 'mt5_autosync') : false,
+      hasBroker: withBroker.has(u.id),
     })
 
-    if (nudge) {
+    // Absent key = on, as everywhere else. Until now the nudge checked no
+    // preference at all — only the weekly digest did — so the one email that
+    // goes to LAPSED users was the one they could not switch off. That is
+    // backwards, and it is the stream most likely to draw a spam complaint on a
+    // sending domain whose DKIM/SPF was only just confirmed.
+    if (nudge && prefs.recovery_email !== false) {
       const { reason, cta, href } = nudge
       const email = await emailOf(u.id)
       await deliver(email, 'Your TradingSocial journal is waiting', recoveryHtml(name, reason, cta, href))
@@ -284,6 +330,57 @@ export async function GET(req: Request) {
         break
       }
       trialNotices++
+    }
+  }
+
+  // ---- Welcome backfill --------------------------------------------------------
+  // The welcome email sends at onboarding completion (actions/profile.ts), so
+  // it reaches everyone who signs up from now on and nobody who already had.
+  // This drains the existing base once: every account that predates the email
+  // gets the one it never got.
+  //
+  // Its OWN query, for the reason the trial notice documents directly below:
+  // welcome_email_at is the newest column here, and an unapplied migration 0063
+  // must be able to disable this branch WITHOUT failing the select that the
+  // digests and nudges depend on.
+  //
+  // Capped per run. The trial notice learned this the hard way — 34 expired
+  // trials would have gone out in one burst — and the same reasoning applies
+  // harder here, on a domain whose DKIM/SPF was confirmed days ago and which
+  // has no sending reputation to spend. At 10/day a 40-account base drains in
+  // four nights, slowly enough that a bounce or complaint spike shows up while
+  // there is still something left to stop.
+  //
+  // Ordering is oldest-first: if this is stopped part-way, the accounts that
+  // have been waiting longest are the ones already served.
+  let welcomes = 0
+  const { data: unwelcomed, error: welcomeError } = await svc
+    .from('profiles')
+    .select('id, welcome_email_at')
+    .eq('is_internal', false)
+    .is('welcome_email_at', null)
+    .order('created_at', { ascending: true })
+    .limit(WELCOME_BACKFILL_PER_RUN)
+
+  if (welcomeError) {
+    logWarn('lifecycle-emails', welcomeError.message, { note: 'welcome backfill skipped (migration 0063 not applied?)' })
+  } else {
+    for (const row of unwelcomed ?? []) {
+      const email = await emailOf(row.id)
+      // sendWelcomeEmail owns the latch, the preference check and the
+      // entitlement lookup; it is the same call the signup path makes, so the
+      // backfilled mail cannot drift from the live one.
+      const res = await sendWelcomeEmail(svc, row.id, email)
+      if (res.sent) {
+        delivered++
+        welcomes++
+      } else if (res.reason === 'already_sent' || res.reason === 'opted_out') {
+        // Neither is a delivery failure: one is a race, the other is consent.
+        continue
+      } else {
+        undelivered++
+        failures.set(res.reason ?? 'unknown', (failures.get(res.reason ?? 'unknown') ?? 0) + 1)
+      }
     }
   }
 
@@ -362,7 +459,7 @@ export async function GET(req: Request) {
     // failure this endpoint existed to hide.
     ok: undelivered === 0,
     emailConfigured: !failures.has('no_provider'),
-    processed: { digests, nudges, trialNotices },
+    processed: { digests, nudges, trialNotices, welcomes },
     delivery: { delivered, undelivered, failures: failureBreakdown },
     reconciled, purged, retention,
   })

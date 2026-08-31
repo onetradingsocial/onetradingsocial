@@ -50,6 +50,16 @@ export type RecoveryInput = {
   daysSinceSignup: number
   /** Null when they have never logged a trade. */
   daysSinceLastTrade: number | null
+  /** Whether MT5 auto-sync is actually available to this account right now.
+   *
+   *  Defaults FALSE, and the default is the load-bearing part: a caller that
+   *  has not looked up entitlements must never be handed broker copy. Auto-sync
+   *  is Pro-gated (FEATURE_MIN_TIER.mt5_autosync), so promising it to a free
+   *  account sends that user at an upgrade wall from an email that told them
+   *  the feature was theirs. */
+  canAutosync?: boolean
+  /** Whether a broker account row already exists for them. */
+  hasBroker?: boolean
 }
 
 /**
@@ -71,6 +81,25 @@ export function recoveryNudge(o: RecoveryInput): RecoveryNudge | null {
   const label = sinceLabel(lapsedDays)
 
   if (neverTraded) {
+    // Three states, not one. The original single message sent every
+    // never-traded user to /journal to type a trade in by hand — the workflow
+    // the product exists to replace, and the opposite of the activation action
+    // the plan is built on. It is still the right message for someone who
+    // cannot use auto-sync; it was never the right message for everyone.
+    if (o.hasBroker) {
+      return {
+        reason: `Your broker is connected, but no closed trades have come through yet. Only closed positions are journaled — the next one you close will appear on its own, usually within the hour.`,
+        cta: 'Check your connection',
+        href: '/settings#broker',
+      }
+    }
+    if (o.canAutosync) {
+      return {
+        reason: `You signed up ${label} ago and haven't logged a trade yet. Connect your MT5 account once and you never type one in: every closed trade lands in the journal automatically, every hour.`,
+        cta: 'Connect your broker',
+        href: '/settings#broker',
+      }
+    }
     return {
       reason: `You signed up ${label} ago and haven't logged a trade yet. It takes under a minute — and your stats start building from the first one.`,
       cta: 'Log your first trade',
