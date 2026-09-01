@@ -210,6 +210,72 @@ export function trialExpiredHtml(x: { name: string; kept: number }): string {
   `)
 }
 
+/** One of the three in-trial emails (days 1, 7, 12). See lib/trial-sequence.ts
+ *  for why the trial was silent until this existed, and why `trialEndingHtml`
+ *  does not cover it.
+ *
+ *  The single most important rule in this copy: **the trial takes no card, so
+ *  nothing can be charged.** `trialExpiredHtml` already says so after the fact;
+ *  the day-12 email is the one most likely to be misread as a billing warning,
+ *  and a user cancelling a subscription that does not exist is the failure mode
+ *  to design against. Every stage says what happens in plain terms and none of
+ *  them mentions payment.
+ *
+ *  Day 1 and 7 lead with connecting a broker because the trial is the one
+ *  window where that CTA is honest — `mt5_autosync` is Pro-gated, and a trial
+ *  user is on Pro. `canAutosync` is still passed rather than assumed, so a
+ *  comped or otherwise unusual account cannot be promised a feature it lacks. */
+export function trialSequenceHtml(x: {
+  name: string
+  stage: 1 | 7 | 12
+  daysLeft: number
+  trades: number
+  hasBroker: boolean
+  canAutosync: boolean
+  kept: number
+}): string {
+  // The one next action, shared by days 1 and 7 and chosen the same way the
+  // recovery nudge chooses it (lib/recovery.ts) so the two never contradict.
+  const action = x.hasBroker
+    ? `<p style="font-size:14px;line-height:1.6">Your broker is connected, so there is nothing to set up. Closed trades land in the journal on their own, usually within the hour.</p>
+       ${button(`${APP}/journal`, 'Open your journal')}`
+    : x.canAutosync
+      ? `<p style="font-size:14px;line-height:1.6">Connect your MT5 account and you never type a trade in: every closed position lands in the journal automatically, every hour. It is the one setup step worth doing while you have Pro.</p>
+         ${button(`${APP}/settings#broker`, 'Connect your MT5 account')}`
+      : `<p style="font-size:14px;line-height:1.6">Log one trade — the entry, the exit, and what you were thinking. Everything else in here builds from the first one.</p>
+         ${button(`${APP}/journal`, 'Log your first trade')}`
+
+  if (x.stage === 1) {
+    return shell(`${x.name}, one thing to do today`, `
+      <p style="font-size:14px;line-height:1.6">You have Pro for the next ${x.daysLeft} days. Rather than list everything it unlocks, here is the single thing that makes the rest of it work.</p>
+      ${action}
+      <p style="font-size:13px;line-height:1.6;color:#56536b">No card was taken and none is needed. Nothing will be charged at any point in the trial.</p>
+    `)
+  }
+
+  if (x.stage === 7) {
+    const progress = x.trades === 0
+      ? `<p style="font-size:14px;line-height:1.6">Your journal is still empty, which means the stats, the weekly review and the patterns all have nothing to work from yet. That is fixable in about a minute.</p>`
+      : `<p style="font-size:14px;line-height:1.6">You have <b>${x.trades} ${x.trades === 1 ? 'trade' : 'trades'}</b> logged. That is enough for the journal to start showing you something — win rate, average R, and which setups are actually carrying you.</p>`
+    return shell(`${x.name}, halfway through your trial`, `
+      <p style="font-size:14px;line-height:1.6">A week in, ${x.daysLeft} days of Pro left.</p>
+      ${progress}
+      ${x.trades === 0 ? action : `${button(`${APP}/journal`, 'See what your trades say')}`}
+      <p style="font-size:13px;line-height:1.6;color:#56536b">Still no card on file. Nothing will be charged.</p>
+    `)
+  }
+
+  // Stage 12. Notice of a state change, not a sales email and not a bill.
+  return shell(`${x.name}, your Pro trial ends in ${x.daysLeft} ${x.daysLeft === 1 ? 'day' : 'days'}`, `
+    <p style="font-size:14px;line-height:1.6">Your ${x.daysLeft === 1 ? 'last day' : 'final days'} of Pro. Here is exactly what happens next, so none of it is a surprise.</p>
+    <p style="font-size:14px;line-height:1.6"><b>You will not be charged.</b> The trial never asked for a card and there is nothing to cancel. When it ends your account simply moves to the <b>Free</b> plan.</p>
+    <p style="font-size:14px;line-height:1.6"><b>Nothing you have logged is deleted.</b> Every trade, note and screenshot stays exactly where it is. Free shows your most recent ${x.kept} trades; the rest come straight back if you upgrade later.</p>
+    <p style="font-size:14px;line-height:1.6">What stops: automatic MT5 sync, unlimited journal history, advanced stats, and strategy and mistake tagging.</p>
+    ${button(`${APP}/settings/billing`, 'See the plans')}
+    <p style="font-size:13px;line-height:1.6;color:#56536b">Happy to carry on with Free? Nothing to do — keep logging.</p>
+  `)
+}
+
 /** The account is gone. Sent AFTER the hard delete, to the address captured
  *  before it — by then auth.users no longer holds it, which is the point.
  *

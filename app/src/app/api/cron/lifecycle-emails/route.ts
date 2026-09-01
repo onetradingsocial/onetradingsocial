@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
 import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendEmail, weeklyDigestHtml, recoveryHtml, trialExpiredHtml } from '@/lib/server/email'
+import { sendEmail, weeklyDigestHtml, recoveryHtml, trialExpiredHtml, trialSequenceHtml } from '@/lib/server/email'
 import { sendWelcomeEmail } from '@/lib/server/welcome-email'
 import { insertSystemNotification } from '@/lib/notifications'
 import { computeMetrics, isClosed, rValues, type TradeForMetrics } from '@/lib/trade'
 import { recoveryDue, recoveryNudge } from '@/lib/recovery'
+import { dueTrialStage, trialStageIsOptional } from '@/lib/trial-sequence'
 import { generateInsights } from '@/lib/insights'
 import { journaledCloseAt } from '@/lib/xp'
-import { trialState, JOURNAL_FREE_LIMIT, type Tier } from '@/lib/entitlements'
+import { trialState, trialDaysLeft, JOURNAL_FREE_LIMIT, type Tier } from '@/lib/entitlements'
 import { getTierMap } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
@@ -333,6 +334,79 @@ export async function GET(req: Request) {
     }
   }
 
+  // ---- In-trial sequence (days 1, 7, 12) --------------------------------------
+  // The trial used to be silent end to end: welcome on day 0, nothing for
+  // fourteen days, then the expiry notice 0049 added. This is the middle.
+  //
+  // Its OWN query, for the reason the expiry branch below documents:
+  // trial_email_stage is the newest column here and an unapplied 0064 must be
+  // able to disable only this.
+  //
+  // Note the throttle is a SEPARATE column from last_trial_email. Reusing that
+  // one would have suppressed the expiry notice for everyone who got a day-1
+  // email — reintroducing the exact silence 0049 fixed, in a narrower form.
+  let trialStageEmails = 0
+  const { data: inTrial, error: seqError } = await svc
+    .from('profiles')
+    .select('id, username, display_name, notification_prefs, trial_started_at, trial_ack_at, trial_email_stage')
+    .eq('is_internal', false)
+    .not('trial_started_at', 'is', null)
+    .is('trial_ack_at', null)
+
+  if (seqError) {
+    logWarn('lifecycle-emails', seqError.message, { note: 'trial sequence skipped (migration 0064 not applied?)' })
+  } else {
+    for (const t of inTrial ?? []) {
+      // trial_ack_at is written by the Stripe webhook on subscribe, so
+      // `resolved` already excludes anyone who upgraded. This also excludes
+      // `expired` — the notice branch owns that side of the line.
+      if (trialState(t.trial_started_at, t.trial_ack_at, nowDate) !== 'active') continue
+
+      const daysSinceStart = Math.floor((now - Date.parse(t.trial_started_at)) / DAY)
+      const stage = dueTrialStage({ daysSinceStart, lastStageSent: t.trial_email_stage ?? null })
+      if (stage == null) continue
+
+      const prefs = (t.notification_prefs ?? {}) as Record<string, boolean>
+      // Days 1 and 7 are nudges and respect the preference. Day 12 is notice of
+      // an account-state change and does not — same rule 0049 set for the
+      // expiry notice, applied two days earlier.
+      const optedOut = trialStageIsOptional(stage) && prefs.getting_started === false
+
+      if (!optedOut) {
+        const { count } = await svc
+          .from('trades').select('id', { count: 'exact', head: true }).eq('user_id', t.id)
+        const tier = tiers.get(t.id)
+        const email = await emailOf(t.id)
+        const subject = stage === 12
+          ? 'Your TradingSocial Pro trial ends in 2 days'
+          : stage === 7
+            ? 'Halfway through your Pro trial'
+            : 'One thing to do on day one'
+        await deliver(email, subject, trialSequenceHtml({
+          name: t.display_name || t.username,
+          stage,
+          daysLeft: trialDaysLeft(t.trial_started_at, nowDate),
+          trades: count ?? 0,
+          hasBroker: withBroker.has(t.id),
+          canAutosync: tier ? canFlag(flags, tier, 'mt5_autosync') : false,
+          kept: JOURNAL_FREE_LIMIT,
+        }))
+        trialStageEmails++
+      }
+
+      // Stamped whether or not it was sent, and whether or not it was opted out
+      // of, so the ratchet advances exactly once per stage. Without this an
+      // opted-out user would be re-evaluated every night forever, and a missing
+      // provider would re-send the moment one appeared.
+      const { error: stampError } = await svc.from('profiles')
+        .update({ trial_email_stage: stage }).eq('id', t.id)
+      if (stampError) {
+        logError('lifecycle-emails', stampError.message, { note: 'could not stamp trial_email_stage, stopping' })
+        break
+      }
+    }
+  }
+
   // ---- Welcome backfill --------------------------------------------------------
   // The welcome email sends at onboarding completion (actions/profile.ts), so
   // it reaches everyone who signs up from now on and nobody who already had.
@@ -459,7 +533,7 @@ export async function GET(req: Request) {
     // failure this endpoint existed to hide.
     ok: undelivered === 0,
     emailConfigured: !failures.has('no_provider'),
-    processed: { digests, nudges, trialNotices, welcomes },
+    processed: { digests, nudges, trialNotices, welcomes, trialStageEmails },
     delivery: { delivered, undelivered, failures: failureBreakdown },
     reconciled, purged, retention,
   })
