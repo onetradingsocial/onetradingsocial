@@ -16,6 +16,7 @@ import { canFlag } from '@/lib/feature-flags'
 import { getStripe } from '@/lib/stripe'
 import { reconcileBilling } from '@/lib/server/billing-reconcile'
 import { logError, logWarn } from '@/lib/server/log'
+import { recordCronRun } from '@/lib/server/cron-runs'
 
 export const maxDuration = 60
 
@@ -528,12 +529,26 @@ export async function GET(req: Request) {
     }
   }
 
+  // Persisted before the response, because the response is where this
+  // information used to end. Vercel Hobby keeps runtime logs about an hour
+  // (lib/server/log.ts), so by the next morning a run's delivery counters were
+  // unrecoverable — which is exactly what happened to the first run after
+  // migrations 0063 and 0064 landed. Never throws; see recordCronRun.
+  const processed = { digests, nudges, trialNotices, welcomes, trialStageEmails }
+  await recordCronRun(svc, 'lifecycle-emails', {
+    ok: undelivered === 0,
+    processed,
+    delivered,
+    undelivered,
+    failures: failureBreakdown,
+  })
+
   return NextResponse.json({
     // Not ok if we processed users but delivered nothing — that is the silent
     // failure this endpoint existed to hide.
     ok: undelivered === 0,
     emailConfigured: !failures.has('no_provider'),
-    processed: { digests, nudges, trialNotices, welcomes, trialStageEmails },
+    processed,
     delivery: { delivered, undelivered, failures: failureBreakdown },
     reconciled, purged, retention,
   })

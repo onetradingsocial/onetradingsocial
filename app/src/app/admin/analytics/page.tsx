@@ -3,8 +3,10 @@ import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAnalytics } from '@/lib/server/analytics'
 import { getFunnelDashboard } from '@/lib/server/funnel'
+import { recentCronRuns } from '@/lib/server/cron-runs'
 import { TrendBars } from './_components/TrendBars'
 import { CompletionsList } from './_components/CompletionsList'
+import { CronRuns } from './_components/CronRuns'
 import { Meter, PageHead, Panel, Section, Stat, Stats } from '../_components/ui'
 
 export const dynamic = 'force-dynamic'
@@ -85,7 +87,11 @@ export default async function AnalyticsPage() {
   // own call — it renders the nav and must not leak that either.
   await requireAdmin()
   const supabase = createServiceClient()
-  const [d, f] = await Promise.all([getAnalytics(supabase), getFunnelDashboard(supabase)])
+  const [d, f, runs] = await Promise.all([
+    getAnalytics(supabase),
+    getFunnelDashboard(supabase),
+    recentCronRuns(supabase, 'lifecycle-emails'),
+  ])
 
   return (
     <>
@@ -126,10 +132,11 @@ export default async function AnalyticsPage() {
           )}
         </Section>
 
-        <Section title="Lifecycle">
+        <Section title="Lifecycle" sub="Delivery is counted separately from work done: a run can process ten users and deliver nothing, which is the failure this section exists to make visible.">
           <Stats>
             {f.lifecycle.map((l) => <Stat key={l.status} label={l.status} value={l.count} hint={HINTS[l.status]} />)}
           </Stats>
+          <CronRuns rows={runs} />
         </Section>
 
         <Section title="Acquisition">
