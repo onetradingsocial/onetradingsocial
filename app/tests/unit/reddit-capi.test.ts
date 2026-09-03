@@ -24,7 +24,10 @@ describe('buildConversionBody', () => {
       externalId: 'user-abc',
       eventAt: 1730000000000,
     })
-    const ev = body.data.events[0] as Record<string, any>
+    const ev = body.data.events[0] as {
+      type: unknown; action_source: string; event_at: number
+      user: Record<string, string>; metadata: Record<string, string>
+    }
     expect(body.data.test_mode).toBe(false)
     expect(ev.type).toEqual({ tracking_type: 'SignUp' })
     expect(ev.action_source).toBe('website')
@@ -38,14 +41,14 @@ describe('buildConversionBody', () => {
 
   it('includes click_id only when provided', () => {
     const body = buildConversionBody({ eventType: 'SignUp', conversionId: 'c', clickId: 'clk_1' })
-    expect((body.data.events[0] as any).click_id).toBe('clk_1')
+    expect((body.data.events[0] as Record<string, unknown>).click_id).toBe('clk_1')
   })
 
   it('maps Purchase value/currency into event_metadata', () => {
     const body = buildConversionBody({
       eventType: 'Purchase', conversionId: 'sess_1', value: 12.5, currency: 'USD', itemCount: 1,
     })
-    const meta = (body.data.events[0] as any).metadata
+    const meta = (body.data.events[0] as { metadata: { value: number; currency: string; item_count: number } }).metadata
     expect(meta.value).toBe(12.5)
     expect(meta.currency).toBe('USD')
     expect(meta.item_count).toBe(1)

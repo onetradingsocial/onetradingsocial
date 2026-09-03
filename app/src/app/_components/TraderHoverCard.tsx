@@ -41,10 +41,10 @@ function CardActions({ userId, data, onChange }: { userId: string; data: TraderC
                 fill={data.viewerFavorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.8} strokeLinejoin="round" />
             </svg>
           </button>
-        : <a href="/settings/billing" className="star-btn thc-star locked"
+        : <Link href="/settings/billing" className="star-btn thc-star locked"
             title="Favourite traders — Trader plan and above" aria-label="Favourite traders — Trader plan and above">
             🔒
-          </a>}
+          </Link>}
     </div>
   )
 }

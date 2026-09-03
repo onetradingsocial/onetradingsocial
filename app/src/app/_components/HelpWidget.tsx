@@ -5,6 +5,7 @@ import { submitFeedback } from '@/app/actions/feedback'
 import { FEEDBACK_TYPES, FEEDBACK_TYPE_LABELS, FEEDBACK_MAX, type FeedbackType } from '@/lib/feedback'
 import { track } from '@/lib/track'
 import { PrivacyNote } from './LegalNotice'
+import Link from 'next/link'
 
 export function HelpWidget() {
   const [open, setOpen] = useState(false)
@@ -105,10 +106,10 @@ export function HelpWidget() {
                   answered gets a notification, but a user still waiting has no
                   other way to find out whether anyone wrote back. */}
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, fontSize: 12.5, flexWrap: 'wrap' }}>
-                <a href="/settings/feedback" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Your messages</a>
-                <a href="/feature-board" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Feature board</a>
-                <a href="/changelog" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>What&apos;s new</a>
-                <a href="/referrals" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Refer a trader</a>
+                <Link href="/settings/feedback" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Your messages</Link>
+                <Link href="/feature-board" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Feature board</Link>
+                <Link href="/changelog" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>What&apos;s new</Link>
+                <Link href="/referrals" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Refer a trader</Link>
               </div>
             </>
           )}

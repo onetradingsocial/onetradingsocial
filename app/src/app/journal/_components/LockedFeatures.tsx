@@ -1,3 +1,4 @@
+import Link from 'next/link'
 /**
  * One collapsed strip standing in for every locked journal card.
  * Locked cards render nothing inline — free users see their own journal,
@@ -27,7 +28,7 @@ export function LockedFeatures({ items }: { items: { name: string; tier: 'Trader
       </div>
 
       <p className="faint mt-3" style={{ fontSize: 12.5, margin: '12px 0 0' }}>
-        <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>See plans</a>
+        <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>See plans</Link>
       </p>
     </details>
   )

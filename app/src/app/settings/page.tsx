@@ -16,6 +16,7 @@ import { NotificationPrefs } from './NotificationPrefs'
 import { CoverUploader } from '@/app/_components/CoverUploader'
 import { throttleMessage } from '@/lib/server/action-throttle'
 import { trackServer } from '@/lib/server/track'
+import Link from 'next/link'
 import './settings.css'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
@@ -156,7 +157,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <p className="ts-sub mb-5">
               {canCreatorProfile
                 ? 'Custom cover banner for your public profile.'
-                : <>Custom cover is a Pro perk. <a href="/settings/billing">Upgrade</a> to set one.</>}
+                : <>Custom cover is a Pro perk. <Link href="/settings/billing">Upgrade</Link> to set one.</>}
             </p>
             <CoverUploader current={profile?.cover_url ?? null} disabled={!canCreatorProfile} />
           </section>
@@ -202,7 +203,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 ? ` Cancels on ${renews} — access continues until then.`
                 : renews ? ` Renews ${renews}.` : ''}
             </p>
-            <a className="btn btn-ghost" href="/settings/billing">Manage plan</a>
+            <Link className="btn btn-ghost" href="/settings/billing">Manage plan</Link>
           </section>
 
           <section id="account" className="ts-card settings-section">

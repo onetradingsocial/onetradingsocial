@@ -100,7 +100,7 @@ async function PerformanceBoard({ supabase, period, sort, verify, minTrades, use
       {verify === 'all' && !hasBroker && (
         <p className="lb-section-sub" style={{ margin: '0 0 14px' }}>
           No broker-verified traders rank {PERIOD_LABEL[period]}. Everything below is ranked
-          separately by evidence quality — <a href="/verification">how verification works</a>.
+          separately by evidence quality — <Link href="/verification">how verification works</Link>.
         </p>
       )}
       {groups.map(({ cohort, rows }) => {

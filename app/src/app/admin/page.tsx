@@ -6,10 +6,16 @@ import { PageHead, Panel, Stat, Stats, When } from './_components/ui'
 
 export const dynamic = 'force-dynamic'
 
-async function count(table: string, filter?: (q: any) => any): Promise<number> {
+// Filters are described rather than applied by a callback. The callback version
+// took the query builder as `any`, because supabase-js's builder generics narrow
+// on `.select()` and cannot be named in a signature without going stale on the
+// next version bump. A tuple says the same thing with no escape hatch.
+type CountFilter = [column: string, op: 'eq' | 'gte', value: string | number | boolean]
+
+async function count(table: string, filters: CountFilter[] = []): Promise<number> {
   const svc = createServiceClient()
   let q = svc.from(table).select('id', { count: 'exact', head: true })
-  if (filter) q = filter(q)
+  for (const [column, op, value] of filters) q = op === 'eq' ? q.eq(column, value) : q.gte(column, value)
   const { count } = await q
   return count ?? 0
 }
@@ -29,12 +35,12 @@ export default async function AdminHome() {
 
   const [openFeedback, users, new7d, trades, courses, openReports, { data: alerts }, { data: recent }] =
     await Promise.all([
-      count('feedback', (q) => q.eq('status', 'open')),
+      count('feedback', [['status', 'eq', 'open']]),
       count('profiles'),
-      count('profiles', (q) => q.gte('created_at', since7d).eq('is_internal', false)),
+      count('profiles', [['created_at', 'gte', since7d], ['is_internal', 'eq', false]]),
       count('trades'),
       count('courses'),
-      count('trade_reports', (q) => q.eq('status', 'open')),
+      count('trade_reports', [['status', 'eq', 'open']]),
       svc.from('system_alerts').select('id, kind, message, acked, created_at')
         .eq('acked', false).order('created_at', { ascending: false }).limit(20),
       svc.from('admin_audit').select('id, actor_email, action, created_at')

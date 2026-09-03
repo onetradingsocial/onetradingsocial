@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from 'react'
 import { connectBroker, disconnectBroker, type BrokerState } from '@/app/actions/broker'
 import { Icon } from '@/app/[username]/_components/Icon'
 import { PrivacyNote } from '@/app/_components/LegalNotice'
+import Link from 'next/link'
 
 export type BrokerRow = {
   login: string; server: string; status: string
@@ -21,7 +22,7 @@ export function BrokerCard({ row, canAutosync }: { row: BrokerRow | null; canAut
       <section id="broker" className="ts-card settings-section">
         <h2 className="ts-h2"><Icon name="bolt" size={18} /> MT5 auto-sync</h2>
         <p className="ts-sub mt-2">Connect your MT5 account and your closed trades land in the journal automatically, every hour.</p>
-        <a href="/settings/billing" className="btn btn-primary mt-4">Upgrade to Pro</a>
+        <Link href="/settings/billing" className="btn btn-primary mt-4">Upgrade to Pro</Link>
       </section>
     )
   }

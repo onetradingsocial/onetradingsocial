@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from 'react'
 import { connectExchange, disconnectExchange, syncNow, type ExchangeState } from '@/app/actions/exchange'
 import { Icon } from '@/app/[username]/_components/Icon'
 import { PrivacyNote } from '@/app/_components/LegalNotice'
+import Link from 'next/link'
 
 export type ExchangeRowView = {
   status: string; symbols: string[]
@@ -27,7 +28,7 @@ export function ExchangeCard({ row, canImport }: { row: ExchangeRowView | null; 
       <section id="exchange" className="ts-card settings-section">
         <h2 className="ts-h2"><Icon name="bolt" size={18} /> Crypto exchange sync</h2>
         <p className="ts-sub mt-2">Connect Binance with a read-only API key and your trades land in the journal. Available on the Pro plan.</p>
-        <a href="/settings/billing" className="btn btn-primary mt-4">Upgrade to Pro</a>
+        <Link href="/settings/billing" className="btn btn-primary mt-4">Upgrade to Pro</Link>
       </section>
     )
   }

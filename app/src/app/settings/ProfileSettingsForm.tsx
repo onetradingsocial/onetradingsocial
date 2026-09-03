@@ -10,6 +10,7 @@ import { ACCOUNT_TYPE_LABELS, type AccountType } from '@/lib/verification'
 import { Icon } from '@/app/[username]/_components/Icon'
 import { CUSTOM_BADGES } from '@/lib/badges'
 import { THEME_PRESETS } from '@/lib/creator-profile'
+import Link from 'next/link'
 
 type Props = {
   avatarUrl: string | null
@@ -147,7 +148,7 @@ export function ProfileSettingsForm(props: Props) {
             {!props.canCustomBadge && (
               <p className="settings-locknote">
                 <Icon name="shield" size={14} />
-                Custom badges are a Trader+ perk. <a href="/settings/billing">Upgrade</a> to pick your flair.
+                Custom badges are a Trader+ perk. <Link href="/settings/billing">Upgrade</Link> to pick your flair.
               </p>
             )}
           </div>
@@ -204,7 +205,7 @@ export function ProfileSettingsForm(props: Props) {
             {!props.canCreatorProfile && (
               <p className="settings-locknote">
                 <Icon name="shield" size={14} />
-                Creator profile is a Pro perk. <a href="/settings/billing">Upgrade</a> for cover, theme, tagline, CTA &amp; pinned post.
+                Creator profile is a Pro perk. <Link href="/settings/billing">Upgrade</Link> for cover, theme, tagline, CTA &amp; pinned post.
               </p>
             )}
           </div>
@@ -230,7 +231,7 @@ export function ProfileSettingsForm(props: Props) {
             {!props.canGoPrivate && (
               <p className="settings-locknote">
                 <Icon name="shield" size={14} />
-                Private journaling is a paid perk. <a href="/settings/billing">Upgrade</a> to go solo.
+                Private journaling is a paid perk. <Link href="/settings/billing">Upgrade</Link> to go solo.
               </p>
             )}
 
@@ -245,7 +246,7 @@ export function ProfileSettingsForm(props: Props) {
               {!props.canLeaderboardPlacement && (
                 <p className="settings-locknote">
                   <Icon name="shield" size={14} />
-                  Placement options are a Pro perk. <a href="/settings/billing">Upgrade</a> to control your visibility.
+                  Placement options are a Pro perk. <Link href="/settings/billing">Upgrade</Link> to control your visibility.
                 </p>
               )}
             </div>

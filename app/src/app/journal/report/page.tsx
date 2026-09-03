@@ -35,7 +35,7 @@ export default async function JournalReportPage({ searchParams }: { searchParams
       <main className="ts-page">
         <div className="ts-banner mt-5">
           Downloadable, advanced reports are a Pro perk.{' '}
-          <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+          <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</Link>{' '}
           to generate one.
         </div>
       </main>

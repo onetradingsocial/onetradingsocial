@@ -12,6 +12,7 @@ import { Mt5ImportTab } from './Mt5ImportTab'
 import { LivePriceChip } from './LivePriceChip'
 import { PrivacyNote } from './LegalNotice'
 import { prepareImageUpload } from '@/lib/image-prep'
+import Link from 'next/link'
 
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 
@@ -334,7 +335,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
           <div className="ts-banner mt-5">
             <span>
               🔒 The <b>advanced journal</b> — setup type, confidence, emotion check-in and chart uploads — is a Trader perk.{' '}
-              <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+              <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</Link>{' '}
               to log the full picture.
             </span>
           </div>
@@ -387,7 +388,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
             <div className="ts-field"><span className="ts-label">Why are you taking this trade?</span>
               <p className="faint" style={{ fontSize: 12.5, marginTop: 6 }}>
                 🔒 Private journal notes are a Trader perk.{' '}
-                <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+                <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</Link>{' '}
                 to write them.
               </p>
             </div>
@@ -442,7 +443,7 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
             </label>
           ) : (
             <label className="ts-checkline" style={{ alignItems: 'center' }} title="Custom templates are a Pro perk">
-              <input type="checkbox" disabled /> <span className="faint">Save as template 🔒 <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Pro</a></span>
+              <input type="checkbox" disabled /> <span className="faint">Save as template 🔒 <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Pro</Link></span>
             </label>
           )}
           <button className="btn btn-primary" disabled={pending}>{pending ? 'Saving…' : '✓ Save Trade'}</button>

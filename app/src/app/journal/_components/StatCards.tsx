@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Metrics } from '@/lib/trade'
+import Link from 'next/link'
 
 function money(n: number) {
   const s = n >= 0 ? '+' : '−'
@@ -18,7 +19,7 @@ function Card({ tone, label, icon, value, sub, subTone }: {
   )
 }
 
-const lockedTile = <a href="/settings/billing" className="ts-stat-locked">🔒 Trader</a>
+const lockedTile = <Link href="/settings/billing" className="ts-stat-locked">🔒 Trader</Link>
 
 export function StatCards({ metrics, allTime, monthNet, monthLabel, weekTrades, advanced = true }: {
   metrics: Metrics; allTime: number; monthNet: number; monthLabel: string; weekTrades: number; advanced?: boolean

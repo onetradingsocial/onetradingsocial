@@ -26,18 +26,32 @@ export async function getAnalytics(
       supabase.from('feedback').select('created_at, status').in('user_id', idFilter),
     ])
 
+  // Row shapes for the selects above. They are written out rather than inferred
+  // because these queries go through an untyped SupabaseClient: without them
+  // every row is `any`, and a renamed column would surface as `undefined` in a
+  // dashboard number instead of as a type error here.
+  type Created = { created_at: string }
+  type ByUser = Created & { user_id: string }
+  type ByAuthor = Created & { author_id: string }
+  type CourseRef = { title: string } | { title: string }[] | null
+  type CompletionRow = {
+    completed_at: string
+    user_id: string
+    lessons: { courses: CourseRef } | { courses: CourseRef }[] | null
+  }
+
   const data = <T,>(r: { data: T[] | null }): T[] => r.data ?? []
-  const completionRows = data<any>(completions)
+  const completionRows = data<CompletionRow>(completions as { data: CompletionRow[] | null })
   const profiles = { data: realProfiles }
 
   return buildDashboard(
     {
-      profiles: data<any>(profiles).map((p) => ({ createdAt: p.created_at })),
-      trades: data<any>(trades).map((t) => ({ createdAt: t.created_at, userId: t.user_id })),
-      closedPublicTrades: data<any>(closedPublic).map((t) => ({ createdAt: t.created_at, userId: t.user_id })),
-      posts: data<any>(posts).map((p) => ({ createdAt: p.created_at, userId: p.author_id })),
-      comments: data<any>(comments).map((c) => ({ createdAt: c.created_at, userId: c.author_id })),
-      likes: data<any>(likes).map((l) => ({ createdAt: l.created_at, userId: l.user_id })),
+      profiles: data<Created>(profiles).map((p) => ({ createdAt: p.created_at })),
+      trades: data<ByUser>(trades).map((t) => ({ createdAt: t.created_at, userId: t.user_id })),
+      closedPublicTrades: data<ByUser>(closedPublic).map((t) => ({ createdAt: t.created_at, userId: t.user_id })),
+      posts: data<ByAuthor>(posts).map((p) => ({ createdAt: p.created_at, userId: p.author_id })),
+      comments: data<ByAuthor>(comments).map((c) => ({ createdAt: c.created_at, userId: c.author_id })),
+      likes: data<ByUser>(likes).map((l) => ({ createdAt: l.created_at, userId: l.user_id })),
       completions: completionRows.map((c) => ({ createdAt: c.completed_at, userId: c.user_id })),
       completionsByCourse: completionRows.map((c) => {
         // PostgREST FK embeds can return arrays even for to-one relationships; normalize both shapes.
@@ -46,7 +60,7 @@ export async function getAnalytics(
         return { courseTitle: course?.title ?? 'Unknown' }
       }),
       publishedLessons: lessons.count ?? 0,
-      feedback: data<any>(feedback).map((f) => ({ createdAt: f.created_at, status: f.status })),
+      feedback: data<Created & { status: string }>(feedback).map((f) => ({ createdAt: f.created_at, status: f.status })),
     },
     now,
   )

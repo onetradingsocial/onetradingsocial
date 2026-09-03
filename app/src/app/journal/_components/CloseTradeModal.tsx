@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { closeTrade } from '@/app/actions/trade'
 import { MISTAKE_TAGS } from '@/lib/trade'
+import Link from 'next/link'
 
 export function CloseTradeModal({ tradeId, canMistakeTag = false }: { tradeId: string; canMistakeTag?: boolean }) {
   const router = useRouter()
@@ -50,7 +51,7 @@ export function CloseTradeModal({ tradeId, canMistakeTag = false }: { tradeId: s
             ) : (
               <p className="faint mt-4" style={{ fontSize: 12.5 }}>
                 🔒 Mistake tagging is a Trader perk.{' '}
-                <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+                <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</Link>{' '}
                 to track what to fix.
               </p>
             )}

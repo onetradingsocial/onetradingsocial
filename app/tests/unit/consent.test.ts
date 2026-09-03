@@ -121,7 +121,7 @@ describe('Reddit CAPI never transmits a raw IP (item 17 F3)', () => {
       ip: '203.0.113.7',
       eventAt: 1730000000000,
     })
-    const user = (body.data.events[0] as Record<string, any>).user
+    const user = (body.data.events[0] as { user: Record<string, string | undefined> }).user
     expect(user.ip_address).toBe(hashSha256('203.0.113.7'))
     expect(user.ip_address).not.toBe('203.0.113.7')
     expect(user.ip_address).toMatch(/^[a-f0-9]{64}$/)
@@ -136,7 +136,7 @@ describe('Reddit CAPI never transmits a raw IP (item 17 F3)', () => {
       email: 'a@b.com',
       eventAt: 1730000000000,
     })
-    const user = (body.data.events[0] as Record<string, any>).user
+    const user = (body.data.events[0] as { user: Record<string, string | undefined> }).user
     expect(user).not.toHaveProperty('ip_address')
     expect(user).not.toHaveProperty('user_agent')
   })
@@ -220,8 +220,8 @@ describe('consent.js implements the gate it claims to', () => {
 describe('content security policy reports somewhere (item 17 F8)', () => {
   it('the marketing CSP has a report endpoint and no img-src wildcard', () => {
     const csp = JSON.parse(read('vercel.json'))
-      .headers.flatMap((h: any) => h.headers)
-      .find((h: any) => h.key.startsWith('Content-Security-Policy'))?.value as string
+      .headers.flatMap((h: { headers: { key: string; value: string }[] }) => h.headers)
+      .find((h: { key: string; value: string }) => h.key.startsWith('Content-Security-Policy'))?.value as string
     expect(csp).toContain('report-uri')
     expect(csp).not.toMatch(/img-src[^;]*\shttps:\s*(;|$)/)
   })

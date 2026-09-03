@@ -7,6 +7,7 @@ import { Avatar } from './Avatar'
 import { fmtPL } from './format'
 import { VerificationBadge, AccountTypeBadge } from '@/app/_components/VerificationBadge'
 import type { VerificationLevel, AccountType } from '@/lib/verification'
+import Link from 'next/link'
 
 export type BoardRow = {
   rank: number
@@ -43,7 +44,7 @@ export function LeaderboardTable({ rows, viewerId, title = 'All Traders' }: { ro
       <div className="lb-panel lb-empty">
         <p style={{ margin: 0 }}>No ranked trades in this window (or filter) yet.</p>
         <p style={{ margin: '8px 0 0' }}>
-          Public closed trades rank automatically — <a href="/journal" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>log a trade</a> (takes under a minute) or widen the verification filter above.
+          Public closed trades rank automatically — <Link href="/journal" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>log a trade</Link> (takes under a minute) or widen the verification filter above.
         </p>
       </div>
     )

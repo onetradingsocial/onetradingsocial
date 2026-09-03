@@ -1,4 +1,5 @@
 import { fmtPL, fmtUSD } from './format'
+import Link from 'next/link'
 
 // Ink rail card: the viewer's position in the current board view + gap to #1.
 export function YourStanding({
@@ -30,7 +31,7 @@ export function YourStanding({
         ) : (
           <p className="lb-standing-empty">
             Leaderboard ranking is a paid perk.{' '}
-            <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+            <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</Link>{' '}
             to put your results on the board.
           </p>
         )}

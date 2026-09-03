@@ -314,7 +314,7 @@ export default async function JournalPage() {
           <div className="ts-banner mt-3">
             Showing your last {JOURNAL_FREE_LIMIT} trades. {hiddenCount} older{' '}
             {hiddenCount === 1 ? 'trade is' : 'trades are'} hidden on Free — nothing is deleted.{' '}
-            <a href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</a>{' '}
+            <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Upgrade</Link>{' '}
             to see your full history.
           </div>
         )}
