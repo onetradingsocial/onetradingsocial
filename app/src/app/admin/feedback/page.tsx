@@ -21,13 +21,18 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pr
   await requireAdmin()
   const { status = 'open', type } = await searchParams
   const svc = createServiceClient()
+  // The embed MUST name its foreign key. `feedback` has had two FKs to
+  // `profiles` since 0066 added admin_reply_by, so a bare `profiles(username)`
+  // is ambiguous and PostgREST refuses the whole query with PGRST201 — it
+  // cannot know whether the row wants the submitter or the admin who replied.
+  // This is the submitter, which is what the row renders next to the message.
   let q = svc.from('feedback')
-    .select('id, type, message, page_url, status, category, meta, created_at, admin_reply, admin_reply_at, profiles(username)')
+    .select('id, type, message, page_url, status, category, meta, created_at, admin_reply, admin_reply_at, profiles!feedback_user_id_fkey(username)')
     .order('created_at', { ascending: false })
     .limit(200)
   if (status !== 'all') q = q.eq('status', status)
   if (type) q = q.eq('type', type)
-  const { data: rows } = await q
+  const { data: rows, error } = await q
 
   // Category frequency across everything (not just the filtered view).
   const { data: catRows } = await svc.from('feedback').select('category').not('category', 'is', null)
@@ -67,7 +72,13 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pr
         )}
 
         <Panel title={`${list.length} item${list.length === 1 ? '' : 's'}`} flush>
-          {list.length === 0 ? (
+          {/* A failed query and an empty queue are not the same thing, and until
+              now they rendered identically: the error was discarded and the page
+              said "No open feedback" while the rail's own count said otherwise.
+              That is how a broken embed survived a deploy. Say which it is. */}
+          {error ? (
+            <Empty>Could not load feedback — {error.message}</Empty>
+          ) : list.length === 0 ? (
             <Empty>No {status === 'all' ? '' : status} feedback.</Empty>
           ) : list.map((r) => {
             const profileRaw = r.profiles
