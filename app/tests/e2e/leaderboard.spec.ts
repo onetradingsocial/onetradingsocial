@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { dismissWelcome } from './utils/welcome'
+import { SIGNUP_PASSWORD } from './utils/creds'
 
 async function signUpAndOnboard(page: Page, prefix: string) {
   const stamp = Date.now() + Math.floor(Math.random() * 1000)
@@ -7,7 +8,7 @@ async function signUpAndOnboard(page: Page, prefix: string) {
   await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `${username}@tradingsocial.io`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')

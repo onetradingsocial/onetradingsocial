@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { dismissWelcome } from './utils/welcome'
+import { SIGNUP_PASSWORD } from './utils/creds'
 
 // Guard: skip Stripe-dependent tests when keys are absent.
 const STRIPE = !!process.env.STRIPE_SECRET_KEY
@@ -12,7 +13,7 @@ async function signUpAndOnboard(page: import('@playwright/test').Page) {
   await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', email)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')

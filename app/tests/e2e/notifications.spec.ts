@@ -1,6 +1,7 @@
 // app/tests/e2e/notifications.spec.ts
 import { test, expect, type Page, type BrowserContext } from '@playwright/test'
 import { dismissWelcome } from './utils/welcome'
+import { SIGNUP_PASSWORD } from './utils/creds'
 
 const DOMAIN = 'notif.tradingsocial.test'
 
@@ -10,7 +11,7 @@ async function signUp(page: Page, prefix: string) {
   await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `${username}@${DOMAIN}`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')
@@ -56,7 +57,7 @@ test('follow notification appears in bell', async ({ page }) => {
   // A logs in, checks bell
   await page.goto('/login')
   await page.fill('input[name="email"]', `${userA}@${DOMAIN}`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.click('button:has-text("Log in")')
   await expect(page).toHaveURL('/')
 
@@ -80,7 +81,7 @@ test('like notification appears in bell', async ({ page }) => {
 
   await page.goto('/login')
   await page.fill('input[name="email"]', `${userA}@${DOMAIN}`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.click('button:has-text("Log in")')
   await expect(page).toHaveURL('/')
 
@@ -105,7 +106,7 @@ test('comment notification appears in bell', async ({ page }) => {
 
   await page.goto('/login')
   await page.fill('input[name="email"]', `${userA}@${DOMAIN}`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.click('button:has-text("Log in")')
   await expect(page).toHaveURL('/')
 
@@ -125,7 +126,7 @@ test('mark all read clears badge', async ({ page }) => {
 
   await page.goto('/login')
   await page.fill('input[name="email"]', `${userA}@${DOMAIN}`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.click('button:has-text("Log in")')
   await expect(page).toHaveURL('/')
 
@@ -153,7 +154,7 @@ test('realtime: User A bell updates when User B likes, without page refresh', as
   await pageB.goto('/signup')
   await pageB.fill('input[name="username"]', userB)
   await pageB.fill('input[name="email"]', `${userB}@${DOMAIN}`)
-  await pageB.fill('input[name="password"]', 'password123')
+  await pageB.fill('input[name="password"]', SIGNUP_PASSWORD)
   await pageB.check('input[name="terms"]')
   await pageB.click('button:has-text("Join the Beta")')
   await expect(pageB).toHaveURL(/\/onboarding/)

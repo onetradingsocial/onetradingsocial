@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createServiceClient } from './utils/db'
 import { dismissWelcome } from './utils/welcome'
+import { SIGNUP_PASSWORD } from './utils/creds'
 
 // The wall only renders when the kill switch is on. Skip rather than fail when
 // the dev server was started without it.
@@ -13,7 +14,7 @@ async function signUpAndOnboard(page: import('@playwright/test').Page) {
   await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', email)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')

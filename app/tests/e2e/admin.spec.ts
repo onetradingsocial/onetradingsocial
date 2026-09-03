@@ -3,6 +3,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { deleteCourseBySlug } from './utils/db'
 import { dismissWelcome } from './utils/welcome'
 import { adminCreds, signInAsAdmin } from './utils/admin'
+import { SIGNUP_PASSWORD } from './utils/creds'
 
 // Audit item 18, F1. The admin specs used to mint an admin by signing up under
 // a wildcard `.test` domain. The wildcard is gone, so they log in to a seeded
@@ -26,7 +27,7 @@ async function signUpAndOnboard(page: Page, prefix: string, domain = 'tradingsoc
   await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `${username}@${domain}`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')

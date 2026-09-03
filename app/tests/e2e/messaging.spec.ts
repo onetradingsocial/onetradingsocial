@@ -1,6 +1,7 @@
 // app/tests/e2e/messaging.spec.ts
 import { test, expect, type Page, type BrowserContext } from '@playwright/test'
 import { dismissWelcome } from './utils/welcome'
+import { SIGNUP_PASSWORD } from './utils/creds'
 
 const DOMAIN = 'msg.tradingsocial.test'
 
@@ -10,7 +11,7 @@ async function signUp(page: Page, prefix: string) {
   await page.goto('/signup')
   await page.fill('input[name="username"]', username)
   await page.fill('input[name="email"]', `${username}@${DOMAIN}`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.locator('label.fl-terms .fl-check').click()
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')
