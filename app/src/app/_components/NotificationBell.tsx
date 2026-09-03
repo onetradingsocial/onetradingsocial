@@ -1,6 +1,14 @@
 // app/src/app/_components/NotificationBell.tsx
 'use client'
 
+/* eslint-disable @next/next/no-img-element --
+ * User-supplied images (Supabase storage, Google avatars) whose display size
+ * comes entirely from CSS — percentages, a dynamic size prop, or viewport
+ * units. next/image needs fixed dimensions or fill plus a positioned wrapper,
+ * so converting is a layout change, and it routes every avatar through the
+ * metered Vercel optimiser. Revisit if these ever show up as an LCP problem.
+ */
+
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useNotifications } from '@/app/hooks/useNotifications'
