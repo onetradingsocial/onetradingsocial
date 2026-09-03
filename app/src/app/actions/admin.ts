@@ -4,6 +4,8 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { validateSlug, validateNonNegInt, validateQuizOptions } from '@/lib/admin'
+import { validateReplyBody } from '@/lib/feedback'
+import { insertSystemNotification } from '@/lib/notifications'
 import { sanitizeLessonHtml } from '@/lib/sanitizeHtml'
 import { isFeature, type FlagValues } from '@/lib/feature-flags'
 import { FLAGS_TAG } from '@/lib/server/feature-flags'
@@ -108,6 +110,64 @@ export async function setFeedbackCategory(id: string, category: string | null): 
   if (error) return { error: 'Update failed.' }
   await logAdminAction(admin, 'feedback.category', { type: 'feedback', id }, { from: prev?.category ?? null, to: category })
   revalidatePath('/admin/feedback')
+  return {}
+}
+
+/**
+ * Answer one feedback item, and tell the submitter it was answered.
+ *
+ * One reply per item, overwritable — the same single-valued shape as status and
+ * category above, and the reason 0066 put three columns on `feedback` instead
+ * of opening a thread table.
+ *
+ * Ordering is reply-then-notify, and it matters. The reply is the durable
+ * artifact and is readable at /settings/feedback on its own; the notification
+ * is only a pointer to it. Notifying first would risk a bell entry that links
+ * to an answer the update never wrote, which is the worse half-success —
+ * whereas a reply that lands without its notice is merely quiet, and the user
+ * finds it the next time they look. insertSystemNotification swallows and logs
+ * its own failure (it must, or a rejected insert would take the whole action
+ * down after the reply was already committed), so the notice failing cannot
+ * turn a saved reply into an error the admin sees and retries.
+ */
+export async function replyToFeedback(id: string, body: string): Promise<{ error?: string }> {
+  const admin = await requireAdmin()
+  const valid = validateReplyBody(body)
+  if (!valid.ok) return { error: valid.error }
+  const svc = createServiceClient()
+  const prev = await before(svc, 'feedback', 'user_id, admin_reply', { id })
+  const { error } = await svc.from('feedback').update({
+    admin_reply: valid.body,
+    admin_reply_at: new Date().toISOString(),
+    admin_reply_by: admin.id,
+  }).eq('id', id)
+  if (error) return { error: 'Update failed.' }
+
+  // The pre-read is best effort (see `before`), so a null `prev` costs the
+  // notification rather than the reply: without user_id there is nobody to
+  // notify, and guessing is not an option.
+  const userId = prev?.user_id as string | undefined
+  if (userId) {
+    await insertSystemNotification({
+      supabase: svc,
+      userId,
+      type: 'feedback_reply',
+      entityId: id,
+      entityType: 'feedback',
+    })
+  }
+
+  // Metadata only, never the reply text — same judgment as lesson.update. An
+  // audit log that stores every answer becomes a second copy of the support
+  // mailbox, with a longer retention than the thing it is describing. Length
+  // and `replaced` are what an incident review actually asks: was something
+  // said, and did it overwrite something the user had already read?
+  await logAdminAction(admin, 'feedback.reply', { type: 'feedback', id }, {
+    length: valid.body.length,
+    replaced: prev?.admin_reply != null,
+  })
+  revalidatePath('/admin/feedback')
+  revalidatePath('/settings/feedback')
   return {}
 }
 
