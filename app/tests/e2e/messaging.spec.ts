@@ -166,7 +166,7 @@ test('privacy guard: non-mutual cannot message', async ({ browser }) => {
   const pageA = await ctxA.newPage()
   const pageB = await ctxB.newPage()
 
-  const a = await signUp(pageA, 'msgpa')
+  await signUp(pageA, 'msgpa')
   const b = await signUp(pageB, 'msgpb')
 
   // ONE-WAY only: A follows B, B does NOT follow A

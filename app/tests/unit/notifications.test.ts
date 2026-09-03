@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { extractMentions, insertNotification, SYSTEM_NOTIF_TYPES } from '@/lib/notifications'
-import { getUnreadCount, markAllRead } from '@/lib/server/notifications'
+import { getUnreadCount } from '@/lib/server/notifications'
 
 describe('extractMentions', () => {
   it('returns empty array when no mentions', () => {

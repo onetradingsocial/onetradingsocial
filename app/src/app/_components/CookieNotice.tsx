@@ -1,8 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import {
-  CONSENT_DEFAULT,
+import {
   purgeTier,
   readConsent,
   writeConsent,

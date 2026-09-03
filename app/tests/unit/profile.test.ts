@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { onboardingToRow, parseIntendedSource, INTENDED_SOURCES, EXPERIENCE_LEVELS, MARKETS, TRADING_STYLES, resolveVisibility } from '@/lib/profile'
-import type { Tier } from '@/lib/entitlements'
 
 describe('onboardingToRow', () => {
   it('maps onboarding answers to a profile update row', () => {

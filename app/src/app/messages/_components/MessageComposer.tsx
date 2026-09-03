@@ -29,9 +29,8 @@ async function uploadImage(
 }
 
 export function MessageComposer({
-  recipientId, disabled, onTyping, onSend,
+  disabled, onTyping, onSend,
 }: {
-  recipientId: string
   disabled: boolean
   onTyping: () => void
   onSend: (body: string, attachments: Attachment[]) => Promise<{ error?: string }>

@@ -98,7 +98,6 @@ export function MessageThread({
             </div>
           )}
           <MessageComposer
-            recipientId={peer.id}
             disabled={false}
             onTyping={notifyTyping}
             onSend={(body, attachments) => send(body, attachments, peer.id)}

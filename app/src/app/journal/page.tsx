@@ -292,7 +292,7 @@ export default async function JournalPage() {
         </div>
         <div className="ts-card">
           <div className="flex items-center justify-between"><h2 className="ts-h2">Equity Curve</h2><span className="faint">YTD</span></div>
-          <div className="mt-3"><EquityCurve points={eq.points} final={eq.final} /></div>
+          <div className="mt-3"><EquityCurve points={eq.points} /></div>
         </div>
         <div className="ts-card">
           <div className="flex items-center justify-between"><h2 className="ts-h2">Asset Distribution</h2><span className="faint">by volume</span></div>
