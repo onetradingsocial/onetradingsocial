@@ -105,7 +105,7 @@ export default async function JournalReportPage({ searchParams }: { searchParams
           </div>
           <div>
             <h2 className="jr-h2">Equity curve</h2>
-            <EquityCurve points={eq.points} final={eq.final} />
+            <EquityCurve points={eq.points} />
           </div>
           <div>
             <h2 className="jr-h2">Asset distribution</h2>

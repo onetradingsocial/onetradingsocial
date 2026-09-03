@@ -1,5 +1,12 @@
 'use client'
 
+/* eslint-disable @next/next/no-img-element --
+ * Object URLs from URL.createObjectURL, previewing a file the user just
+ * picked and has not uploaded yet. next/image cannot optimise a blob:
+ * source, so converting means passing `unoptimized` — this element with a
+ * longer import and no benefit.
+ */
+
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useActionState, type ReactNode } from 'react'
+import Image from 'next/image'
 import { saveOnboarding, type ProfileState } from '@/app/actions/profile'
 import { track } from '@/lib/track'
 import { LEGAL, EXTERNAL_LINK } from '@/lib/marketing'
@@ -287,7 +288,11 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
         {hiddenForm}
         <div className="ob-hero">
           <div className="ob-grid-tex" />
-          <div className="ob-hero-mark"><img src="/logo.png" alt="" /></div>
+          {/* The one image here worth optimising: a local 507x602 PNG (300 KB on
+              disk) rendered into a 50px mark by .ob-hero-mark img. Dimensions are
+              the CSS box, not the source, so the optimiser serves that size;
+              object-fit: contain still handles the non-square source. */}
+          <div className="ob-hero-mark"><Image src="/logo.png" alt="" width={50} height={50} /></div>
           <div className="ob-hero-badge"><Icon name="check" size={14} /> Account created</div>
           <h1>Welcome, {name}. Let&apos;s build your <span className="gr">trader identity</span>.</h1>
           <p>You&apos;re in. Before you hit the charts, four quick questions shape your profile, your card and the traders you&apos;ll meet.</p>

@@ -1,5 +1,13 @@
 'use client'
 
+/* eslint-disable @next/next/no-img-element --
+ * User-supplied images (Supabase storage, Google avatars) whose display size
+ * comes entirely from CSS — percentages, a dynamic size prop, or viewport
+ * units. next/image needs fixed dimensions or fill plus a positioned wrapper,
+ * so converting is a layout change, and it routes every avatar through the
+ * metered Vercel optimiser. Revisit if these ever show up as an LCP problem.
+ */
+
 import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getAvatarUploadUrl, saveAvatarUrl } from '@/app/actions/avatar'

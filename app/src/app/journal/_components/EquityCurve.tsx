@@ -1,4 +1,4 @@
-export function EquityCurve({ points, final }: { points: number[]; final: number }) {
+export function EquityCurve({ points }: { points: number[] }) {
   const W = 340, H = 150
   if (points.length < 2) {
     return <div className="ts-chart-empty">Close a few trades to see your equity curve.</div>

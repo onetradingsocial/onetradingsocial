@@ -25,7 +25,13 @@ async function signUp(page: Page, prefix: string, opts: { private?: boolean } = 
   await page.click('button:has-text("Continue")')
   await page.click('button:has-text("Build consistency")')
   await page.click('button:has-text("Continue")')
-  await page.click('button:has-text("Public")')
+  // The visibility step. This was hardcoded to Public while a caller was already
+  // passing { private: true }, so the "private trader and their posts do NOT
+  // appear in search" test signed up a PUBLIC account and then asserted it was
+  // absent from search — it could pass without the privacy filter existing at
+  // all. Private is selectable here because signup starts a Pro trial;
+  // resolveVisibility() forces public on the free plan.
+  await page.click(opts.private ? 'button:has-text("Private")' : 'button:has-text("Public")')
   await page.click('button:has-text("Continue")')
   await page.click('button:has-text("Log trades manually")')
   await page.click('button:has-text("Create my profile")')

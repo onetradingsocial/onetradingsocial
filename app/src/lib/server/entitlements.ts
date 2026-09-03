@@ -7,7 +7,7 @@ import {
   type Tier, type TrialState,
 } from '@/lib/entitlements'
 import { parseAdminEmails, emailIsAdmin } from '@/lib/admin'
-import { canFlag, boardEligibleIds } from '@/lib/feature-flags'
+import { boardEligibleIds } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { createServiceClient } from '@/lib/supabase/service'
 

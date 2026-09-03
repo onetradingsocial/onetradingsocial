@@ -117,7 +117,7 @@ test('mark all read clears badge', async ({ page }) => {
   const userA = await signUp(page, 'mra')
   await logout(page)
 
-  const userB = await signUp(page, 'mrb')
+  await signUp(page, 'mrb')
   await page.goto(`/${userA}`)
   await page.click('button:has-text("Follow")')
   await expect(page.locator('button:has-text("Following")')).toBeVisible()
