@@ -137,7 +137,7 @@ type GuardWindow = {
  * the browser IS this function, so the tests exercise the real thing.
  */
 export function scrubRecoveryHash(w: GuardWindow): boolean {
-  var hash = w.location.hash || ''
+  const hash = w.location.hash || ''
   if (hash.indexOf('access_token=') < 0) return false
 
   // Order matters: rewrite the address bar first, navigate second. If the

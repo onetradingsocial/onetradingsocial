@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { favorite, unfavorite } from '@/app/actions/social'
+import Link from 'next/link'
 
 export function StarButton({ targetId, initialFavorited, canFavorite = true }:
   { targetId: string; initialFavorited: boolean; canFavorite?: boolean }) {
@@ -17,10 +18,10 @@ export function StarButton({ targetId, initialFavorited, canFavorite = true }:
   }
   if (!canFavorite) {
     return (
-      <a href="/settings/billing" className="star-btn locked" title="Favourite traders — Trader plan and above"
+      <Link href="/settings/billing" className="star-btn locked" title="Favourite traders — Trader plan and above"
         aria-label="Favourite traders — Trader plan and above">
         🔒
-      </a>
+      </Link>
     )
   }
   return (

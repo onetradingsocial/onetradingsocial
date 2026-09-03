@@ -41,10 +41,10 @@ function CardActions({ userId, data, onChange }: { userId: string; data: TraderC
                 fill={data.viewerFavorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.8} strokeLinejoin="round" />
             </svg>
           </button>
-        : <a href="/settings/billing" className="star-btn thc-star locked"
+        : <Link href="/settings/billing" className="star-btn thc-star locked"
             title="Favourite traders — Trader plan and above" aria-label="Favourite traders — Trader plan and above">
             🔒
-          </a>}
+          </Link>}
     </div>
   )
 }
@@ -97,7 +97,7 @@ export function TraderHoverCard({ userId, username, displayName, avatarUrl, wrap
     document.addEventListener('pointerdown', onDoc)
     return () => document.removeEventListener('pointerdown', onDoc)
   }, [open])
-  useEffect(() => () => { cancelShow(); cancelHide() }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { cancelShow(); cancelHide() }, [])
 
   const updateData = (d: TraderCardData) => { cache.set(userId, d); setData(d) }
 
@@ -108,7 +108,7 @@ export function TraderHoverCard({ userId, username, displayName, avatarUrl, wrap
       onClick={(e) => {
         // Touch fallback: tap on non-link parts of the trigger opens the card.
         const isTouch = window.matchMedia('(hover: none)').matches
-        if (isTouch && !(e.target as HTMLElement).closest('a')) { e.preventDefault(); open ? setOpen(false) : show() }
+        if (isTouch && !(e.target as HTMLElement).closest('a')) { e.preventDefault(); if (open) setOpen(false); else show() }
       }}>
       {children}
       {open && pos && createPortal(

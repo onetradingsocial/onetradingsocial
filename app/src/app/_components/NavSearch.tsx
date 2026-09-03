@@ -87,7 +87,7 @@ export function NavSearch() {
           {loading ? (
             <p className="ts-search-empty">Searching…</p>
           ) : !hasResults ? (
-            <p className="ts-search-empty">No results for "{query.trim()}"</p>
+            <p className="ts-search-empty">No results for &quot;{query.trim()}&quot;</p>
           ) : (
             <>
               {results.users.length > 0 && (

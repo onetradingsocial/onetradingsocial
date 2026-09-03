@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { parseMt5Statement, commitMt5Import, type ParsedRow } from '@/app/actions/mt5-import'
+import Link from 'next/link'
 
 const fmtTime = (iso: string) => iso.replace('T', ' ').replace('Z', '').slice(0, 16)
 const fmtPnl = (n: number) => `${n >= 0 ? '+' : '−'}$${Math.abs(n).toFixed(2)}`
@@ -22,7 +23,7 @@ export function Mt5ImportTab({ canImport, onDone }: { canImport: boolean; onDone
         <p className="ts-sub" style={{ margin: '8px 0 12px' }}>
           Import your MT5 trade history automatically with the Trader plan.
         </p>
-        <a href="/settings/billing" className="btn btn-primary">Upgrade to Trader</a>
+        <Link href="/settings/billing" className="btn btn-primary">Upgrade to Trader</Link>
       </div>
     )
   }

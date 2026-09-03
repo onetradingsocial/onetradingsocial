@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import * as XLSX from 'xlsx'
 import { inferMarket, mapDealToTrade, validateDeals, parseMt5, type Mt5Deal } from '@/lib/mt5'
 
 const FIX = join(__dirname, '..', 'fixtures', 'mt5')
@@ -65,7 +66,6 @@ describe('parseMt5 — CSV', () => {
 
 describe('parseMt5 — XLSX', () => {
   it('parses a generated xlsx with the positions layout', () => {
-    const XLSX = require('xlsx')
     const rows = [
       ['Positions'],
       ['Time', 'Position', 'Symbol', 'Type', 'Volume', 'Price', 'S / L', 'T / P', 'Time', 'Price', 'Commission', 'Swap', 'Profit'],
@@ -82,7 +82,6 @@ describe('parseMt5 — XLSX', () => {
   })
 
   it('parses native numeric cells (real MT5 Open XML exports)', () => {
-    const XLSX = require('xlsx')
     const rows = [
       ['Positions'],
       ['Time', 'Position', 'Symbol', 'Type', 'Volume', 'Price', 'S / L', 'T / P', 'Time', 'Price', 'Commission', 'Swap', 'Profit'],

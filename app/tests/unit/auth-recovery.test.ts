@@ -250,7 +250,6 @@ describe('recoveryGuardSource — the string actually shipped into <body>', () =
     // Evaluates the shipped source against a fake window, which is the only
     // way to prove the toString() round-trip survives compilation.
     const { w, calls } = fakeWindow('#access_token=t&type=recovery', '/', '')
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
     new Function('window', src)(w)
     expect(calls.replaced).toEqual(['/'])
     expect(calls.navigated).toEqual(['/forgot-password?error=leaked'])
@@ -258,7 +257,6 @@ describe('recoveryGuardSource — the string actually shipped into <body>', () =
 
   it('runs for real and leaves an ordinary page alone', () => {
     const { w, calls } = fakeWindow('#pricing', '/', '')
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
     new Function('window', src)(w)
     expect(calls.replaced).toEqual([])
     expect(calls.navigated).toEqual([])
@@ -269,7 +267,6 @@ describe('recoveryGuardSource — the string actually shipped into <body>', () =
       get location() { throw new Error('boom') },
       history: { replaceState() {} },
     }
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
     expect(() => new Function('window', src)(hostile)).not.toThrow()
   })
 })

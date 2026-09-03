@@ -37,6 +37,10 @@ export default function ErrorBoundary({ error, reset }: { error: Error & { diges
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button type="button" className="btn btn-primary" onClick={reset}>Try again</button>
+          {/* Deliberately an <a> and not a <Link>: this is the error boundary, so
+              the React tree behind it is already broken. A client-side navigation
+              would carry that state to the home page; a document load is the point. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/" className="btn">Go home</a>
         </div>
       </div>

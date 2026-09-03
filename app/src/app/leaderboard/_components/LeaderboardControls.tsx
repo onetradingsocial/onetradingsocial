@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
 const PERIODS = [
   { key: 'day', label: 'Today' },
@@ -78,10 +79,10 @@ export function LeaderboardControls({ period, sort, cat, verify = 'all', minTrad
           <span className="chev" aria-hidden>▾</span>
         </div>
       ) : (
-        <a href="/settings/billing" className="lb-metric" title="Advanced leaderboard filters are a Trader perk"
+        <Link href="/settings/billing" className="lb-metric" title="Advanced leaderboard filters are a Trader perk"
           style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--dim)' }}>
           🔒 Sort filters <span style={{ color: 'var(--violet-br)', fontWeight: 700 }}>Trader</span>
-        </a>
+        </Link>
       ))}
     </div>
   )

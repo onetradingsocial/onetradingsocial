@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { exportMyData, deleteMyAccount } from '@/app/actions/account'
+import Link from 'next/link'
 
 export type DangerZoneProps = {
   /** Typed back by the user to confirm. The username used to serve this
@@ -105,7 +106,7 @@ export function DangerZone({ email, hasPassword, paidUntil, exchanges, hasBroker
                 <b>You have a paid plan running until {paidUntil}.</b> Deleting now cancels it
                 immediately and <b>the unused part of the period is not refunded</b> (Terms, section 11).
                 Your card is detached so nothing further can ever be charged. If you would rather use the
-                time you have paid for, cancel in <a href="/settings/billing">Billing</a> first and delete
+                time you have paid for, cancel in <Link href="/settings/billing">Billing</Link> first and delete
                 the account when the period ends.
               </div>
             )}

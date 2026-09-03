@@ -461,7 +461,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                   <div key={s.k} className="h-stat" style={{ '--accent': s.accent } as React.CSSProperties}>
                     <div className="top"><span className="k">{s.k}</span></div>
                     {s.locked
-                      ? <div className="v"><a href="/settings/billing" className="ts-stat-locked">🔒 Trader</a></div>
+                      ? <div className="v"><Link href="/settings/billing" className="ts-stat-locked">🔒 Trader</Link></div>
                       : <><div className="v">{s.v}</div><div className="spark"><Sparkline data={s.data} color={s.accent} h={28} /></div></>}
                   </div>
                 ))}
