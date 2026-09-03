@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createServiceClient } from './utils/db'
 import { signUpAndOnboard } from './utils/onboard'
+import { SIGNUP_PASSWORD } from './utils/creds'
 
 const WALL = process.env.TRIAL_WALL_ENABLED === 'true'
 
@@ -110,7 +111,7 @@ test('no popup anywhere in the signup funnel', async ({ page }) => {
   await page.goto('/signup')
   await page.fill('input[name="username"]', `n_${stamp}`)
   await page.fill('input[name="email"]', `n_${stamp}@tradingsocial.io`)
-  await page.fill('input[name="password"]', 'password123')
+  await page.fill('input[name="password"]', SIGNUP_PASSWORD)
   await page.locator('label.fl-terms .fl-check').click()
   await page.click('button:has-text("Join the Beta")')
   await expect(page).toHaveURL(/\/welcome/, { timeout: 15000 })
