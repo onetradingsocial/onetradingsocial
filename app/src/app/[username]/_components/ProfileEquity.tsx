@@ -36,7 +36,8 @@ export function ProfileEquity({
 
   if (series.length >= 2) {
     const vals = series.map((p) => p.v)
-    let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals)
+    const lo = Math.min(0, ...vals)
+    let hi = Math.max(0, ...vals)
     if (hi === lo) hi = lo + 1
     const n = series.length
     const step = W / (n - 1)

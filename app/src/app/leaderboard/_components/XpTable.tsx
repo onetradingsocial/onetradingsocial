@@ -74,7 +74,7 @@ export function XpTable({ rows, viewerId }: { rows: XpRow[]; viewerId: string })
               )
             })}
             {slice.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '34px 0', color: 'var(--faint)' }}>No traders match "{query}".</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '34px 0', color: 'var(--faint)' }}>No traders match &quot;{query}&quot;.</td></tr>
             )}
           </tbody>
         </table>

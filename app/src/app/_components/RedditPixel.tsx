@@ -16,7 +16,13 @@ const PIXEL_ID = process.env.NEXT_PUBLIC_REDDIT_PIXEL_ID || 'a2_jbawbd7fkiwo'
 
 type RedditEvent = 'PageVisit' | 'SignUp'
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/*
+ * The loader below is the vendor bootstrap snippet, kept verbatim so it can be
+ * diffed against the copy the provider publishes. The arguments object, the
+ * .apply() call and the bare conditional are theirs, not ours — rewriting them
+ * to satisfy the linter would make that diff meaningless for style points.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any, prefer-rest-params, prefer-spread, @typescript-eslint/no-unused-expressions */
 function ensureLoaded(): boolean {
   const w = window as any
   if (!readConsent().ads) return false

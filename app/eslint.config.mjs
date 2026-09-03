@@ -13,7 +13,7 @@ const compat = new FlatCompat({ baseDirectory: dirname(fileURLToPath(import.meta
  * adds the typescript-eslint recommended layer. Neither is type-aware, so the
  * lint stays fast and `tsc --noEmit` remains the thing that checks types.
  */
-export default [
+const config = [
   {
     // Generated, vendored, or produced by a run — never hand-written.
     ignores: [
@@ -25,4 +25,20 @@ export default [
     ],
   },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  {
+    rules: {
+      // A leading underscore is how this codebase already spells "bound on
+      // purpose, unused on purpose" — a positional argument it has to accept
+      // to reach a later one, or a destructured field it is deliberately
+      // dropping. Flagging those trains people to delete the marker rather
+      // than read it.
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+    },
+  },
 ]
+
+export default config
