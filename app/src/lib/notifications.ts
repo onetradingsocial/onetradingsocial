@@ -9,11 +9,20 @@ export type NotificationType =
   // actions/notifications.ts, so they cannot be switched off — a customer must
   // always be told their payment failed or their trial ended.
   | 'payment_failed' | 'trial_ending' | 'trial_expired'
+  // An admin answered a feedback submission (0066). System-typed on purpose:
+  // the reply comes from "the team", never from a named admin, so the actor is
+  // null and the bell renders no avatar. Transactional like the billing
+  // notices above and likewise absent from PREF_KEYS.
+  | 'feedback_reply'
+
+/** Rows the notification can point at. Widened for 'feedback' in 0066. */
+export type NotificationEntityType = 'post' | 'comment' | 'trade' | 'conversation' | 'feedback'
 
 // System notification types have no actor and are addressed to the user directly.
 export const SYSTEM_NOTIF_TYPES = [
   'weekly_report', 'import_done', 'sync_failed', 'goal_completed', 'rule_breach', 'new_learning',
   'payment_failed', 'trial_ending', 'trial_expired',
+  'feedback_reply',
 ] as const
 
 export interface InsertNotificationArgs {
@@ -22,7 +31,7 @@ export interface InsertNotificationArgs {
   actorId: string     // who triggered
   type: NotificationType
   entityId?: string
-  entityType?: 'post' | 'comment' | 'trade' | 'conversation'
+  entityType?: NotificationEntityType
 }
 
 export async function insertNotification({
@@ -58,7 +67,7 @@ export async function insertSystemNotification(args: {
   userId: string
   type: (typeof SYSTEM_NOTIF_TYPES)[number]
   entityId?: string
-  entityType?: 'post' | 'comment' | 'trade' | 'conversation'
+  entityType?: NotificationEntityType
 }): Promise<void> {
   const { supabase, userId, type, entityId, entityType } = args
   const { data: prof } = await supabase.from('profiles').select('notification_prefs').eq('id', userId).maybeSingle()

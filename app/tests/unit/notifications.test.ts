@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { extractMentions, insertNotification } from '@/lib/notifications'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { extractMentions, insertNotification, SYSTEM_NOTIF_TYPES } from '@/lib/notifications'
 import { getUnreadCount, markAllRead } from '@/lib/server/notifications'
 
 describe('extractMentions', () => {
@@ -99,5 +101,39 @@ describe('insertNotification', () => {
     await expect(
       insertNotification({ supabase, userId: 'user1', actorId: 'user2', type: 'follow' })
     ).resolves.toBeUndefined()
+  })
+})
+
+/**
+ * Structural guard, in the spirit of admin-gate.test.ts: read the source text
+ * rather than importing it, because actions/notifications.ts is a 'use server'
+ * module that drags in next/headers and a request scope vitest has not got.
+ *
+ * The convention 0049 set — a transactional notice is absent from PREF_KEYS so
+ * it cannot be switched off — is enforced nowhere but by whoever remembers it.
+ * The failure mode is somebody tidying the list by adding "the missing types",
+ * which reads as a fix and silently gives users a switch to turn off the answer
+ * to a question they asked.
+ */
+describe('transactional notices stay out of PREF_KEYS (0049 convention)', () => {
+  const src = readFileSync(
+    join(process.cwd(), 'src', 'app', 'actions', 'notifications.ts'),
+    'utf8',
+  )
+  const prefKeys = (src.match(/const PREF_KEYS = new Set\(\[([\s\S]*?)\]\)/) ?? [])[1] ?? ''
+
+  it('found the PREF_KEYS list', () => {
+    // If the regex stops matching, every assertion below passes vacuously.
+    expect(prefKeys).toContain('weekly_report')
+  })
+
+  for (const type of ['payment_failed', 'trial_ending', 'trial_expired', 'feedback_reply']) {
+    it(`does not offer an opt-out for '${type}'`, () => {
+      expect(prefKeys).not.toContain(type)
+    })
+  }
+
+  it('feedback_reply is nonetheless a real system notification type', () => {
+    expect(SYSTEM_NOTIF_TYPES).toContain('feedback_reply')
   })
 })

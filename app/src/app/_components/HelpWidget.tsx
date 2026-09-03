@@ -101,7 +101,11 @@ export function HelpWidget() {
               <button type="button" className="btn btn-primary btn-block" onClick={send} disabled={pending || !message.trim()}>
                 {pending ? 'Sending…' : 'Send'}
               </button>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, fontSize: 12.5 }}>
+              {/* The only signpost to the replies view. A user who has been
+                  answered gets a notification, but a user still waiting has no
+                  other way to find out whether anyone wrote back. */}
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, fontSize: 12.5, flexWrap: 'wrap' }}>
+                <a href="/settings/feedback" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Your messages</a>
                 <a href="/feature-board" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Feature board</a>
                 <a href="/changelog" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>What&apos;s new</a>
                 <a href="/referrals" style={{ color: 'var(--violet-br)', fontWeight: 600 }}>Refer a trader</a>

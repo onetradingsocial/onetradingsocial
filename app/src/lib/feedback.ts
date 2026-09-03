@@ -31,3 +31,23 @@ export function validateFeedback(input: FeedbackInput):
 
   return { ok: true, type, message }
 }
+
+/**
+ * Validate + normalize an admin's reply to a feedback item.
+ *
+ * Same 1..2000 bound as the submission, and as the `admin_reply` check in
+ * migration 0066 — an admin cannot answer at greater length than a user can
+ * ask. Separate from validateFeedback because a reply has no `type` to pick
+ * and its wording is addressed at an admin, not at the person filing a bug.
+ *
+ * Pure, so the bound is unit-testable without a database or a session; the
+ * server action is then only responsible for authorisation and persistence.
+ */
+export function validateReplyBody(body: string):
+  | { ok: true; body: string }
+  | { ok: false; error: string } {
+  const trimmed = (body ?? '').trim()
+  if (!trimmed) return { ok: false, error: 'Write a reply first.' }
+  if (trimmed.length > FEEDBACK_MAX) return { ok: false, error: `Reply is too long (${FEEDBACK_MAX} max).` }
+  return { ok: true, body: trimmed }
+}

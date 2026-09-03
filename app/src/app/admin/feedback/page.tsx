@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { FEEDBACK_TYPE_LABELS, type FeedbackType } from '@/lib/feedback'
 import { FeedbackStatus } from '../_components/FeedbackStatus'
 import { FeedbackCategory, FEEDBACK_CATEGORIES } from '../_components/FeedbackCategory'
+import { FeedbackReply } from '../_components/FeedbackReply'
 import { Empty, PageHead, Panel, When } from '../_components/ui'
 
 type Search = { status?: string; type?: string }
@@ -21,7 +22,7 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pr
   const { status = 'open', type } = await searchParams
   const svc = createServiceClient()
   let q = svc.from('feedback')
-    .select('id, type, message, page_url, status, category, meta, created_at, profiles(username)')
+    .select('id, type, message, page_url, status, category, meta, created_at, admin_reply, admin_reply_at, profiles(username)')
     .order('created_at', { ascending: false })
     .limit(200)
   if (status !== 'all') q = q.eq('status', status)
@@ -38,7 +39,7 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pr
     <>
       <PageHead
         title="Feedback"
-        sub="Everything users sent through the in-app widget and surveys. Triage sets ownership; closing hides it from the default view."
+        sub="Everything users sent through the in-app widget and surveys. Triage sets ownership; closing hides it from the default view. A reply is shown to the submitter at /settings/feedback and sent as a notification."
         right={
           <nav className="ad-tabs" aria-label="Filter by status">
             {STATUS_TABS.map((s) => (
@@ -88,6 +89,7 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pr
                 </div>
                 <p style={{ whiteSpace: 'pre-wrap', fontSize: 14, margin: 0 }}>{r.message}</p>
                 {r.page_url && <code className="ad-kv" style={{ fontSize: 11.5 }}>{r.page_url}</code>}
+                <FeedbackReply id={r.id} reply={r.admin_reply} repliedAt={r.admin_reply_at} />
               </div>
             )
           })}
