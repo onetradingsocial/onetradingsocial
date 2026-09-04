@@ -480,6 +480,25 @@ function lockedFieldChanged(formData: FormData, row: Record<string, unknown>): b
  * the only thing firing it would add is a duplicate breach alert every time the
  * user re-saves the same trade.
  */
+/**
+ * Hiding a settled result is the cheapest way to launder a bad week.
+ *
+ * `ranking.ts:111` builds every board from `is_public = true` rows, and 0067
+ * granted UPDATE on `is_public` for the first time (0045 had withheld it, so
+ * before the edit feature nothing could change it after insert). Left open,
+ * that turns the leaderboard into a per-trade opt-out a user can exercise
+ * AFTER seeing the outcome — and because visibility is a journal field rather
+ * than an execution one, 0028's trigger does not stop it happening on a
+ * broker-verified trade either.
+ *
+ * So the toggle runs one way once the result is known: a trade can always be
+ * published, and an OPEN trade can still be hidden, but a CLOSED public trade
+ * cannot be taken private. Nothing an honest user does needs that direction —
+ * they publish a trade they held back, they do not un-publish a loss.
+ */
+const VISIBILITY_ONE_WAY =
+  'A closed trade that is public cannot be made private — hiding a settled result would let a bad week be taken off the leaderboard after the fact. You can still make an open trade private, and you can always publish a private one.'
+
 export async function updateTrade(tradeId: string, formData: FormData): Promise<TradeState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -491,7 +510,7 @@ export async function updateTrade(tradeId: string, formData: FormData): Promise<
   // missing one — the same answer `deleteTrade` gives, and for the same reason.
   const { data: existing, error: readError } = await supabase
     .from('trades')
-    .select('source, market, instrument, direction, sizing_mode, entry_price, stop_price, target_price, exit_price, risk_percent, lots, traded_at, closed_at, strategy_tags')
+    .select('source, market, instrument, direction, sizing_mode, entry_price, stop_price, target_price, exit_price, risk_percent, lots, traded_at, closed_at, strategy_tags, status, is_public')
     .eq('id', tradeId).eq('user_id', user.id).maybeSingle()
   if (readError) return { error: readError.message }
   if (!existing) return { error: 'Trade not found.' }
@@ -503,7 +522,6 @@ export async function updateTrade(tradeId: string, formData: FormData): Promise<
     omitUngated: true, existingTags: existing.strategy_tags ?? [],
   })
   const isPublicRaw = formData.get('is_public')
-  if (isPublicRaw != null) payload.is_public = isPublicRaw === 'public'
 
   if (existing.source !== 'manual') {
     // The journal enums still have to be checked: this path never reaches
@@ -543,6 +561,19 @@ export async function updateTrade(tradeId: string, formData: FormData): Promise<
       risk_percent: parsed.riskPercent, lots: parsed.lots,
       traded_at: parsed.tradedAt,
     }, derived)
+  }
+
+  // Visibility is one-way once a result is settled. See VISIBILITY_ONE_WAY.
+  // Applied after the branch because it must test the status this edit RESULTS
+  // in, not the stored one: adding an exit price and switching to private in
+  // the same submission would otherwise walk straight through the check.
+  if (isPublicRaw != null) {
+    const wantsPublic = isPublicRaw === 'public'
+    const willBeClosed = (payload.status ?? existing.status) === 'closed'
+    if (!wantsPublic && existing.is_public === true && willBeClosed) {
+      return { error: VISIBILITY_ONE_WAY }
+    }
+    payload.is_public = wantsPublic
   }
 
   const { error } = await supabase.from('trades').update(payload)

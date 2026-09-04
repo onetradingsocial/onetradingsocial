@@ -52,6 +52,10 @@ function EditModal({ trade, config, onClose }: { trade: JTrade; config: EditTrad
   // save with a raw Postgres message.
   const manual = (trade.source ?? 'manual') === 'manual'
 
+  // A closed, public trade is already counted on the leaderboard, so its
+  // visibility is fixed — see VISIBILITY_ONE_WAY in actions/trade.ts.
+  const publicAndSettled = trade.status === 'closed' && trade.is_public !== false
+
   const [market, setMarket] = useState(trade.market)
   const [instrument, setInstrument] = useState(trade.instrument)
   const [direction, setDirection] = useState<Direction>(trade.direction === 'short' ? 'short' : 'long')
@@ -337,9 +341,30 @@ function EditModal({ trade, config, onClose }: { trade: JTrade; config: EditTrad
             )}
           </div>
 
-          <label className="ts-field mt-4"><span className="ts-label">Visibility</span>
-            <select name="is_public" className="ts-select" defaultValue={trade.is_public === false ? 'private' : 'public'}>
-              <option value="public">Public</option><option value="private">Private</option></select></label>
+          {/* One-way once the result is settled: a closed public trade cannot
+              be taken private, because that would let a loss be lifted off the
+              leaderboard after the fact. `updateTrade` is the control; this is
+              the explanation. Omitting the input entirely leaves the stored
+              value untouched, which is exactly what should happen. */}
+          {publicAndSettled ? (
+            <div className="ts-field mt-4"><span className="ts-label">Visibility</span>
+              <p className="faint" style={{ fontSize: 12.5, marginTop: 6, lineHeight: 1.6 }}>
+                <b>Public</b> — and staying that way. A closed trade that is already public cannot be
+                made private: results counted on the leaderboard are not removable after the fact.
+                Everything else on this trade is still yours to edit.
+              </p>
+            </div>
+          ) : (
+            <label className="ts-field mt-4"><span className="ts-label">Visibility</span>
+              <select name="is_public" className="ts-select" defaultValue={trade.is_public === false ? 'private' : 'public'}>
+                <option value="public">Public</option><option value="private">Private</option></select>
+              {trade.status !== 'closed' && trade.is_public !== false && (
+                <span className="faint" style={{ fontSize: 12, marginTop: 6 }}>
+                  While the trade is open you can still make it private. Once it closes, this is fixed.
+                </span>
+              )}
+            </label>
+          )}
 
           {error && <p className="ts-error mt-4">{error}</p>}
 

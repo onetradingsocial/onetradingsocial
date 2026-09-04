@@ -129,6 +129,37 @@
 -- description of this column is: editable by its owner, within the past,
 -- logged after the fact.
 --
+-- =============================================================================
+-- is_public: GRANTED, BUT THE APPLICATION MAKES IT ONE-WAY
+-- =============================================================================
+--
+-- 0045 withheld this column alongside the rest, and until the edit feature no
+-- code path changed a trade's visibility after insert. That mattered more than
+-- its place in the list suggests: `ranking.ts:111` builds every leaderboard
+-- from `is_public = true` rows, so a freely editable flag turns the boards
+-- into a per-trade opt-out a user can exercise AFTER seeing the outcome --
+-- hide the losses, keep the wins, and the win rate, profit factor and
+-- expectancy all move together.
+--
+-- Note this one is NOT limited to manual rows. Visibility is a journal field,
+-- not an execution field, so 0028's trigger deliberately leaves it editable on
+-- imported trades too. Unguarded, it would be a way to lift a bad week off the
+-- board on precisely the broker-verified trades the verification system exists
+-- to make trustworthy.
+--
+-- The grant is still needed -- a user must be able to publish a trade they
+-- kept back, and to hide one that is still open. The direction that cannot be
+-- allowed is the one that removes a SETTLED result. `updateTrade` refuses to
+-- take a closed public trade private (`VISIBILITY_ONE_WAY`), testing the
+-- status the edit RESULTS in so that adding an exit price and switching to
+-- private in a single submission does not slip through.
+--
+-- That control is in the application, not here, and it is worth being straight
+-- about the difference: unlike 0028's trigger, it can be bypassed by anything
+-- that writes the column through another path. There is no such path today --
+-- `updateTrade` is the only writer -- and any future one must carry the same
+-- check or move it into a trigger.
+--
 -- Idempotent and re-runnable: `grant` is declarative and additive, so this
 -- composes with 0045's grant rather than replacing it. The ten columns 0045
 -- already granted are not restated -- restating them here would create a
@@ -160,6 +191,7 @@ grant update (
   emotion,
   note,
   strategy_tags,
+  -- One-way once the trade is closed. See the is_public section above.
   is_public
 ) on public.trades to authenticated;
 

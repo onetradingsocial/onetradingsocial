@@ -613,6 +613,73 @@ describe('updateTrade — side effects', () => {
 // 6 — entitlement gating, and the data it must not destroy
 // ---------------------------------------------------------------------------
 
+describe('updateTrade — visibility is one-way once settled', () => {
+  // ranking.ts:111 builds every board from `is_public = true` rows, and 0067
+  // granted UPDATE on the column for the first time. Without this guard the
+  // leaderboard is a per-trade opt-out exercised after seeing the outcome.
+  it('refuses to take a closed public trade private', async () => {
+    selectRow.mockResolvedValue({
+      data: { ...CLOSED_ROW, status: 'closed', is_public: true }, error: null,
+    })
+
+    const res = await updateTrade('t1', fullForm({ is_public: 'private' }))
+
+    expect(res.error).toMatch(/cannot be made private/)
+    expect(updatePayload).not.toHaveBeenCalled()
+  })
+
+  it('refuses when the same edit is what closes the trade', async () => {
+    // The loophole a stored-status check would leave: add an exit price and
+    // switch to private in one submission.
+    selectRow.mockResolvedValue({
+      data: { ...OPEN_ROW, status: 'open', is_public: true }, error: null,
+    })
+
+    const res = await updateTrade('t1', fullForm({ exit_price: '1.0806', is_public: 'private' }))
+
+    expect(res.error).toMatch(/cannot be made private/)
+    expect(updatePayload).not.toHaveBeenCalled()
+  })
+
+  it('still lets an open trade be made private', async () => {
+    selectRow.mockResolvedValue({
+      data: { ...OPEN_ROW, status: 'open', is_public: true }, error: null,
+    })
+
+    await updateTrade('t1', fullForm({ exit_price: '', is_public: 'private' }))
+
+    expect(updatePayload.mock.calls[0][0].is_public).toBe(false)
+  })
+
+  it('always allows publishing a private trade', async () => {
+    selectRow.mockResolvedValue({
+      data: { ...CLOSED_ROW, status: 'closed', is_public: false }, error: null,
+    })
+
+    await updateTrade('t1', fullForm({ is_public: 'public' }))
+
+    expect(updatePayload.mock.calls[0][0].is_public).toBe(true)
+  })
+
+  it('guards an imported trade too — 0028 does not cover visibility', async () => {
+    selectRow.mockResolvedValue({
+      data: { ...CLOSED_ROW, source: 'broker', status: 'closed', is_public: true }, error: null,
+    })
+
+    // Execution values echoed back the way the modal posts them for an
+    // imported trade, so the refusal can only be about visibility.
+    const res = await updateTrade('t1', fullForm({
+      exit_price: String(CLOSED_ROW.exit_price),
+      traded_at: CLOSED_ROW.traded_at,
+      lots: '',
+      is_public: 'private',
+    }))
+
+    expect(res.error).toMatch(/cannot be made private/)
+    expect(updatePayload).not.toHaveBeenCalled()
+  })
+})
+
 describe('updateTrade — entitlements', () => {
   it('omits the gated journal fields on Free rather than nulling them', async () => {
     // Writing null here would erase the setup, emotion and note a user
