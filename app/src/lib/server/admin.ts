@@ -27,9 +27,28 @@ export const getAdminUser = cache(async (): Promise<User | null> => {
   return user && isAdmin(user) ? user : null
 })
 
-/** Gate for admin pages + every admin server action. 404s non-admins (hides the route). */
+/**
+ * Gate for admin PAGES and layouts. 404s non-admins, which hides the route.
+ *
+ * Not for server actions. `notFound()` raised inside a Server Action does not
+ * fail the action, it fails the *page*: Next renders the not-found boundary in
+ * place of whatever the admin was looking at, so the admin shell survives and
+ * the screen underneath it vanishes. A momentarily unauthenticated admin
+ * therefore lost their work rather than being told what happened. Actions use
+ * `getAdminUser()` above and return `{ error: NOT_ADMIN }` — same check, same
+ * freshness, a failure the caller can render.
+ */
 export async function requireAdmin(): Promise<User> {
   const user = await getAdminUser()
   if (!user) notFound()
   return user
 }
+
+/**
+ * What an admin server action returns when the caller is not an admin.
+ *
+ * Deliberately says nothing about *why*. A non-admin cannot reach an action id
+ * without first loading a page that 404s them, so this wording is only ever
+ * read by a real admin whose session lapsed mid-session.
+ */
+export const NOT_ADMIN = 'Not authorised.'
