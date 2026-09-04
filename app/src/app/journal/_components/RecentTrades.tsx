@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { CloseTradeModal } from './CloseTradeModal'
+import { EditTradeModal, type EditTradeConfig } from './EditTradeModal'
 import { marketColor, instrumentBadge, type JTrade } from '@/lib/journal-stats'
 import { VerificationBadge } from '@/app/_components/VerificationBadge'
 import { tradeLevel } from '@/lib/verification'
@@ -14,7 +15,11 @@ function fmtDate(s: string) {
   return new Date(s).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-export function RecentTrades({ trades, monthNet, canMistakeTag = false }: { trades: JTrade[]; monthNet: number; canMistakeTag?: boolean }) {
+export function RecentTrades({ trades, monthNet, canMistakeTag = false, editConfig }: {
+  // editConfig omitted on /demo, whose sample trades belong to nobody and
+  // cannot be edited — the table then renders no Edit button at all.
+  trades: JTrade[]; monthNet: number; canMistakeTag?: boolean; editConfig?: EditTradeConfig
+}) {
   const [f, setF] = useState<string>('all')
   const shown = trades.filter((t) => {
     if (f === 'all') return true
@@ -64,7 +69,12 @@ export function RecentTrades({ trades, monthNet, canMistakeTag = false }: { trad
                     <td className={r == null ? '' : r >= 0 ? 'ts-pos' : 'ts-neg'}>{r != null ? `${r >= 0 ? '+' : ''}${r.toFixed(1)}R` : t.planned_rr ? `1:${t.planned_rr.toFixed(1)}` : '—'}</td>
                     <td className={pnl == null ? '' : pnl >= 0 ? 'ts-pos' : 'ts-neg'}>{pnl == null ? <span className="ts-badge ts-badge--open">open</span> : `${pnl >= 0 ? '+' : '−'}$${Math.abs(pnl).toFixed(0)}`}</td>
                     <td>{tags.slice(0, 2).map((x) => <span key={x} className="ts-tag">{x}</span>)}</td>
-                    <td>{t.status === 'open' ? <CloseTradeModal tradeId={t.id} canMistakeTag={canMistakeTag} /> : null}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        {editConfig && <EditTradeModal trade={t} config={editConfig} />}
+                        {t.status === 'open' && <CloseTradeModal tradeId={t.id} canMistakeTag={canMistakeTag} />}
+                      </div>
+                    </td>
                   </tr>
                 )
               })}

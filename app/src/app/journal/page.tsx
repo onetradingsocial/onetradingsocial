@@ -37,6 +37,7 @@ import { computeStreaks } from '@/lib/streaks'
 import { StreaksCard } from './_components/StreaksCard'
 import { getComparison } from '@/lib/server/compare'
 import { ComparisonCard } from './_components/ComparisonCard'
+import type { EditTradeConfig } from './_components/EditTradeModal'
 
 export default async function JournalPage() {
   const supabase = await createClient()
@@ -45,7 +46,13 @@ export default async function JournalPage() {
 
   const { data: all } = await supabase
     .from('trades')
-    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, stop_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, mistake_tags, emotion, traded_at, risk_percent, risk_amount, source')
+    // `note`, `confidence`, `sizing_mode`, `lots`, `target_price` and
+    // `is_public` are here for the edit modal. They are safe on this query and
+    // only this one: it is filtered to `user_id = auth.uid()`, so every row is
+    // the caller's own, and RLS (`trades_select`) would refuse anyone else's.
+    // `note` in particular is the private journal field — never add it to the
+    // public profile query, which reads other people's rows.
+    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, stop_price, target_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, mistake_tags, emotion, confidence, note, sizing_mode, risk_percent, lots, risk_amount, is_public, traded_at, source')
     .eq('user_id', user.id)
     .order('traded_at', { ascending: false })
 
@@ -63,6 +70,16 @@ export default async function JournalPage() {
   const unlimited = canFlag(flags, tier, 'journal_unlimited')
   const visibleTrades = unlimited ? trades : trades.slice(0, JOURNAL_FREE_LIMIT)
   const hiddenCount = trades.length - visibleTrades.length
+
+  // Edit modal gating — the same derivation the create modal gets in
+  // `layout.tsx`, so a Free user is never shown an edit form full of fields
+  // the server would drop. Strategy tracking: Trader one tag, Pro multi.
+  const editConfig: EditTradeConfig = {
+    accountBalance: prof?.account_balance ?? 0,
+    canAdvancedJournal: canFlag(flags, tier, 'advanced_journal'),
+    canPrivateNotes: canFlag(flags, tier, 'private_notes'),
+    maxStrategyTags: canFlag(flags, tier, 'strategy_tracking') ? (tier === 'pro' ? 8 : 1) : 0,
+  }
 
   const now = new Date()
   const year = now.getFullYear(), month = now.getMonth()
@@ -309,7 +326,7 @@ export default async function JournalPage() {
       </div>
 
       <div className="mt-3">
-        <RecentTrades trades={visibleTrades} monthNet={sums.monthNet} canMistakeTag={canFlag(flags, tier, 'mistake_tagging')} />
+        <RecentTrades trades={visibleTrades} monthNet={sums.monthNet} canMistakeTag={canFlag(flags, tier, 'mistake_tagging')} editConfig={editConfig} />
         {hiddenCount > 0 && (
           <div className="ts-banner mt-3">
             Showing your last {JOURNAL_FREE_LIMIT} trades. {hiddenCount} older{' '}

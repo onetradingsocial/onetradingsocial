@@ -14,6 +14,18 @@ export type JTrade = {
   strategy_tags: string[]
   traded_at: string
   source?: 'manual' | 'statement' | 'broker' | null
+  // Edit-modal fields. Optional because the same type backs the public profile
+  // query (`/[username]/page.tsx`), which selects a narrower column list and
+  // must not start shipping a stranger's journal fields to satisfy a type.
+  stop_price?: number | null
+  target_price?: number | null
+  sizing_mode?: string | null
+  risk_percent?: number | null
+  lots?: number | null
+  confidence?: string | null
+  emotion?: string | null
+  note?: string | null
+  is_public?: boolean | null
 }
 
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
