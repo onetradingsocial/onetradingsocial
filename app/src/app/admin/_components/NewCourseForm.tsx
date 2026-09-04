@@ -10,7 +10,7 @@ export function NewCourseForm() {
   const [pending, start] = useTransition()
   return (
     <form
-      className="ad-panel"
+      className="adm-panel"
       onSubmit={(e) => {
         e.preventDefault()
         const f = new FormData(e.currentTarget)
@@ -25,8 +25,8 @@ export function NewCourseForm() {
         })
       }}
     >
-      <div className="ad-panel-head"><span className="t">New course</span></div>
-      <div className="ad-panel-body">
+      <div className="adm-panel-head"><span className="t">New course</span></div>
+      <div className="adm-panel-body">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
           <label className="ts-field">
             <span className="ts-label">Title</span>

@@ -64,8 +64,8 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
         sub={email ? maskEmail(email) : undefined}
         right={
           <>
-            {internal && <span className="ad-chip--test" style={{ marginLeft: 0 }}>test</span>}
-            <Link className="ad-kv" href="/admin/users">← Directory</Link>
+            {internal && <span className="adm-chip--test" style={{ marginLeft: 0 }}>test</span>}
+            <Link className="adm-kv" href="/admin/users">← Directory</Link>
           </>
         }
       />
@@ -73,7 +73,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
       <Stats>
         <Stat
           label="Effective tier"
-          value={<span className={`ad-tier ad-tier--${tier}`}>{tier}</span>}
+          value={<span className={`adm-tier adm-tier--${tier}`}>{tier}</span>}
           sub={`via ${source}`}
           tone="accent"
         />
@@ -87,7 +87,7 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
       </Section>
 
       <Section title="Profile">
-        <div className="ad-kv" style={{ fontSize: 13, lineHeight: 1.9 }}>
+        <div className="adm-kv" style={{ fontSize: 13, lineHeight: 1.9 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span>Email:</span>
             <RevealEmail userId={id} masked={maskEmail(email)} context="detail" />

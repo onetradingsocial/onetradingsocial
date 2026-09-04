@@ -65,7 +65,7 @@ export default async function CohortsPage() {
         right={<span className="v-badge vb-broker">Internal excluded</span>}
       />
 
-      <div className="ad-stack">
+      <div className="adm-stack">
         <Section title="Weekly signup cohorts" sub="Darker cell = better retention. Read down a column to see whether onboarding changes stuck.">
           <Panel flush scroll>
             {d.cohorts.length === 0 ? <Empty>No cohorts yet.</Empty> : (

@@ -65,7 +65,7 @@ export default async function AdminReferralsPage() {
         sub="Each activated referral earns the referrer 1 month of free Pro (max 6), redeemed via an A$0 Stripe checkout that converts to monthly billing."
       />
 
-      <div className="ad-stack">
+      <div className="adm-stack">
         <Stats>
           <Stat label="Clicks" value={totals.clicks} />
           <Stat label="Signups" value={totals.signups} sub={rate(totals.signups, totals.clicks)} />
@@ -90,7 +90,7 @@ export default async function AdminReferralsPage() {
                   return (
                     <tr key={r.id}>
                       <td><Link href={`/${r.username}`}>@{r.username}</Link></td>
-                      <td className="ad-kv">{r.code || '—'}</td>
+                      <td className="adm-kv">{r.code || '—'}</td>
                       <td className="num">{r.clicks}</td>
                       <td className="num">{r.signups}</td>
                       <td className="num">{r.activated}</td>

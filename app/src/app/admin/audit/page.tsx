@@ -92,7 +92,7 @@ export default async function AdminAuditPage() {
                   <td><When iso={r.created_at} /></td>
                   <td style={{ fontSize: 13 }}>{actorLabel(r)}</td>
                   <td><span className="v-badge">{LABEL[r.action] ?? r.action}</span></td>
-                  <td className="ad-kv" style={{ fontSize: 11.5 }}>
+                  <td className="adm-kv" style={{ fontSize: 11.5 }}>
                     {r.target_type ? `${r.target_type}:${String(r.target_id).slice(0, 12)}` : '—'}
                   </td>
                   <td className="faint" style={{ fontSize: 11.5, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

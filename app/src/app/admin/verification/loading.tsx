@@ -1,5 +1,5 @@
 // Five sections in page order. Every Panel here is untitled (<Panel flush>),
-// so no panel heads. Section 1's rows are .ad-row-stack; the rest are flat.
+// so no panel heads. Section 1's rows are .adm-row-stack; the rest are flat.
 import {
   HeadSkeleton, RowsSkeleton, SectionSkeleton, SkeletonPage, StatsSkeleton, TableSkeleton,
 } from '../_components/Skeleton'
@@ -8,7 +8,7 @@ export default function Loading() {
   return (
     <SkeletonPage>
       <HeadSkeleton subLines={2} />
-      <div className="ad-stack">
+      <div className="adm-stack">
         <StatsSkeleton count={4} />
         {/* User reports */}
         <SectionSkeleton><RowsSkeleton rows={3} title={false} stacked /></SectionSkeleton>

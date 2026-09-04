@@ -43,7 +43,7 @@ export function FeedbackReply({ id, reply, repliedAt }: {
   return (
     <div style={{ display: 'grid', gap: 6 }}>
       {saved && !open && (
-        <div className="ad-note" style={{ alignItems: 'flex-start' }}>
+        <div className="adm-note" style={{ alignItems: 'flex-start' }}>
           <span className="eyebrow">Replied</span>
           {saved.at && <When iso={saved.at} />}
           <span style={{ whiteSpace: 'pre-wrap', flex: 1, minWidth: 0, color: 'var(--text)' }}>{saved.body}</span>
@@ -74,7 +74,7 @@ export function FeedbackReply({ id, reply, repliedAt }: {
             >
               Cancel
             </button>
-            <span className="ad-kv">{draft.trim().length}/{FEEDBACK_MAX}</span>
+            <span className="adm-kv">{draft.trim().length}/{FEEDBACK_MAX}</span>
             {error && <span style={{ color: 'var(--down)', fontSize: 13 }}>{error}</span>}
           </div>
         </>

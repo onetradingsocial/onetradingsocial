@@ -45,27 +45,27 @@ export function TrendBars({ title, data }: { title: string; data: WeekBucket[] }
   const peakIdx = data.findIndex((d) => d.count === peak)
 
   return (
-    <div className="ad-panel">
-      <div className="ad-panel-head">
+    <div className="adm-panel">
+      <div className="adm-panel-head">
         <span className="t">{title}</span>
-        <span className="r ad-kv">{total} total</span>
+        <span className="r adm-kv">{total} total</span>
       </div>
-      <div className="ad-panel-body">
-        <figure className="ad-chart" style={{ margin: 0 }}>
+      <div className="adm-panel-body">
+        <figure className="adm-chart" style={{ margin: 0 }}>
           <figcaption className="sr-only">
             {title}. {data.map((d) => `Week of ${shortDate(d.weekStart)}: ${d.count}`).join('. ')}.
           </figcaption>
 
-          <div className="ad-chart-y" style={{ height: H, marginTop: PAD }} aria-hidden>
+          <div className="adm-chart-y" style={{ height: H, marginTop: PAD }} aria-hidden>
             {ticks.map((t) => <span key={t}>{t}</span>)}
           </div>
 
-          <div className="ad-chart-plot">
+          <div className="adm-chart-plot">
             <svg
               viewBox={`0 0 ${VB_W} ${H + PAD}`} height={H + PAD} preserveAspectRatio="none"
               role="img" aria-label={`${title}: ${total} total, peak ${peak}`}
             >
-              <g className="ad-chart-grid">
+              <g className="adm-chart-grid">
                 {ticks.slice(0, -1).map((t) => {
                   const y = PAD + H - (t / (top || 1)) * H
                   return <line key={t} x1="0" x2={VB_W} y1={y} y2={y} />
@@ -76,14 +76,14 @@ export function TrendBars({ title, data }: { title: string; data: WeekBucket[] }
                 return (
                   <rect
                     key={d.weekStart}
-                    className={`ad-chart-bar${i === n - 1 ? ' ad-chart-bar--last' : ''}`}
+                    className={`adm-chart-bar${i === n - 1 ? ' adm-chart-bar--last' : ''}`}
                     x={i * (bw + GAP)} y={PAD + H - h} width={bw} height={h} rx={2}
                   >
                     <title>{`Week of ${shortDate(d.weekStart)}: ${d.count}`}</title>
                   </rect>
                 )
               })}
-              <g className="ad-chart-base">
+              <g className="adm-chart-base">
                 <line x1="0" x2={VB_W} y1={PAD + H} y2={PAD + H} />
               </g>
             </svg>
@@ -92,7 +92,7 @@ export function TrendBars({ title, data }: { title: string; data: WeekBucket[] }
                 is noise, and the rest are available on hover. */}
             {peak > 0 && peakIdx >= 0 && (
               <span
-                className="ad-chart-peak"
+                className="adm-chart-peak"
                 style={{
                   left: `${((peakIdx * (bw + GAP) + bw / 2) / VB_W) * 100}%`,
                   top: PAD + H - (peak / (top || 1)) * H - 2,
@@ -106,7 +106,7 @@ export function TrendBars({ title, data }: { title: string; data: WeekBucket[] }
           {/* Same column gap the bars use (GAP/VB_W), so each label centres on
               its bar instead of drifting across the axis. */}
           <div
-            className="ad-chart-x"
+            className="adm-chart-x"
             style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`, columnGap: `${(GAP / VB_W) * 100}%` }}
             aria-hidden
           >

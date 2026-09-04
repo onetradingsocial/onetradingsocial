@@ -80,7 +80,7 @@ export default async function VerificationReviewPage() {
         sub="Trust queue. Heuristics surface accounts worth a look — nothing here is auto-punished, every action is yours. Broker logins are masked to the last four digits; revealing one is recorded in the audit log."
       />
 
-      <div className="ad-stack">
+      <div className="adm-stack">
         <Stats>
           <Stat label="Open reports" value={openReports.length} tone={openReports.length ? 'warn' : undefined} />
           <Stat label="Flagged accounts" value={suspicious.length} tone={suspicious.length ? 'warn' : undefined} />
@@ -91,7 +91,7 @@ export default async function VerificationReviewPage() {
         <Section title="User reports" sub="Filed by traders against profiles — review and action, or dismiss.">
           <Panel flush>
             {openReports.length === 0 ? <Empty ok>No open reports.</Empty> : openReports.map((r) => (
-              <div key={r.id} className="ad-row ad-row-stack">
+              <div key={r.id} className="adm-row adm-row-stack">
                 <div style={{ display: 'flex', gap: 9, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span className="v-badge vb-failed">{REASON_LABEL[r.reason] ?? r.reason}</span>
                   <Link href={`/${uname.get(r.reported_user_id ?? '') ?? ''}`} style={{ fontWeight: 700 }}>
@@ -112,7 +112,7 @@ export default async function VerificationReviewPage() {
         <Section title="Suspicious accounts" sub="Heuristics over every account, real accounts first. Internal and seeded accounts are labelled rather than hidden — synthetic data is exactly what you want to be able to sanity-check. A flag is a prompt to look, not a verdict.">
           <Panel flush>
             {suspicious.length === 0 ? <Empty ok>Nothing flagged.</Empty> : suspicious.map((f, i) => (
-              <div key={i} className="ad-row">
+              <div key={i} className="adm-row">
                 <Link href={`/${f.username}`} style={{ fontWeight: 700 }}>@{f.username}</Link>
                 <span className="v-badge vb-failed">{KIND_LABEL[f.kind] ?? f.kind}</span>
                 {f.internal && <span className="v-badge vb-pending">internal</span>}
@@ -144,7 +144,7 @@ export default async function VerificationReviewPage() {
                             and not of the person, and it is the field that most often
                             explains why a connection is failing. */}
                         <td><RevealBrokerLogin userId={b.user_id} masked={maskAccountId(b.login)} /></td>
-                        <td className="ad-kv">{b.server}</td>
+                        <td className="adm-kv">{b.server}</td>
                         <td><span className={`v-badge ${b.status === 'pending' ? 'vb-pending' : 'vb-failed'}`}>{b.status}</span></td>
                         <td>{b.last_sync_at ? <When iso={b.last_sync_at} short /> : <span className="faint">—</span>}</td>
                         <td className="faint" style={{ fontSize: 12, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -162,7 +162,7 @@ export default async function VerificationReviewPage() {
         <Section title="Failed imports" sub="Most recent 20. A cluster of the same reason usually means a parser bug, not user error.">
           <Panel flush>
             {imports.length === 0 ? <Empty ok>No failed imports.</Empty> : imports.map((f, i) => (
-              <div key={i} className="ad-row">
+              <div key={i} className="adm-row">
                 <span>@{uname.get(f.user_id ?? '') ?? 'unknown'}</span>
                 <span className="faint">{String((f.props as { reason?: string })?.reason ?? 'unknown reason')}</span>
                 <span className="sp"><When iso={f.created_at} short /></span>
@@ -177,10 +177,10 @@ export default async function VerificationReviewPage() {
               const deleted = e.action === 'deleted'
               const old = (e.old_values ?? {}) as { outcome?: string; pnl_amount?: number | null; instrument?: string }
               return (
-                <div key={i} className="ad-row">
+                <div key={i} className="adm-row">
                   <span>@{uname.get(e.user_id) ?? e.user_id.slice(0, 8)}</span>
                   <span className={deleted ? 'v-badge vb-failed' : 'faint'}>{deleted ? 'deleted' : 'edited'}</span>
-                  <code className="ad-kv">
+                  <code className="adm-kv">
                     {deleted
                       ? `${old.instrument ?? '?'} · ${old.outcome ?? 'unknown'}${old.pnl_amount != null ? ` · ${old.pnl_amount}` : ''}`
                       : ((e.changed_fields as string[]) ?? []).join(', ')}

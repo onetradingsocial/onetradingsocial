@@ -12,12 +12,12 @@ export function QuizEditor({ lessonId, initial }: { lessonId: string; initial: Q
   const update = (fn: (qs: QuestionInput[]) => QuestionInput[]) => setQuestions((qs) => fn(structuredClone(qs)))
 
   return (
-    <div className="ad-panel">
-      <div className="ad-panel-head">
+    <div className="adm-panel">
+      <div className="adm-panel-head">
         <span className="t">Quiz</span>
-        <span className="r ad-kv">{questions.length} question{questions.length === 1 ? '' : 's'}</span>
+        <span className="r adm-kv">{questions.length} question{questions.length === 1 ? '' : 's'}</span>
       </div>
-      <div className="ad-panel-body" style={{ gap: 12 }}>
+      <div className="adm-panel-body" style={{ gap: 12 }}>
         {questions.length === 0 && (
           <p className="faint" style={{ fontSize: 13, margin: 0 }}>
             No questions yet. A lesson without a quiz still awards XP on completion.
@@ -30,7 +30,7 @@ export function QuizEditor({ lessonId, initial }: { lessonId: string; initial: Q
             style={{ display: 'grid', gap: 8, padding: 14, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface-2)' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <span className="ad-kv" style={{ color: 'var(--faintest)' }}>Q{qi + 1}</span>
+              <span className="adm-kv" style={{ color: 'var(--faintest)' }}>Q{qi + 1}</span>
               <input
                 className="ts-input" value={q.prompt} placeholder="Question prompt"
                 style={{ height: 40, background: 'var(--surface)' }}

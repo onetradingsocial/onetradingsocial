@@ -32,7 +32,7 @@ export default async function LessonEdit({ params }: { params: Promise<{ courseI
   return (
     <>
       <div style={{ marginBottom: 10 }}>
-        <Link className="ad-kv" href={`/admin/courses/${courseId}`}>← Back to course</Link>
+        <Link className="adm-kv" href={`/admin/courses/${courseId}`}>← Back to course</Link>
       </div>
       <PageHead
         title={lesson.title}

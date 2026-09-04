@@ -20,7 +20,7 @@ export function FeedbackCategory({ id, category }: { id: string; category: strin
   const [pending, start] = useTransition()
   return (
     <select
-      className="ts-select ad-select"
+      className="ts-select adm-select"
       aria-label="Feedback category"
       value={value}
       disabled={pending}
