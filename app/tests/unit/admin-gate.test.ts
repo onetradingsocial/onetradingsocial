@@ -104,49 +104,23 @@ describe('admin route gate (audit item 18, F2)', () => {
 describe('admin server actions (audit item 18, B1 — regression guard)', () => {
   const src = readFileSync(join(process.cwd(), 'src', 'app', 'actions', 'admin.ts'), 'utf8')
 
-  it('every exported action opens with the getAdminUser() gate', () => {
+  it('every exported action opens with requireAdmin()', () => {
     // The audit confirmed all 15 were correct. This is the guard that keeps
     // them correct, including the reveal actions added by WS4 — which return
     // an email address and a broker login, so an unguarded one would be worse
     // than any of the original 15.
-    //
-    // Actions gate with `getAdminUser()` + an early return, NOT `requireAdmin()`.
-    // requireAdmin() raises notFound(), and notFound() inside a Server Action
-    // does not fail the action — it fails the PAGE, replacing whatever the
-    // admin was looking at with the not-found boundary. Pages keep it (see the
-    // suite above, where 404 is the right answer and hides the route); actions
-    // return an error the caller can render.
     const exports = [...src.matchAll(/export async function (\w+)\s*\(/g)]
     expect(exports.length).toBeGreaterThanOrEqual(17)
 
     const ungated = exports
       .filter((m) => {
         const body = src.slice(m.index!, m.index! + 900)
-        const gate = body.indexOf('await getAdminUser()')
+        const gate = body.indexOf('await requireAdmin()')
         const svc = body.indexOf('createServiceClient()')
         return gate === -1 || (svc !== -1 && gate > svc)
       })
       .map((m) => m[1])
     expect(ungated).toEqual([])
-  })
-
-  it('every action turns a failed gate into a returned error', () => {
-    // `getAdminUser()` on its own gates nothing — it returns null and carries
-    // on. The early return is the gate, so it is what this asserts. Without
-    // this half, dropping the `if` would leave the suite above green while
-    // every action ran for anyone.
-    const exports = [...src.matchAll(/export async function (\w+)\s*\(/g)]
-    const unhandled = exports
-      .filter((m) => {
-        const body = src.slice(m.index!, m.index! + 900)
-        return !/if \(!admin\) return \{ error: NOT_ADMIN \}/.test(body)
-      })
-      .map((m) => m[1])
-    expect(unhandled).toEqual([])
-  })
-
-  it('no action reaches for requireAdmin()', () => {
-    expect(src).not.toContain('requireAdmin')
   })
 
   it('the reveal actions write an audit row', () => {

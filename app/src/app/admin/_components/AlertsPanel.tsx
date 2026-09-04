@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useTransition } from 'react'
 import { ackSystemAlert } from '@/app/actions/admin'
 import { When } from './ui'
 
@@ -14,9 +14,6 @@ export type AlertRow = {
 
 /** Open system alerts (error watchdog) with acknowledge = take ownership. */
 export function AlertsPanel({ alerts }: { alerts: AlertRow[] }) {
-  // Keyed by alert id: `pending` is already panel-wide, but an error belongs to
-  // the row whose acknowledge actually failed, not to every row on screen.
-  const [error, setError] = useState<{ id: number; message: string } | null>(null)
   const [pending, start] = useTransition()
   if (alerts.length === 0) return null
   return (
@@ -33,17 +30,10 @@ export function AlertsPanel({ alerts }: { alerts: AlertRow[] }) {
           <span className="sp">
             <button
               type="button" className="btn btn-ghost btn-sm" disabled={pending}
-              onClick={() => start(async () => {
-                setError(null)
-                const res = await ackSystemAlert(a.id)
-                if (res?.error) setError({ id: a.id, message: res.error })
-              })}
+              onClick={() => start(async () => { await ackSystemAlert(a.id) })}
             >
               Acknowledge
             </button>
-            {error?.id === a.id && (
-              <span style={{ color: 'var(--down)', fontSize: 12.5 }}>{error.message}</span>
-            )}
           </span>
         </div>
       ))}
