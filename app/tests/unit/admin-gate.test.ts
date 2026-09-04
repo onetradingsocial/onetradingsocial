@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative, sep } from 'node:path'
+import { basename, join, relative, sep } from 'node:path'
 
 /**
  * Structural guard for audit item 18, F2.
@@ -132,5 +132,52 @@ describe('admin server actions (audit item 18, B1 — regression guard)', () => 
       const body = src.slice(start, src.indexOf('\n}', start))
       expect(body).toMatch(/logAdminAction\(/)
     }
+  })
+})
+
+describe('server components never import values from client modules', () => {
+  // The /admin/feedback crash of 2026-09-04. The page is a Server Component and
+  // rendered its theme chips from FEEDBACK_CATEGORIES, which was exported from
+  // FeedbackCategory.tsx — a 'use client' module. A server import of a plain
+  // value from a client module resolves to a client-reference proxy, not the
+  // array, so touching it throws during the server render.
+  //
+  // Nothing caught it: tsc resolves the type fine, the bundle builds, and the
+  // page only renders that block when at least one row is categorised
+  // (`catCounts.size > 0`). Production had no categorised feedback for months,
+  // so the branch was dead until an admin picked the first theme — and the page
+  // broke four seconds later.
+  const ADMIN = join(process.cwd(), 'src', 'app', 'admin')
+
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)],
+    ).filter((f) => f.endsWith('.tsx'))
+
+  const files = walk(ADMIN)
+  const isClient = (f: string) => readFileSync(f, 'utf8').trimStart().startsWith("'use client'")
+  const clientModules = new Set(
+    files.filter(isClient).map((f) => basename(f, '.tsx')),
+  )
+
+  it('no server component imports a non-component export from a client component', () => {
+    const offenders: string[] = []
+    for (const f of files.filter((x) => !isClient(x))) {
+      const src = readFileSync(f, 'utf8')
+      for (const m of src.matchAll(/import \{([^}]+)\} from '([^']*\/)?([A-Za-z]+)'/g)) {
+        const [, names, , mod] = m
+        if (!clientModules.has(mod)) continue
+        // A component is PascalCase; anything SCREAMING_CASE or camelCase is a
+        // plain value and must not cross the boundary.
+        const values = names
+          .split(',')
+          .map((n) => n.trim().split(/\s+as\s+/).pop()!.trim())
+          .filter((n) => n && !/^type /.test(n) && !/^[A-Z][a-zA-Z0-9]*$/.test(n))
+        if (values.length) {
+          offenders.push(`${relative(process.cwd(), f)} imports { ${values.join(', ')} } from client module ${mod}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
   })
 })

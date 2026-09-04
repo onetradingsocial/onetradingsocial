@@ -10,6 +10,37 @@ export const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
   other: 'Other',
 }
 
+/**
+ * Triage themes, as [value, label] pairs.
+ *
+ * Lives here, and NOT in the FeedbackCategory component, because
+ * /admin/feedback renders this list from a Server Component while the <select>
+ * that writes it is a client one. FeedbackCategory carries 'use client', so a
+ * server import of a plain value from that module reaches a client-reference
+ * proxy rather than the array, and touching it throws during the server
+ * render. The page only renders the list once at least one row is categorised,
+ * so the crash stayed hidden until the first admin picked a theme.
+ *
+ * The action's validation set is derived from this list below, so the values
+ * an admin can pick and the values the server will accept cannot drift.
+ */
+export const FEEDBACK_CATEGORIES = [
+  ['bug', 'Bug'],
+  ['confusing_ux', 'Confusing UX'],
+  ['missing_feature', 'Missing feature'],
+  ['performance', 'Performance'],
+  ['verification', 'Verification'],
+  ['pricing', 'Pricing'],
+  ['trust', 'Trust'],
+  ['education', 'Education'],
+] as const
+
+export type FeedbackCategoryValue = (typeof FEEDBACK_CATEGORIES)[number][0]
+
+/** The values `setFeedbackCategory` accepts, derived so it cannot drift. */
+export const FEEDBACK_CATEGORY_VALUES: ReadonlySet<string> =
+  new Set(FEEDBACK_CATEGORIES.map(([v]) => v))
+
 export const FEEDBACK_MAX = 2000
 
 export type FeedbackInput = { type: string; message: string }

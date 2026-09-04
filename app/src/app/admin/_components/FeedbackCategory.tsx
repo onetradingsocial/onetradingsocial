@@ -2,17 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { setFeedbackCategory } from '@/app/actions/admin'
-
-export const FEEDBACK_CATEGORIES = [
-  ['bug', 'Bug'],
-  ['confusing_ux', 'Confusing UX'],
-  ['missing_feature', 'Missing feature'],
-  ['performance', 'Performance'],
-  ['verification', 'Verification'],
-  ['pricing', 'Pricing'],
-  ['trust', 'Trust'],
-  ['education', 'Education'],
-] as const
+import { FEEDBACK_CATEGORIES } from '@/lib/feedback'
 
 /** Admin triage: classify a feedback item (Sprint 2, row 29). */
 export function FeedbackCategory({ id, category }: { id: string; category: string | null }) {

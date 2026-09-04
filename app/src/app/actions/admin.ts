@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from 'next/cache'
 import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { validateSlug, validateNonNegInt, validateQuizOptions } from '@/lib/admin'
-import { validateReplyBody } from '@/lib/feedback'
+import { validateReplyBody, FEEDBACK_CATEGORY_VALUES } from '@/lib/feedback'
 import { insertSystemNotification } from '@/lib/notifications'
 import { sanitizeLessonHtml } from '@/lib/sanitizeHtml'
 import { isFeature, type FlagValues } from '@/lib/feature-flags'
@@ -96,14 +96,9 @@ export async function setFeedbackStatus(id: string, status: FeedbackStatus): Pro
   return {}
 }
 
-const FEEDBACK_CATEGORIES = new Set([
-  'bug', 'confusing_ux', 'missing_feature', 'performance',
-  'verification', 'pricing', 'trust', 'education',
-])
-
 export async function setFeedbackCategory(id: string, category: string | null): Promise<{ error?: string }> {
   const admin = await requireAdmin()
-  if (category !== null && !FEEDBACK_CATEGORIES.has(category)) return { error: 'Bad category.' }
+  if (category !== null && !FEEDBACK_CATEGORY_VALUES.has(category)) return { error: 'Bad category.' }
   const svc = createServiceClient()
   const prev = await before(svc, 'feedback', 'category', { id })
   const { error } = await svc.from('feedback').update({ category }).eq('id', id)

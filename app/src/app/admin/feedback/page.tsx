@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
-import { FEEDBACK_TYPE_LABELS, type FeedbackType } from '@/lib/feedback'
+import { FEEDBACK_TYPE_LABELS, FEEDBACK_CATEGORIES, type FeedbackType } from '@/lib/feedback'
 import { FeedbackStatus } from '../_components/FeedbackStatus'
-import { FeedbackCategory, FEEDBACK_CATEGORIES } from '../_components/FeedbackCategory'
+import { FeedbackCategory } from '../_components/FeedbackCategory'
 import { FeedbackReply } from '../_components/FeedbackReply'
 import { Empty, PageHead, Panel, When } from '../_components/ui'
 
