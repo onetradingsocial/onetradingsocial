@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath, revalidateTag } from 'next/cache'
-import { requireAdmin } from '@/lib/server/admin'
+import { getAdminUser, NOT_ADMIN } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { validateSlug, validateNonNegInt, validateQuizOptions } from '@/lib/admin'
 import { validateReplyBody, FEEDBACK_CATEGORY_VALUES } from '@/lib/feedback'
@@ -51,7 +51,8 @@ export async function revealUserEmail(
   userId: string,
   context: 'directory' | 'detail' | 'interviews' = 'directory',
 ): Promise<{ email?: string; error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const svc = createServiceClient()
   const { data, error } = await svc.auth.admin.getUserById(userId)
   if (error || !data.user) return { error: 'Could not load that user.' }
@@ -69,7 +70,8 @@ export async function revealUserEmail(
 export async function revealBrokerLogin(
   userId: string,
 ): Promise<{ login?: string; error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const svc = createServiceClient()
   const { data, error } = await svc
     .from('broker_accounts')
@@ -85,7 +87,8 @@ const FEEDBACK_STATUSES = ['open', 'triaged', 'closed'] as const
 type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number]
 
 export async function setFeedbackStatus(id: string, status: FeedbackStatus): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   if (!FEEDBACK_STATUSES.includes(status)) return { error: 'Bad status.' }
   const svc = createServiceClient()
   const prev = await before(svc, 'feedback', 'status', { id })
@@ -97,7 +100,8 @@ export async function setFeedbackStatus(id: string, status: FeedbackStatus): Pro
 }
 
 export async function setFeedbackCategory(id: string, category: string | null): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   if (category !== null && !FEEDBACK_CATEGORY_VALUES.has(category)) return { error: 'Bad category.' }
   const svc = createServiceClient()
   const prev = await before(svc, 'feedback', 'category', { id })
@@ -126,7 +130,8 @@ export async function setFeedbackCategory(id: string, category: string | null): 
  * turn a saved reply into an error the admin sees and retries.
  */
 export async function replyToFeedback(id: string, body: string): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const valid = validateReplyBody(body)
   if (!valid.ok) return { error: valid.error }
   const svc = createServiceClient()
@@ -169,7 +174,8 @@ export async function replyToFeedback(id: string, body: string): Promise<{ error
 const FR_STATUSES = new Set(['under_review', 'planned', 'in_progress', 'released', 'not_planned'])
 
 export async function setFeatureStatus(id: number, status: string): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   if (!FR_STATUSES.has(status)) return { error: 'Bad status.' }
   const svc = createServiceClient()
   const prev = await before(svc, 'feature_requests', 'status', { id })
@@ -181,7 +187,8 @@ export async function setFeatureStatus(id: number, status: string): Promise<{ er
 }
 
 export async function setTradeReportStatus(id: number, status: string): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   if (!['open', 'reviewing', 'actioned', 'dismissed'].includes(status)) return { error: 'Bad status.' }
   const svc = createServiceClient()
   const prev = await before(svc, 'trade_reports', 'status', { id })
@@ -193,7 +200,8 @@ export async function setTradeReportStatus(id: number, status: string): Promise<
 }
 
 export async function ackSystemAlert(id: number): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const svc = createServiceClient()
   const { error } = await svc
     .from('system_alerts')
@@ -216,7 +224,8 @@ function checkCourse(input: CourseInput): string | null {
 }
 
 export async function createCourse(input: CourseInput): Promise<{ id?: string; error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const err = checkCourse(input)
   if (err) return { error: err }
   const svc = createServiceClient()
@@ -231,7 +240,8 @@ export async function createCourse(input: CourseInput): Promise<{ id?: string; e
 }
 
 export async function updateCourse(id: string, input: CourseInput): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const err = checkCourse(input)
   if (err) return { error: err }
   const svc = createServiceClient()
@@ -252,7 +262,8 @@ export async function updateCourse(id: string, input: CourseInput): Promise<{ er
 }
 
 export async function setCoursePublished(id: string, published: boolean): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const svc = createServiceClient()
   const prev = await before(svc, 'courses', 'published', { id })
   const { error } = await svc.from('courses').update({ published }).eq('id', id)
@@ -272,7 +283,8 @@ function checkLesson(input: LessonInput): string | null {
 }
 
 export async function createLesson(courseId: string, input: LessonInput): Promise<{ id?: string; error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const err = checkLesson(input)
   if (err) return { error: err }
   const svc = createServiceClient()
@@ -287,7 +299,8 @@ export async function createLesson(courseId: string, input: LessonInput): Promis
 }
 
 export async function updateLesson(id: string, input: LessonInput): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const err = checkLesson(input)
   if (err) return { error: err }
   const svc = createServiceClient()
@@ -309,7 +322,8 @@ export async function updateLesson(id: string, input: LessonInput): Promise<{ er
 }
 
 export async function setLessonPublished(id: string, published: boolean): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   const svc = createServiceClient()
   const prev = await before(svc, 'lessons', 'published', { id })
   const { error } = await svc.from('lessons').update({ published }).eq('id', id)
@@ -322,7 +336,8 @@ export async function setLessonPublished(id: string, published: boolean): Promis
 export type QuestionInput = { prompt: string; options: { label: string; isCorrect: boolean }[] }
 
 export async function setLessonQuiz(lessonId: string, questions: QuestionInput[]): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   for (const q of questions) {
     if (!q.prompt.trim()) return { error: 'Every question needs a prompt.' }
     const e = validateQuizOptions(q.options)
@@ -346,7 +361,8 @@ export async function setLessonQuiz(lessonId: string, questions: QuestionInput[]
 }
 
 export async function setFeatureFlag(feature: string, values: FlagValues): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   if (!isFeature(feature)) return { error: 'Unknown feature.' }
   const svc = createServiceClient()
   const prev = await before(svc, 'feature_flags', 'free, trader, pro', { feature })
@@ -363,7 +379,8 @@ export async function setFeatureFlag(feature: string, values: FlagValues): Promi
 }
 
 export async function resetFeatureFlag(feature: string): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   if (!isFeature(feature)) return { error: 'Unknown feature.' }
   const svc = createServiceClient()
   const prev = await before(svc, 'feature_flags', 'free, trader, pro', { feature })
@@ -381,7 +398,8 @@ export async function setCompTier(
   userId: string,
   tier: 'trader' | 'pro' | null,
 ): Promise<{ error?: string }> {
-  const admin = await requireAdmin()
+  const admin = await getAdminUser()
+  if (!admin) return { error: NOT_ADMIN }
   if (tier !== null && !COMP_TIERS.has(tier)) return { error: 'Invalid tier.' }
   const svc = createServiceClient()
   const prev = await before(svc, 'profiles', 'comp_tier', { id: userId })
