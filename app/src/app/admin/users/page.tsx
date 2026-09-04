@@ -89,7 +89,7 @@ export default async function AdminUsersPage({
         sub="Search the directory and grant comped Trader/Pro access. Comp grants unlock features only — never admin access. Email addresses are masked; search still matches the full address, and revealing one is recorded in the audit log."
       />
 
-      <form method="get" className="ad-filterbar">
+      <form method="get" className="adm-filterbar">
         <input
           type="search" name="q" defaultValue={term}
           placeholder="Search email, username, or name…" className="ts-input"
@@ -112,7 +112,7 @@ export default async function AdminUsersPage({
           <option value="not">Not comped</option>
         </select>
         <button type="submit" className="btn btn-ghost btn-sm">Apply</button>
-        {filtered && <Link href="/admin/users" className="ad-kv">Reset</Link>}
+        {filtered && <Link href="/admin/users" className="adm-kv">Reset</Link>}
       </form>
 
       <Panel title={term ? `Results for “${term}”` : 'Users'} flush scroll>
@@ -132,15 +132,15 @@ export default async function AdminUsersPage({
                 return (
                   <tr key={r.id}>
                     <td>
-                      <Link href={`/admin/users/${r.id}`} className="ad-kv">{r.username}</Link>
+                      <Link href={`/admin/users/${r.id}`} className="adm-kv">{r.username}</Link>
                       {r.display_name && <span className="faint" style={{ fontSize: 12, marginLeft: 6 }}>{r.display_name}</span>}
-                      {r.is_internal && <span className="ad-chip--test">test</span>}
+                      {r.is_internal && <span className="adm-chip--test">test</span>}
                     </td>
                     <td>
                       <RevealEmail userId={r.id} masked={maskEmail(r.email)} context="directory" />
                     </td>
-                    <td><span className={`ad-tier ad-tier--${tier}`}>{tier}</span></td>
-                    <td><span className={`ad-src ad-src--${source.toLowerCase()}`}>{source}</span></td>
+                    <td><span className={`adm-tier adm-tier--${tier}`}>{tier}</span></td>
+                    <td><span className={`adm-src adm-src--${source.toLowerCase()}`}>{source}</span></td>
                     <td><When iso={r.created_at} short /></td>
                   </tr>
                 )
@@ -152,11 +152,11 @@ export default async function AdminUsersPage({
 
       <div style={{ display: 'flex', gap: 10, marginTop: 14, alignItems: 'center' }}>
         {pageNum > 1
-          ? <Link className="ad-kv" href={qs(pageNum - 1)}>← Prev</Link>
+          ? <Link className="adm-kv" href={qs(pageNum - 1)}>← Prev</Link>
           : <span className="faint" style={{ fontSize: 13 }}>← Prev</span>}
         <span className="faint" style={{ fontSize: 13 }}>Page {pageNum}</span>
         {hasNext
-          ? <Link className="ad-kv" href={qs(pageNum + 1)}>Next →</Link>
+          ? <Link className="adm-kv" href={qs(pageNum + 1)}>Next →</Link>
           : <span className="faint" style={{ fontSize: 13 }}>Next →</span>}
       </div>
     </>

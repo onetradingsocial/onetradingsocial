@@ -74,14 +74,14 @@ export default async function InterviewsPage() {
         sub="Users worth talking to, segmented by behaviour. Reveal an address to get the invite link — the reveal is recorded in the audit log, and nothing is sent from here."
       />
 
-      <div className="ad-stack">
+      <div className="adm-stack">
         {groups.map((g) => {
           const list = rows.filter((r) => r.seg === g.seg)
           return (
             <Section key={g.seg} title={g.label} sub={g.hint} right={<span className="v-badge">{list.length}</span>}>
               <Panel flush>
                 {list.length === 0 ? <Empty>No users in this segment.</Empty> : list.map((r) => (
-                  <div key={r.id} className="ad-row">
+                  <div key={r.id} className="adm-row">
                     <span style={{ fontWeight: 600 }}>@{r.username}</span>
                     <span className="faint" style={{ fontSize: 12 }}>{r.trades} trades</span>
                     <span className="sp">

@@ -83,11 +83,11 @@ export function RevealBrokerLogin({ userId, masked }: { userId: string; masked: 
   const [login, setLogin] = useState<string | null>(null)
   const [pending, start] = useTransition()
 
-  if (login) return <span className="ad-kv">{login}</span>
+  if (login) return <span className="adm-kv">{login}</span>
 
   return (
     <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-      <span className="ad-kv" title="Masked. Revealing is recorded in the audit log.">{masked}</span>
+      <span className="adm-kv" title="Masked. Revealing is recorded in the audit log.">{masked}</span>
       <button
         type="button"
         className="btn btn-ghost btn-sm"

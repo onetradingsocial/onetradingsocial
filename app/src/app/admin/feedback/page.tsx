@@ -46,11 +46,11 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pr
         title="Feedback"
         sub="Everything users sent through the in-app widget and surveys. Triage sets ownership; closing hides it from the default view. A reply is shown to the submitter at /settings/feedback and sent as a notification."
         right={
-          <nav className="ad-tabs" aria-label="Filter by status">
+          <nav className="adm-tabs" aria-label="Filter by status">
             {STATUS_TABS.map((s) => (
               <Link
                 key={s}
-                className="ad-tab"
+                className="adm-tab"
                 aria-current={s === status ? 'page' : undefined}
                 href={`/admin/feedback?status=${s}${type ? `&type=${type}` : ''}`}
               >
@@ -63,8 +63,8 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pr
 
       <div style={{ display: 'grid', gap: 14 }}>
         {catCounts.size > 0 && (
-          <div className="ad-note">
-            <span className="ad-kv">Themes</span>
+          <div className="adm-note">
+            <span className="adm-kv">Themes</span>
             {FEEDBACK_CATEGORIES.filter(([v]) => catCounts.has(v)).map(([v, l]) => (
               <span key={v} className="v-badge">{l}: {catCounts.get(v)}</span>
             ))}
@@ -85,10 +85,10 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pr
             const profileObj = Array.isArray(profileRaw) ? profileRaw[0] : profileRaw
             const username = (profileObj as { username: string } | null)?.username
             return (
-              <div key={r.id} className="ad-row ad-row-stack">
+              <div key={r.id} className="adm-row adm-row-stack">
                 <div style={{ display: 'flex', gap: 9, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span className="eyebrow">{FEEDBACK_TYPE_LABELS[r.type as FeedbackType] ?? r.type}</span>
-                  {username && <Link className="ad-kv" href={`/${username}`}>@{username}</Link>}
+                  {username && <Link className="adm-kv" href={`/${username}`}>@{username}</Link>}
                   {r.type === 'survey' && (r.meta as { survey?: string })?.survey && (
                     <span className="v-badge">{(r.meta as { survey?: string }).survey}</span>
                   )}
@@ -99,7 +99,7 @@ export default async function AdminFeedback({ searchParams }: { searchParams: Pr
                   </span>
                 </div>
                 <p style={{ whiteSpace: 'pre-wrap', fontSize: 14, margin: 0 }}>{r.message}</p>
-                {r.page_url && <code className="ad-kv" style={{ fontSize: 11.5 }}>{r.page_url}</code>}
+                {r.page_url && <code className="adm-kv" style={{ fontSize: 11.5 }}>{r.page_url}</code>}
                 <FeedbackReply id={r.id} reply={r.admin_reply} repliedAt={r.admin_reply_at} />
               </div>
             )

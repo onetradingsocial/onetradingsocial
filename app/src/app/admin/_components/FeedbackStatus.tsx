@@ -10,7 +10,7 @@ export function FeedbackStatus({ id, status }: { id: string; status: string }) {
   const [pending, start] = useTransition()
   return (
     <select
-      className="ts-select ad-select"
+      className="ts-select adm-select"
       aria-label="Feedback status"
       value={value}
       disabled={pending}

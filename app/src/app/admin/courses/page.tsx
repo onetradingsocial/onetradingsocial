@@ -28,10 +28,10 @@ export default async function AdminCourses() {
       <div style={{ display: 'grid', gap: 16 }}>
         <Panel title="All courses" flush>
           {list.length === 0 ? <Empty>No courses yet — create the first one below.</Empty> : list.map((c) => (
-            <Link key={c.id} href={`/admin/courses/${c.id}`} className="ad-row">
-              <span className="ad-kv" style={{ color: 'var(--faintest)' }}>{String(c.ord).padStart(2, '0')}</span>
+            <Link key={c.id} href={`/admin/courses/${c.id}`} className="adm-row">
+              <span className="adm-kv" style={{ color: 'var(--faintest)' }}>{String(c.ord).padStart(2, '0')}</span>
               <strong style={{ fontSize: 14 }}>{c.title}</strong>
-              <code className="ad-kv">/{c.slug}</code>
+              <code className="adm-kv">/{c.slug}</code>
               <span className="sp">
                 <span className={`v-badge ${c.published ? 'vb-broker' : 'vb-pending'}`}>
                   {c.published ? 'Published' : 'Draft'}

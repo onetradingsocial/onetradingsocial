@@ -18,7 +18,7 @@ export type NavGroup = { title: string; items: Item[] }
 function NavCount({ counts, k }: { counts: Promise<NavCounts>; k: CountKey }) {
   const n = use(counts)[k]
   if (!n) return null
-  return <span className="ad-count">{n > 99 ? '99+' : n}</span>
+  return <span className="adm-count">{n > 99 ? '99+' : n}</span>
 }
 
 /**
@@ -31,15 +31,15 @@ export function AdminNav({ groups, counts }: { groups: NavGroup[]; counts: Promi
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
 
   return (
-    <nav className="ad-side" aria-label="Admin sections">
+    <nav className="adm-side" aria-label="Admin sections">
       {groups.map((g) => (
         <div key={g.title} style={{ display: 'contents' }}>
-          <span className="ad-side-group">{g.title}</span>
+          <span className="adm-side-group">{g.title}</span>
           {g.items.map((it) => (
             <Link
               key={it.href}
               href={it.href}
-              className="ad-link"
+              className="adm-link"
               aria-current={isActive(it.href) ? 'page' : undefined}
             >
               {it.label}
@@ -52,8 +52,8 @@ export function AdminNav({ groups, counts }: { groups: NavGroup[]; counts: Promi
           ))}
         </div>
       ))}
-      <div className="ad-side-foot">
-        <Link href="/feed" className="ad-link">← Back to app</Link>
+      <div className="adm-side-foot">
+        <Link href="/feed" className="adm-link">← Back to app</Link>
       </div>
     </nav>
   )

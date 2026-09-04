@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <SkeletonPage>
       <HeadSkeleton subLines={2} />
-      <div className="ad-stack">
+      <div className="adm-stack">
         <StatsSkeleton count={4} />
         {/* <Panel title="By referrer" flush scroll> */}
         <TableSkeleton rows={6} cols={7} title />

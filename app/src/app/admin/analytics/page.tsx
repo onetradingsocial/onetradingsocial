@@ -101,7 +101,7 @@ export default async function AnalyticsPage() {
         right={<span className="v-badge vb-broker">Internal excluded</span>}
       />
 
-      <div className="ad-stack">
+      <div className="adm-stack">
         <Section title="Core funnel" sub="Each bar is measured against the step above it — the sharpest drop is where to spend the next sprint.">
           <FunnelBars rows={f.funnel} />
           {f.onboardingSteps.length > 0 && (
@@ -123,8 +123,8 @@ export default async function AnalyticsPage() {
           {f.brokerFailures.length > 0 && (
             <Panel title="Why attempts failed" flush>
               {f.brokerFailures.map((r) => (
-                <div key={r.reason} className="ad-row">
-                  <code className="ad-kv">{r.reason}</code>
+                <div key={r.reason} className="adm-row">
+                  <code className="adm-kv">{r.reason}</code>
                   <span className="sp faint" style={{ fontVariantNumeric: 'tabular-nums' }}>{r.count}</span>
                 </div>
               ))}
@@ -142,8 +142,8 @@ export default async function AnalyticsPage() {
         <Section title="Acquisition">
           <Panel title="Signups by source" flush>
             {f.sources.map((s) => (
-              <div key={s.source} className="ad-row">
-                <code className="ad-kv">{s.source}</code>
+              <div key={s.source} className="adm-row">
+                <code className="adm-kv">{s.source}</code>
                 <span className="sp faint" style={{ fontVariantNumeric: 'tabular-nums' }}>{s.count}</span>
               </div>
             ))}
@@ -166,8 +166,8 @@ export default async function AnalyticsPage() {
           {f.topBrokenPaths.length > 0 && (
             <Panel title="Top broken paths" flush>
               {f.topBrokenPaths.map((p) => (
-                <div key={p.path} className="ad-row">
-                  <code className="ad-kv" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.path}</code>
+                <div key={p.path} className="adm-row">
+                  <code className="adm-kv" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.path}</code>
                   <span className="sp faint" style={{ fontVariantNumeric: 'tabular-nums' }}>{p.count}</span>
                 </div>
               ))}

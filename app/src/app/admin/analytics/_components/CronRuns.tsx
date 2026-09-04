@@ -40,7 +40,7 @@ export function CronRuns({ rows }: { rows: CronRunRow[] }) {
         const tone = TONE[health] ?? TONE.idle
         const worst = topFailure(c.failures)
         return (
-          <div key={row.ran_at} className="ad-row">
+          <div key={row.ran_at} className="adm-row">
             <When iso={row.ran_at} short />
             <span className={tone.className} style={{ marginLeft: 10 }}>{tone.label}</span>
             <span className="sp faint" style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -50,7 +50,7 @@ export function CronRuns({ rows }: { rows: CronRunRow[] }) {
               {totalProcessed(c.processed)} processed
             </span>
             {worst && needsAttention(health) && (
-              <code className="ad-kv" style={{ marginLeft: 10 }}>
+              <code className="adm-kv" style={{ marginLeft: 10 }}>
                 {worst.reason} ×{worst.count}
               </code>
             )}

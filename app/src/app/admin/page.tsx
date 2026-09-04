@@ -73,12 +73,12 @@ export default async function AdminHome() {
           />
         </Stats>
 
-        <Panel title="Recent admin activity" right={<Link className="ad-kv" href="/admin/audit">View all →</Link>} flush>
+        <Panel title="Recent admin activity" right={<Link className="adm-kv" href="/admin/audit">View all →</Link>} flush>
           {(recent ?? []).length === 0 ? (
-            <div className="ad-empty ad-empty--neutral"><span className="mark" aria-hidden>—</span><span>No admin actions recorded yet.</span></div>
+            <div className="adm-empty adm-empty--neutral"><span className="mark" aria-hidden>—</span><span>No admin actions recorded yet.</span></div>
           ) : (recent ?? []).map((r) => (
-            <div key={r.id} className="ad-row">
-              <code className="ad-kv">{r.action}</code>
+            <div key={r.id} className="adm-row">
+              <code className="adm-kv">{r.action}</code>
               <span className="faint" style={{ fontSize: 12.5 }}>{r.actor_email ?? 'unknown'}</span>
               <span className="sp"><When iso={r.created_at} short /></span>
             </div>

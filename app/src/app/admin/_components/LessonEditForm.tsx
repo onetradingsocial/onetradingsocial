@@ -12,7 +12,7 @@ export function LessonEditForm({ courseId, lessonId, initial }: {
   const [saved, setSaved] = useState(false)
   const [pending, start] = useTransition()
   return (
-    <form className="ad-panel"
+    <form className="adm-panel"
       onSubmit={(e) => {
         e.preventDefault()
         const f = new FormData(e.currentTarget)
@@ -29,8 +29,8 @@ export function LessonEditForm({ courseId, lessonId, initial }: {
           else setSaved(true)
         })
       }}>
-      <div className="ad-panel-head"><span className="t">{lessonId ? 'Lesson content' : 'New lesson'}</span></div>
-      <div className="ad-panel-body">
+      <div className="adm-panel-head"><span className="t">{lessonId ? 'Lesson content' : 'New lesson'}</span></div>
+      <div className="adm-panel-body">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
           <label className="ts-field">
             <span className="ts-label">Title</span>

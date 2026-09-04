@@ -10,7 +10,7 @@ export default function Loading() {
   return (
     <SkeletonPage>
       <HeadSkeleton wide subLines={3} right={<Bone w={132} variant="pill" />} />
-      <div className="ad-stack">
+      <div className="adm-stack">
         {/* 1 · Core funnel */}
         <SectionSkeleton><MetersSkeleton rows={8} title /></SectionSkeleton>
         {/* 2 · Lifecycle */}

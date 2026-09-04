@@ -60,13 +60,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const counts = navCounts()
 
   return (
-    <main className="ad-page">
-      <div className="ad-brand">
+    <main className="adm-page">
+      <div className="adm-brand">
         <span className="dot" aria-hidden />
         <b>TradingSocial</b>
         <span className="env">Admin</span>
       </div>
-      <div className="ad-shell">
+      <div className="adm-shell">
         <AdminNav groups={GROUPS} counts={counts} />
         <div>{children}</div>
       </div>

@@ -82,8 +82,8 @@ export function FlagMatrix({ groups }: { groups: FlagGroup[] }) {
   return (
     <div style={{ display: 'grid', gap: 14 }}>
       {groups.map((g) => (
-        <div key={g.title} className="ad-panel">
-          <div className="ad-panel-head"><span className="t">{g.title}</span></div>
+        <div key={g.title} className="adm-panel">
+          <div className="adm-panel-head"><span className="t">{g.title}</span></div>
           <table className="ts-table" style={{ tableLayout: 'fixed' }}>
             <colgroup>
               <col />

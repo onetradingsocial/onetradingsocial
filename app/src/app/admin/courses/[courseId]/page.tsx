@@ -27,7 +27,7 @@ export default async function CourseDetail({ params }: { params: Promise<{ cours
   return (
     <>
       <div style={{ marginBottom: 10 }}>
-        <Link className="ad-kv" href="/admin/courses">← All courses</Link>
+        <Link className="adm-kv" href="/admin/courses">← All courses</Link>
       </div>
       <PageHead
         title={course.title}
@@ -47,8 +47,8 @@ export default async function CourseDetail({ params }: { params: Promise<{ cours
           flush
         >
           {list.length === 0 ? <Empty>No lessons yet.</Empty> : list.map((l) => (
-            <Link key={l.id} href={`/admin/courses/${course.id}/lessons/${l.id}`} className="ad-row">
-              <span className="ad-kv" style={{ color: 'var(--faintest)' }}>{String(l.ord).padStart(2, '0')}</span>
+            <Link key={l.id} href={`/admin/courses/${course.id}/lessons/${l.id}`} className="adm-row">
+              <span className="adm-kv" style={{ color: 'var(--faintest)' }}>{String(l.ord).padStart(2, '0')}</span>
               <strong style={{ fontSize: 14 }}>{l.title}</strong>
               <span className="sp">
                 <span className={`v-badge ${l.published ? 'vb-broker' : 'vb-pending'}`}>

@@ -5,8 +5,8 @@ import type { ReactNode } from 'react'
 /** Page title block. One per admin route, directly under the shell. */
 export function PageHead({ title, sub, right }: { title: string; sub?: string; right?: ReactNode }) {
   return (
-    <header className="ad-head">
-      <div className="ad-head-row">
+    <header className="adm-head">
+      <div className="adm-head-row">
         <div>
           <h1>{title}</h1>
           {sub && <p>{sub}</p>}
@@ -20,8 +20,8 @@ export function PageHead({ title, sub, right }: { title: string; sub?: string; r
 /** Titled group inside a page. */
 export function Section({ title, sub, right, children }: { title: string; sub?: string; right?: ReactNode; children: ReactNode }) {
   return (
-    <section className="ad-sec">
-      <header className="ad-head-row">
+    <section className="adm-sec">
+      <header className="adm-head-row">
         <div>
           <h2>{title}</h2>
           {sub && <p>{sub}</p>}
@@ -39,7 +39,7 @@ export function Section({ title, sub, right, children }: { title: string; sub?: 
  */
 export function Hint({ text }: { text: string }) {
   return (
-    <span className="ad-hint" tabIndex={0} role="note" aria-label={text} data-tip={text}>
+    <span className="adm-hint" tabIndex={0} role="note" aria-label={text} data-tip={text}>
       i
     </span>
   )
@@ -53,9 +53,9 @@ export function Stat({ label, value, sub, tone, hint }: {
   tone?: 'accent' | 'warn'
   hint?: string
 }) {
-  const cls = tone ? ` ad-stat--${tone}` : ''
+  const cls = tone ? ` adm-stat--${tone}` : ''
   return (
-    <div className={`ad-stat${cls}`}>
+    <div className={`adm-stat${cls}`}>
       <span className="k">{label}{hint && <Hint text={hint} />}</span>
       <span className="v">{value}</span>
       {sub && <span className="sub">{sub}</span>}
@@ -64,12 +64,12 @@ export function Stat({ label, value, sub, tone, hint }: {
 }
 
 export function Stats({ children }: { children: ReactNode }) {
-  return <div className="ad-stats">{children}</div>
+  return <div className="adm-stats">{children}</div>
 }
 
 /**
  * Bordered container for a table or a list of rows.
- * `flush` drops the inner padding so `.ad-row`s or a table sit edge to edge.
+ * `flush` drops the inner padding so `.adm-row`s or a table sit edge to edge.
  */
 export function Panel({ title, right, danger, scroll, flush, children }: {
   title?: string
@@ -80,16 +80,16 @@ export function Panel({ title, right, danger, scroll, flush, children }: {
   children: ReactNode
 }) {
   return (
-    <div className={`ad-panel${danger ? ' ad-panel--danger' : ''}`}>
+    <div className={`adm-panel${danger ? ' adm-panel--danger' : ''}`}>
       {(title || right) && (
-        <div className="ad-panel-head">
+        <div className="adm-panel-head">
           {title && <span className="t">{title}</span>}
           {right && <span className="r">{right}</span>}
         </div>
       )}
       {flush
-        ? (scroll ? <div className="ad-panel-scroll">{children}</div> : children)
-        : <div className={`ad-panel-body${scroll ? ' ad-panel-scroll' : ''}`}>{children}</div>}
+        ? (scroll ? <div className="adm-panel-scroll">{children}</div> : children)
+        : <div className={`adm-panel-body${scroll ? ' adm-panel-scroll' : ''}`}>{children}</div>}
     </div>
   )
 }
@@ -97,7 +97,7 @@ export function Panel({ title, right, danger, scroll, flush, children }: {
 /** Empty state. `ok` = "nothing here and that's good"; otherwise neutral. */
 export function Empty({ children, ok }: { children: ReactNode; ok?: boolean }) {
   return (
-    <div className={`ad-empty${ok ? '' : ' ad-empty--neutral'}`}>
+    <div className={`adm-empty${ok ? '' : ' adm-empty--neutral'}`}>
       <span className="mark" aria-hidden>{ok ? '✓' : '—'}</span>
       <span>{children}</span>
     </div>
@@ -107,13 +107,13 @@ export function Empty({ children, ok }: { children: ReactNode; ok?: boolean }) {
 /** Horizontal progress bar used by funnels and adoption charts. */
 export function Meter({ label, note, pct, hint }: { label: ReactNode; note?: ReactNode; pct: number; hint?: string }) {
   return (
-    <div className="ad-meter">
-      <div className="ad-meter-top">
+    <div className="adm-meter">
+      <div className="adm-meter-top">
         <span>{label}{hint && <Hint text={hint} />}</span>
         {note != null && <span className="n">{note}</span>}
       </div>
-      <div className="ad-meter-track">
-        <i className="ad-meter-fill" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+      <div className="adm-meter-track">
+        <i className="adm-meter-fill" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
       </div>
     </div>
   )
