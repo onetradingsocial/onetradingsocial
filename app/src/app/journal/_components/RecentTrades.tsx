@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { CloseTradeModal } from './CloseTradeModal'
 import { EditTradeModal, type EditTradeConfig } from './EditTradeModal'
+import { DeleteTradeButton } from './DeleteTradeButton'
 import { marketColor, instrumentBadge, type JTrade } from '@/lib/journal-stats'
 import { VerificationBadge } from '@/app/_components/VerificationBadge'
 import { tradeLevel } from '@/lib/verification'
@@ -73,6 +74,11 @@ export function RecentTrades({ trades, monthNet, canMistakeTag = false, editConf
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                         {editConfig && <EditTradeModal trade={t} config={editConfig} />}
                         {t.status === 'open' && <CloseTradeModal tradeId={t.id} canMistakeTag={canMistakeTag} />}
+                        {/* Manual only: 0053 narrowed `trades_delete` to manual
+                            rows, so Delete on an imported trade could only ever
+                            be refused. Same `editConfig` guard as Edit — the
+                            /demo table's sample rows belong to nobody. */}
+                        {editConfig && (t.source ?? 'manual') === 'manual' && <DeleteTradeButton trade={t} />}
                       </div>
                     </td>
                   </tr>
