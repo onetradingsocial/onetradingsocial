@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import * as XLSX from 'xlsx'
-import { inferMarket, mapDealToTrade, validateDeals, parseMt5, type Mt5Deal } from '@/lib/mt5'
+import { canonicalInstrument, inferMarket, mapDealToTrade, validateDeals, parseMt5, type Mt5Deal } from '@/lib/mt5'
 
 const FIX = join(__dirname, '..', 'fixtures', 'mt5')
 const load = (name: string) => {
@@ -122,13 +122,45 @@ describe('inferMarket', () => {
   })
 })
 
+describe('canonicalInstrument', () => {
+  it('gives a broker pair the catalog spelling the manual form writes', () => {
+    expect(canonicalInstrument('EURUSD', 'forex')).toBe('EUR/USD')
+    expect(canonicalInstrument('XAUUSD', 'commodities')).toBe('XAU/USD')
+  })
+
+  it('strips the broker suffix before slashing', () => {
+    expect(canonicalInstrument('GBPJPY.a', 'forex')).toBe('GBP/JPY')
+    expect(canonicalInstrument('EURUSD.raw', 'forex')).toBe('EUR/USD')
+  })
+
+  it('leaves symbols that are not pair-shaped alone', () => {
+    expect(canonicalInstrument('AAPL', 'stocks')).toBe('AAPL')
+    expect(canonicalInstrument('NAS100', 'indices')).toBe('NAS100')
+    expect(canonicalInstrument('US30', 'indices')).toBe('US30')
+  })
+
+  it('does not slash a 6-letter symbol in a market that has no pairs', () => {
+    // The guard this rule exists for: a 6-letter stock ticker is not 'ABC/DEF'.
+    expect(canonicalInstrument('ABCDEF', 'stocks')).toBe('ABCDEF')
+  })
+
+  it('still slashes an uncatalogued pair in a pair-shaped market', () => {
+    expect(canonicalInstrument('EURSEK', 'forex')).toBe('EUR/SEK')
+  })
+
+  it('is idempotent on an already-canonical symbol', () => {
+    expect(canonicalInstrument('EUR/USD', 'forex')).toBe('EUR/USD')
+    expect(canonicalInstrument('XAU/USD', 'commodities')).toBe('XAU/USD')
+  })
+})
+
 describe('mapDealToTrade', () => {
   const opts = { userId: 'u1', isPublic: true }
 
   it('maps core fields for a closed win', () => {
     const row = mapDealToTrade(deal(), opts)
     expect(row).toMatchObject({
-      user_id: 'u1', broker_deal_id: '123456', instrument: 'EURUSD', market: 'forex',
+      user_id: 'u1', broker_deal_id: '123456', instrument: 'EUR/USD', market: 'forex',
       direction: 'long', sizing_mode: 'lots', lots: 0.5,
       entry_price: 1.085, exit_price: 1.0905, stop_price: 1.082, target_price: 1.091,
       pnl_amount: 270, status: 'closed', outcome: 'win', is_public: true,
@@ -161,7 +193,7 @@ describe('mapDealToTrade', () => {
       deal({ symbol: 'GBPJPY.a', openPrice: 195.00, stopPrice: 194.70, closePrice: 195.60, netPnl: 300 }),
       opts,
     ) as Record<string, unknown>
-    expect(row.instrument).toBe('GBPJPY.a') // raw symbol preserved
+    expect(row.instrument).toBe('GBP/JPY') // suffix stripped, catalog spelling stored
     expect(row.market).toBe('forex')
     expect(row.sl_pips).toBeCloseTo(30)        // (195.00-194.70)/0.01
     expect(row.risk_amount).toBeCloseTo(135)   // 30 pips * $9/lot * 0.5 lots
