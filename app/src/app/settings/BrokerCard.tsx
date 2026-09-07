@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState, useState, useTransition } from 'react'
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
 import { connectBroker, disconnectBroker, type BrokerState } from '@/app/actions/broker'
 import { Icon } from '@/app/[username]/_components/Icon'
 import { PrivacyNote } from '@/app/_components/LegalNotice'
+import { track } from '@/lib/track'
 import Link from 'next/link'
 
 export type BrokerRow = {
@@ -11,7 +12,61 @@ export type BrokerRow = {
   last_sync_at: string | null; sync_error: string | null
 }
 
-export function BrokerCard({ row, canAutosync }: { row: BrokerRow | null; canAutosync: boolean }) {
+/**
+ * Fires `broker_card_seen` the first time the card is actually in the viewport.
+ *
+ * `broker_card_viewed` is emitted during the server render of /settings, so it
+ * counts everyone who reached the page. That was fine as a denominator and
+ * wrong as the thing its name claims: the card sits ~3,300px down a single
+ * scrolling page, and until the fragment scroll landed (HashScroll) even the two
+ * signposts built to deliver users to it left them at the top. Every arrival was
+ * recorded as a view, so "never saw it" and "saw it and walked away" — the exact
+ * pair the event exists to separate — stayed indistinguishable.
+ *
+ * The two events answer different questions and both are kept:
+ *
+ *   viewed - seen  = reached settings, never scrolled to the card
+ *   seen - submitted = read the card and declined
+ *
+ * `viewed` stays server-side because it is the reliable one: it survives
+ * ad-blockers (ERR_BLOCKED_BY_CLIENT is observable on production today) and
+ * declined analytics consent, both of which drop `seen`. So `seen` is a floor,
+ * never a denominator — a gap between the two is partly people who did not
+ * scroll and partly people whose beacon never left the browser.
+ *
+ * Fires once per page load, matching `viewed`: repeat views without a submit are
+ * themselves the signal, so neither event is deduped per user.
+ */
+function useBrokerCardSeen(gated: boolean, connected: boolean, tier: string, from: string) {
+  const ref = useRef<HTMLElement | null>(null)
+  const fired = useRef(false)
+
+  useEffect(() => {
+    const node = ref.current
+    if (!node || fired.current) return
+    // Half the card, not a sliver at the edge of the fold: the section is a
+    // heading, a line of copy and one control, so 0.5 is reached as soon as it
+    // is genuinely on screen at any viewport width.
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.intersectionRatio >= 0.5)) return
+        fired.current = true
+        track('broker_card_seen', { gated, connected, tier, from })
+        obs.disconnect()
+      },
+      { threshold: 0.5 },
+    )
+    obs.observe(node)
+    return () => obs.disconnect()
+  }, [gated, connected, tier, from])
+
+  return ref
+}
+
+export function BrokerCard({ row, canAutosync, tier, from }: {
+  row: BrokerRow | null; canAutosync: boolean; tier: string; from: string
+}) {
+  const seenRef = useBrokerCardSeen(!canAutosync, !!row, tier, from)
   const [state, formAction, pending] = useActionState<BrokerState, FormData>(connectBroker, {})
   const [confirming, setConfirming] = useState(false)
   const [discErr, setDiscErr] = useState('')
@@ -19,7 +74,7 @@ export function BrokerCard({ row, canAutosync }: { row: BrokerRow | null; canAut
 
   if (!canAutosync) {
     return (
-      <section id="broker" className="ts-card settings-section">
+      <section id="broker" ref={seenRef} className="ts-card settings-section">
         <h2 className="ts-h2"><Icon name="bolt" size={18} /> MT5 auto-sync</h2>
         <p className="ts-sub mt-2">Connect your MT5 account and your closed trades land in the journal automatically, every hour.</p>
         <Link href="/settings/billing" className="btn btn-primary mt-4">Upgrade to Pro</Link>
@@ -30,7 +85,7 @@ export function BrokerCard({ row, canAutosync }: { row: BrokerRow | null; canAut
   if (row) {
     const synced = row.last_sync_at ? new Date(row.last_sync_at).toLocaleString() : 'not yet — first sync within the hour'
     return (
-      <section id="broker" className="ts-card settings-section">
+      <section id="broker" ref={seenRef} className="ts-card settings-section">
         <h2 className="ts-h2"><Icon name="bolt" size={18} /> MT5 auto-sync</h2>
         <p className="ts-sub mt-2">
           Account <strong>{row.login}</strong> on <strong>{row.server}</strong>
@@ -58,7 +113,7 @@ export function BrokerCard({ row, canAutosync }: { row: BrokerRow | null; canAut
   }
 
   return (
-    <section id="broker" className="ts-card settings-section">
+    <section id="broker" ref={seenRef} className="ts-card settings-section">
       <h2 className="ts-h2"><Icon name="bolt" size={18} /> MT5 auto-sync</h2>
       {/* APP 5.2(f)-(i), audit item 4 finding 4 / S1. The previous copy said the
           password went to "the sync service" and stopped there: it never named

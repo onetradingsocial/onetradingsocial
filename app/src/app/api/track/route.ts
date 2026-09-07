@@ -25,6 +25,14 @@ const ALLOWED = new Set([
   'feedback_submitted',
   'not_found',
   'client_error',
+  // Confirms the broker card entered the viewport. Its server-side counterpart
+  // `broker_card_viewed` only knows the page was rendered — see BrokerCard.
+  'broker_card_seen',
+  // Fired by WelcomeModal since 038a90c and rejected here as an unknown event
+  // ever since: `track()` is fire-and-forget, so the 400 was never visible from
+  // either end and the popup has simply never been measured.
+  'welcome_popup_shown',
+  'welcome_popup_dismissed',
 ])
 
 const MAX_PROPS_BYTES = 2048

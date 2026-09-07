@@ -97,11 +97,22 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     : null
   const hasPassword = (identity.data.user?.identities ?? []).some((i) => i.provider === 'email')
 
-  // Top of the broker-connect funnel. `connectBroker` can only ever see people
-  // who submitted the form; this is the step before that — the card was put in
-  // front of the user, either as a form or as the Pro upsell. Without it a zero
-  // submit count is unreadable, because "never saw it" and "saw it and walked
-  // away" look identical.
+  // Which entry point delivered them. `?from=journal` is stamped on the journal
+  // empty-state CTA and `?from=onboarding` on the step-5 broker handoff, so each
+  // signpost's pull can be measured separately against people who found
+  // /settings alone. Both events carry it, so the two can be joined.
+  const brokerFrom = sp.from === 'journal' || sp.from === 'onboarding' ? sp.from : 'direct'
+
+  // Top of the broker-connect funnel: the page carrying the card was rendered
+  // for this user. That is all this event knows. The card is a section ~3,300px
+  // down one scrolling page, so reaching /settings is not the same as reading
+  // it, and this event on its own cannot tell "never saw it" from "saw it and
+  // walked away" — the pair it was written to separate. `broker_card_seen`,
+  // fired from an IntersectionObserver in BrokerCard, is the half that can.
+  //
+  // This one stays server-side and stays the denominator: it survives
+  // ad-blockers and declined analytics consent, which both drop the client
+  // event. Read `seen` as a floor against this count, never the reverse.
   //
   // Fires once per settings page load (the sections are anchors on one page, so
   // switching tabs does not re-fire). Not deduped per user: repeat views of the
@@ -111,11 +122,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     gated: brokerGated,
     connected: !!brokerRow,
     tier,
-    // Which entry point delivered them. `?from=journal` is stamped on the
-    // journal empty-state CTA and `?from=onboarding` on the step-5 broker
-    // handoff, so each signpost's pull can be measured separately against
-    // people who found /settings alone.
-    from: sp.from === 'journal' || sp.from === 'onboarding' ? sp.from : 'direct',
+    from: brokerFrom,
   })
 
   return (
@@ -228,7 +235,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             </form>
           </section>
 
-          <BrokerCard row={brokerRow} canAutosync={!brokerGated} />
+          <BrokerCard row={brokerRow} canAutosync={!brokerGated} tier={tier} from={brokerFrom} />
 
           <ExchangeCard row={exchangeRow} canImport={canFlag(flags, tier, 'crypto_import')} />
 

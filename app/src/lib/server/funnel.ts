@@ -87,8 +87,14 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
     eventCount('subscribed'),
   ])
 
-  const [brokerViews, brokerSubmits, brokerConnects] = await Promise.all([
+  // `broker_card_viewed` counts settings renders; `broker_card_seen` counts the
+  // card actually reaching the viewport. The gap between the first two rows is
+  // the drop this sub-funnel could not previously show — people who arrived and
+  // never scrolled to the card. `seen` is client-fired, so ad-blockers and
+  // declined analytics consent make it a floor rather than an exact count.
+  const [brokerViews, brokerSeen, brokerSubmits, brokerConnects] = await Promise.all([
     eventCount('broker_card_viewed'),
+    eventCount('broker_card_seen'),
     eventCount('broker_connect_submitted'),
     eventCount('broker_connected'),
   ])
@@ -251,7 +257,8 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
       { step: 'Subscribed', count: subscribed },
     ],
     brokerFunnel: [
-      { step: 'Broker card viewed', count: brokerViews },
+      { step: 'Settings page reached', count: brokerViews },
+      { step: 'Broker card on screen', count: brokerSeen },
       { step: 'Connect submitted', count: brokerSubmits },
       { step: 'Broker connected', count: brokerConnects },
     ],
