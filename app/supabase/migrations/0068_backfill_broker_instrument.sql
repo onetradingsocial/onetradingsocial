@@ -76,6 +76,10 @@
 --
 -- touch_updated_at() also fires and bumps updated_at. Nothing reads that column
 -- on trades, and audit_trade_change() excludes it from changed_fields.
+--
+-- No explicit begin/commit: every other migration in this directory lets the
+-- runner own the transaction, and nesting a COMMIT inside it would close the
+-- outer transaction early. This is a single statement, so it is atomic anyway.
 
 -- =============================================================================
 -- CHECKED AGAINST PRODUCTION BEFORE WRITING
@@ -91,8 +95,6 @@
 -- The predicate below was dry-run as a SELECT first: 22 rows, 2 users,
 -- 13 XAUUSD + 9 EURUSD, matching the counts listed above.
 
-begin;
-
 with canonical(raw, mkt, canon) as (
   values
     ('XAUUSD', 'commodities', 'XAU/USD'),
@@ -107,5 +109,3 @@ update public.trades t
    -- typed by its owner, and rewriting a user's own text is not this file's
    -- business; the code change does not touch that path either.
    and t.broker_deal_id is not null;
-
-commit;
