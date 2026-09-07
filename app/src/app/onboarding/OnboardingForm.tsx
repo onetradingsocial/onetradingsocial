@@ -68,10 +68,40 @@ type Data = { markets: string[]; level: string; goal: string; visibility: string
 
 // Data-connection step: how the user will get trades into the journal.
 const OB_CONNECT: { id: string; icon: IconName; title: string; desc: string; tag: string }[] = [
-  { id: 'broker', icon: 'bolt', title: 'Connect MT5 broker', desc: 'Auto-sync closed trades straight from your broker. Highest verification level.', tag: 'Broker connected' },
-  { id: 'statement', icon: 'book', title: 'Upload MT5 statement', desc: 'Import your trade history from an MT5 report file in one go.', tag: 'Statement imported' },
-  { id: 'manual', icon: 'target', title: 'Log trades manually', desc: 'Type trades in as you take them. Under 60 seconds per trade.', tag: 'Self-reported' },
+  // `tag` names the CHOICE, not a finished state. It used to read "Broker
+  // connected" / "Statement imported" and was rendered on the reveal card
+  // beside the user's real profile facts — telling nine people their broker was
+  // connected when nothing had been. Eight of them never opened the connect
+  // form. Anything here that sounds like an accomplished fact is a bug.
+  { id: 'broker', icon: 'bolt', title: 'Connect MT5 broker', desc: 'Auto-sync closed trades straight from your broker. Highest verification level.', tag: 'Broker sync' },
+  { id: 'statement', icon: 'book', title: 'Upload MT5 statement', desc: 'Import your trade history from an MT5 report file in one go.', tag: 'Statement import' },
+  { id: 'manual', icon: 'target', title: 'Log trades manually', desc: 'Type trades in as you take them. Under 60 seconds per trade.', tag: 'Manual logging' },
 ]
+
+/**
+ * The reveal screen's lead line and button, keyed on step 5's answer.
+ *
+ * Both used to be fixed copy pointing at the feed and manual logging — the path
+ * a broker or statement user had just declined one screen earlier.
+ *
+ * A button here may only name a destination `saveOnboarding` actually
+ * redirects to, or it recreates the dead end this change exists to remove.
+ * Today that is broker -> /settings#broker; everything else lands on the feed
+ * and keeps the neutral label. `statement` therefore says where the importer
+ * lives rather than offering to take them: it is a tab inside the trade modal
+ * (Mt5ImportTab, mounted by TradeModalProvider), which has no URL to link to.
+ * Give it a route and it should be added to both maps and to the redirect.
+ */
+const REVEAL_LEAD: Record<string, string> = {
+  broker: 'Your card is live. Last step: connect your broker, and your closed trades import themselves from here on.',
+  statement: 'Your card is live. Open your journal when you’re ready and upload your MT5 report — your whole history lands in one go.',
+  manual: 'Your card is live. Jump into the feed, follow your first traders and log a trade to start your streak.',
+}
+
+const REVEAL_CTA: Record<string, string> = {
+  broker: 'Connect my broker',
+  manual: 'Enter TradingSocial',
+}
 
 // First personalised insight (sample, shown on the reveal screen).
 const OB_INSIGHTS: Record<string, string> = {
@@ -517,7 +547,7 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
         </div>
         <div className="ob-hero-badge"><Icon name="sparkle" size={14} /> Identity unlocked</div>
         <h1>You&apos;re officially a <span className="gr">{lvl ? lvl.rank : ''} Trader</span>.</h1>
-        <p>Your card is live. Jump into the feed, follow your first traders and log a trade to start your streak.</p>
+        <p>{REVEAL_LEAD[data.connect] ?? REVEAL_LEAD.manual}</p>
 
         <div className="ob-reveal-card">
           <div className="rc-top">
@@ -578,7 +608,7 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
 
         <div className="ob-hero-cta" style={{ marginTop: 30 }}>
           <button type="button" className="ob-next" onClick={submit} disabled={pending}>
-            {pending ? 'Entering…' : 'Enter TradingSocial'} <Icon name="arrowRight" size={17} />
+            {pending ? 'Entering…' : (REVEAL_CTA[data.connect] ?? REVEAL_CTA.manual)} <Icon name="arrowRight" size={17} />
           </button>
           <div className="ob-hero-meta"><span>+90 XP earned</span><span className="dot" /><span>Level 1 reached</span></div>
         </div>

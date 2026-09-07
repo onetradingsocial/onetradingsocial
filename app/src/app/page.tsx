@@ -10,8 +10,7 @@ import { canFlag } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { HomeArena } from './feed/_components/home/HomeArena'
 import { type HomeData } from './feed/_components/home/types'
-import { RedditPixel } from './_components/RedditPixel'
-import { MetaPixel } from './_components/MetaPixel'
+import { SignupConversion } from './_components/SignupConversion'
 import { OnboardingChecklist, type ChecklistItem } from './_components/OnboardingChecklist'
 import { MicroSurvey } from './_components/MicroSurvey'
 import { getRecommendedTraders } from '@/lib/server/recommend'
@@ -182,22 +181,10 @@ export default async function Home({
       </div>
       <HomeArena data={data} />
       {justSignedUp && (
-        // MetaPixel must render before RedditPixel: both gate on ?signup=1 and
-        // effects run in document order — RedditPixel strips the param when done.
-        <MetaPixel
-          event="CompleteRegistration"
-          email={user.email}
-          externalId={user.id}
-          requireParam="signup"
-        />
-      )}
-      {justSignedUp && (
-        <RedditPixel
-          event="SignUp"
+        <SignupConversion
           email={user.email}
           externalId={user.id}
           conversionId={conversionId}
-          requireParam="signup"
         />
       )}
     </>

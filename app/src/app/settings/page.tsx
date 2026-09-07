@@ -14,6 +14,7 @@ import { ExchangeCard } from './ExchangeCard'
 import { DangerZone } from './DangerZone'
 import { NotificationPrefs } from './NotificationPrefs'
 import { CoverUploader } from '@/app/_components/CoverUploader'
+import { SignupConversion } from '@/app/_components/SignupConversion'
 import { throttleMessage } from '@/lib/server/action-throttle'
 import { trackServer } from '@/lib/server/track'
 import Link from 'next/link'
@@ -21,7 +22,7 @@ import './settings.css'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ balance?: string; retry?: string; from?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ balance?: string; retry?: string; from?: string; signup?: string; cid?: string }> }) {
   // saveAccount is a void <form action>, so a rejected balance comes back as a
   // query flag rather than a return value (audit item 15, F3). The throttled
   // case (WS11) uses the same channel and renders the shared throttle copy, so
@@ -31,6 +32,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const balanceThrottled = sp.balance === 'throttled'
     ? throttleMessage(Number(sp.retry) || 60)
     : null
+  // Onboarding sends broker-intent users straight here instead of to the feed,
+  // so this page is now a signup landing route and owes the conversion pixels.
+  // See <SignupConversion>: they gate on ?signup=1 and fail silently otherwise.
+  const justSignedUp = sp.signup === '1'
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
@@ -106,9 +111,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     connected: !!brokerRow,
     tier,
     // Which entry point delivered them. `?from=journal` is stamped on the
-    // journal empty-state CTA — the only in-product signpost to this card —
-    // so its pull can be measured against people who found /settings alone.
-    from: sp.from === 'journal' ? 'journal' : 'direct',
+    // journal empty-state CTA and `?from=onboarding` on the step-5 broker
+    // handoff, so each signpost's pull can be measured separately against
+    // people who found /settings alone.
+    from: sp.from === 'journal' || sp.from === 'onboarding' ? sp.from : 'direct',
   })
 
   return (
@@ -233,6 +239,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           />
         </div>
       </div>
+
+      {justSignedUp && (
+        <SignupConversion
+          email={user.email}
+          externalId={user.id}
+          conversionId={sp.cid}
+        />
+      )}
     </div>
   )
 }
