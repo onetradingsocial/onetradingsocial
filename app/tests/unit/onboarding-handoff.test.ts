@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
@@ -120,6 +120,67 @@ describe('onboarding data-source tags', () => {
         PROFILE_ACTIONS.includes(`intendedSource === '${key}'`),
         `REVEAL_CTA has a custom button for "${key}" but saveOnboarding has no ` +
         `redirect branch for it, so it lands on the feed instead.`,
+      ).toBe(true)
+    }
+  })
+})
+
+describe('onboarding hash handoff', () => {
+  /**
+   * The third way this fix rots, and the one that had already happened before
+   * the fix landed: the redirect carries `#broker`, the anchor exists, and the
+   * page still opens at the top.
+   *
+   * `loading.tsx` gives /settings a Suspense fallback, so a soft navigation
+   * commits the skeleton, finds no `#broker` to scroll to, goes to the top, and
+   * never tries again once the sections stream in. Confirmed in production on
+   * 2026-09-07 — hash present, target present at 3,281px, scrollY 63 — which is
+   * the same dead end this file's other guards exist to prevent, one step later.
+   * Nothing throws, so only a structural check catches it.
+   */
+
+  /** Every `redirect('...')` in saveOnboarding that carries a `#fragment`. */
+  function hashRedirects(src: string): { path: string; hash: string }[] {
+    const out: { path: string; hash: string }[] = []
+    for (const m of src.matchAll(/redirect\(\s*`([^`]*#[^`]+)`/g)) {
+      const [before, hash] = m[1].split('#')
+      out.push({ path: before.split('?')[0], hash })
+    }
+    return out
+  }
+
+  it('sends broker intent to a fragment', () => {
+    expect(hashRedirects(PROFILE_ACTIONS)).toContainEqual({ path: '/settings', hash: 'broker' })
+  })
+
+  it('scrolls to the fragment on every route that receives one', () => {
+    const targets = hashRedirects(PROFILE_ACTIONS)
+    expect(targets.length).toBeGreaterThan(0)
+
+    for (const { path, hash } of targets) {
+      const segments = path.split('/').filter(Boolean)
+      const src = read('app', ...segments, 'page.tsx')
+      expect(
+        src.includes('HashScroll'),
+        `${path} is sent traffic on #${hash} but does not render <HashScroll>. ` +
+        'With a loading.tsx on the route the router scrolls to the top instead, ' +
+        'so the anchor is never reached and the user lands on the wrong section.',
+      ).toBe(true)
+    }
+  })
+
+  it('points every fragment at an id that exists', () => {
+    for (const { path, hash } of hashRedirects(PROFILE_ACTIONS)) {
+      const segments = path.split('/').filter(Boolean)
+      const dir = join(SRC, 'app', ...segments)
+      const rendered = readdirSync(dir)
+        .filter((f) => f.endsWith('.tsx'))
+        .map((f) => readFileSync(join(dir, f), 'utf8'))
+        .join('\n')
+      expect(
+        rendered.includes(`id="${hash}"`),
+        `saveOnboarding redirects to #${hash} but no element under ${path} ` +
+        'carries that id, so the fragment resolves to nothing.',
       ).toBe(true)
     }
   })

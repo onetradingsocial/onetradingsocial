@@ -8,6 +8,7 @@ import { saveAccount } from '@/app/actions/account'
 import { MAX_ACCOUNT_BALANCE } from '@/lib/trade'
 import { Icon } from '@/app/[username]/_components/Icon'
 import { SettingsNav } from './SettingsNav'
+import { HashScroll } from './HashScroll'
 import { ProfileSettingsForm } from './ProfileSettingsForm'
 import { BrokerCard } from './BrokerCard'
 import { ExchangeCard } from './ExchangeCard'
@@ -119,6 +120,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="settings-page">
+      {/* Both broker signposts land here on `#broker`; without this the router
+          scrolls to the top and the MT5 card stays below the fold. */}
+      <HashScroll />
       <div className="settings-head">
         <p className="eyebrow">Account</p>
         <h1 className="ts-h1 mt-3">Settings</h1>
