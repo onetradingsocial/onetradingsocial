@@ -9,6 +9,14 @@ export const INDEX_PROXIES: Record<string, string> = {
   US30: 'DIA', NAS100: 'QQQ', SPX500: 'SPY', GER40: 'EWG',
 }
 
+// Metals are gated per symbol on the current plan: /price?symbol=XAU/USD
+// returns a price, XAG/USD returns code 404 "available starting with the Grow
+// or Venture plan" (verified 2026-09-07). An ETF proxy is not the answer here
+// the way it is for index CFDs — the gate covers every metal but gold, so this
+// is an allowlist of what the plan actually quotes, not a per-symbol mapping.
+// Add a symbol only after checking /price for it on the live key.
+export const QUOTABLE_COMMODITIES = new Set(['XAU/USD'])
+
 export function mapInstrumentType(instrumentType: string, symbol: string): Market {
   const t = instrumentType.toLowerCase()
   const s = symbol.toUpperCase()
@@ -91,11 +99,14 @@ export async function searchSymbols(
     for (const row of rows) {
       if (!row.symbol) continue
       const market = mapInstrumentType(row.instrument_type ?? '', row.symbol)
+      const symbol = row.symbol.toUpperCase()
       // Free tier only quotes US stock listings; skip foreign listings to
       // avoid offering symbols the quote endpoint will reject.
       if (market === 'stocks' && !US_EXCHANGES.has((row.exchange ?? '').toUpperCase())) continue
+      // Same reason, one market over: only gold is quotable on this plan.
+      if (market === 'commodities' && !QUOTABLE_COMMODITIES.has(symbol)) continue
       apiHits.push({
-        symbol: row.symbol.toUpperCase(),
+        symbol,
         name: row.instrument_name ?? row.symbol,
         market,
         exchange: row.exchange || undefined,
