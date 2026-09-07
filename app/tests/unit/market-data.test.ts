@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
   mapInstrumentType, searchStatic, mergeSearchResults, TtlCache, INDEX_PROXIES,
-  searchSymbols, fetchQuote,
+  QUOTABLE_COMMODITIES, searchSymbols, fetchQuote,
   type MarketSearchResult,
 } from '@/lib/market-data'
+import { INSTRUMENTS } from '@/lib/instruments'
 
 describe('mapInstrumentType', () => {
   it('maps digital currency to crypto', () => {
@@ -90,6 +91,17 @@ describe('INDEX_PROXIES', () => {
   })
 })
 
+describe('QUOTABLE_COMMODITIES', () => {
+  it('lists only the metals the current plan prices', () => {
+    expect([...QUOTABLE_COMMODITIES]).toEqual(['XAU/USD'])
+  })
+  it('covers every commodity in the static catalogue', () => {
+    const staticCommodities = INSTRUMENTS.filter((i) => i.market === 'commodities')
+    expect(staticCommodities.length).toBeGreaterThan(0)
+    for (const i of staticCommodities) expect(QUOTABLE_COMMODITIES.has(i.symbol)).toBe(true)
+  })
+})
+
 function fakeFetch(body: unknown, status = 200): typeof fetch {
   return (async () =>
     new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
@@ -119,6 +131,28 @@ describe('searchSymbols', () => {
       data: [{ symbol: 'EUR/PLN', instrument_name: 'Euro Polish Zloty', exchange: 'FOREX', instrument_type: 'Physical Currency' }],
     }))
     expect(out.some((r) => r.symbol === 'EUR/PLN' && r.market === 'forex')).toBe(true)
+  })
+  it('drops silver, which the plan cannot price', async () => {
+    const out = await searchSymbols('silver', 'key', fakeFetch({
+      data: [{ symbol: 'XAG/USD', instrument_name: 'Silver Spot', exchange: 'PHYSICAL CURRENCY', instrument_type: 'Physical Currency' }],
+    }))
+    expect(out.some((r) => r.symbol === 'XAG/USD')).toBe(false)
+  })
+  it('drops non-USD gold crosses, which are gated the same way', async () => {
+    const out = await searchSymbols('metal', 'key', fakeFetch({
+      data: [{ symbol: 'XAU/EUR', instrument_name: 'Gold Spot / Euro', exchange: 'PHYSICAL CURRENCY', instrument_type: 'Physical Currency' }],
+    }))
+    expect(out.some((r) => r.symbol === 'XAU/EUR')).toBe(false)
+  })
+  it('keeps gold, which the plan does price', async () => {
+    const out = await searchSymbols('metal', 'key', fakeFetch({
+      data: [{ symbol: 'XAU/USD', instrument_name: 'Gold Spot', exchange: 'PHYSICAL CURRENCY', instrument_type: 'Physical Currency' }],
+    }))
+    expect(out.some((r) => r.symbol === 'XAU/USD' && r.market === 'commodities')).toBe(true)
+  })
+  it('still finds gold through the static catalogue', async () => {
+    const out = await searchSymbols('gold', 'key', fakeFetch({ data: [] }))
+    expect(out.some((r) => r.symbol === 'XAU/USD')).toBe(true)
   })
   it('falls back to static hits on fetch failure', async () => {
     const boom = (async () => { throw new Error('net') }) as unknown as typeof fetch
