@@ -3,7 +3,7 @@
 // string[][]; one extractor locates the Positions table and normalizes rows.
 
 import * as XLSX from 'xlsx'
-import { pipInfo } from '@/lib/instruments'
+import { findInstrument, pipInfo } from '@/lib/instruments'
 
 export type Mt5Deal = {
   ticket: string
@@ -324,6 +324,40 @@ export function inferMarket(symbol: string): string {
   return 'stocks'
 }
 
+/**
+ * The catalog spelling of a raw broker symbol, for BOTH the pip lookup and the
+ * stored `instrument`.
+ *
+ * A broker sends 'XAUUSD'; the manual trade form writes the catalog's
+ * 'XAU/USD'. Storing the raw symbol filed the same asset under two names, so
+ * anything grouped by instrument saw two instruments: the "top instrument this
+ * month" count in journal/page.tsx split, and the duplicate-trade key in
+ * server/suspicion.ts (`instrument|entry|traded_at`) could never match a
+ * hand-logged trade against its imported twin.
+ *
+ * Rules, in order: strip the broker suffix ('GBPJPY.a' -> 'GBPJPY'), slash a
+ * 6-letter symbol into a pair, and prefer that form when the catalog knows it.
+ * Outside the catalog only pair-shaped markets keep the slash — a 6-letter
+ * stock ticker must not be published as 'ABC/DEF'.
+ *
+ * Pip math is unchanged in every branch: where this returns something other
+ * than the old blind-slash form, the symbol is absent from the catalog and its
+ * market is not forex, so `pipInfo` falls through to the same defaults.
+ */
+export function canonicalInstrument(symbol: string, market: string): string {
+  // Already canonical: return before the suffix rule, which strips at the first
+  // non-alphanumeric character and would cut 'EUR/USD' down to 'EUR'.
+  const raw = symbol.trim().toUpperCase()
+  if (findInstrument(raw)) return raw
+  const stripped = raw.replace(/[^A-Z0-9].*$/, '')
+  const slashed = /^[A-Z]{6}$/.test(stripped)
+    ? `${stripped.slice(0, 3)}/${stripped.slice(3)}`
+    : stripped
+  if (findInstrument(slashed)) return slashed
+  const pairShaped = market === 'forex' || market === 'commodities' || market === 'crypto'
+  return pairShaped ? slashed : stripped
+}
+
 const MAX_COMMIT_ROWS = 500
 
 /** Server-side re-validation of client-echoed rows before commit. */
@@ -368,14 +402,11 @@ export function mapDealToTrade(
   opts: { userId: string; isPublic: boolean; source?: 'statement' | 'broker' },
 ): Record<string, unknown> {
   const market = inferMarket(deal.symbol)
-  // Normalize symbol for catalog lookup: strip broker suffix (e.g. 'GBPJPY.a' →
-  // 'GBPJPY'), same stripping rule as inferMarket, then insert a slash for
-  // 6-letter forex pairs ('EURUSD' → 'EUR/USD').
-  const stripped = deal.symbol.toUpperCase().replace(/[^A-Z0-9].*$/, '')
-  const normalizedSymbol = /^[A-Z]{6}$/.test(stripped)
-    ? `${stripped.slice(0, 3)}/${stripped.slice(3)}`
-    : stripped
-  const { pipSize, pipValuePerLot } = pipInfo(normalizedSymbol, market)
+  // One canonical symbol for both the pip lookup and the stored row, so the two
+  // cannot drift: the normalized form used to be computed here, spent on
+  // `pipInfo`, and then thrown away while the raw symbol was persisted.
+  const instrument = canonicalInstrument(deal.symbol, market)
+  const { pipSize, pipValuePerLot } = pipInfo(instrument, market)
 
   let slPips = 0
   let riskAmount = 0
@@ -400,7 +431,7 @@ export function mapDealToTrade(
     // Verification level: file/statement upload vs live MetaApi sync.
     source: opts.source ?? 'statement',
     market,
-    instrument: deal.symbol,
+    instrument,
     direction: deal.direction,
     sizing_mode: 'lots',
     lots: deal.lots,

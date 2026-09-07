@@ -5,10 +5,31 @@ import { CloseTradeModal } from './CloseTradeModal'
 import { EditTradeModal, type EditTradeConfig } from './EditTradeModal'
 import { DeleteTradeButton } from './DeleteTradeButton'
 import { marketColor, instrumentBadge, type JTrade } from '@/lib/journal-stats'
+import { MARKETS } from '@/lib/profile'
 import { VerificationBadge } from '@/app/_components/VerificationBadge'
 import { tradeLevel } from '@/lib/verification'
 
-const FILTERS = [['all', 'All'], ['wins', 'Wins'], ['losses', 'Losses'], ['crypto', 'Crypto'], ['forex', 'Forex'], ['stocks', 'Stocks']] as const
+// Labels for the market chips. Typed against MARKETS so adding a market to the
+// canonical list is a type error here until it is given a label — the previous
+// hand-written row named only crypto/forex/stocks and had silently fallen two
+// markets behind it, so a trader whose journal was entirely gold (or indices)
+// was offered three filters and matched none of them.
+const MARKET_LABELS: Record<(typeof MARKETS)[number], string> = {
+  forex: 'Forex',
+  crypto: 'Crypto',
+  stocks: 'Stocks',
+  indices: 'Indices',
+  commodities: 'Commodities',
+}
+
+// Outcome filters first, then every market in canonical order. `.ts-segfilter`
+// already wraps, so the longer row reflows rather than overflowing.
+const FILTERS: readonly (readonly [string, string])[] = [
+  ['all', 'All'],
+  ['wins', 'Wins'],
+  ['losses', 'Losses'],
+  ...MARKETS.map((m) => [m, MARKET_LABELS[m]] as const),
+]
 
 // Year included: "Jan 1" made a 2031-dated trade indistinguishable from one
 // logged this week, which is how a fabricated future trade went unnoticed.
