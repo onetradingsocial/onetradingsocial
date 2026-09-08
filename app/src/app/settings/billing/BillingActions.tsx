@@ -14,6 +14,15 @@ async function post(url: string, body?: unknown): Promise<void> {
     headers: { 'content-type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   })
+  // 409 is the one failure here that retrying cannot fix: the account's stored
+  // payment-provider id points at a customer that no longer exists, so the
+  // portal has no invoices to open (api/billing/portal). "Please try again" is
+  // the wrong instruction for it — this needs a person — and saying nothing was
+  // charged is the first thing anyone seeing a billing error wants to know.
+  if (res.status === 409) {
+    alert("We can't reach your billing record with our payment provider. Nothing has been charged. Please contact support and we'll reconnect it.")
+    return
+  }
   if (!res.ok) { alert('Something went wrong. Please try again.'); return }
   const { url: redirect } = await res.json()
   if (redirect) window.location.href = redirect

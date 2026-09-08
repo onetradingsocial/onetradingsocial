@@ -155,3 +155,55 @@ export async function willChargeAtTrialEnd(
     return true // assume a charge is coming; never under-warn
   }
 }
+
+/**
+ * Does this Stripe error mean the customer id we sent does not exist?
+ *
+ * Stripe answers `resource_missing` for a customer that was never in this
+ * mode's namespace, and for one that has been deleted. Both look identical from
+ * here and both have the same answer: the stored id is not usable.
+ *
+ * The `param` check matters. `resource_missing` is also what a bad price or a
+ * removed coupon returns, and treating those as a stale customer would replace
+ * a perfectly good customer record every time a price id was mistyped. Older
+ * SDK errors do not always populate `param`, so the message is checked for the
+ * id as a fallback — but never on its own.
+ */
+export function isMissingCustomer(err: unknown, customerId: string): boolean {
+  const e = err as { code?: string; param?: string; message?: string } | null
+  if (e?.code !== 'resource_missing') return false
+  if (e.param === 'customer') return true
+  return typeof e.message === 'string' && e.message.includes(customerId)
+}
+
+/**
+ * Mint a Stripe customer for a user and store its id on the profile.
+ *
+ * `metadata.user_id` is not decoration: `resolveUserId` falls back to it when
+ * the profile lookup misses, so a customer created without it is one the
+ * webhook may not be able to map back to an account.
+ *
+ * The write uses the service client because `stripe_customer_id` is outside
+ * 0042's column grant — it is the key the webhook maps a Stripe customer back
+ * to a user with, so a client that could PATCH it could claim someone else's
+ * subscription. A failed write is fatal on purpose: continuing would open a
+ * checkout whose customer we have not recorded, and the webhook would then have
+ * only the metadata fallback to find the buyer with.
+ */
+export async function createAndStoreCustomer(
+  svc: SupabaseClient,
+  stripe: Stripe,
+  user: { id: string; email?: string | null },
+): Promise<{ customerId: string } | { error: string }> {
+  const customer = await stripe.customers.create({
+    email: user.email ?? undefined,
+    metadata: { user_id: user.id },
+  })
+  const { error } = await svc
+    .from('profiles').update({ stripe_customer_id: customer.id }).eq('id', user.id)
+  if (error) {
+    logError('billing', error, { note: 'failed to persist stripe_customer_id', customerId: customer.id })
+    return { error: 'could not save customer' }
+  }
+  return { customerId: customer.id }
+}
