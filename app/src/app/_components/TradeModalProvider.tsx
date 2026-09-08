@@ -16,7 +16,7 @@ import Link from 'next/link'
 
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 
-type Config = { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean }
+type Config = { accountBalance: number; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean }
 
 const TradeModalContext = createContext<{ open: () => void } | null>(null)
 
@@ -424,9 +424,28 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
         </>
         )}
 
+        {/*
+          Private by default, and deliberately NOT keyed on the profile's
+          `is_public`. That flag means "my profile is discoverable" — the thing a
+          user turns on to be found and followed — and it was being read as
+          "publish every trade I log". The two are not the same decision, and
+          only one of them is irreversible: `actions/trade.ts` refuses to take a
+          CLOSED public trade private again, so that a bad week cannot be taken
+          off the leaderboard after the fact. A default that publishes is a
+          default that cannot be undone, which is the wrong direction for a
+          journal whose fastest path captures entry, exit, size and P/L.
+
+          Publishing stays one click away and the consequence is stated here
+          rather than in the error you get afterwards.
+        */}
         <label className="ts-field mt-4"><span className="ts-label">Visibility</span>
-          <select name="is_public" className="ts-select" defaultValue={config.defaultPublic ? 'public' : 'private'}>
-            <option value="public">Public</option><option value="private">Private</option></select></label>
+          <select name="is_public" className="ts-select" defaultValue="private">
+            <option value="private">Private — only you can see it</option>
+            <option value="public">Public — on your profile and the leaderboard</option></select></label>
+        <p className="faint mt-1" style={{ fontSize: 12 }}>
+          Publishing shows the instrument, entry, exit, size and P/L. Once a public trade is closed
+          it can&apos;t be made private again.
+        </p>
 
         {error && <p className="ts-error mt-4">{error}</p>}
 
