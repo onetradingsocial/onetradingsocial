@@ -298,7 +298,7 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   // roles, and risk%-sized trades size themselves off it. Scoped to user.id
   // from getUser(), so it reads only the caller's own row.
   const { data: profile } = await createServiceClient()
-    .from('profiles').select('account_balance, is_public').eq('id', user.id).single()
+    .from('profiles').select('account_balance').eq('id', user.id).single()
 
   // One clock read for the whole request. `closed_at` used to be stamped with
   // its own `new Date()` a few lines above the `traded_at` fallback, so a
@@ -316,8 +316,16 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
   })
   if ('error' in derived) return { error: derived.error }
 
+  // Absent means private, not "whatever the profile says".
+  //
+  // This used to fall back to `profiles.is_public`, which defaults to true — so
+  // a form that omitted the field, or any hand-built request, published the
+  // trade. Publishing is the one direction that cannot be walked back once the
+  // trade is closed (see VISIBILITY_ONE_WAY below), so the fallback has to be
+  // the safe one: a caller that does not say gets the outcome that can still be
+  // changed. The modal always sends the field; this is the floor under it.
   const isPublicRaw = formData.get('is_public')
-  const isPublic = isPublicRaw == null ? (profile?.is_public ?? true) : isPublicRaw === 'public'
+  const isPublic = isPublicRaw === 'public'
 
   // Advanced-journal fields (setup/confidence/emotion) are a Trader+ perk —
   // drop them server-side so the gate can't be bypassed with a hand-built form.

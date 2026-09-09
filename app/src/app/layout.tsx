@@ -42,7 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // across .tradingsocial.io.
   const consent =
     parseConsent((await cookies()).get(CONSENT_COOKIE)?.value) ?? CONSENT_DEFAULT
-  let config: { accountBalance: number; defaultPublic: boolean; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean } | null = null
+  let config: { accountBalance: number; canMt5Import: boolean; canAdvancedJournal: boolean; maxStrategyTags: number; canPrivateNotes: boolean; canTemplates: boolean } | null = null
   let internalTraffic = false
   let gate: TrialGate | null = null
   let tier: Tier | null = null
@@ -59,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     // caller's -- and never widens what the page can see.
     const [{ data }, ent, flags] = await Promise.all([
       createServiceClient()
-        .from('profiles').select('account_balance, is_public, is_internal, username')
+        .from('profiles').select('account_balance, is_internal, username')
         .eq('id', user.id).single(),
       getEntitlements(supabase, user.id),
       getFeatureFlags(),
@@ -71,7 +71,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     internalTraffic = isAdmin(user) || (data?.is_internal ?? false)
     config = {
       accountBalance: data?.account_balance ?? 0,
-      defaultPublic: data?.is_public ?? true,
       canMt5Import: canFlag(flags, ent.tier, 'mt5_import'),
       canAdvancedJournal: canFlag(flags, ent.tier, 'advanced_journal'),
       // Strategy tracking: Trader tags one strategy per trade, Pro is multi-strategy.
