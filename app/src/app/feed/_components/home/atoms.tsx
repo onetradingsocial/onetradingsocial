@@ -12,6 +12,7 @@
 // Kept visually faithful; typed for TS. Avatar adapted to render real avatars.
 
 import type { CSSProperties, ReactNode } from 'react'
+import type { ChainDay } from '@/lib/streaks'
 
 const IP = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
 
@@ -116,7 +117,7 @@ export function TradeChart({ seed = 7, dir = 'long', win = true, w = 230, h = 11
   )
 }
 
-export function StreakChain({ days }: { days: string[] }) {
+export function StreakChain({ days }: { days: ChainDay[] }) {
   const L = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
   return (
     <div className="h-streak-chain">
@@ -126,6 +127,9 @@ export function StreakChain({ days }: { days: string[] }) {
             {st === 'done' && <Icon name="check" size={16} />}
             {st === 'today' && <Icon name="flame" size={15} />}
             {st === 'future' && <Icon name="bolt" size={13} />}
+            {/* A missed day carries no icon on purpose. It is the one state
+                that says something the user might not want to see, and dressing
+                it up as a bolt would make it read as "still to come". */}
           </div>
           <span className="lbl">{L[i]}</span>
         </div>

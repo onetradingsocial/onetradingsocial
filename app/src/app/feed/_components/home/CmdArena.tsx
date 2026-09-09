@@ -16,18 +16,8 @@ function leagueFor(rank: number | null, total: number) {
   return 'Silver League'
 }
 
-// Approximate the 7-day "don't break the chain" from the win/loss streak + today's logging.
-function streakDays(streak: number, loggedToday: number): string[] {
-  const done = Math.max(0, Math.min(6, Math.abs(streak)))
-  const days: string[] = []
-  for (let i = 0; i < 6; i++) days.push(i < done ? 'done' : 'future')
-  days.push(loggedToday > 0 ? 'done' : 'today')
-  return days
-}
-
 export function CmdArena({ data, onOpenTrade }: { data: HomeData; onOpenTrade: () => void }) {
-  const { name, viewerRank, totalRanked, streak, weekLeaders, userId, loggedToday } = data
-  const days = streakDays(streak, loggedToday)
+  const { name, viewerRank, totalRanked, streak, weekLeaders, userId, chain } = data
   const leaderPnl = weekLeaders[0]?.pnl ?? 0
   const race = weekLeaders.slice(0, 3)
 
@@ -64,7 +54,7 @@ export function CmdArena({ data, onOpenTrade }: { data: HomeData; onOpenTrade: (
           </p>
           <div style={{ marginTop: 18 }}>
             <div className="h-mono" style={{ fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--faint)', marginBottom: 8 }}>Don&apos;t break the chain</div>
-            <StreakChain days={days} />
+            <StreakChain days={chain} />
           </div>
           <div className="h-arena-cta" style={{ display: 'flex', gap: 10, marginTop: 20 }}>
             <button className="h-btn h-btn-grad" onClick={onOpenTrade}><Icon name="bolt" size={16} /> Log a trade</button>
