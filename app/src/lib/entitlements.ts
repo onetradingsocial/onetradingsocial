@@ -358,3 +358,29 @@ export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
 export function can(tier: Tier, feature: Feature): boolean {
   return TIER_RANK[tier] >= TIER_RANK[FEATURE_MIN_TIER[feature]]
 }
+
+/** Plan names as the pricing page, billing page and checkout show them. The
+ *  paid tier is sold as "Pro Trader", never "Pro" — a user comparing a label
+ *  against the plans page has to find the same words there. */
+export const TIER_LABEL: Record<Tier, string> = {
+  free: 'Free',
+  trader: 'Trader',
+  pro: 'Pro Trader',
+}
+
+/**
+ * The plan a feature actually requires, named the way it is sold.
+ *
+ * For copy that tells a user which plan unlocks something. Deriving the name
+ * from `FEATURE_MIN_TIER` rather than writing it inline is the point: the
+ * journal empty state advertised broker sync as "(Trader plan)" while
+ * `mt5_autosync` has always required Pro, because the label was hand-written
+ * next to a gate it did not read. Someone could have paid A$30 for Trader on
+ * the strength of that line and not received the thing they bought.
+ *
+ * The remaining way to get this wrong is naming the wrong FEATURE — which is a
+ * visible argument at the call site, not an invisible constant.
+ */
+export function requiredPlanLabel(feature: Feature): string {
+  return TIER_LABEL[FEATURE_MIN_TIER[feature]]
+}

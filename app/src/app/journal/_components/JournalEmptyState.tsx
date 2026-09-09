@@ -2,13 +2,25 @@
 
 import Link from 'next/link'
 import { useTradeModal } from '@/app/_components/TradeModalProvider'
+import { requiredPlanLabel } from '@/lib/entitlements'
 
 /**
  * Rich journal empty state (Sprint 2, row 13): why journaling matters, the
  * three ways to get data in, honest setup times, one primary action and a
  * sample of the insight that unlocks.
+ *
+ * `canImport` and `canAutosync` are two different gates and were one.
+ *
+ * Statement upload is `mt5_import` (Trader). Broker sync is `mt5_autosync`
+ * (Pro). Both cards keyed on `canImport`, so the broker card told a free user
+ * the feature was on the "Trader plan" while the card it links to in settings
+ * says "Upgrade to Pro" — a A$30 plan sold against a promise it does not keep.
+ *
+ * The plan names come from `requiredPlanLabel`, which reads the same
+ * FEATURE_MIN_TIER map the gate reads, so the copy cannot drift from the gate
+ * again.
  */
-export function JournalEmptyState({ canImport }: { canImport: boolean }) {
+export function JournalEmptyState({ canImport, canAutosync }: { canImport: boolean; canAutosync: boolean }) {
   const { open } = useTradeModal()
   return (
     <div className="ts-card mt-5" style={{ padding: '28px 26px' }}>
@@ -28,12 +40,12 @@ export function JournalEmptyState({ canImport }: { canImport: boolean }) {
         </div>
         <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
           <div style={{ fontWeight: 700 }}>📄 MT5 statement</div>
-          <p className="faint" style={{ fontSize: 13, margin: '6px 0' }}>Upload your report file — full history in one go.{!canImport && ' (Trader plan)'}</p>
+          <p className="faint" style={{ fontSize: 13, margin: '6px 0' }}>Upload your report file — full history in one go.{!canImport && ` (${requiredPlanLabel('mt5_import')} plan)`}</p>
           <span className="v-badge">~3 minutes</span>
         </div>
         <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
           <div style={{ fontWeight: 700 }}>🔗 Broker sync</div>
-          <p className="faint" style={{ fontSize: 13, margin: '6px 0' }}>Connect MT5 once, trades arrive verified.{!canImport && ' (Trader plan)'}</p>
+          <p className="faint" style={{ fontSize: 13, margin: '6px 0' }}>Connect MT5 once, trades arrive verified.{!canAutosync && ` (${requiredPlanLabel('mt5_autosync')} plan)`}</p>
           <span className="v-badge">~5 minutes, once</span>
         </div>
       </div>
