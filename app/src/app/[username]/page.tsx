@@ -36,10 +36,12 @@ import { LogTradeBand } from './_components/LogTradeBand'
 import './profile.css'
 import '@/app/feed/_components/home/home-arena.css'
 
-const BADGE_ICON: Record<string, string> = { trades: 'journal', level: 'shield', questStreak: 'flame', winStreak: 'target', lessons: 'book' }
+const BADGE_ICON: Record<string, string> = { reviews: 'journal', level: 'shield', questStreak: 'flame', lessons: 'book' }
+// Audit 2026-09-05, P0: the 'trades' and 'winStreak' categories no longer exist
+// — both were badges only a trade could move. 'reviews' inherits the slot.
 const BADGE_GRAD: Record<string, string> = {
-  trades: 'linear-gradient(135deg,#7C5CE6,#C840BC)', level: 'linear-gradient(135deg,#3FB6E8,#1A86B8)',
-  questStreak: 'linear-gradient(135deg,#FF7A4D,#E0931E)', winStreak: 'linear-gradient(135deg,#12A56B,#3FB6E8)',
+  reviews: 'linear-gradient(135deg,#7C5CE6,#C840BC)', level: 'linear-gradient(135deg,#3FB6E8,#1A86B8)',
+  questStreak: 'linear-gradient(135deg,#FF7A4D,#E0931E)',
   lessons: 'linear-gradient(135deg,#FFE08A,#E3A92B)',
 }
 
@@ -550,7 +552,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 <div className="pf-badges">
                   {[...badges].sort((x, y) => Number(y.earned) - Number(x.earned)).map((b) => {
                     const sub = b.earned
-                      ? ({ trades: `${b.threshold} trades logged`, level: `Reached level ${b.threshold}`, questStreak: `${b.threshold}-day quest streak`, winStreak: `${b.threshold} wins in a row`, lessons: `${b.threshold} lessons done` }[b.category])
+                      ? ({ reviews: `${b.threshold} reviews completed`, level: `Reached level ${b.threshold}`, questStreak: `${b.threshold}-day process streak`, lessons: `${b.threshold} lessons done` }[b.category])
                       : `${Math.max(0, b.threshold - b.current)} more to unlock`
                     return (
                       <div key={b.id} className={'pf-badge' + (b.earned ? ' earned' : ' locked')}>

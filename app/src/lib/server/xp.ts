@@ -1,9 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   type XpTrade, type Period, type QuestProgress, type EvaluatedBadge, type LevelInfo,
-  totalXpFromTrades, levelFromXp, dailyQuestProgress, weeklyQuestProgress,
-  questStreak, maxQuestStreak, winStreakMax, closedCount, evaluateBadges, windowXp,
+  baseTradeXp, levelFromXp, dailyQuestProgress, weeklyQuestProgress,
+  questStreak, maxQuestStreak, evaluateBadges, windowTradeXp, totalProcessXp,
 } from '@/lib/xp'
+import { reviewCount } from '@/lib/process'
+import { getProcessLogs } from '@/lib/server/process'
 import { learningTotalXp, learningWindowXp, type LearningCompletion } from '@/lib/learning'
 import { leaderboardEligibleIds } from '@/lib/server/entitlements'
 
@@ -24,7 +26,10 @@ async function fetchCompletions(supabase: SupabaseClient, userId: string): Promi
 export type UserXp = {
   totalXp: number
   learningXp: number
+  /** Quest XP from process entries — reviews, reflections, planned days out. */
+  processXp: number
   lessonsCompleted: number
+  reviewsCompleted: number
   level: LevelInfo
   daily: QuestProgress[]
   weekly: QuestProgress[]
@@ -32,8 +37,21 @@ export type UserXp = {
   badges: EvaluatedBadge[]
 }
 
-// One user's XP picture. Owner view (default) counts ALL their trades; pass
-// `publicOnly` for cross-viewer surfaces (public profile) so private-trade XP never leaks.
+/**
+ * One user's XP picture. Owner view (default) counts ALL their trades; pass
+ * `publicOnly` for cross-viewer surfaces (public profile) so private-trade XP
+ * never leaks.
+ *
+ * `publicOnly` does NOT hide process entries, and that is a decision rather than
+ * an oversight. A process entry carries no market data — no instrument, no size,
+ * no P&L, no note; it says "on this date this person reviewed / reflected / took
+ * the day off". The badges and streaks it feeds are the public achievement, in
+ * the same slot the old `trades_*` and `wins_*` badges occupied, and hiding it
+ * would leave every public profile showing an achievements panel of zeroes.
+ * Trades have an explicit `is_public` flag because the product promises trade
+ * privacy; process entries have no such promise attached, and if one is added
+ * this is the line to change.
+ */
 export async function getUserXp(
   supabase: SupabaseClient,
   userId: string,
@@ -42,30 +60,36 @@ export async function getUserXp(
   const now = opts.now ?? Date.now()
   let q = supabase
     .from('trades')
-    // created_at is load-bearing, not decoration: quest bonuses bucket on it
-    // rather than on the user-supplied traded_at/closed_at (item 15 F7).
     .select('traded_at, closed_at, created_at, status, outcome')
     .eq('user_id', userId)
   if (opts.publicOnly) q = q.eq('is_public', true)
   const { data } = await q
   const trades = (data ?? []) as XpTrade[]
-  const completions = await fetchCompletions(supabase, userId)
+  const [completions, logs] = await Promise.all([
+    fetchCompletions(supabase, userId),
+    getProcessLogs(supabase, userId),
+  ])
   const learningXp = learningTotalXp(completions)
-  const totalXp = totalXpFromTrades(trades) + learningXp
+  const processXp = totalProcessXp(logs)
+  const totalXp = baseTradeXp(trades) + processXp + learningXp
   const level = levelFromXp(totalXp)
+  const reviewsCompleted = reviewCount(logs)
   return {
     totalXp,
     learningXp,
+    processXp,
     lessonsCompleted: completions.length,
+    reviewsCompleted,
     level,
-    daily: dailyQuestProgress(trades, now),
-    weekly: weeklyQuestProgress(trades, now),
-    questStreak: questStreak(trades, now),
+    // Quests and streaks read process entries only. Nothing here counts trades:
+    // audit 2026-09-05 P0, see the quest block in lib/xp.ts.
+    daily: dailyQuestProgress(logs, now),
+    weekly: weeklyQuestProgress(logs, now),
+    questStreak: questStreak(logs, now),
     badges: evaluateBadges({
-      closedCount: closedCount(trades),
+      reviewsCompleted,
       level: level.level,
-      maxQuestStreak: maxQuestStreak(trades),
-      maxWinStreak: winStreakMax(trades),
+      maxQuestStreak: maxQuestStreak(logs),
       lessonsCompleted: completions.length,
     }),
   }
@@ -109,8 +133,17 @@ export async function getXpRanking(supabase: SupabaseClient, period: Period, now
   const scored = [...userIds].map((userId) => {
     const t = tradeByUser.get(userId) ?? []
     const l = learnByUser.get(userId) ?? []
-    const xp = windowXp(t, period, now) + learningWindowXp(l, period, now)
-    const level = levelFromXp(totalXpFromTrades(t) + learningTotalXp(l)).level
+    // Trade XP + learning XP only. Quest bonuses moved off `trades` and onto
+    // `process_logs` (audit 2026-09-05 P0), and process entries are private to
+    // their owner under 0070's RLS — this function runs with the *viewer's*
+    // client over other people's rows, so it cannot read them. The board is
+    // therefore strictly smaller than it was (the trade-derived quest bonuses it
+    // used to include are gone); adding process XP back needs a service-role
+    // read and a decision about publishing rest days, both of which belong with
+    // whoever owns the leaderboard. Flagged in the handover, deliberately not
+    // done here.
+    const xp = windowTradeXp(t, period, now) + learningWindowXp(l, period, now)
+    const level = levelFromXp(baseTradeXp(t) + learningTotalXp(l)).level
     return { userId, xp, level }
   }).filter((s) => s.xp > 0)
   if (scored.length === 0) return []

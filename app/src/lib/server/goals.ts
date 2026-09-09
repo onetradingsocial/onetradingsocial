@@ -34,13 +34,35 @@ export async function getGoalsWithProgress(
   const goals: Goal[] = (goalRows ?? []).map((g) => ({ id: g.id, kind: g.kind, target: Number(g.target), windowDays: g.window_days }))
   if (goals.length === 0) return []
 
-  // Weekly reviews are logged as analytics events; pull enough history to cover
-  // the widest goal window.
+  // Reviews come from two places and the goal counts both.
+  //
+  // ── Audit 2026-09-05 ────────────────────────────────────────────────────────
+  //
+  // `weekly_review_viewed` has exactly one emitter — WeeklyReviewCard — and that
+  // card returns null for Free users, so counting it alone pinned the
+  // `weekly_reviews` goal at 0/N for every Free account no matter what they did.
+  // The goal was reachable only by people who had already paid, on the one
+  // improvement primitive that is otherwise available at every tier.
+  //
+  // The plan gate on the card is a pricing decision and is NOT touched here. The
+  // second source is `process_logs`, where a review the user records themselves
+  // lands; it is ungated by design (migration 0070). A paid user's card view
+  // still counts, so nobody loses progress.
   const maxWindow = Math.max(...goals.map((g) => g.windowDays))
   const since = new Date(now - maxWindow * DAY).toISOString()
-  const { data: reviews } = await svc
-    .from('analytics_events').select('created_at')
-    .eq('user_id', userId).eq('event', 'weekly_review_viewed').gte('created_at', since)
+  const sinceDay = since.slice(0, 10)
+  const [{ data: reviewEvents }, { data: reviewLogs }] = await Promise.all([
+    svc.from('analytics_events').select('created_at')
+      .eq('user_id', userId).eq('event', 'weekly_review_viewed').gte('created_at', since),
+    svc.from('process_logs').select('day')
+      .eq('user_id', userId).eq('kind', 'review').gte('day', sinceDay),
+  ])
+  // One review per day per source; a paid user who both viewed the card and
+  // ticked the entry on the same day has done one review, not two.
+  const reviewDays = new Set<string>([
+    ...(reviewEvents ?? []).map((r) => (r.created_at as string).slice(0, 10)),
+    ...(reviewLogs ?? []).map((r) => String(r.day).slice(0, 10)),
+  ])
 
   return goals.map((goal) => {
     const winStart = now - goal.windowDays * DAY
@@ -63,7 +85,8 @@ export async function getGoalsWithProgress(
       return m == null ? t.risk_percent : Math.max(m, t.risk_percent)
     }, null)
 
-    const weeklyReviews = (reviews ?? []).filter((r) => Date.parse(r.created_at) >= winStart).length
+    const weeklyReviews = [...reviewDays]
+      .filter((d) => Date.parse(d + 'T00:00:00.000Z') >= winStart - DAY).length
 
     // Revenge-free streak: days since the most recent revenge-tagged trade
     // (capped at the goal window).

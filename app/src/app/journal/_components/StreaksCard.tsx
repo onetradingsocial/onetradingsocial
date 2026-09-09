@@ -6,7 +6,7 @@ export function StreaksCard({ streaks }: { streaks: Streak[] }) {
   return (
     <div className="ts-card">
       <h2 className="ts-h2">Streaks</h2>
-      <p className="ts-sub mt-1">Consecutive days of good process — not trade volume or profit.</p>
+      <p className="ts-sub mt-1">Consecutive days of good process — not trade volume or profit. A planned no-trade day keeps every one of them alive.</p>
       {/* 3 columns while the Learning streak is withdrawn — back to 4 when
           computeStreaks() returns the learning row again. */}
       <div className="ts-grid2 mt-3" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>
@@ -21,7 +21,7 @@ export function StreaksCard({ streaks }: { streaks: Streak[] }) {
       {/* Learn hidden for now — we are not financial advisors. The line below read
           'Log a trade, finish a lesson or complete a review…'. Restore when compliant. */}
       {!anyActive && (
-        <p className="faint mt-3" style={{ fontSize: 12.5 }}>Log a trade or complete a review to start a streak.</p>
+        <p className="faint mt-3" style={{ fontSize: 12.5 }}>Complete a review, reflect on your rules, or record a planned day out — any of them starts a streak.</p>
       )}
     </div>
   )

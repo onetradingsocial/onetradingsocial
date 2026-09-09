@@ -3,6 +3,8 @@ import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { assembleFeed, boostFavorites } from '@/lib/feed'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { weekChain } from '@/lib/streaks'
+import { getProcessLogs } from '@/lib/server/process'
+import { processDays } from '@/lib/process'
 import { FEED_POST_SELECT, hydrateFeedPosts, type RawPost } from '@/lib/server/feed-hydration'
 import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getUserXp } from '@/lib/server/xp'
@@ -112,8 +114,16 @@ export default async function Home({
   //
   // Same UTC day keys as `computeStreaks` on the journal page, so the two
   // read the same week. See weekChain() for the timezone caveat.
+  //
+  // Audit 2026-09-05, P0: the union with process days is load-bearing. Built
+  // from trade days alone, "don't break the chain" broke on every day the trader
+  // correctly stayed out — a habit mechanic that punished the habit.
+  const processLogs = await getProcessLogs(supabase, user.id)
   const chain = weekChain(
-    [...new Set(trades.map((t) => t.traded_at.slice(0, 10)))],
+    [...new Set([
+      ...trades.map((t) => t.traded_at.slice(0, 10)),
+      ...processDays(processLogs),
+    ])],
     new Date().toISOString().slice(0, 10),
   )
 
@@ -170,7 +180,12 @@ export default async function Home({
     { key: 'markets', label: 'Pick your markets', done: (profile?.main_markets ?? []).length > 0, href: '/settings' },
     { key: 'trade', label: 'Log or import your first trade', done: trades.length > 0, href: '/journal' },
     { key: 'strategy', label: 'Tag your first strategy', done: trades.some((t) => (t.strategy_tags ?? []).length > 0 || t.setup_type), href: '/journal' },
-    { key: 'review', label: 'Read your weekly review', done: (reviewViews ?? 0) > 0, href: '/journal' },
+    // Either route ticks it. `weekly_review_viewed` fires only from
+    // WeeklyReviewCard, which renders nothing for Free users, so on that signal
+    // alone this item was permanently unticked for every Free account — an
+    // onboarding checklist with a step they cannot take. The self-recorded
+    // review is reachable at every tier. No plan gate moved.
+    { key: 'review', label: 'Complete your first review', done: (reviewViews ?? 0) > 0 || processLogs.some((l) => l.kind === 'review'), href: '/journal' },
     { key: 'follows', label: 'Follow 3 traders', done: followingIds.length >= 3, href: '/leaderboard' },
     // Learn hidden for now — we are not financial advisors. Restore lesson item when compliant.
   ]

@@ -1,10 +1,13 @@
 import type { EvaluatedBadge, BadgeCategory } from '@/lib/xp'
 
+// Audit 2026-09-05, P0: 'Trade milestones' (1/10/50/100/500 closed trades) and
+// 'Win streaks' (5/10 consecutive winners) are gone — both were badges you could
+// only move by taking another trade. 'Reviews' replaces them; 'lessons' stays
+// omitted while Learn is withdrawn.
 const GROUPS: { category: BadgeCategory; title: string }[] = [
-  { category: 'trades', title: 'Trade milestones' },
+  { category: 'reviews', title: 'Review milestones' },
   { category: 'level', title: 'Level milestones' },
-  { category: 'questStreak', title: 'Quest streaks' },
-  { category: 'winStreak', title: 'Win streaks' },
+  { category: 'questStreak', title: 'Process streaks' },
 ]
 
 export function BadgeGrid({ badges }: { badges: EvaluatedBadge[] }) {
