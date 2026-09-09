@@ -9,13 +9,14 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
+    "e2e:preflight": "node scripts/e2e-preflight.mjs",
     "test:e2e": "playwright test"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "//engines": "Local Node 22.19.0 breaks the dev server's streaming SSR: the response dies with 'controller[kState].transformAlgorithm is not a function' just before React's $RC reveal script, so hard page loads hang on the Suspense skeleton. .nvmrc pins the LTS that renders. Kept at the major here on purpose — Vercel rejects engines ranges finer than 'NN.x'.",
+  "//engines": "Kept at the major on purpose — Vercel rejects engines ranges finer than 'NN.x'. .nvmrc pins 22.11.0. THAT PIN IS DISPUTED, do not treat it as a requirement without re-testing: it was added because the dev server appeared to die with 'controller[kState].transformAlgorithm is not a function' just before React's $RC reveal, hanging hard page loads on the Suspense skeleton. That has never reproduced as version-dependent. docs/qa-sweep-2026-08-21.md retracts it (the frozen page was a permanently-hidden preview tab: Chrome runs no rAF there and React 19.2 defers the Suspense reveal through rAF, so every $RC page looks stuck while the HTML is byte-perfect), and it was re-checked on 22.19.0 in the B0 follow-up with /login, /signup, /demo and /leaderboard all completing. 22.11.0 also cannot run vitest — require(esm) landed in 22.12. Raising the pin to >= 22.12 is the open item. See app/tests/e2e/README.md.",
   "engines": {
     "node": "22.x"
   },
