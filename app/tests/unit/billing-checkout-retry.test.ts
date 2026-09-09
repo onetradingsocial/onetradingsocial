@@ -174,3 +174,40 @@ describe('checkout with a healthy customer id', () => {
     expect(sessionsCreate.mock.calls.map((c) => c[0].customer)).toEqual([FRESH])
   })
 })
+
+describe('checkout currency', () => {
+  it('disables adaptive pricing so the charge matches the quote', async () => {
+    // Every price surface in the product says AUD, prefixed `A$`, backed by
+    // CURRENCY_NOTE and the ACL s48 reasoning in lib/plans.ts: the quoted
+    // figure must be the total payable. Stripe's adaptive pricing converts by
+    // geography — observed on production quoting ₱1,410.68 for a plan listed at
+    // A$30 — which contradicts that disclosure at the moment of payment.
+    sessionsCreate.mockResolvedValue({ url: 'https://checkout.stripe.com/c/pay/cs_live_ok' })
+    storedCustomerId.mockReturnValue('cus_healthy')
+
+    await post(request())
+
+    const params = sessionsCreate.mock.calls[0][0] as { adaptive_pricing?: { enabled: boolean } }
+    expect(
+      params.adaptive_pricing,
+      'The Checkout session must disable adaptive pricing. Without it Stripe ' +
+      'converts the amount into the visitor\'s local currency at a rate the ' +
+      'product quotes nowhere, while /settings/billing states all prices are AUD.',
+    ).toEqual({ enabled: false })
+  })
+
+  it('disables it on the retry path too', async () => {
+    // The re-mint path builds its own session. A stale customer id must not be
+    // the thing that reintroduces a foreign-currency charge.
+    sessionsCreate
+      .mockRejectedValueOnce(stripeError())
+      .mockResolvedValueOnce({ url: 'https://checkout.stripe.com/c/pay/cs_live_x' })
+
+    await post(request())
+
+    for (const call of sessionsCreate.mock.calls) {
+      expect((call[0] as { adaptive_pricing?: { enabled: boolean } }).adaptive_pricing)
+        .toEqual({ enabled: false })
+    }
+  })
+})
