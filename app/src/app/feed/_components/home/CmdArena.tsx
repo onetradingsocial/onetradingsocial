@@ -31,7 +31,12 @@ export function CmdArena({ data, onOpenTrade }: { data: HomeData; onOpenTrade: (
           </div>
           <div className="h-rankhero">
             <div>
-              <span className="h-rankbig h-grad-text">{viewerRank ? `#${viewerRank}` : '—'}</span>
+              {/* The gradient treatment is for a RANK. Applied to the em-dash placeholder
+                  it paints a solid violet block that reads as a loading bar that never
+                  resolves — the first thing an unranked user sees is a broken widget. */}
+              <span className={'h-rankbig' + (viewerRank ? ' h-grad-text' : ' h-rankbig--none')}>
+                {viewerRank ? `#${viewerRank}` : '—'}
+              </span>
             </div>
             <div style={{ paddingBottom: 4 }}>
               <span className="h-chip" style={{ background: 'var(--xp-soft)', color: 'var(--xp)', fontWeight: 700 }}>
