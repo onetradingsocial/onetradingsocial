@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { recordTermsAcceptance } from '@/lib/server/terms-acceptance'
+import { trackOAuthSignup } from '@/lib/server/oauth-signup'
 
 export async function GET(request: NextRequest) {
   // Same-origin hops, so stay on the origin the callback arrived at rather than
@@ -38,7 +39,23 @@ export async function GET(request: NextRequest) {
   //
   // Never throws and never blocks the redirect (see recordTermsAcceptance).
   if (data.user) {
-    await recordTermsAcceptance(createServiceClient(), data.user.id, 'oauth_notice')
+    const svc = createServiceClient()
+    await recordTermsAcceptance(svc, data.user.id, 'oauth_notice')
+
+    // The funnel's other entrance. `signup_completed` used to be emitted only
+    // by the email/password action, so every Google signup was missing from
+    // /admin/analytics — see lib/server/oauth-signup.ts for why this is
+    // conditional rather than a plain emit, and for the props.
+    //
+    // `ts_ref` is the campaign cookie middleware sets; it is read here for the
+    // event prop only. NOTE (left deliberately, not part of this fix): unlike
+    // the email path, the OAuth path never writes it to
+    // `profiles.acquisition_source`, so the "Signups by source" table on the
+    // same page still cannot attribute a Google signup.
+    await trackOAuthSignup(svc, data.user, {
+      source: request.cookies.get('ts_ref')?.value ?? null,
+      confirmed: !!data.session,
+    })
   }
 
   // New Google users have onboarding_completed=false; middleware sends them to onboarding.

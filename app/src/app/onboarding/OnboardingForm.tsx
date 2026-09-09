@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useActionState, type ReactNode } from 'react'
 import Image from 'next/image'
 import { saveOnboarding, type ProfileState } from '@/app/actions/profile'
-import { track } from '@/lib/track'
+import { track, type TrackProps } from '@/lib/track'
 import { LEGAL, EXTERNAL_LINK } from '@/lib/marketing'
 
 /* ───────────────── icons (subset of the home design system) ───────────────── */
@@ -279,9 +279,23 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
 
   // Abandonment analytics: record every step reached so the funnel dashboard
   // can show exactly where users stop.
-  const go = (n: number) => {
+  //
+  // Once per step per mount. `go` is the ONLY mover and it is wired to Back as
+  // well as Next, so a plain emit re-counts a step every time the user turns
+  // around — inflating precisely the steps people hesitate on, which are the
+  // ones the dashboard exists to find. Production has not seen it yet (steps
+  // 1–5 read 10 raw / 10 distinct), but nothing was stopping it.
+  //
+  // Per-mount rather than per-user: a reload restores `step` from localStorage
+  // without going through `go`, so the restored step is not re-counted, and a
+  // genuinely new session may count a step a second time. That keeps the number
+  // a floor — the same footing as every other client-fired event here.
+  const emitted = useRef<Set<number>>(new Set())
+  const go = (n: number, props: TrackProps = {}) => {
     setStep(n)
-    track('onboarding_step', { step: n })
+    if (emitted.current.has(n)) return
+    emitted.current.add(n)
+    track('onboarding_step', { step: n, ...props })
   }
 
   const lvl = OB_LEVELS.find((l) => l.id === data.level)
@@ -297,16 +311,27 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
       <input type="hidden" name="goal" value={goal?.title ?? ''} />
       <input type="hidden" name="is_public" value={data.visibility === 'public' ? 'public' : 'private'} />
       <input type="hidden" name="account_type" value={data.accountType} />
-      {/* Step 5's answer. It was already fired as an analytics prop in submit()
-          below; this is the copy that lands on the profile row, so the intent
-          survives the session and can be acted on later (migration 0062). */}
+      {/* Step 5's answer. It rides the step-6 analytics event too (see the
+          step-5 Next handler); this is the copy that lands on the profile row,
+          so the intent survives the session and can be acted on later
+          (migration 0062). This copy is also the authoritative one: the event
+          fires once, so someone who reaches the review, goes back and changes
+          their answer leaves the FIRST choice on the event and the final choice
+          here. Anything acting on the intent reads the profile. */}
       <input type="hidden" name="intended_source" value={data.connect} />
     </form>
   )
 
   const submit = () => {
-    // Funnel: record which data-connection path was chosen at completion.
-    track('onboarding_step', { step: 6, connect: data.connect })
+    // No `onboarding_step` emit here. This used to fire {step: 6, connect} on
+    // top of the {step: 6} that `go(6)` had already fired one screen earlier,
+    // which is why production read step 6 at 20 raw / 10 distinct against
+    // 10 / 10 for every step above it — a doubled bar on the one step that is
+    // supposed to show completion. The `connect` datum was worth keeping, so it
+    // moved onto the single remaining emit rather than being deleted: it now
+    // rides the step-6 event fired when the review screen is reached, which is
+    // strictly earlier and therefore captures the choice of people who reach
+    // the review and then abandon it, which this call never could.
     try { localStorage.removeItem('ts_onboarding') } catch { /* non-fatal */ }
     formRef.current?.requestSubmit()
   }
@@ -508,7 +533,7 @@ export function OnboardingForm({ initialUsername, displayName, canGoPrivate = tr
         <StepShell
           step={5} total={5} stepLabel="Step 5 of 5" data={data} xp={xp} name={name} username={username}
           q="How will you add your trades?" sub="Pick your starting method — you can add the others later. Broker-synced and imported trades carry a verification badge everywhere."
-          onBack={() => go(4)} onNext={() => go(6)} nextDisabled={!data.connect} nextLabel="Create my profile"
+          onBack={() => go(4)} onNext={() => go(6, { connect: data.connect })} nextDisabled={!data.connect} nextLabel="Create my profile"
         >
           <div className="ob-goals">
             {OB_CONNECT.map((c) => (
