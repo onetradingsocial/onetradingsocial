@@ -12,9 +12,19 @@ export type CohortRow = {
   cohort: string          // week label (YYYY-MM-DD, Monday)
   size: number
   d1: number; d7: number; d30: number   // retained counts
+  // How many of `size` have actually reached day N. 0 = the day-N window has
+  // not opened for anyone in the group, so the retained count above is "not yet
+  // measurable", not "measured, and nobody came back". Without this third state
+  // the two are the same number and the table cannot tell them apart.
+  d1Due: number; d7Due: number; d30Due: number
 }
 
-export type Breakdown = { key: string; size: number; d1: number; d7: number; d30: number }
+export type Breakdown = {
+  key: string
+  size: number
+  d1: number; d7: number; d30: number
+  d1Due: number; d7Due: number; d30Due: number
+}
 
 export type CohortDashboard = {
   cohorts: CohortRow[]
@@ -74,20 +84,36 @@ export async function getCohortDashboard(svc: SupabaseClient, now = new Date()):
     if (r.user_id && r.device && !device.has(r.user_id)) device.set(r.user_id, r.device)
   }
 
+  // Has this user's day-N window opened at all? This was the guard on the first
+  // line of `retained`, lifted out so that maturity is asked in exactly one
+  // place. A user `retained` skips for being too young is precisely a user who
+  // is not yet due, and the two must never diverge — so `retained` calls this
+  // rather than repeating the comparison.
+  const matured = (signupMs: number, day: number): boolean =>
+    now.getTime() >= signupMs + day * DAY
+
   // Retained on day N = at least N days elapsed since signup AND the user had
-  // activity on or after signup+N days.
+  // activity on or after signup+N days. Unchanged: maturity is recorded
+  // alongside retention, never folded into it.
   const retained = (uid: string, signupMs: number, day: number): boolean => {
-    if (now.getTime() < signupMs + day * DAY) return false
+    if (!matured(signupMs, day)) return false
     return (activity.get(uid) ?? []).some((t) => t >= signupMs + day * DAY)
   }
 
-  type Acc = { size: number; d1: number; d7: number; d30: number }
-  const blank = (): Acc => ({ size: 0, d1: 0, d7: 0, d30: 0 })
+  type Acc = {
+    size: number
+    d1: number; d7: number; d30: number
+    d1Due: number; d7Due: number; d30Due: number
+  }
+  const blank = (): Acc => ({ size: 0, d1: 0, d7: 0, d30: 0, d1Due: 0, d7Due: 0, d30Due: 0 })
   const add = (acc: Acc, uid: string, signupMs: number) => {
     acc.size++
     if (retained(uid, signupMs, 1)) acc.d1++
     if (retained(uid, signupMs, 7)) acc.d7++
     if (retained(uid, signupMs, 30)) acc.d30++
+    if (matured(signupMs, 1)) acc.d1Due++
+    if (matured(signupMs, 7)) acc.d7Due++
+    if (matured(signupMs, 30)) acc.d30Due++
   }
 
   const cohorts = new Map<string, Acc>()
@@ -116,7 +142,7 @@ export async function getCohortDashboard(svc: SupabaseClient, now = new Date()):
   return {
     cohorts: [...cohorts.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([cohort, a]) => ({ cohort, size: a.size, d1: a.d1, d7: a.d7, d30: a.d30 })),
+      .map(([cohort, a]) => ({ cohort, ...a })),
     bySource: toRows(bySource),
     byAccountType: toRows(byAccount),
     byMarket: toRows(byMarket),

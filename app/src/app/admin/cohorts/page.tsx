@@ -1,27 +1,10 @@
 import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCohortDashboard, type Breakdown } from '@/lib/server/cohorts'
-import { Empty, PageHead, Panel, Section } from '../_components/ui'
+import { Empty, Hint, PageHead, Panel, Section } from '../_components/ui'
+import { RetentionCell } from './RetentionCell'
 
 export const dynamic = 'force-dynamic'
-
-function pct(n: number, d: number) { return d ? Math.round((n / d) * 100) : 0 }
-
-/** Heat cell — opacity encodes retention so a column reads as a gradient. */
-function RetentionCell({ n, size }: { n: number; size: number }) {
-  const p = pct(n, size)
-  return (
-    <td
-      className="num"
-      style={{
-        background: p > 0 ? `rgba(124,92,230,${(p / 100) * 0.85 + 0.05})` : undefined,
-        color: p > 55 ? '#fff' : undefined,
-      }}
-    >
-      {p}%<span style={{ opacity: 0.6, fontSize: 11, marginLeft: 4 }}>({n})</span>
-    </td>
-  )
-}
 
 function BreakdownTable({ title, rows }: { title: string; rows: Breakdown[] }) {
   return (
@@ -34,9 +17,9 @@ function BreakdownTable({ title, rows }: { title: string; rows: Breakdown[] }) {
               <tr key={r.key}>
                 <td>{r.key}</td>
                 <td className="num">{r.size}</td>
-                <RetentionCell n={r.d1} size={r.size} />
-                <RetentionCell n={r.d7} size={r.size} />
-                <RetentionCell n={r.d30} size={r.size} />
+                <RetentionCell n={r.d1} size={r.size} due={r.d1Due} day={1} />
+                <RetentionCell n={r.d7} size={r.size} due={r.d7Due} day={7} />
+                <RetentionCell n={r.d30} size={r.size} due={r.d30Due} day={30} />
               </tr>
             ))}
           </tbody>
@@ -45,6 +28,32 @@ function BreakdownTable({ title, rows }: { title: string; rows: Breakdown[] }) {
     </Panel>
   )
 }
+
+/**
+ * What this page actually excludes.
+ *
+ * The badge used to read "Internal excluded", and the subtitle "Internal
+ * traffic excluded everywhere". Both over-claimed. Cohorts count PEOPLE, so the
+ * only filter available is `profiles.is_internal` (lib/server/cohorts.ts) —
+ * one test, applied to the population.
+ *
+ * The event-based pages apply a second test: they also drop rows stamped
+ * `analytics_events.is_internal`. That stamp is not a duplicate of the profile
+ * flag. It is where ADMIN traffic gets marked internal — by email allowlist, at
+ * write time (api/track/route.ts: `if (isAdmin(user)) isInternal = true`) —
+ * rather than onto the profile row, which is not necessarily flagged at all.
+ *
+ * So an admin whose profile is unflagged is dropped from the event pages and
+ * still counted here, in the size and in every retention denominator. The
+ * filter is the right one for a population metric and is deliberately left
+ * alone; the badge is what was lying, so the badge is what changed.
+ */
+const INTERNAL_BADGE = (
+  <>
+    <span className="v-badge vb-broker">Internal profiles excluded</span>
+    <Hint text="Excludes profiles flagged is_internal. Cohorts are counted from the profiles table, so that is the only filter that applies here — unlike the event-based pages, which also drop rows stamped analytics_events.is_internal. Admin traffic is marked internal into that stamp by email allowlist, not onto the profile row, so an admin whose profile is not flagged still appears in these figures." />
+  </>
+)
 
 export default async function CohortsPage() {
   // Audit item 18, F2. The layout gate above this page is NOT the authorisation
@@ -61,8 +70,8 @@ export default async function CohortsPage() {
     <>
       <PageHead
         title="Cohorts"
-        sub="Retention = share of the cohort still active on or after day N. Internal traffic excluded everywhere."
-        right={<span className="v-badge vb-broker">Internal excluded</span>}
+        sub="Retention = share of the cohort still active on or after day N. A cell reads n/a until the group is old enough for that day to have arrived."
+        right={INTERNAL_BADGE}
       />
 
       <div className="adm-stack">
@@ -76,9 +85,9 @@ export default async function CohortsPage() {
                     <tr key={c.cohort}>
                       <td>{c.cohort}</td>
                       <td className="num">{c.size}</td>
-                      <RetentionCell n={c.d1} size={c.size} />
-                      <RetentionCell n={c.d7} size={c.size} />
-                      <RetentionCell n={c.d30} size={c.size} />
+                      <RetentionCell n={c.d1} size={c.size} due={c.d1Due} day={1} />
+                      <RetentionCell n={c.d7} size={c.size} due={c.d7Due} day={7} />
+                      <RetentionCell n={c.d30} size={c.size} due={c.d30Due} day={30} />
                     </tr>
                   ))}
                 </tbody>
