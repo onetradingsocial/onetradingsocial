@@ -98,6 +98,31 @@ export async function POST(request: NextRequest) {
   const createSession = (customer: string) => stripe.checkout.sessions.create({
     mode: 'subscription',
     customer,
+    /**
+     * Charge the price we quoted, in the currency we quoted it in.
+     *
+     * Stripe's adaptive pricing converts the amount into the visitor's local
+     * currency by geography. Observed on production 2026-09-07: a session for
+     * Trader — listed everywhere as A$30/month — opened at ₱1,410.68 per month
+     * with PHP pre-selected, AUD demoted to a second button, and the line
+     * "Charges will vary based on exchange rates."
+     *
+     * That contradicts the product's own disclosure at the exact moment the
+     * card comes out. `/settings/billing` carries CURRENCY_NOTE — "All prices
+     * are in Australian dollars (AUD)" — and lib/plans.ts records the reasoning
+     * as an owner decision: every figure is AUD, prefixed `A$` so it can never
+     * be misread as a bare dollar sign, because ACL s48 requires the quoted
+     * figure to be the total payable. A floating FX conversion applied after
+     * the quote is precisely the thing that note exists to prevent.
+     *
+     * So the conversion is off and the charge matches the quote. The tradeoff
+     * is deliberate: an overseas customer sees AUD and their own bank handles
+     * the exchange, rather than seeing a familiar currency at a rate we quoted
+     * nowhere. Turning this back on is a pricing decision, and it means
+     * changing CURRENCY_NOTE and the subscription terms with it — not just
+     * this flag.
+     */
+    adaptive_pricing: { enabled: false },
     client_reference_id: user.id,
     line_items: [{ price, quantity: 1 }],
     discounts: flow !== 'referral' && interval === 'annual' && betaCoupon
