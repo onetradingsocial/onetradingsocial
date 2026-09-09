@@ -9,6 +9,7 @@ import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
 import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
 import { stripeTermsConsent } from '@/lib/terms-acceptance'
 import { trackServer } from '@/lib/server/track'
+import { createAndStoreCustomer, isMissingCustomer } from '@/lib/server/billing'
 import { logError } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
@@ -73,20 +74,9 @@ export async function POST(request: NextRequest) {
     .from('profiles').select('stripe_customer_id').eq('id', user.id).single()
   let customerId = prof?.stripe_customer_id as string | null
   if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email ?? undefined,
-      metadata: { user_id: user.id },
-    })
-    customerId = customer.id
-    // Service client: stripe_customer_id is NOT in the column grant of 0042.
-    // It is the key the webhook maps a Stripe customer back to a user with, so
-    // letting a client PATCH it would let one user claim another's subscription.
-    const { error: persistError } = await createServiceClient()
-      .from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id)
-    if (persistError) {
-      logError('billing checkout', persistError, { note: 'failed to persist stripe_customer_id' })
-      return NextResponse.json({ error: 'could not save customer' }, { status: 500 })
-    }
+    const minted = await createAndStoreCustomer(createServiceClient(), stripe, user)
+    if ('error' in minted) return NextResponse.json({ error: minted.error }, { status: 500 })
+    customerId = minted.customerId
   }
 
   // Every checkout now returns to the billing page. tier/interval ride along so
@@ -105,9 +95,9 @@ export async function POST(request: NextRequest) {
   const adsConsent =
     parseConsent(request.cookies.get(CONSENT_COOKIE)?.value)?.ads ?? ADS_DEFAULT
 
-  const session = await stripe.checkout.sessions.create({
+  const createSession = (customer: string) => stripe.checkout.sessions.create({
     mode: 'subscription',
-    customer: customerId,
+    customer,
     client_reference_id: user.id,
     line_items: [{ price, quantity: 1 }],
     discounts: flow !== 'referral' && interval === 'annual' && betaCoupon
@@ -145,6 +135,41 @@ export async function POST(request: NextRequest) {
     success_url: successUrl,
     cancel_url: cancelUrl,
   })
+
+  /**
+   * A stored customer id that Stripe does not recognise is recoverable, once.
+   *
+   * Eight of the earliest profiles carry `cus_` ids minted under a different
+   * Stripe namespace — the sandbox key production ran on before the live key,
+   * whose objects the live key cannot see. Nothing in the app notices a dead id
+   * until the moment it is spent: the row looks fine, the profile loads, and
+   * `sessions.create` throws `No such customer` on the one request that matters.
+   * Unhandled, that is a 500 on the Upgrade button for exactly those accounts —
+   * the oldest ones, the most likely to try to pay — while everyone else checks
+   * out normally.
+   *
+   * So a missing customer is treated as what it is: a stale local pointer, not
+   * a failed purchase. Mint a replacement, store it, retry once. A second
+   * failure is real and propagates.
+   *
+   * Only for THIS error. A network wobble or a card-side failure must not
+   * silently create a duplicate customer for a user who already has a good one.
+   */
+  let session
+  try {
+    session = await createSession(customerId)
+  } catch (err) {
+    if (!isMissingCustomer(err, customerId)) throw err
+    logError('billing checkout', err, {
+      note: 'stored stripe_customer_id not found in this Stripe mode; re-minting',
+      customerId,
+    })
+    const minted = await createAndStoreCustomer(createServiceClient(), stripe, user)
+    if ('error' in minted) return NextResponse.json({ error: minted.error }, { status: 500 })
+    customerId = minted.customerId
+    session = await createSession(customerId)
+  }
+
   if (!session.url) return NextResponse.json({ error: 'no session url' }, { status: 500 })
 
   // Funnel: checkout_started. The bottom two steps of the admin funnel
