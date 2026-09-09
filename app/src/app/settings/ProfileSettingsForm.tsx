@@ -99,7 +99,7 @@ export function ProfileSettingsForm(props: Props) {
             <span className="ts-label">Main markets</span>
             <div className="ts-chips">
               {MARKETS.map((m) => (
-                <label key={m} className="ts-chip">
+                <label key={m} className="ts-chip ts-chip--enum">
                   <input type="checkbox" name="main_markets" value={m}
                     defaultChecked={props.markets.includes(m)} />
                   {m}
@@ -112,7 +112,7 @@ export function ProfileSettingsForm(props: Props) {
             <span className="ts-label">Trading styles</span>
             <div className="ts-chips">
               {TRADING_STYLES.map((s) => (
-                <label key={s} className="ts-chip">
+                <label key={s} className="ts-chip ts-chip--enum">
                   <input type="checkbox" name="trading_styles" value={s}
                     defaultChecked={props.styles.includes(s)} />
                   {s}

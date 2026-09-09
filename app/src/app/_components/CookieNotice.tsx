@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import {
+import {
+
   purgeTier,
   readConsent,
   writeConsent,
@@ -64,6 +65,17 @@ export function CookieNotice({ initial }: { initial: ConsentState }) {
     },
     [state],
   )
+
+  // Reserve the space the banner covers, for as long as it covers it. It is
+  // fixed to the bottom edge and on the login page it sat over the submit
+  // button, so consent had to be dismissed before a returning user could see
+  // the way in. The class is removed on unmount and on a choice, so nothing
+  // outlives the banner. See `body.has-cookie-notice` in globals.css.
+  useEffect(() => {
+    if (!open) return
+    document.body.classList.add('has-cookie-notice')
+    return () => document.body.classList.remove('has-cookie-notice')
+  }, [open])
 
   if (!open) return null
 

@@ -158,7 +158,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   background-repeat: no-repeat; background-position: right 14px center;
   text-transform: capitalize;
 }
-.ts-select[name="is_public"] { max-width: 200px; }
+/* Every other .ts-select holds a lowercase enum ('forex', 'long'), so the
+   capitalize above is right for them. This one holds a sentence — without the
+   override it renders "Private — Only You Can See It". */
+.ts-select[name="is_public"] { max-width: 200px; text-transform: none; }
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -198,8 +201,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   background: var(--surface-2); border: 1px solid var(--border-2);
   font-size: 13.5px; font-weight: 600; color: var(--dim);
   transition: border-color .15s, color .15s, background .15s, transform .12s;
-  text-transform: capitalize;
 }
+/* Opt IN to title-casing, for chips whose label is a raw lowercase enum value
+   ('forex', 'swing'). It used to be on `.ts-chip` itself, which title-cased
+   every chip carrying a written sentence: "Add A Profile Photo", "Log Or Import
+   Your First Trade", "Not Sure What It Does For Me". Most chips in the product
+   are sentences, so the default is now to render text as it was written. */
+.ts-chip--enum { text-transform: capitalize; }
 .ts-chip:hover { border-color: var(--border-vio); color: var(--text); }
 .ts-chip input { position: absolute; opacity: 0; pointer-events: none; }
 .ts-chip:has(input:checked) {
@@ -2692,3 +2700,23 @@ button.ts-burger-link {
   background: none; border: 0; padding: 0; cursor: pointer;
 }
 .cookie-settings-link:hover { color: var(--violet-br); text-decoration: underline; }
+
+/* ---------- clearance for fixed furniture ---------- */
+/*
+ * The help FAB is `position: fixed` bottom-right, so the last thing on a page
+ * sits under it permanently — observed covering the third card of the journal
+ * empty state and the "Your performance" heading on home. Padding on the body
+ * does not move the FAB; it just guarantees the document can always scroll far
+ * enough for its final content to clear it.
+ */
+body { padding-bottom: 84px; }
+
+/*
+ * The cookie notice is fixed to the bottom edge and is taller than the FAB. On
+ * the login page it sat over the bottom of the form INCLUDING the submit
+ * button, so consent had to be dismissed before a returning user could see the
+ * way in. CookieNotice adds this class while it is on screen and removes it on
+ * a choice, so the reservation lasts exactly as long as the banner does.
+ */
+body.has-cookie-notice { padding-bottom: 220px; }
+@media (min-width: 720px) { body.has-cookie-notice { padding-bottom: 150px; } }
