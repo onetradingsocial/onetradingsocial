@@ -19,7 +19,10 @@ export function AssetDonut({ data, total }: { data: { market: string; count: num
           return el
         })}
         <text x={cx} y={cy - 1} textAnchor="middle" fontFamily="var(--display)" fontWeight="700" fontSize="22" fill="var(--text)">{total}</text>
-        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="8.5" fill="var(--faint)" letterSpacing="1.5">TRADES</text>
+        {/* "TRADES" — the same bare word the closed-only stat tile uses, for a
+            different population. Both callers pass every trade including open,
+            so the centre says so and the tile says "Closed Trades". */}
+        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="7.5" fill="var(--faint)" letterSpacing="1.2">ALL TRADES</text>
       </svg>
       <ul className="ts-donut-legend">
         {data.length === 0 ? <li className="faint">No trades yet</li> : data.map((d) => (

@@ -186,6 +186,13 @@ export type Metrics = {
   wins: number
   losses: number
   winRate: number
+  /** How many of the `total` closed trades carry an `r_multiple`. This is the
+   *  denominator of `avgRr`, `profitFactor`, `best` and `worst` — every other
+   *  figure here counts all `total` closed trades. The two differ whenever a
+   *  stop-less trade is closed, and a UI that prints an R figure beside a
+   *  win-rate figure without saying which population each came from is
+   *  reporting two different samples as one. */
+  rCount: number
   avgRr: number
   profitFactor: number
   best: number
@@ -225,6 +232,7 @@ export function computeMetrics(trades: TradeForMetrics[]): Metrics {
     wins,
     losses,
     winRate: closed.length ? wins / closed.length : 0,
+    rCount: rs.length,
     // R metrics average over the trades that HAVE an R — dividing by every
     // closed trade would drag a stop-less journal's avg R towards zero.
     avgRr: rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : 0,

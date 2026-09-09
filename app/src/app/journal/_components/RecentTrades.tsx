@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { CloseTradeModal } from './CloseTradeModal'
 import { EditTradeModal, type EditTradeConfig } from './EditTradeModal'
 import { DeleteTradeButton } from './DeleteTradeButton'
-import { marketColor, instrumentBadge, type JTrade } from '@/lib/journal-stats'
+import { marketColor, instrumentBadge, matchesTradeFilter, netOfTrades, type JTrade } from '@/lib/journal-stats'
 import { MARKETS } from '@/lib/profile'
 import { VerificationBadge } from '@/app/_components/VerificationBadge'
 import { tradeLevel } from '@/lib/verification'
@@ -37,19 +37,22 @@ function fmtDate(s: string) {
   return new Date(s).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-export function RecentTrades({ trades, monthNet, canMistakeTag = false, editConfig }: {
+// The footer used to take a `monthNet` prop — the current calendar month's net,
+// printed in the same sentence as an all-history row count and unaffected by the
+// filter. On a real account the rows carried +$1,834 and the footer read +$0.
+//
+// The net is now derived from the rows the table is showing, so the sentence
+// describes one population. The month figure was not deleted, it was moved to
+// where it is true: the "Total P/L · <month>" stat card and the journal hero,
+// both of which name their period.
+export function RecentTrades({ trades, canMistakeTag = false, editConfig }: {
   // editConfig omitted on /demo, whose sample trades belong to nobody and
   // cannot be edited — the table then renders no Edit button at all.
-  trades: JTrade[]; monthNet: number; canMistakeTag?: boolean; editConfig?: EditTradeConfig
+  trades: JTrade[]; canMistakeTag?: boolean; editConfig?: EditTradeConfig
 }) {
   const [f, setF] = useState<string>('all')
-  const shown = trades.filter((t) => {
-    if (f === 'all') return true
-    // outcome, not r_multiple: stop-less trades close with a win/loss and no R.
-    if (f === 'wins') return t.status === 'closed' && t.outcome === 'win'
-    if (f === 'losses') return t.status === 'closed' && t.outcome === 'loss'
-    return t.market === f
-  })
+  const shown = trades.filter((t) => matchesTradeFilter(t, f))
+  const { net, counted, excluded } = netOfTrades(shown)
 
   return (
     <div className="ts-card">
@@ -112,7 +115,9 @@ export function RecentTrades({ trades, monthNet, canMistakeTag = false, editConf
 
       <div className="ts-table-foot">
         <span className="faint">Showing {shown.length} of {trades.length} trades · net{' '}
-          <span className={monthNet >= 0 ? 'ts-pos' : 'ts-neg'}>{monthNet >= 0 ? '+' : '−'}${Math.abs(monthNet).toFixed(0)}</span>
+          <span className={net >= 0 ? 'ts-pos' : 'ts-neg'}>{net >= 0 ? '+' : '−'}${Math.abs(net).toFixed(0)}</span>{' '}
+          across the {counted} closed {counted === 1 ? 'row' : 'rows'} shown
+          {excluded > 0 && ` · ${excluded} excluded (open, or closed with no money P/L)`}
         </span>
       </div>
     </div>

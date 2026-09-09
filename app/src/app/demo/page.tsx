@@ -94,8 +94,8 @@ export default function DemoJournalPage() {
         />
       </div>
 
-      <div className="mt-5">
-        <RecentTrades trades={trades} monthNet={monthNet} />
+      <div className="mt-5" id="recent-trades">
+        <RecentTrades trades={trades} />
       </div>
 
       <div className="ts-card mt-5" style={{ textAlign: 'center', padding: '26px 20px' }}>

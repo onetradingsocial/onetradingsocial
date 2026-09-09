@@ -423,6 +423,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 .ts-bigcard-sub.pos { color: var(--up); }
 .ts-bigcard-sub.neg { color: var(--down); }
 .ts-bigcard-sub.muted { color: var(--faint); }
+/* Provenance line: date range, denominator, units, exclusions. Deliberately
+   quieter than .ts-bigcard-sub — it qualifies the number, it is not the number. */
+.ts-bigcard-foot { font-size: 10.5px; line-height: 1.4; color: var(--faint); opacity: .85; margin-top: 5px; }
 
 /* panels + charts */
 .ts-panels { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }

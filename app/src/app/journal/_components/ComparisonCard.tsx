@@ -1,7 +1,10 @@
 import { MIN_COHORT } from '@/lib/compare'
 import type { ComparisonData } from '@/lib/server/compare'
 
-function Delta({ value, suffix = '', pts = false }: { value: number; suffix?: string; pts?: boolean }) {
+/** Null when one of the two windows is empty — see `CompareDeltas`. An absent
+ *  period must not render as an arrow, nor as "flat". */
+function Delta({ value, suffix = '', pts = false }: { value: number | null; suffix?: string; pts?: boolean }) {
+  if (value == null) return <span className="faint" style={{ fontSize: 12 }}>—</span>
   if (Math.abs(value) < 0.005) return <span className="faint" style={{ fontSize: 12 }}>flat</span>
   const up = value > 0
   const shown = pts ? Math.abs(value * 100).toFixed(0) : Math.abs(value).toFixed(2)
@@ -40,26 +43,47 @@ export function ComparisonCard({ data, windowDays = 30 }: { data: ComparisonData
         <span className="faint" style={{ fontSize: 12 }}>last {windowDays} days vs previous {windowDays}</span>
       </div>
 
-      {/* You vs your own history */}
+      {/* You vs your own history.
+          Every figure in this table comes from `statsFor`, which filters to
+          closed trades carrying an r_multiple and counts a win by the sign of
+          R. That is a different — and on a stop-less journal, smaller —
+          population than the header win rate, which counts every closed trade
+          by `outcome`. The caption below names it so the two can be read side
+          by side without looking like a contradiction. */}
       <div style={{ overflowX: 'auto' }}>
         <table className="ts-table mt-3">
           <thead><tr><th></th><th className="num">This period</th><th className="num">Previous</th><th className="num">Change</th></tr></thead>
           <tbody>
             <tr>
-              <td>Trades</td><td className="num">{self.current.trades}</td><td className="num">{self.previous.trades}</td>
+              <td>Trades <span className="faint" style={{ fontWeight: 400 }}>(R-scored, closed)</span></td>
+              <td className="num">{self.current.trades}</td><td className="num">{self.previous.trades}</td>
               <td className="num"><Delta value={self.deltas.trades} /></td>
             </tr>
             <tr>
-              <td>Win rate</td><td className="num">{pct(self.current.winRate)}</td><td className="num">{pct(self.previous.winRate)}</td>
+              <td>Win rate <span className="faint" style={{ fontWeight: 400 }}>(by sign of R)</span></td>
+              <td className="num">{pct(self.current.winRate)}</td><td className="num">{pct(self.previous.winRate)}</td>
               <td className="num"><Delta value={self.deltas.winRate} suffix="pts" pts /></td>
             </tr>
             <tr>
-              <td>Avg R</td><td className="num">{self.current.avgR.toFixed(2)}R</td><td className="num">{self.previous.avgR.toFixed(2)}R</td>
+              <td>Avg R <span className="faint" style={{ fontWeight: 400 }}>(realised)</span></td>
+              <td className="num">{self.current.avgR.toFixed(2)}R</td><td className="num">{self.previous.avgR.toFixed(2)}R</td>
               <td className="num"><Delta value={self.deltas.avgR} suffix="R" /></td>
             </tr>
           </tbody>
         </table>
       </div>
+      {!self.comparable && (
+        <p className="faint mt-2" style={{ fontSize: 12 }}>
+          {self.current.trades === 0
+            ? `No R-scored closed trades in the last ${windowDays} days, so nothing here is a change — an empty period is not an improvement on a previous one.`
+            : `No R-scored closed trades in the previous ${windowDays} days, so this period has nothing to be compared against.`}
+        </p>
+      )}
+      <p className="faint mt-2" style={{ fontSize: 11.5 }}>
+        Denominator: closed trades with an r_multiple, windowed by trade date. Trades closed
+        without a stop carry no R and are not counted here, so this win rate can differ
+        from the one at the top of the page.
+      </p>
 
       {/* Anonymised peer benchmark */}
       <div className="mt-4" style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
@@ -93,8 +117,10 @@ export function ComparisonCard({ data, windowDays = 30 }: { data: ComparisonData
               </div>
             </div>
             <p className="faint mt-3" style={{ fontSize: 11.5, lineHeight: 1.5 }}>
-              Aggregated from {peers.cohortSize} anonymised traders. Medians describe logged behaviour only —
-              this is not financial advice or a suggestion to trade like anyone else.
+              Aggregated from {peers.cohortSize} anonymised traders, over their public closed trades with an
+              r_multiple in the last {windowDays} days — the same window and denominator as your own figures
+              above. Medians describe logged behaviour only — this is not financial advice or a suggestion to
+              trade like anyone else.
             </p>
           </>
         )}

@@ -17,10 +17,33 @@ export type PeriodStats = {
   profitFactor: number
 }
 
+/**
+ * Deltas between two periods.
+ *
+ * The rate deltas are nullable and that is the whole point. `statsFor([])`
+ * returns zeros — it has to return something — and subtracting a real previous
+ * period from those zeros produced a *number*, which the UI then rendered with
+ * an up arrow. A trader who took no trades at all in the current window, after
+ * a window averaging −0.8R, was shown "▲ 0.80R" and told avg R had improved.
+ * Absence is not improvement. Null means "there is nothing to compare", and the
+ * card has to say so rather than paint a colour.
+ *
+ * `trades` stays a plain number: going from 5 trades to 0 is a real, measured
+ * change in a count, not a rate computed over an empty denominator.
+ */
+export type CompareDeltas = {
+  trades: number
+  winRate: number | null
+  avgR: number | null
+  profitFactor: number | null
+}
+
 export type SelfComparison = {
   current: PeriodStats
   previous: PeriodStats
-  deltas: { trades: number; winRate: number; avgR: number; profitFactor: number }
+  /** true only when BOTH windows hold at least one R-bearing trade. */
+  comparable: boolean
+  deltas: CompareDeltas
 }
 
 export type PeerBenchmark = {
@@ -61,17 +84,28 @@ export function compareToSelf(trades: CompareTrade[], windowDays = 30, now = Dat
   }
   const current = statsFor(trades.filter((t) => inRange(t, curStart, now + DAY)))
   const previous = statsFor(trades.filter((t) => inRange(t, prevStart, curStart)))
-  const pf = (a: number, b: number) => {
-    if (!Number.isFinite(a) || !Number.isFinite(b)) return 0
+
+  // A rate delta needs a denominator on both sides. With either window empty
+  // the "previous" figure has nothing to be compared against and the
+  // subtraction just reflects the other period back at the reader with its sign
+  // flipped — the false improvement.
+  const comparable = current.trades > 0 && previous.trades > 0
+  const delta = (a: number, b: number): number | null => {
+    if (!comparable) return null
+    // An infinite profit factor (winners, no losers) minus a finite one is not
+    // a quantity. It was already being reported as 0; it is now reported as
+    // "no comparable value", which is what it is.
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null
     return a - b
   }
+
   return {
-    current, previous,
+    current, previous, comparable,
     deltas: {
       trades: current.trades - previous.trades,
-      winRate: current.winRate - previous.winRate,
-      avgR: current.avgR - previous.avgR,
-      profitFactor: pf(current.profitFactor, previous.profitFactor),
+      winRate: delta(current.winRate, previous.winRate),
+      avgR: delta(current.avgR, previous.avgR),
+      profitFactor: delta(current.profitFactor, previous.profitFactor),
     },
   }
 }

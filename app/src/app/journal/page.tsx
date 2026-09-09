@@ -307,15 +307,31 @@ export default async function JournalPage() {
 
       <div className="ts-panels mt-5">
         <div className="ts-card">
-          <div className="flex items-center justify-between"><h2 className="ts-h2">Monthly P/L</h2><span className="faint">{year}</span></div>
+          <div className="flex items-center justify-between"><h2 className="ts-h2">Monthly P/L</h2><span className="faint">{year} · closed</span></div>
           <div className="mt-3"><MonthlyPL data={monthlyPnl(closed, year)} /></div>
         </div>
         <div className="ts-card">
-          <div className="flex items-center justify-between"><h2 className="ts-h2">Equity Curve</h2><span className="faint">YTD</span></div>
+          {/* Was captioned "YTD". `equityCurve(closed)` accumulates every closed
+              trade with no year filter, so the caption was accurate only because
+              production has no pre-2026 rows — the first trader to log a
+              December-2025 close would have been shown their whole history under
+              a year-to-date heading.
+
+              The label is what moved, not the filter. An equity curve that
+              resets each January is a worse chart: the point of the line is the
+              account's whole path, and the year view already exists beside it as
+              Monthly P/L. Truncating it would also have to be done twice, since
+              the Pro report renders the same series. */}
+          <div className="flex items-center justify-between"><h2 className="ts-h2">Equity Curve</h2><span className="faint">all time · closed</span></div>
           <div className="mt-3"><EquityCurve points={eq.points} /></div>
         </div>
         <div className="ts-card">
-          <div className="flex items-center justify-between"><h2 className="ts-h2">Asset Distribution</h2><span className="faint">by volume</span></div>
+          {/* Was "by volume", which in trading means size traded. The slices are
+              `count / total` — trade count — and `dist` is built from `trades`,
+              not `closed`, so open positions are in it. Both facts are now on
+              the label, because the "Closed Trades" tile two rows up counts a
+              different population and the two used to read as one number. */}
+          <div className="flex items-center justify-between"><h2 className="ts-h2">Asset Distribution</h2><span className="faint">by trade count · all trades incl. open</span></div>
           <div className="mt-3"><AssetDonut data={dist} total={trades.length} /></div>
         </div>
       </div>
@@ -328,8 +344,8 @@ export default async function JournalPage() {
         <JournalExportButtons trades={trades} canExport={canFlag(flags, tier, 'export_journal')} canReport={canFlag(flags, tier, 'advanced_reporting')} />
       </div>
 
-      <div className="mt-3">
-        <RecentTrades trades={visibleTrades} monthNet={sums.monthNet} canMistakeTag={canFlag(flags, tier, 'mistake_tagging')} editConfig={editConfig} />
+      <div className="mt-3" id="recent-trades">
+        <RecentTrades trades={visibleTrades} canMistakeTag={canFlag(flags, tier, 'mistake_tagging')} editConfig={editConfig} />
         {hiddenCount > 0 && (
           <div className="ts-banner mt-3">
             Showing your last {JOURNAL_FREE_LIMIT} trades. {hiddenCount} older{' '}

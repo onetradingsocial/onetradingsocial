@@ -9,7 +9,11 @@ export function InsightCards({ insights, locked }: { insights: Insight[]; locked
     <div className="ts-card">
       <div className="flex items-center justify-between">
         <h2 className="ts-h2">Personalised insights</h2>
-        <span className="faint" style={{ fontSize: 12 }}>✦ computed from your trades</span>
+        {/* Every insight below is computed over the same population: closed
+            trades that carry an r_multiple, across the whole journal. That is
+            a smaller set than the header's win rate, which counts every closed
+            trade by outcome — so it is named here rather than left implied. */}
+        <span className="faint" style={{ fontSize: 12 }}>✦ full history · R-scored closed trades</span>
       </div>
       {insights.length === 0 ? (
         <p className="faint mt-3" style={{ fontSize: 13 }}>
@@ -26,7 +30,7 @@ export function InsightCards({ insights, locked }: { insights: Insight[]; locked
               <span aria-hidden style={{ flexShrink: 0 }}>{i.tone === 'good' ? '📈' : i.tone === 'bad' ? '⚠️' : '✦'}</span>
               <div>
                 <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.5 }}>{i.text}</p>
-                <span className="faint" style={{ fontSize: 11.5 }}>Based on {i.sample} trade{i.sample === 1 ? '' : 's'}</span>
+                <span className="faint" style={{ fontSize: 11.5 }}>Based on {i.sample} R-scored closed trade{i.sample === 1 ? '' : 's'}</span>
               </div>
             </div>
           ))}
