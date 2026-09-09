@@ -103,13 +103,17 @@ describe('getFunnelDashboard — internal traffic is judged by profiles, not the
       analytics_events: [
         ev('broker_card_viewed', 'real'),
         ev('broker_card_viewed', 'seed'),
+        ev('broker_card_seen', 'real'),
+        ev('broker_card_seen', 'seed'),
         ev('broker_connected', 'seed'),
       ],
       trades: [], subscriptions: [], broker_accounts: [],
       lesson_completions: [], posts: [], messages: [],
     })
     const f = await getFunnelDashboard(svc)
-    expect(f.brokerFunnel.find((r) => r.step === 'Broker card viewed')!.count).toBe(1)
+    expect(f.brokerFunnel.find((r) => r.step === 'Settings page reached')!.count).toBe(1)
+    // The client-fired half is filtered by the same rule as the server one.
+    expect(f.brokerFunnel.find((r) => r.step === 'Broker card on screen')!.count).toBe(1)
     // A seed account must never be able to report the differentiator working.
     expect(f.brokerFunnel.find((r) => r.step === 'Broker connected')!.count).toBe(0)
   })

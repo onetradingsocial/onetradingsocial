@@ -151,6 +151,19 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
     })
   }
 
+  // Land the user on the thing they asked for at step 5. Before this, everyone
+  // went to the feed: of the nine real users who picked "Connect MT5 broker",
+  // one ever reached the connect form, because nothing in the product took them
+  // there. `from=onboarding` separates this entry point from the journal
+  // empty-state CTA in the `broker_card_viewed` funnel.
+  //
+  // Both landing routes MUST render <SignupConversion> — the Meta and Reddit
+  // signup pixels gate on ?signup=1, so a route without it drops the conversion
+  // with no error. That is why the param rides along here unchanged.
+  if (intendedSource === 'broker') {
+    redirect(`/settings?signup=1&cid=${conversionId}&from=onboarding#broker`)
+  }
+
   redirect(`/?signup=1&cid=${conversionId}`)
 }
 
