@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { assembleFeed, boostFavorites } from '@/lib/feed'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
+import { weekChain } from '@/lib/streaks'
 import { FEED_POST_SELECT, hydrateFeedPosts, type RawPost } from '@/lib/server/feed-hydration'
 import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getUserXp } from '@/lib/server/xp'
@@ -104,6 +105,18 @@ export default async function Home({
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
   const loggedToday = trades.filter((t) => Date.parse(t.traded_at) >= todayStart.getTime()).length
 
+  // The "don't break the chain" strip, from the days a trade was actually
+  // logged. It used to be invented in the component from `metrics.currentStreak`
+  // — the win/loss TRADE streak — with today hardcoded to the last cell, which
+  // the M T W T F S S labels render as Sunday every day of the week.
+  //
+  // Same UTC day keys as `computeStreaks` on the journal page, so the two
+  // read the same week. See weekChain() for the timezone caveat.
+  const chain = weekChain(
+    [...new Set(trades.map((t) => t.traded_at.slice(0, 10)))],
+    new Date().toISOString().slice(0, 10),
+  )
+
   // Real sparkline series, oldest→newest closed trades.
   const closed = trades
     .filter((t) => t.status === 'closed' && t.r_multiple != null)
@@ -131,6 +144,7 @@ export default async function Home({
     viewerRank,
     totalRanked: weekBoard.length,
     loggedToday,
+    chain,
     tradeCount: trades.length,
     metrics: {
       winRate: metrics.winRate, avgRr: metrics.avgRr, netPnl: metrics.netPnl,

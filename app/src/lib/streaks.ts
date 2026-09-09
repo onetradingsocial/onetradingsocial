@@ -42,3 +42,51 @@ export function computeStreaks(x: StreakInputs): Streak[] {
     // computed and passed in, so nothing upstream needs changing to restore.
   ]
 }
+
+/* ── The "don't break the chain" week strip ─────────────────────────────── */
+
+export type ChainDay = 'done' | 'today' | 'missed' | 'future'
+
+/**
+ * The seven days of the week containing `todayKey`, Monday first, each labelled
+ * with what actually happened.
+ *
+ * This replaces a function that never consulted a calendar at all. It placed
+ * "today" at index 6 unconditionally — which the M T W T F S S labels render as
+ * SUNDAY, every day of the week — and filled the six cells before it from
+ * `Math.abs(streak)`, the win/loss TRADE streak. So four winning trades in one
+ * afternoon painted Monday through Thursday as done, and a user who logged
+ * every day but traded flat saw an empty chain. The card is titled "Don't break
+ * the chain": it is the product's habit mechanic, and it was showing fiction.
+ *
+ * A day the user missed is deliberately its own state rather than being folded
+ * into `future`. Rendering a missed Monday identically to an upcoming Friday
+ * would be a smaller version of the same lie — the strip has to be able to say
+ * "you didn't log that day", or it cannot say anything true about a chain.
+ *
+ * Day keys are UTC (`YYYY-MM-DD`), matching `StreakInputs.journalDays` and
+ * `computeStreaks` above. No timezone is stored against a profile, so a trader
+ * far from UTC sees the boundary fall mid-evening or mid-morning. That is a
+ * known and pre-existing property of every streak in this file, not something
+ * this function introduces — fixing it means storing a timezone and moving all
+ * of them together.
+ */
+export function weekChain(journalDays: string[], todayKey: string): ChainDay[] {
+  const DAY = 864e5
+  const today = Date.parse(todayKey + 'T00:00:00Z')
+  if (Number.isNaN(today)) return Array<ChainDay>(7).fill('future')
+
+  // getUTCDay() is 0=Sunday; the strip is Monday-first, so Sunday is index 6.
+  const weekday = (new Date(today).getUTCDay() + 6) % 7
+  const monday = today - weekday * DAY
+
+  const logged = new Set(journalDays)
+  const out: ChainDay[] = []
+  for (let i = 0; i < 7; i++) {
+    const key = new Date(monday + i * DAY).toISOString().slice(0, 10)
+    if (i === weekday) out.push(logged.has(key) ? 'done' : 'today')
+    else if (i > weekday) out.push('future')
+    else out.push(logged.has(key) ? 'done' : 'missed')
+  }
+  return out
+}

@@ -1,3 +1,4 @@
+import type { ChainDay } from '@/lib/streaks'
 import type { FeedTabItem } from '../FeedTabs'
 import type { Recommendation } from '@/lib/recommend'
 
@@ -43,6 +44,10 @@ export type HomeData = {
   viewerRank: number | null
   totalRanked: number
   loggedToday: number
+  /** The real Monday-first week for the "don't break the chain" strip, from
+   *  `weekChain` in lib/streaks.ts. Derived from the days the user actually
+   *  logged a trade — NOT from `streak`, which is the win/loss trade streak. */
+  chain: ChainDay[]
   tradeCount: number
   metrics: HomeMetrics
   weekLeaders: HomeLeader[]
