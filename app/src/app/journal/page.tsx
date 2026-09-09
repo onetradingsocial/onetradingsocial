@@ -212,7 +212,10 @@ export default async function JournalPage() {
     return (
       <main className="ts-page">
         <JournalHero monthLabel={monthLabel} monthTrades={0} monthNet={0} streak={0} />
-        <JournalEmptyState canImport={canFlag(flags, tier, 'mt5_import')} />
+        <JournalEmptyState
+          canImport={canFlag(flags, tier, 'mt5_import')}
+          canAutosync={canFlag(flags, tier, 'mt5_autosync')}
+        />
       </main>
     )
   }
