@@ -162,15 +162,33 @@ export default async function Home({
   }
 
   // Onboarding checklist (row 14): computed from real data, shown until done.
-  const { count: reviewViews } = await createServiceClient()
-    .from('analytics_events').select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id).eq('event', 'weekly_review_viewed')
+  //
+  // Tier-filtered against the same gate the features themselves read (audit
+  // B5). Two of the six steps are Trader+ — tagging a strategy is
+  // `strategy_tracking`, the weekly review is `weekly_review` — so on Free they
+  // were setup instructions for things the account cannot do: an unstrikeable
+  // chip, a progress bar that can never reach 100%, and a card that therefore
+  // never disappears (OnboardingChecklist only hides at done === length).
+  // Trial users hold 'pro' for 14 days, so they still see both; a user who
+  // drops to Free afterwards simply gets a shorter list.
+  const canTagStrategy = canFlag(flags, tier, 'strategy_tracking')
+  const canWeeklyReview = canFlag(flags, tier, 'weekly_review')
+  // Only worth a round-trip when the item it feeds can be shown at all.
+  const reviewViews = canWeeklyReview
+    ? (await createServiceClient()
+        .from('analytics_events').select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id).eq('event', 'weekly_review_viewed')).count ?? 0
+    : 0
   const checklist: ChecklistItem[] = [
     { key: 'photo', label: 'Add a profile photo', done: !!profile?.avatar_url, href: '/settings' },
     { key: 'markets', label: 'Pick your markets', done: (profile?.main_markets ?? []).length > 0, href: '/settings' },
     { key: 'trade', label: 'Log or import your first trade', done: trades.length > 0, href: '/journal' },
-    { key: 'strategy', label: 'Tag your first strategy', done: trades.some((t) => (t.strategy_tags ?? []).length > 0 || t.setup_type), href: '/journal' },
-    { key: 'review', label: 'Read your weekly review', done: (reviewViews ?? 0) > 0, href: '/journal' },
+    ...(canTagStrategy
+      ? [{ key: 'strategy', label: 'Tag your first strategy', done: trades.some((t) => (t.strategy_tags ?? []).length > 0 || !!t.setup_type), href: '/journal' }]
+      : []),
+    ...(canWeeklyReview
+      ? [{ key: 'review', label: 'Read your weekly review', done: reviewViews > 0, href: '/journal' }]
+      : []),
     { key: 'follows', label: 'Follow 3 traders', done: followingIds.length >= 3, href: '/leaderboard' },
     // Learn hidden for now — we are not financial advisors. Restore lesson item when compliant.
   ]

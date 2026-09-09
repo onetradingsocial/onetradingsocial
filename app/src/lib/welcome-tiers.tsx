@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react'
-import type { Tier } from '@/lib/entitlements'
+import { JOURNAL_FREE_LIMIT, requiredPlanLabel, type Tier } from '@/lib/entitlements'
 
 /** Per-tier copy for the post-onboarding welcome popup.
  *
- *  Every string is verbatim from the client's standalone mockups
+ *  Strings came verbatim from the client's standalone mockups
  *  (TradingSocial Welcome {Free,Trader,Pro Trader} (Standalone).html) — the three
  *  files are byte-identical apart from the eight fields modelled here, so they
- *  are one component with a config map rather than three components.
+ *  are one component with a config map rather than three components. Where a
+ *  mockup string described something the tier's gate does not actually grant,
+ *  the gate wins: see the Free feature list below.
  *
  *  Kept separate from plans.ts, whose PAID_PLANS has no 'free' entry and serves
  *  the billing surfaces with different copy. */
@@ -47,13 +49,21 @@ export const WELCOME_TIERS: Record<Tier, WelcomeCopy> = {
     ),
     feats: [
       { t: 'Public trading profile', d: 'Your handle, stats and history, visible to the community' },
-      { t: 'Basic trading journal', d: 'Manually log trades and tag how each one went' },
-      { t: 'Basic stats dashboard', d: 'Win rate and P&L at a glance' },
+      // Three corrections against the gate, not against the mockups (audit B5):
+      //   * tagging (mistake_tagging / strategy_tracking) is Trader+, so a Free
+      //     user cannot "tag how each one went";
+      //   * win rate is the LOCKED tile in journal/StatCards — it renders
+      //     "🔒 Trader" without advanced_stats, so it is not "at a glance";
+      //   * Free can VIEW the leaderboard but boardEligibleIds drops it from
+      //     the ranking (leaderboard_ranking is Trader+), so "see where you
+      //     rank" describes something that never happens on this tier.
+      { t: 'Basic trading journal', d: `Manually log your trades — up to ${JOURNAL_FREE_LIMIT}` },
+      { t: 'Basic stats dashboard', d: 'P&L and trade count at a glance' },
       { t: 'Follow traders & newsfeed', d: 'See what disciplined traders are doing, in real time' },
       // Learn hidden for now — we are not financial advisors. `d` was
       // 'Level up as you journal and learn consistently'. Restore when compliant.
       { t: 'Earn XP & badges', d: 'Level up as you journal consistently' },
-      { t: 'Public leaderboard access', d: 'See where you rank against the community' },
+      { t: 'Public leaderboard access', d: `See who ranks — ranking yourself starts on ${requiredPlanLabel('leaderboard_ranking')}` },
     ],
   },
   trader: {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname, useRouter } from 'next/navigation'
-import { TRIAL_DAYS } from '@/lib/entitlements'
+import { JOURNAL_FREE_LIMIT, TRIAL_DAYS, requiredPlanLabel } from '@/lib/entitlements'
 import { ackTrial } from '@/app/actions/trial'
 import { TrialPlanPicker } from '@/app/_components/TrialPlanPicker'
 
@@ -86,10 +86,19 @@ export function TrialGateModal({ show }: { show: boolean }) {
           <h2 id="tg-title">Your {TRIAL_DAYS} days of Pro have ended.</h2>
           <p>
             {/* Learn hidden for now — we are not financial advisors. This line
-                ended '…MT5 sync and premium courses —'. Restore when compliant. */}
+                ended '…MT5 sync and premium courses —'. Restore when compliant.
+
+                The Free list ended '…the feed and the leaderboard', which reads
+                as "you keep your place on it". Free keeps the VIEW only:
+                `boardEligibleIds` drops anyone without `leaderboard_ranking`,
+                and this is the exact moment the user loses it, so the wall is
+                the worst place to be vague about it (audit B5). The trade count
+                and the plan name are both read off the gate rather than typed,
+                so neither can drift from what the account actually gets. */}
             Keep the full toolkit — unlimited journal, advanced analytics and MT5 sync — or
-            continue on Free with your last 30 trades, basic stats, the feed and the
-            leaderboard.
+            continue on Free with your last {JOURNAL_FREE_LIMIT} trades, basic stats, the feed,
+            and the leaderboard to read. Ranking on it needs{' '}
+            {requiredPlanLabel('leaderboard_ranking')}.
           </p>
         </div>
 
