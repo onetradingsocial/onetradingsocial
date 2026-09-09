@@ -305,6 +305,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
   background: var(--brand-grad-soft); border: 1px solid var(--border-vio);
 }
 .ts-grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+/* Three columns held all the way down to 560px, so between there and ~900px
+   each card was about 240px wide: "MT5 statement" wrapped onto two lines and
+   the copy beneath ran long enough to reach the bottom-right corner, where the
+   fixed help button sits. Two columns is the honest fit at that width. */
+@media (max-width: 900px) { .ts-grid3 { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .ts-grid3, .ts-grid2 { grid-template-columns: 1fr; } }
 
 /* Buy/Sell toggle */
@@ -1053,11 +1058,24 @@ button.ts-burger-link {
 }
 .help-fab:hover { transform: translateY(-2px); background-position: right center; box-shadow: 0 16px 38px -12px rgba(200,64,188,0.6); }
 .help-fab svg { width: 19px; height: 19px; flex: none; }
-/* mobile: collapse the pill to a round icon button, tuck into the corner */
-@media (max-width: 560px) {
-  .help-widget { right: 14px; bottom: 14px; gap: 10px; }
+/* Collapse the pill to a round icon button once the content column stops
+   having gutters to float over.
+
+   Above ~900px the page is centred with empty space either side and the button
+   sits in that space. Below it the content fills the viewport, so a 150px-wide
+   pill parks itself on top of whatever is in the bottom-right corner — observed
+   covering the plan label on the journal empty state's third card. Shrinking to
+   a 50px circle cuts the covered area by about two thirds.
+
+   It does not eliminate overlap: anything fixed to a corner covers what is
+   under it, which is the deal a floating action button makes. Pairing this with
+   the .ts-grid3 breakpoint above is what actually clears the observed case. */
+@media (max-width: 900px) {
   .help-fab { width: 50px; height: 50px; padding: 0; justify-content: center; }
   .help-fab span { display: none; }
+}
+@media (max-width: 560px) {
+  .help-widget { right: 14px; bottom: 14px; gap: 10px; }
 }
 .help-panel {
   width: min(340px, calc(100vw - 40px)); background: var(--surface); border: 1px solid var(--border);
