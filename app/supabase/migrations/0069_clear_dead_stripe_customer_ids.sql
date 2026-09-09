@@ -1,0 +1,102 @@
+-- Cleanup: drop stored Stripe customer ids that the live key cannot see.
+--
+-- Ships after `isMissingCustomer` / `createAndStoreCustomer` in
+-- app/src/lib/server/billing.ts (PR #37).
+--
+-- DEPLOY ORDER: code first, migration second -- the same order as 0068, and for
+-- a stronger reason here. The code is not merely complete without this file, it
+-- makes this file OPTIONAL: api/billing/checkout already recovers from a dead id
+-- by minting a replacement and retrying once. Running this migration without
+-- that code deployed would be harmless but pointless; running it with the code
+-- deployed is hygiene. It is idempotent and safely re-runnable.
+--
+-- =============================================================================
+-- WHAT WENT WRONG
+-- =============================================================================
+--
+-- Production ran on a sandbox Stripe key and later moved to a live one. Stripe
+-- objects do not cross that boundary: a `cus_` id minted under the sandbox key
+-- does not exist as far as the live key is concerned, and the API answers
+-- `No such customer` for it.
+--
+-- Nothing in the app notices a dead id until it is spent. The profile row looks
+-- fine, /settings/billing renders the plans, and `checkout.sessions.create`
+-- throws on the one request that matters -- so the failure lands on the Upgrade
+-- button of the OLDEST accounts, the ones most likely to try to pay, while
+-- everyone else checks out normally.
+--
+-- PR #37 makes that survivable in code. This file removes the dead pointers so
+-- the affected users succeed on their FIRST attempt rather than on the retry.
+--
+-- =============================================================================
+-- WHY THIS PREDICATE, AND WHY IT IS NARROWER THAN "EVERY DEAD ID"
+-- =============================================================================
+--
+-- SQL cannot ask Stripe which ids the live key can see, so the predicate cannot
+-- be "the dead ones". It has to be a rule that is SAFE whether or not a given
+-- id is dead, because clearing a LIVE customer id is the one way this file
+-- could do damage: the customer object holds the user's invoice history, and
+-- orphaning it would cost them the record of what they have paid.
+--
+-- The rule is therefore: clear the id only when nothing in our own mirror
+-- depends on it -- no row in `subscriptions` for that user at all. A profile
+-- with no subscription has no billing history to point at, so the id is a pure
+-- forward-looking pointer and re-minting it costs nothing but one Stripe
+-- customer object.
+--
+-- Deliberately NOT cleared: a profile that has any subscription row, including
+-- a canceled one. A canceled subscription still implies invoices, and a user
+-- who paid once should keep the pointer to that record even when the pointer is
+-- currently unusable. Those users are covered by the code path instead -- their
+-- next checkout re-mints, and the billing portal now returns a 409 that says
+-- nothing was charged rather than "please try again".
+--
+-- This also makes the file correct to run on a database this author has not
+-- inspected: the rule protects paying customers by construction, not by having
+-- checked today's rows.
+--
+-- =============================================================================
+-- WHAT THIS DOES NOT FIX
+-- =============================================================================
+--
+-- Nulling the column does not delete anything at Stripe. The sandbox customer
+-- objects continue to exist in the sandbox; they are simply no longer named by
+-- this database. Nothing reads `stripe_customer_id` other than the two billing
+-- routes and `resolveUserId` in lib/server/billing.ts, which falls back to the
+-- customer's `metadata.user_id` when the profile lookup misses -- so a webhook
+-- arriving for one of these users after they re-mint still resolves.
+--
+-- No explicit begin/commit: every other migration in this directory lets the
+-- runner own the transaction, and nesting a COMMIT inside it would close the
+-- outer transaction early. This is a single statement, so it is atomic anyway.
+--
+-- =============================================================================
+-- CHECKED AGAINST PRODUCTION BEFORE WRITING
+-- =============================================================================
+--
+-- Dry-run as a SELECT against jmpanzrjxflovdfwcbye on 2026-09-09:
+--
+--   profiles holding a stripe_customer_id            10
+--     cleared by this file (no subscription row)      9
+--     kept (has a subscription row)                   1
+--
+-- The nine span signups from 2026-06-17 to 2026-09-02 -- 2 on 06-17, and one
+-- each on 06-18, 06-29, 06-30, 07-01, 07-03, 07-07 and 09-02. The last of those
+-- predates the live-key switch, so it is a sandbox id like the rest.
+--
+-- The one kept row is `sub_1TmXUfFmHs3XDwGFyOxlsSrg`, status `canceled`, period
+-- ended 2026-07-26. It is almost certainly a sandbox-era subscription and its
+-- customer id is almost certainly dead too -- but "almost certainly" is not the
+-- standard for deleting someone's link to their own billing record, and the
+-- code path already handles it. It is left alone on purpose.
+--
+-- There are no `active`, `trialing` or `past_due` subscriptions in this database
+-- at the time of writing, so this file clears no entitlement and changes no
+-- user's tier. `getTier` reads `subscriptions`, never this column.
+
+update public.profiles p
+   set stripe_customer_id = null
+ where p.stripe_customer_id is not null
+   and not exists (
+     select 1 from public.subscriptions s where s.user_id = p.id
+   );
