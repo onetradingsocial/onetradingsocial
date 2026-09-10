@@ -1102,3 +1102,61 @@ Correct order for this one migration:
 Between those two steps the pricing page claims free mistake tagging that the
 flag row still denies — a false advertisement, but a quiet one, and strictly
 better than giving away the paid card. Keep the gap short.
+
+---
+
+## Shipped (2026-09-10)
+
+`main` is at `c2e1d50`, pushed to origin. All four migrations applied to
+production. **This cycle is live.**
+
+### Deploy sequence, as executed
+
+1. `vitest run` 1465/1465, `next build` clean at the merge head.
+2. Fast-forward `integration/audit-2026-09-05` → `main`, 24 commits, pushed.
+3. Waited for **both** Vercel projects. This repo deploys two:
+   `onetradingsocial` (the static marketing site) and `onetradingsocial-app`
+   (the Next.js app). **The marketing site deployed first and the app lagged** —
+   for a few minutes the public site carried the corrected copy while the app
+   still ran the old bundle.
+4. Verified the app was genuinely serving the new code before touching `0072`.
+   The GitHub deployment record (`onetradingsocial-app` @ `c2e1d50`, state
+   `success`) was the primary evidence; `/leaderboard` proved nothing either way
+   because a signed-out fetch renders only chrome. `/for/mt5` is public and
+   server-rendered from `lib/landing.ts`, and it returned the bounded phrasing
+   B5 landed — *"Imported prices and results can't be edited"* — which is a
+   direct read of the new bundle.
+5. Only then applied `0072`.
+
+### Final migration state
+
+| Migration | Applied |
+|---|---|
+| `0070_process_logs` | 2026-09-10 04:53:40Z |
+| `0071_trade_reflections` | 2026-09-10 04:53:59Z |
+| `0073_weekly_reviews` | 2026-09-10 04:54:25Z |
+| `0072_mistake_tagging_free` | 2026-09-10 05:40:23Z — **after** the app deploy |
+
+Post-apply check: `mistake_tagging` is now `free/trader/pro = true`, and
+**`mistake_analysis` and `multiple_goals` have no `feature_flags` row at all** —
+which is correct and is the confirmation that matters. No row means they fall
+through to the code defaults (`trader`), so the paid analysis card stayed paid
+at the moment the tag became free.
+
+### Live from this deploy
+
+Every Wave B correction, and the whole Basic Cycle: mistake tagging free and
+visible on the trade row, Free capped at one active focus, per-trade rule
+reflections at every tier, and the basic weekly review.
+
+### Still open
+
+- **`0072` has not been applied to the dev project** (`sixixwutvrguqemqzvvw`),
+  nor have `0070`, `0071` or `0073`. Dev is behind production by four
+  migrations. Worth doing when the E2E blocker is cleared.
+- The weekly digest email's most-tagged-mistake line **is now live for Free
+  accounts.** That is consistent — those users can find the tag in their journal
+  — but it is a real behaviour change that started at 05:40Z.
+- The four decisions from the Trust Pass report that were never part of this
+  work: sync cadence, the three sold-but-unbuilt entitlements, the AFSL position
+  behind `/learn`, and Confirm-email on the dev project.
