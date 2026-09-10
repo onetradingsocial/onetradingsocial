@@ -16,7 +16,7 @@ import { join } from 'node:path'
 import { LANDINGS } from '@/lib/landing'
 import { WELCOME_TIERS } from '@/lib/welcome-tiers'
 import { REFERRAL_MONTH_CAP } from '@/lib/referral'
-import { JOURNAL_FREE_LIMIT, can, requiredPlanLabel } from '@/lib/entitlements'
+import { FREE_ACTIVE_GOAL_LIMIT, JOURNAL_FREE_LIMIT, can, requiredPlanLabel } from '@/lib/entitlements'
 
 // repo root is three levels up from app/tests/unit
 const ROOT = join(__dirname, '..', '..', '..')
@@ -194,16 +194,50 @@ describe('the Free welcome popup', () => {
   const free = WELCOME_TIERS.free
   const copy = free.feats.map((f) => `${f.t} ${f.d}`).join(' ').toLowerCase()
 
-  it('states the premise: none of the three are Free features', () => {
-    expect(can('free', 'mistake_tagging')).toBe(false)
+  it('states the premise: which of these are Free features and which are not', () => {
+    // Mistake tagging IS free as of the "Basic Cycle" change — writing down
+    // what went wrong is a reflection input. The three below are not.
+    expect(can('free', 'mistake_tagging')).toBe(true)
     expect(can('free', 'strategy_tracking')).toBe(false)
     expect(can('free', 'advanced_stats')).toBe(false)
     expect(can('free', 'leaderboard_ranking')).toBe(false)
   })
 
-  it('does not offer tagging', () => {
-    // 'tag how each one went' — all tagging is Trader+.
-    expect(copy).not.toMatch(/\btag(ging|s|ged)?\b/)
+  it('offers mistake tagging, which Free now has', () => {
+    // The original assertion here was "does not offer tagging", because at the
+    // time all tagging was Trader+ and the mockup's 'tag how each one went' was
+    // a promise the gate broke. Half of that is now inverted: withholding the
+    // claim would understate the plan and leave the one habit Free is built
+    // around unmentioned. So the list must say it.
+    expect(copy).toMatch(/mistake tagging/)
+  })
+
+  it('still does not offer STRATEGY tagging, which Free does not have', () => {
+    // The other half of the original assertion, unchanged in substance. The two
+    // tagging features read alike in copy and are on opposite sides of the
+    // free/paid line, so the Free list may name mistakes and may not name
+    // strategies.
+    expect(can('free', 'strategy_tracking')).toBe(false)
+    expect(copy).not.toMatch(/strateg/)
+  })
+
+  it('does not promise the mistake ANALYSIS that stays paid', () => {
+    // Free writes the tag; `mistake_analysis` (Trader+) is the card that scores
+    // those tags against results. A Free list that says "see which mistakes
+    // cost you most" describes a card the reader will never be shown.
+    expect(can('free', 'mistake_analysis')).toBe(false)
+    expect(copy).not.toMatch(/mistake analysis|which mistakes? (cost|are costing)/)
+  })
+
+  it('says how many process goals Free actually gets', () => {
+    // Goals shipped ungated and uncapped; Free now holds FREE_ACTIVE_GOAL_LIMIT
+    // active ones. An unqualified "process goals" line would read as unlimited.
+    expect(can('free', 'multiple_goals')).toBe(false)
+    const goal = free.feats.find((f) => f.t.toLowerCase().includes('process goal'))
+    expect(goal, 'the Free tier should advertise the one process goal it has').toBeDefined()
+    expect(goal!.t.toLowerCase()).toContain(FREE_ACTIVE_GOAL_LIMIT === 1 ? 'one' : String(FREE_ACTIVE_GOAL_LIMIT))
+    // Names the plan that lifts the cap from the gate, not from a literal.
+    expect(goal!.d).toContain(requiredPlanLabel('multiple_goals'))
   })
 
   it('does not offer win rate "at a glance"', () => {

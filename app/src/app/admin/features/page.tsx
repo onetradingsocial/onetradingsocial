@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic'
 const WIRED = new Set<string>([
   'journal_unlimited', 'advanced_journal', 'advanced_stats', 'pro_badge', 'custom_badge',
   'creator_profile', 'saved_traders', 'weekly_review', 'strategy_breakdown',
-  'strategy_tracking', 'mistake_tagging', 'risk_tracking', 'private_notes', 'custom_templates',
+  'strategy_tracking', 'mistake_tagging', 'mistake_analysis', 'multiple_goals',
+  'risk_tracking', 'private_notes', 'custom_templates',
   'monthly_report', 'advanced_leaderboard_filters', 'leaderboard_placement', 'leaderboard_ranking', 'xp_boosts',
   'export_journal', 'advanced_reporting', 'mt5_import', 'mt5_autosync',
 ])
@@ -26,8 +27,12 @@ const GATED_ELSEWHERE: Record<string, string> = {
 /** Mirrors the pricing-page sections so admins can cross-check quickly. */
 const GROUPS: { title: string; keys: Feature[] }[] = [
   { title: 'Profile & Community', keys: ['pro_badge', 'custom_badge', 'creator_profile', 'saved_traders'] },
-  { title: 'Trading Journal', keys: ['journal_unlimited', 'advanced_journal', 'strategy_tracking', 'mistake_tagging', 'risk_tracking', 'private_notes', 'custom_templates', 'export_journal', 'mt5_import', 'mt5_autosync'] },
-  { title: 'Analytics & Reports', keys: ['advanced_stats', 'weekly_review', 'strategy_breakdown', 'advanced_reporting', 'monthly_report', 'ai_insights'] },
+  // `mistake_tagging` (Free, the reflection input) sits in the journal group;
+  // `mistake_analysis` (Trader+, the aggregate card) sits under Analytics with
+  // the other things that tell a trader what their behaviour was worth. Putting
+  // the pair side by side here is what would invite toggling both at once.
+  { title: 'Trading Journal', keys: ['journal_unlimited', 'advanced_journal', 'strategy_tracking', 'mistake_tagging', 'multiple_goals', 'risk_tracking', 'private_notes', 'custom_templates', 'export_journal', 'mt5_import', 'mt5_autosync'] },
+  { title: 'Analytics & Reports', keys: ['advanced_stats', 'mistake_analysis', 'weekly_review', 'strategy_breakdown', 'advanced_reporting', 'monthly_report', 'ai_insights'] },
   { title: 'Leaderboards & Competitions', keys: ['leaderboard_ranking', 'advanced_leaderboard_filters', 'leaderboard_placement', 'premium_challenges'] },
   { title: 'Learning Hub', keys: ['learning_intermediate', 'premium_courses', 'xp_boosts'] },
   { title: 'Support & Access', keys: ['priority_support', 'early_access'] },

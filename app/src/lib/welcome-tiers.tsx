@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { JOURNAL_FREE_LIMIT, requiredPlanLabel, type Tier } from '@/lib/entitlements'
+import { FREE_ACTIVE_GOAL_LIMIT, JOURNAL_FREE_LIMIT, requiredPlanLabel, type Tier } from '@/lib/entitlements'
 
 /** Per-tier copy for the post-onboarding welcome popup.
  *
@@ -49,15 +49,26 @@ export const WELCOME_TIERS: Record<Tier, WelcomeCopy> = {
     ),
     feats: [
       { t: 'Public trading profile', d: 'Your handle, stats and history, visible to the community' },
-      // Three corrections against the gate, not against the mockups (audit B5):
-      //   * tagging (mistake_tagging / strategy_tracking) is Trader+, so a Free
-      //     user cannot "tag how each one went";
+      // Corrections against the gate, not against the mockups (audit B5):
+      //   * STRATEGY tagging (strategy_tracking) is Trader+, so a Free user
+      //     cannot be told which setups pay. MISTAKE tagging is Free as of the
+      //     Basic Cycle change and is listed below — the two are no longer the
+      //     same claim and this list must not merge them again;
       //   * win rate is the LOCKED tile in journal/StatCards — it renders
       //     "🔒 Trader" without advanced_stats, so it is not "at a glance";
       //   * Free can VIEW the leaderboard but boardEligibleIds drops it from
       //     the ranking (leaderboard_ranking is Trader+), so "see where you
       //     rank" describes something that never happens on this tier.
       { t: 'Basic trading journal', d: `Manually log your trades — up to ${JOURNAL_FREE_LIMIT}` },
+      // Careful with the wording: what Free gets is WRITING the tag. The card
+      // that scores your tags against your results is `mistake_analysis`, a
+      // Trader+ feature, so nothing here may promise to tell the reader which
+      // mistake costs them most.
+      { t: 'Mistake tagging on every close', d: 'Name what went wrong while it is still fresh' },
+      {
+        t: `${FREE_ACTIVE_GOAL_LIMIT === 1 ? 'One' : String(FREE_ACTIVE_GOAL_LIMIT)} active process goal`,
+        d: `Set a focus — journal 80% of your days — and watch it fill. Several at once starts on ${requiredPlanLabel('multiple_goals')}`,
+      },
       { t: 'Basic stats dashboard', d: 'P&L and trade count at a glance' },
       { t: 'Follow traders & newsfeed', d: 'See what disciplined traders are doing, in real time' },
       // Learn hidden for now — we are not financial advisors. `d` was
@@ -81,8 +92,14 @@ export const WELCOME_TIERS: Record<Tier, WelcomeCopy> = {
     feats: [
       { t: 'Unlimited journal entries', d: 'No more 30-trade cap — log everything, forever' },
       { t: 'Advanced journal & full dashboard', d: 'Deeper performance breakdowns on every trade' },
-      { t: 'Strategy tracking & mistake tagging', d: 'See exactly which setups and habits cost you' },
+      // Was 'Strategy tracking & mistake tagging'. Mistake TAGGING is Free now,
+      // so listing it as something Trader "just unlocked" sells the reader
+      // something they already had. What Trader adds is the analysis on top:
+      // which setups pay (strategy_tracking) and what the tags they have been
+      // writing actually cost them (mistake_analysis).
+      { t: 'Strategy tracking & mistake analysis', d: 'See exactly which setups and habits cost you' },
       { t: 'Weekly performance review', d: 'A standing check-in on risk and consistency' },
+      { t: 'Run several process goals at once', d: 'Work more than one habit at a time, side by side' },
       { t: 'Advanced leaderboard filters', d: 'Compare yourself against traders like you' },
       // Learn hidden for now — we are not financial advisors. Restore
       // `{ t: 'Full beginner & intermediate courses', d: 'The entire learning hub, unlocked' },`

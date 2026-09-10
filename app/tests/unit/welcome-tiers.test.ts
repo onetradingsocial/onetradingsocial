@@ -12,10 +12,19 @@ describe('WELCOME_TIERS', () => {
   // Learn hidden for now — we are not financial advisors. Every tier had exactly
   // six features (verbatim from the client mockups). Trader's 'Full beginner &
   // intermediate courses' and Pro's 'Premium courses & psychology modules' are
-  // withdrawn, so those two carry five. Put this back to a flat 6 when the
-  // learning hub is restored — WelcomeModal reads the count off `feats` now, so
-  // the "N features just unlocked" caption follows automatically.
-  const EXPECTED_FEATS: Record<Tier, number> = { free: 6, trader: 5, pro: 5 }
+  // withdrawn, so those two lost one each. Restore them when the learning hub
+  // is compliant — WelcomeModal reads the count off `feats` now, so the
+  // "N features just unlocked" caption follows automatically.
+  //
+  // The "Basic Cycle" change then moved the free/paid line, and the counts
+  // moved with it rather than the list being trimmed to keep this number
+  // pretty: Free gained mistake tagging and its one process goal (6 -> 8), and
+  // Trader gained running several goals at once (5 -> 6) while its old
+  // 'Strategy tracking & mistake tagging' line became 'mistake analysis'
+  // in place. A count here that no longer matches the gate is the signal that
+  // one of those lists has drifted from FEATURE_MIN_TIER — check
+  // copy-claims.test.ts before editing the number.
+  const EXPECTED_FEATS: Record<Tier, number> = { free: 8, trader: 6, pro: 5 }
 
   it('gives every tier its full feature list with no blanks', () => {
     for (const t of TIERS) {

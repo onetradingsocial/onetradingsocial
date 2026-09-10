@@ -2,6 +2,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { trackMeta } from '@/app/_components/MetaPixel'
 import { CUR, CURRENCY_NOTE } from '@/lib/plans'
+import { FREE_ACTIVE_GOAL_LIMIT, requiredPlanLabel } from '@/lib/entitlements'
 
 const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
 
@@ -56,6 +57,17 @@ const PLANS: PlanDef[] = [
     feats: [
       { t: 'Public TradingSocial profile' },
       { t: 'Basic trading journal & manual logging' },
+      // Free as of the Basic Cycle change (migration 0071). Note what this line
+      // does NOT say: the mistake-analysis card that scores those tags against
+      // results is `mistake_analysis`, Trader+, and is listed one plan down.
+      { t: 'Mistake tagging on every trade' },
+      {
+        // The plan that lifts the cap is read from FEATURE_MIN_TIER, never
+        // typed here — the same rule requiredPlanLabel exists to enforce.
+        t: `Process goals — ${FREE_ACTIVE_GOAL_LIMIT === 1 ? 'one' : FREE_ACTIVE_GOAL_LIMIT} active focus `
+          + `(several on ${requiredPlanLabel('multiple_goals')})`,
+        lim: true,
+      },
       { t: 'Basic stats dashboard' },
       { t: 'Follow traders, feed & leaderboard' },
       { t: 'Journal history — last 30 trades', lim: true },
@@ -69,7 +81,12 @@ const PLANS: PlanDef[] = [
       { t: 'Unlimited journal entries' },
       { t: 'Import MT5 history (statement upload)' },
       { t: 'Advanced stats & full performance dashboard' },
-      { t: 'Strategy tracking & mistake tagging' },
+      // Was 'Strategy tracking & mistake tagging'. Tagging moved to Free, so
+      // this card would have been charging A$30 for something the reader
+      // already has. Trader adds the two analyses: which setups pay, and what
+      // the mistakes already tagged are costing.
+      { t: 'Strategy tracking & mistake analysis' },
+      { t: 'Unlimited active process goals' },
       // Learn hidden for now — we are not financial advisors. Restore
       // `{ t: 'Full beginner & intermediate courses' },` here when compliant.
       { t: 'Advanced leaderboard filters' },

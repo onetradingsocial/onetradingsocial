@@ -117,7 +117,11 @@ export default async function JournalPage() {
     ? analyzeCompliance(rules, ruleTrades)
     : null
 
-  // Process goals (row 24) — available to all tiers.
+  // Process goals (row 24). The CARD is available at every tier — a Free
+  // account holds one active focus (FREE_ACTIVE_GOAL_LIMIT) and sees its
+  // progress. What Trader+ buys is running SEVERAL at once (`multiple_goals`),
+  // enforced in actions/goals.ts#addGoal. Goals already stored above the cap
+  // are read and rendered here unchanged; the cap is on adding, not on having.
   const goals = await getGoalsWithProgress(
     createServiceClient(), user.id,
     (all ?? []).map((t) => ({
@@ -211,7 +215,17 @@ export default async function JournalPage() {
   // stacking eight upsell cards down a free user's journal, the locked ones
   // render nothing and get named once in a collapsed strip at the foot.
   const canMonthlyReport = canFlag(flags, tier, 'monthly_report')
-  const canMistakes = canFlag(flags, tier, 'mistake_tagging')
+  // Two mistake gates, not one, and the split is deliberate.
+  //
+  //   mistake_tagging  (Free)     — writing "revenge trade" on a trade you just
+  //                                 closed. The reflection input.
+  //   mistake_analysis (Trader+)  — MistakeAnalysisCard: every closed trade
+  //                                 grouped by tag with win rate and average R.
+  //                                 The analysis of what those habits cost.
+  //
+  // They used to be the same key, so making tagging free would have handed out
+  // the aggregate card with it. See FEATURE_MIN_TIER for the line being drawn.
+  const canMistakeAnalysis = canFlag(flags, tier, 'mistake_analysis')
   const canEmotion = canFlag(flags, tier, 'advanced_journal')
   const canStrategy = canFlag(flags, tier, 'strategy_breakdown')
   const canRisk = canFlag(flags, tier, 'risk_tracking')
@@ -220,7 +234,7 @@ export default async function JournalPage() {
     [canWeeklyReview, 'Weekly performance review', 'Trader+'],
     [canMonthlyReport, 'Monthly trader report', 'Pro'],
     [canRules, 'Trading rules', 'Trader+'],
-    [canMistakes, 'Mistake analysis', 'Trader+'],
+    [canMistakeAnalysis, 'Mistake analysis', 'Trader+'],
     [canEmotion, 'Emotional state', 'Trader+'],
     [canStrategy, 'Strategy breakdown', 'Pro'],
     [canRisk, 'Risk management', 'Trader+'],
@@ -311,10 +325,10 @@ export default async function JournalPage() {
       </div>
 
       <div className="mt-5">
-        <GoalsCard goals={goals} />
+        <GoalsCard goals={goals} canMultiple={canFlag(flags, tier, 'multiple_goals')} />
       </div>
 
-      {canMistakes && (
+      {canMistakeAnalysis && (
         <div className="mt-5">
           <MistakeAnalysisCard trades={(all ?? []).filter((t) => t.status === 'closed')} locked={false} />
         </div>

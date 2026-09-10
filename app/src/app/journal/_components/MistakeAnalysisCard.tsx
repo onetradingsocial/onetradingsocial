@@ -15,7 +15,18 @@ function money(n: number) {
 /**
  * Mistake tracking analysis (Sprint 3, row 20). Per-tag frequency, estimated
  * cost, win rate when present, and trend (this half vs previous half of the
- * dated history). Tags are captured on trade close (Trader+).
+ * dated history).
+ *
+ * TWO DIFFERENT GATES, and this card is on the paid side of both words.
+ * Capturing a tag on trade close is `mistake_tagging`, which is FREE — a
+ * trader saying what went wrong is a reflection input. THIS card is
+ * `mistake_analysis`, Trader+: it is the product telling you what those
+ * habits are worth, which is analysis and is what the paid plan sells.
+ *
+ * So a Free account fills this card's input every time it closes a trade and
+ * never sees the card. That is deliberate, not an oversight — but it does mean
+ * the card must never be re-gated on `mistake_tagging` for convenience, which
+ * would hand the aggregate to every free user in a one-word diff.
  */
 export function MistakeAnalysisCard({ trades, locked }: { trades: MistakeTrade[]; locked: boolean }) {
   // Locked cards render nothing — LockedFeatures lists them once at the page foot.

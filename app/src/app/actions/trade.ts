@@ -606,7 +606,18 @@ export async function closeTrade(tradeId: string, exitPrice: number, mistakeTags
     .eq('id', tradeId).single()
   if (!t || t.user_id !== user.id) return { error: 'Trade not found.' }
 
-  // Mistake tagging is a Trader+ perk; only known presets are stored.
+  // Mistake tagging is a FREE feature ("Basic Cycle"): saying what went wrong
+  // on a trade is a reflection input, and it is the habit a paywall is worst at
+  // encouraging. The gate stays — a feature_flags row can still revoke it, and
+  // an admin needs that lever — it simply passes for every tier now, which is
+  // why migration 0071 must be applied before this deploys.
+  //
+  // What is NOT free is `mistake_analysis`: the journal card that groups every
+  // closed trade by tag and attaches win rate and average R to each. Writing
+  // the tag is reflection; being told what your habits are worth is analysis.
+  // Different key, still Trader+, gated in journal/page.tsx.
+  //
+  // Only known presets are stored, unchanged.
   let mistakes: string[] = []
   if (mistakeTags.length > 0) {
     const canTag = canFlag(await getFeatureFlags(), await getTier(supabase, user.id), 'mistake_tagging')

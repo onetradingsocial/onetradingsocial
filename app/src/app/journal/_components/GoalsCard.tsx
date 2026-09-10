@@ -2,13 +2,26 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { addGoal, removeGoal } from '@/app/actions/goals'
-import { GOAL_META, type Goal, type GoalKind, type GoalProgress } from '@/lib/goals'
+import { GOAL_META, GOAL_LIMIT_ERROR, type Goal, type GoalKind, type GoalProgress } from '@/lib/goals'
+import { FREE_ACTIVE_GOAL_LIMIT } from '@/lib/entitlements'
 
 export type GoalWithProgress = Goal & { progress: GoalProgress }
 
-export function GoalsCard({ goals }: { goals: GoalWithProgress[] }) {
+/**
+ * `canMultiple` is the server's answer for THIS user, passed down from
+ * journal/page.tsx — the card never re-derives it. The gate that actually
+ * decides is in `addGoal`; everything here is presentation, so that a user at
+ * the cap sees why the button is gone instead of clicking it and being told.
+ *
+ * Deliberately does NOT hide or grey out goals beyond the cap. A Free account
+ * may already hold several — process goals shipped uncapped — and those stay
+ * fully live, fully tracked and removable. Only Add is withheld.
+ */
+export function GoalsCard({ goals, canMultiple }: { goals: GoalWithProgress[]; canMultiple: boolean }) {
   const router = useRouter()
+  const atLimit = !canMultiple && goals.length >= FREE_ACTIVE_GOAL_LIMIT
   const [adding, setAdding] = useState(false)
   const [kind, setKind] = useState<GoalKind>('journal_consistency')
   const [target, setTarget] = useState('80')
@@ -22,11 +35,20 @@ export function GoalsCard({ goals }: { goals: GoalWithProgress[] }) {
     <div className="ts-card">
       <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 10 }}>
         <h2 className="ts-h2">Process goals</h2>
-        <button type="button" className="btn btn-sm" onClick={() => setAdding((v) => !v)}>{adding ? 'Close' : '+ Add goal'}</button>
+        {!atLimit && (
+          <button type="button" className="btn btn-sm" onClick={() => setAdding((v) => !v)}>{adding ? 'Close' : '+ Add goal'}</button>
+        )}
       </div>
       <p className="ts-sub mt-1">Goals that reward good process — not profit.</p>
 
-      {adding && (
+      {atLimit && (
+        <p className="faint mt-2" style={{ fontSize: 12.5 }}>
+          {GOAL_LIMIT_ERROR}{' '}
+          <Link href="/settings/billing" style={{ color: 'var(--violet-br)', fontWeight: 700 }}>See plans</Link>
+        </p>
+      )}
+
+      {adding && !atLimit && (
         <div className="ts-grid3 mt-3" style={{ alignItems: 'end' }}>
           <label className="ts-field"><span className="ts-label">Goal</span>
             <select className="ts-select" value={kind} onChange={(e) => setKind(e.target.value as GoalKind)}>

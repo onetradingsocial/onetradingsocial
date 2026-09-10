@@ -4,6 +4,21 @@ export type Interval = 'monthly' | 'annual'
 export const TIER_RANK: Record<Tier, number> = { free: 0, trader: 1, pro: 2 }
 export const JOURNAL_FREE_LIMIT = 30
 
+/** How many ACTIVE process goals a Free account may hold at once.
+ *
+ *  The line the "Basic Cycle" proposal draws is: free gets the inputs to
+ *  reflection, paid gets the analysis of performance. A single standing focus
+ *  — "journal 80% of my trading days" — is an input, and a free user who has
+ *  none of them has nothing to reflect against. Running several at once, and
+ *  reading them off against each other, is the paid version.
+ *
+ *  This is a cap on ADDING, never on keeping: see `addGoal` in
+ *  app/src/app/actions/goals.ts. Process goals shipped ungated and uncapped, so
+ *  Free accounts already hold two, three, five of them; a cap that deactivated
+ *  the surplus would delete a user's stated intentions to sell them a plan.
+ *  Same rule `keepThenCap` follows for strategy tags one tier up. */
+export const FREE_ACTIVE_GOAL_LIMIT = 1
+
 const ACTIVE_STATUSES = new Set(['active', 'trialing'])
 
 /** Dunning grace window, in days, for a subscription Stripe has flipped to
@@ -307,6 +322,7 @@ export type Feature =
   | 'journal_unlimited' | 'advanced_stats' | 'pro_badge' | 'custom_badge' | 'advanced_journal'
   | 'learning_intermediate' | 'premium_courses'
   | 'saved_traders' | 'creator_profile' | 'strategy_tracking' | 'mistake_tagging'
+  | 'mistake_analysis' | 'multiple_goals'
   | 'risk_tracking' | 'private_notes' | 'custom_templates' | 'export_journal'
   | 'weekly_review' | 'strategy_breakdown' | 'advanced_reporting' | 'monthly_report' | 'trading_rules'
   | 'ai_insights' | 'advanced_leaderboard_filters' | 'leaderboard_placement' | 'leaderboard_ranking'
@@ -315,8 +331,29 @@ export type Feature =
   | 'crypto_import' | 'crypto_autosync'
 
 /** Full pricing-matrix gate. Features not yet built are still mapped so the
- *  gate is ready when the feature ships. */
+ *  gate is ready when the feature ships.
+ *
+ *  THE LINE THIS MATRIX DRAWS. Free gets the INPUTS to reflection; paid gets
+ *  the ANALYSIS of performance. A free trader can record what they did and
+ *  whether it matched their plan — that is `mistake_tagging` (what went wrong
+ *  on this trade) and one standing `multiple_goals` focus. Working out whether
+ *  the plan makes money stays paid: `mistake_analysis` (which errors cost you
+ *  how much, across every trade), `strategy_tracking` (which setup pays),
+ *  `strategy_breakdown`, `advanced_stats`, the weekly and monthly reports.
+ *
+ *  The pair that most often gets read as a mistake is deliberate:
+ *  `mistake_tagging` is free and `mistake_analysis` is Trader+. Writing the tag
+ *  is the reflection; aggregating tags into an expected-value table is the
+ *  product telling you what your habits are worth. */
 export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
+  // Free — the inputs to reflection, gated only so an admin can revoke them:
+  //   Tagging a mistake is how a trader says WHAT WENT WRONG, which is the
+  //   single cheapest habit the product can teach and the one a paywall most
+  //   reliably prevents anyone from forming. It also unblocks the
+  //   `avoid_revenge` process goal, whose progress is computed from
+  //   mistake_tags (lib/server/goals.ts) and was therefore frozen at zero for
+  //   every Free account. The AGGREGATE stays paid — see mistake_analysis.
+  mistake_tagging: 'free',
   // Enforced in v1 (features that exist):
   journal_unlimited: 'trader',
   advanced_journal: 'trader',
@@ -331,8 +368,19 @@ export const FEATURE_MIN_TIER: Record<Feature, Tier> = {
   leaderboard_ranking: 'trader',
   // Wired, enforced when built:
   saved_traders: 'trader',
+  // Which STRATEGY pays is analysis, so it stays where it is: Trader gets one
+  // tag, Pro gets eight (journalCaps in actions/trade.ts). Untouched by the
+  // mistake_tagging move — the two look alike and are opposite sides of the
+  // line above.
   strategy_tracking: 'trader',
-  mistake_tagging: 'trader',
+  // The mistake-analysis CARD: every closed trade grouped by tag, with the
+  // win rate and average R attached to each. Free writes the tags and can read
+  // them back on the trade; only Trader+ is told what they add up to.
+  mistake_analysis: 'trader',
+  // A SECOND (third, fourth) active process goal. The first one is free —
+  // FREE_ACTIVE_GOAL_LIMIT — because a trader with no stated focus has nothing
+  // to reflect against.
+  multiple_goals: 'trader',
   risk_tracking: 'trader',
   private_notes: 'trader',
   weekly_review: 'trader',
