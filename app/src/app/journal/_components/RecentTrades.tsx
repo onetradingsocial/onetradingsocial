@@ -8,6 +8,7 @@ import { marketColor, instrumentBadge, matchesTradeFilter, netOfTrades, type JTr
 import { MARKETS } from '@/lib/profile'
 import { VerificationBadge } from '@/app/_components/VerificationBadge'
 import { tradeLevel } from '@/lib/verification'
+import { readTradeReflection, TRADE_REFLECTION_META } from '@/lib/reflection'
 
 // Labels for the market chips. Typed against MARKETS so adding a market to the
 // canonical list is a type error here until it is given a label — the previous
@@ -68,11 +69,16 @@ export function RecentTrades({ trades, canMistakeTag = false, editConfig }: {
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table className="ts-table ts-table--rich mt-3">
-            <thead><tr><th>Date</th><th>Instrument</th><th>Side</th><th>Entry</th><th>Exit</th><th>R:R</th><th>P/L</th><th>Tags</th><th></th></tr></thead>
+            {/* "Rules" is the per-trade reflection (0071), not rule COMPLIANCE
+                computed from the numbers — this column is what the trader said
+                about the trade, and the two are allowed to disagree. Ungated:
+                the column renders identically on every plan. */}
+            <thead><tr><th>Date</th><th>Instrument</th><th>Side</th><th>Entry</th><th>Exit</th><th>R:R</th><th>P/L</th><th>Tags</th><th>Rules</th><th></th></tr></thead>
             <tbody>
               {shown.map((t) => {
                 const r = t.r_multiple, pnl = t.pnl_amount, long = t.direction === 'long'
                 const tags = [t.setup_type, ...(t.strategy_tags ?? [])].filter(Boolean) as string[]
+                const reflection = readTradeReflection(t)
                 return (
                   <tr key={t.id}>
                     <td className="faint">{fmtDate(t.traded_at)}</td>
@@ -94,6 +100,30 @@ export function RecentTrades({ trades, canMistakeTag = false, editConfig }: {
                     <td className={r == null ? '' : r >= 0 ? 'ts-pos' : 'ts-neg'}>{r != null ? `${r >= 0 ? '+' : ''}${r.toFixed(1)}R` : t.planned_rr ? `1:${t.planned_rr.toFixed(1)}` : '—'}</td>
                     <td className={pnl == null ? '' : pnl >= 0 ? 'ts-pos' : 'ts-neg'}>{pnl == null ? <span className="ts-badge ts-badge--open">open</span> : `${pnl >= 0 ? '+' : '−'}$${Math.abs(pnl).toFixed(0)}`}</td>
                     <td>{tags.slice(0, 2).map((x) => <span key={x} className="ts-tag">{x}</span>)}</td>
+                    <td>
+                      {reflection ? (
+                        <span
+                          className="ts-tag"
+                          title={reflection.note ?? TRADE_REFLECTION_META[reflection.outcome].hint}
+                        >
+                          {TRADE_REFLECTION_META[reflection.outcome].icon}{' '}
+                          {TRADE_REFLECTION_META[reflection.outcome].short}
+                        </span>
+                      ) : editConfig ? (
+                        // Not a warning and not a nag — an unanswered trade
+                        // costs nothing. It is a link because the answer is one
+                        // click away in the card at the top of the page.
+                        //
+                        // Same `editConfig` guard as Edit and Delete: on /demo
+                        // the rows belong to nobody, there is no reflect card on
+                        // that page, and the anchor would go nowhere.
+                        <a href="#reflect" className="faint" style={{ fontSize: 12 }} title="Did this trade follow your rules?">
+                          Reflect
+                        </a>
+                      ) : (
+                        <span className="faint">—</span>
+                      )}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                         {editConfig && <EditTradeModal trade={t} config={editConfig} />}
