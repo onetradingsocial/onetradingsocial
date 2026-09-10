@@ -1193,3 +1193,69 @@ worked against dev today.
 
 Dev's schema is now current. The E2E suite is still blocked on "Confirm email"
 being ON for that project, which is a dashboard setting and not a migration.
+
+---
+
+## Trial starts at confirmation (2026-09-10)
+
+`main` at `e92b1ab`, deployed to both Vercel projects. `0074` applied to
+production **and** dev. 97 test files, 1490 tests green.
+
+**The rule is "start the trial the first time the account has a session",** which
+is the same thing as "at confirmation" — a session is exactly what GoTrue
+withholds until the address is confirmed. That one rule covers all three modes:
+confirmation off (session at signup, unchanged from today), confirmation on
+(session at `/auth/confirm`), and Google OAuth (session at `/auth/callback`).
+
+**A bare `is null` latch would have been wrong, and this is the part worth
+remembering.** `/auth/callback` is the *login* path as well as the signup path,
+and the accounts whose `trial_started_at` is null today are exactly the cohort
+`0041`'s backfill **deliberately skipped** — internal/seed accounts and users
+holding a live subscription. An unguarded latch would therefore have armed a
+fresh trial for a returning Google user in that cohort: eventually walling a demo
+account, or re-walling a churned subscriber. Silent, and it would have looked
+correct.
+
+The fix puts the "is this actually a signup" judgement at the call sites, where
+the information exists — a freshness test on OAuth (sharing one `now` with
+`trackOAuthSignup` so the event and the trial cannot disagree) and an OTP-type
+gate at `/auth/confirm` accepting `signup`/`invite`/untyped-PKCE but refusing
+`email_change` and `magiclink`.
+
+**Silent-failure defence.** A zero-row write is ambiguous: "already stamped"
+(benign) versus "no profile row for a user holding a session" (a new account
+quietly on Free). The count cannot separate them, so the helper re-reads and
+accepts only a genuinely non-null timestamp as benign; a still-null column after
+a matched-nothing write is a permissions problem, not a race, and reaches
+`logError`.
+
+### Deploy order, as executed
+
+Code first, migration second — the convention `0063`–`0065` document. While the
+old trigger was still stamping at INSERT every latch call was a no-op, so the
+deploy changed nothing. Then `0074` removed the stamp, and from that instant the
+already-deployed application was the only writer. The reverse order would have
+put every account created in the gap silently on Free.
+
+### Verified after, on both projects
+
+| | production | dev |
+|---|---|---|
+| trigger still stamps trial | **no** | **no** |
+| keeps `avatar_url` capture | yes | yes |
+| keeps `display_name` capture | yes | yes |
+| trigger still attached | yes | yes |
+| existing `trial_started_at` values | 67, intact | 11, intact |
+
+The `avatar_url` / `display_name` checks are not ceremony: `0074` replaces the
+whole trigger body, and both `0041` and `0074` carry an explicit warning that
+dropping them makes Google sign-up silently lose the user's name and picture.
+
+### Email confirmation is still OFF everywhere
+
+The trial change is live and correct in both modes, but nothing has been
+switched on. Turning confirmation on still needs, in order: **custom SMTP**
+(Supabase's built-in mailer allows a couple of messages an hour per project and
+is what has been failing on dev since August), `/auth/confirm` added to the
+Supabase Redirect URL allowlist, and `AUTH_EMAIL_CONFIRMATION=on` set alongside
+the dashboard toggle. All three are owner actions.
