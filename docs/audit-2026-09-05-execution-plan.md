@@ -916,3 +916,142 @@ it never skips a spec or widens a timeout, and a structural test asserts neither
 file contains `test.skip` / `testIgnore` / `grepInvert` / `--pass-with-no-tests`.
 The `"//engines"` note now records the disproven claim and the open item — raise
 `.nvmrc` to ≥ 22.12.
+
+---
+
+## Integration (2026-09-10)
+
+Branch `integration/audit-2026-09-05`, 18 commits ahead of `main`. All eight Wave
+B branches merged, plus this document. **Not merged to `main`, not pushed** —
+migration `0070` is still unapplied, and merging to `main` deploys.
+
+`tsc --noEmit` clean · `eslint` clean · **93 test files, 1368 tests, all passing**.
+
+**Seven of the eight merged clean.** The predicted three-way conflict on
+`app/src/app/page.tsx` and `journal/page.tsx` mostly did not materialise — the
+agents kept their edits local, as instructed, so git resolved them.
+
+**One real conflict, and it was substantive.** B5 and B3 had independently found
+the same defect — the onboarding checklist offered Free users two steps they
+could not complete, on a card that only hides itself when every step is done —
+and fixed it in opposite directions:
+
+- **B5** hid both steps below Trader.
+- **B3** kept the review step visible and made it *achievable*, ticking on the
+  new ungated `process_logs` route.
+
+Resolved by taking each where it is right. Tagging has no ungated route, so it
+stays hidden. The review step stays visible and ticks on either source —
+`reviewViews > 0 || processLogs.some(l => l.kind === 'review')` — because hiding
+a step that the user can now actually complete would be the worse answer.
+
+That left B5's structural guard asserting the wrong invariant: it required *both*
+steps to sit inside a conditional spread. Re-aimed at what actually matters —
+**no step is offered which the account cannot finish** — with the two cases
+checked separately. Mutation-checked: strip the `processLogs` clause and the new
+test fails.
+
+### Still required before this reaches production
+
+1. Apply `app/supabase/migrations/0070_process_logs.sql` by hand.
+2. Merge `integration/audit-2026-09-05` to `main` and push (this deploys).
+3. Four constituent branches still carry generated worktree names — cosmetic
+   now that the integration branch exists, but rename them if they become PRs.
+
+---
+
+## Wave C — the Basic Cycle (approved and built, 2026-09-10)
+
+The owner approved the free-tier proposal. Three agents, all merged into
+`integration/audit-2026-09-05`. **`tsc` clean · `eslint` clean · `next build`
+succeeds · 96 test files, 1465 tests passing.** Still not merged to `main`, still
+not pushed.
+
+The line every decision resolved against: **Free gets the inputs to reflection;
+paid gets the analysis of performance.**
+
+### C1 — gates (`feat/basic-cycle-c1-free-tier`)
+
+`mistake_tagging` to free; new `mistake_analysis: 'trader'` so the *card* stays
+paid while the *tag* does not; new `multiple_goals: 'trader'` with
+`FREE_ACTIVE_GOAL_LIMIT = 1`. `strategy_tracking` untouched, with a comment at the
+call site saying so, because it is the change most likely to be made "while we're
+in here".
+
+The goal cap **counts, never deletes** — an account over the cap keeps every goal
+and its progress, can still remove one, and only cannot add. A failed count is
+treated as *at* the cap, not under it.
+
+### C2 — per-trade reflection (`feat/per-trade-rule-reflection`)
+
+Two nullable columns on `trades` rather than a side table. The deciding argument:
+a side table would need a *fresh* argument about imported rows and could pick up
+`0053`'s `source = 'manual'` reasoning by mistake, which is the opposite of what a
+reflection needs. Columns inherit the answer `0028` already gives, and a test
+reads `0028` and fails if either column name ever enters the locked-fields tuple.
+
+`process_logs` untouched — its `(user_id, day, kind)` index is the anti-farm cap.
+The two records answer different questions: `0070` is "did you reflect today"
+(habit, capped), `0071` is "did this trade follow the plan" (evidence). Only the
+second produces *three of four sessions followed your checklist*.
+
+Import hands off to a reflect card rather than inlining the prompt — one upload
+can land 200 trades, and a 200-step wizard is a 200-step dismissal. On a mixed
+day the first answer stands, because amending would let the last trade answered
+rewrite the day's label by click order.
+
+### C3 — the basic weekly review (`feat/basic-weekly-review`)
+
+Ungated card above the paid one: focus and its progress, trades closed, `n of m`
+reflections, days stood aside, the four buckets, a followed-rate that says
+**"not 0%, none"** when nothing is answered, keep/revise/retire, and last week's
+decision on file. None of the paid figures — enforced by *two* structural guards:
+an identifier blocklist, and an import blocklist forbidding `@/lib/weekly`,
+`@/lib/trade`, `@/lib/insights` and `@/lib/journal-stats`, so the card cannot
+compute a paid figure without a visible reach-past.
+
+**Counts over the week window, not `visibleTrades`** — the latter is capped at 30
+on Free, so a review of "this week" would silently omit trades.
+
+A rest-only week is **complete, not empty**, and says so.
+
+**New table `weekly_reviews` (0073).** `authenticated` gets SELECT on its own rows
+and **no INSERT/UPDATE/DELETE at all**; the action re-derives every count from
+`trades` and `process_logs` and writes with the service client. A user can decide
+anything about their own focus; they cannot author the evidence. A CHECK
+constraint refuses any row where the four buckets fail to partition.
+
+### Three things caught in integration that a brief would not have
+
+1. **C1 and C2 both shipped a `0071_`.** Different filenames, so git merged both
+   happily. C3 spotted it and renumbered the one with a single test reference.
+2. **My C3 brief would have caused a double-count.** "Free, and everyone" would
+   have mounted two `weekly_review_viewed` emitters on a Trader+ page. The by-day
+   union in `goals.ts` would have absorbed it, but **every rate computed on the
+   raw event would have halved**. Now exactly one emitter mounts at any tier.
+3. **Mistake tags were write-only for Free.** C1 moved the tag to free but nothing
+   renders `mistake_tags` outside the Trader+ card, the Pro report and the digest
+   email. C3 passes them as a separate prop built from an own-rows-only query
+   rather than widening `JTrade` — an optional field would be a standing
+   invitation to add the column to the public-profile select "to satisfy the
+   type"; a separate argument cannot be picked up by a component rendering
+   someone else's rows.
+
+### Four migrations, all unapplied
+
+`0070_process_logs` · `0071_trade_reflections` · `0072_mistake_tagging_free` ·
+`0073_weekly_reviews`
+
+Two of them fail in opposite directions if skipped. `0071` carries a
+`grant update` — `0045` revoked the table-wide default, so without it PostgREST
+rejects every reflection write outright. `0072` is inert until applied: ship its
+code without it and the pricing page advertises free mistake tagging that the
+flag row still denies. **Apply the migration before the code, not after.**
+
+### Flagged, not changed
+
+The weekly digest email (`api/cron/lifecycle-emails/route.ts`) is ungated at every
+tier and sends Free users `winRate` and `netR` — a pre-existing breach of the
+free/paid line that predates all three C tasks. Its most-tagged-mistake line will
+also start firing for Free accounts once `0072` runs; that part is now consistent,
+since those users can find the tag in their journal.
