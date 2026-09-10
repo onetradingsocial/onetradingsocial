@@ -245,29 +245,46 @@ describe('the onboarding checklist', () => {
     return SRC.slice(start, end)
   }
 
-  // Both steps are impossible on Free, and OnboardingChecklist only hides
-  // itself once every item is done — so an ungated entry is a card that never
-  // goes away, on a bar that can never fill, telling the user to do something
-  // their plan forbids.
-  for (const [label, gate] of [
-    ['Tag your first strategy', 'strategy_tracking'],
-    ['Read your weekly review', 'weekly_review'],
-  ] as const) {
-    it(`only offers "${label}" to accounts that hold ${gate}`, () => {
-      expect(can('free', gate)).toBe(false)
-      const body = checklistBody()
-      const at = body.indexOf(label)
-      expect(at, `"${label}" is not in the checklist literal`).toBeGreaterThan(-1)
-      // The entry must sit inside a conditional spread, not be a bare element.
-      const before = body.slice(Math.max(0, at - 160), at)
-      expect(
-        /\.\.\.\(\s*can\w+\s*\?/.test(before),
-        `"${label}" is an unconditional checklist entry. It must be spread in ` +
-        `behind the same gate the feature reads.`,
-      ).toBe(true)
-      expect(SRC).toContain(`canFlag(flags, tier, '${gate}')`)
-    })
-  }
+  // The invariant is that no step is offered which the account cannot finish.
+  // OnboardingChecklist only hides itself once every item is done, so a step a
+  // plan forbids is a card that never goes away on a bar that can never fill.
+  //
+  // There are two honest ways to satisfy that, and the checklist now uses both:
+  // hide the step, or give it a route the plan allows. Tagging has no ungated
+  // route, so it is hidden. The review step does — a self-recorded review — so
+  // it stays visible and ticks on that instead.
+
+  it('only offers "Tag your first strategy" to accounts that hold strategy_tracking', () => {
+    expect(can('free', 'strategy_tracking')).toBe(false)
+    const body = checklistBody()
+    const at = body.indexOf('Tag your first strategy')
+    expect(at, 'the tagging step is not in the checklist literal').toBeGreaterThan(-1)
+    // The entry must sit inside a conditional spread, not be a bare element.
+    const before = body.slice(Math.max(0, at - 160), at)
+    expect(
+      /\.\.\.\(\s*can\w+\s*\?/.test(before),
+      'the tagging step is an unconditional checklist entry. It must be spread ' +
+      'in behind the same gate the feature reads, or given an ungated route.',
+    ).toBe(true)
+    expect(SRC).toContain(`canFlag(flags, tier, 'strategy_tracking')`)
+  })
+
+  it('keeps the review step reachable on Free rather than hiding it', () => {
+    // `weekly_review_viewed` fires only from WeeklyReviewCard, which renders
+    // nothing below Trader — so a review step resting on that signal alone is
+    // permanently unticked for every Free account. It must also read a source
+    // that Free can actually write.
+    expect(can('free', 'weekly_review')).toBe(false)
+    const body = checklistBody()
+    const at = body.indexOf("key: 'review'")
+    expect(at, 'no review step in the checklist literal').toBeGreaterThan(-1)
+    const entry = body.slice(at).split('\n')[0]
+    expect(
+      entry.includes('processLogs'),
+      'the review step ticks only on weekly_review_viewed, which Free users ' +
+      'can never emit. Tick it on the self-recorded review as well, or hide it.',
+    ).toBe(true)
+  })
 })
 
 // ---------------------------------------------------------------------------
