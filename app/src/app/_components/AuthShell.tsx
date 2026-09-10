@@ -78,7 +78,7 @@ export function AuthShell({
                 <span>Track · Prove · Improve</span>
               </div>
             </div>
-            <p>Your win rate, P&amp;L and consistency are computed from the trades you log — tamper-proof and yours to own.</p>
+            <p>Your win rate, P&amp;L and consistency are computed from the trades you log — every one labelled by source, and yours to own.</p>
             <div className="stars">★★★★★</div>
           </div>
         </aside>

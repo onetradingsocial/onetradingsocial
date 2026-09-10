@@ -23,7 +23,7 @@ export const LANDINGS: Record<string, Landing> = {
     points: [
       { title: 'Pip-accurate journaling', body: 'Log majors, minors and crosses with automatic pip and R calculation.' },
       { title: 'Session analytics', body: 'See whether your London or New York trades actually carry your account.' },
-      { title: 'Verified track record', body: 'Connect MT5 and your closed trades sync automatically, tamper-proof.' },
+      { title: 'Verified track record', body: 'Connect MT5 and your closed trades sync automatically, with their execution data locked from editing.' },
     ],
     proof: 'Traders on TradingSocial',
     cta: 'Start journaling forex free',
@@ -97,7 +97,9 @@ export const LANDINGS: Record<string, Landing> = {
     slug: 'educators',
     eyebrow: 'For trading educators',
     headline: 'Show your students a verified track record.',
-    sub: 'Build a public, verified profile and a following around results that can be trusted.',
+    // Same unbounded claim as index.html's 'performance can be trusted', bounded
+    // the same way: we can show where each number came from, not vouch for it.
+    sub: 'Build a public, verified profile and a following around a record that shows where every trade came from.',
     points: [
       { title: 'Verified profile', body: 'Broker-synced trades carry a badge everywhere your profile appears.' },
       { title: 'Creator profile', body: 'Custom cover, tagline, CTA and pinned post for your audience.' },

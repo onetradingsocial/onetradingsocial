@@ -1583,7 +1583,11 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       <div class="hero-banner-grid"></div>
       <div class="hero-banner-noise"></div>
       <div class="hero-content">
-        <span class="chip chip--band"><span class="dot"></span>The TradingSocial Journal · Updated weekly</span>
+        <!-- No cadence claim here. The newest post in /data/posts.json is
+             2026-06-03; "Updated weekly" was false for every week since. The
+             chip is filled in from the data below, so it can only ever state a
+             date that exists, and it degrades to the bare title with JS off. -->
+        <span class="chip chip--band"><span class="dot"></span>The TradingSocial Journal<span id="blogLatest"></span></span>
         <h1 class="h1">Writing for traders who<br><em>review</em>, not gamble.</h1>
         <p class="hero-sub">Practical, no-hype articles on journaling, psychology, risk and performance — the same principles the platform is built on.</p>
         <form class="blog-search" onsubmit="return false">
@@ -1744,6 +1748,12 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       // Update count
       var countEl = document.querySelector('.count');
       if (countEl) countEl.textContent = 'Showing ' + grid.length + ' articles';
+
+      // Hero chip: the real date of the newest post, never a cadence promise.
+      var latestEl = document.getElementById('blogLatest');
+      if (latestEl && posts.length && posts[0].published_date) {
+        latestEl.textContent = ' · Latest post ' + fmtDate(posts[0].published_date);
+      }
 
       // Site-wide reveal observer ran before these cards existed; observe them here
       var rio = new IntersectionObserver(function (entries) {

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { REFERRAL_MONTH_CAP } from '@/lib/referral'
+import { TRIAL_DAYS } from '@/lib/entitlements'
 
 export type ReferralSummary = {
   code: string
@@ -28,7 +30,11 @@ const WHATSAPP = (
   <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a9 9 0 00-7.8 13.5L3 21l4.7-1.2A9 9 0 1012 3z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><path d="M8.5 8.7c.3-.7 1-1.4 1.7-1.4.4 0 .8.5 1.2 1.3.3.6.9 2 .4 2.6-.6.7.4 1.7 1.1 2.3.7.6 1.7 1.5 2.4.9.6-.5 2 .1 2.6.4.8.4 1.3.8 1.3 1.2 0 .8-1 2.1-2.4 2.1-2.6 0-6.6-2.7-8.3-6.3-.5-1-.4-2.2 0-3.1z" fill="currentColor" /></svg>
 )
 
-const SHARE_TEXT = "I'm journaling my trades on TradingSocial — join with my link and we both get Pro free:"
+/* Says only what the programme actually grants. `creditReferral` (lib/referral.ts)
+   awards free Pro months to the REFERRER; the person joining gets the same 14-day
+   Pro trial every signup already gets, and nothing else. "we both get Pro free"
+   promised the recipient a reward that no code path issues. */
+const SHARE_TEXT = `I'm journaling my trades on TradingSocial — join with my link and start your free ${TRIAL_DAYS}-day Pro trial:`
 
 export function ReferralModal({
   summary,
@@ -59,7 +65,9 @@ export function ReferralModal({
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const link = summary ? `${origin}/r/${summary.code}` : ''
   const months = summary?.months ?? 0
-  const cap = summary?.cap ?? 12
+  // The fallback has to be the real cap: a hand-written 12 drew a 12-segment
+  // track and a "12 months free" caption for a programme that stops at 6.
+  const cap = summary?.cap ?? REFERRAL_MONTH_CAP
   const remaining = Math.max(0, cap - months)
 
   const copyLink = () => {
@@ -101,7 +109,7 @@ export function ReferralModal({
           <button className="ref-close" onClick={onClose} aria-label="Close">{CLOSE}</button>
           <span className="ref-eyebrow"><span className="dot" />Referral program</span>
           <h1>Refer a trader.<br />Earn Pro, free.</h1>
-          <p>Every trader who joins with your link and logs their first trade earns you <b>1 month of Pro, free</b> — up to <b>6 months</b>.</p>
+          <p>Every trader who joins with your link and logs their first trade earns you <b>1 month of Pro, free</b> — up to <b>{REFERRAL_MONTH_CAP} months</b>.</p>
         </div>
 
         {loading || !summary ? (
