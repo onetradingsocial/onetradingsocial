@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  aggregatePerformance, rankPerformance, windowStart,
+  aggregatePerformance, rankPerformance, windowStart, effectiveMinTrades,
   type PerfTrade, type Period, type PerfSort,
 } from '@/lib/leaderboard'
 import { profileLevel, type SourceCounts, type VerificationLevel, type AccountType, type TradeSource } from '@/lib/verification'
@@ -97,6 +97,16 @@ const ACCOUNT_FILTER: Partial<Record<VerifyFilter, AccountType>> = {
 }
 
 // Public closed trades -> aggregate -> keep only visible profiles -> rank -> attach profile fields.
+//
+// NOTE on the `sort` default. /leaderboard now passes DEFAULT_PERF_SORT
+// (expectancy) explicitly; this default stays 'pnl' because the other two
+// callers — the home dashboard's "you're ranked #N this week" and the profile
+// page's standing — render P/L bars and a P/L gap-to-leader beside the rank
+// they take from here. Changing the default under them would leave those
+// surfaces ordering by one metric while drawing another, which is the same
+// class of mismatch the standing card on /leaderboard was just fixed for.
+// They should move too, with their copy and their bars; that is a change to
+// those pages, not to this one.
 export async function getPerformanceRanking(
   supabase: SupabaseClient,
   period: Period,
@@ -114,6 +124,14 @@ export async function getPerformanceRanking(
   const sourceFilter = SOURCE_FILTER[verify]
   if (sourceFilter) q = q.eq('source', sourceFilter)
   const { data: rows } = await q
+
+  // The sample floor is applied HERE, once, rather than trusted from the query
+  // string. `minTrades` arrives from a URL parameter on /leaderboard and as the
+  // default 0 from the home dashboard and profile pages; clamping at the single
+  // place board rows are produced means "ranked" carries the same minimum
+  // sample on every surface, and `?minTrades=0` cannot restore the old
+  // one-lucky-trade board.
+  const floor = effectiveMinTrades(minTrades)
 
   const aggs = [...aggregatePerformance((rows ?? []) as PerfTrade[]).values()]
   if (aggs.length === 0) return []
@@ -153,13 +171,13 @@ export async function getPerformanceRanking(
   // Rank inside each cohort, then concatenate in COHORT_ORDER. `rankPerformance`
   // is called once per cohort rather than once overall, which is the whole
   // mechanism: ranks restart at 1 per cohort and the sort never compares a
-  // self-reported P&L with a broker-verified one. `minTrades` applies within
-  // each cohort, as it did before, so the sample-size floor is unaffected.
+  // self-reported P&L with a broker-verified one. The sample floor applies
+  // within each cohort, as it did before, so it is unaffected by the split.
   const out: RankedEntry[] = []
   for (const cohort of COHORT_ORDER) {
     const group = visible.filter((a) => cohortOf(levelOf(a.userId)) === cohort)
     if (group.length === 0) continue
-    for (const r of rankPerformance(group, sort, minTrades)) {
+    for (const r of rankPerformance(group, sort, floor)) {
       const p = pmap.get(r.userId)!
       out.push({
         rank: r.rank, cohort, userId: r.userId,

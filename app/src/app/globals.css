@@ -830,6 +830,15 @@ button.ts-burger-link {
 .lb-head h1 { font-family: var(--display); font-size: 32px; font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
 .lb-head p { color: var(--dim); font-size: 14.5px; margin-top: 9px; text-wrap: pretty; }
 
+/* Method line under the controls: what the board was ranked by, the sample
+   floor, and — when the viewer's chosen sort was overridden by their tier —
+   the fact that it was overridden. Disclosure, not decoration. */
+.lb-method { display: flex; flex-direction: column; gap: 8px; }
+.lb-method p { color: var(--dim); font-size: 13px; line-height: 1.55; margin: 0; max-width: 74ch; }
+.lb-method p b { color: var(--text); font-weight: 700; }
+.lb-method a { color: var(--violet-br); font-weight: 700; }
+.lb-method-note { border-left: 2px solid var(--violet-br); padding-left: 10px; }
+
 /* filter bar */
 .lb-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lb-segs { display: inline-flex; padding: 4px; background: var(--sunk); border-radius: 12px; border: 1px solid var(--line); }
@@ -924,7 +933,7 @@ button.ts-burger-link {
 .lb-standing .bigrow { display: flex; align-items: baseline; gap: 12px; margin-top: 10px; }
 .lb-standing .bigrank { font-family: var(--display); font-size: 46px; font-weight: 700; line-height: 0.9; letter-spacing: -0.03em; }
 .lb-standing .of { font-family: var(--mono); font-size: 11px; color: var(--on-ink-dim); }
-.lb-standing .pods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.lb-standing .pods { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 16px; }
 .lb-standing .pod { background: rgba(255,255,255,0.06); border: 1px solid var(--ink-line); border-radius: 12px; padding: 11px 12px; }
 .lb-standing .pod .k { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--on-ink-dim); }
 .lb-standing .pod .v { font-family: var(--display); font-size: 18px; font-weight: 700; margin-top: 3px; letter-spacing: -0.01em; }

@@ -10,7 +10,11 @@ import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
 import { getXpRanking, getUserXp } from '@/lib/server/xp'
 import type { Period as XpPeriod } from '@/lib/xp'
-import type { Period, PerfSort } from '@/lib/leaderboard'
+import {
+  isPerfSort, resolveSort, effectiveMinTrades, perfMetric,
+  DEFAULT_PERF_SORT, MIN_RANKED_TRADES, PERF_SORT_LABEL,
+  type Period, type PerfSort,
+} from '@/lib/leaderboard'
 import { LeaderboardTabs } from './_components/LeaderboardTabs'
 import { LeaderboardControls } from './_components/LeaderboardControls'
 import { Podium } from './_components/Podium'
@@ -29,39 +33,102 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   const cat = (['performance', 'xp'].includes(sp.cat ?? '') ? sp.cat : 'performance') as 'performance' | 'xp'
   const allowedPeriods = cat === 'xp' ? ['week', 'month', 'all'] : ['day', 'week', 'month', 'all']
   const period = (allowedPeriods.includes(sp.period ?? '') ? sp.period : 'week') as Period
-  const requestedSort = (['pnl', 'winRate', 'avgR', 'trades', 'expectancy', 'profitFactor', 'consistency', 'riskAdjusted'].includes(sp.sort ?? '') ? sp.sort : 'pnl') as PerfSort
+  const requestedSort: PerfSort = isPerfSort(sp.sort) ? sp.sort : DEFAULT_PERF_SORT
   const verify = (['all', 'broker', 'statement', 'self', 'live', 'demo', 'prop'].includes(sp.verify ?? '') ? sp.verify : 'all') as VerifyFilter
-  const minTrades = (['0', '10', '30', '50'].includes(sp.minTrades ?? '') ? Number(sp.minTrades) : 0)
+  // effectiveMinTrades clamps to MIN_RANKED_TRADES, so a hand-edited
+  // `?minTrades=0` (the option this control used to offer, labelled "Any
+  // sample") raises the floor back rather than removing it. The server clamps
+  // again inside getPerformanceRanking; this call exists so the SELECT shows
+  // the value that was actually used.
+  const minTrades = effectiveMinTrades(
+    ['5', '10', '30', '50'].includes(sp.minTrades ?? '') ? Number(sp.minTrades) : MIN_RANKED_TRADES,
+  )
 
   const supabase = await createClient()
   const user = await getSessionUser(supabase)
   if (!user) redirect('/login')
 
-  // Advanced filters (sorting beyond P/L) are Trader+ — coerce to pnl for Free.
+  // Sorting beyond the default metric is Trader+. The coercion is unchanged;
+  // what is new is that `resolveSort` reports it, so the page can say it
+  // happened instead of quietly reordering the board under the viewer.
   const [tier, flags] = await Promise.all([getTier(supabase, user.id), getFeatureFlags()])
   const canAdvFilters = canFlag(flags, tier, 'advanced_leaderboard_filters')
   const canRank = canFlag(flags, tier, 'leaderboard_ranking')
-  const sort: PerfSort = canAdvFilters ? requestedSort : 'pnl'
+  const { sort, coerced } = resolveSort(requestedSort, canAdvFilters)
 
   return (
-    <main className="ts-page ts-feed lb-app">
-      <div className="ts-feed-main lb-main">
+    <main className="ts-page lb-app">
+      <div className="lb-main">
         <header className="lb-head"><div className="tx">
-          <h1 className="ts-h1">Pro Leaderboard</h1>
-          <p>Top-performing traders ranked by profit, win rate, consistency — and now XP. Ranking is for Trader and Pro members, so every name here is a subscribed trader putting their numbers on the line.</p>
+          <h1 className="ts-h1">Leaderboard</h1>
+          {/*
+            What this paragraph used to say — "Ranking is for Trader and Pro
+            members, so every name here is a subscribed trader" — was false
+            twice over. Ranking eligibility is a TIER check, and the 14-day
+            trial grants Pro app-wide on purpose (lib/entitlements resolveTier;
+            leaderboardEligibleIds says so out loud), so an active trialist
+            ranks without ever having paid. And on the day this was written the
+            production `subscriptions` table held exactly one row — tier
+            trader, status canceled, period ended 2026-07-26 — so there was no
+            subscriber on the board to describe. The replacement states the
+            eligibility rule, which is checkable, and claims nothing about
+            anybody's payment status, which is not ours to assert.
+
+            The verification sentence is bounded to match /verification, which
+            is careful that a statement can be altered before upload, that
+            account type is self-declared, and that we cannot tell whether an
+            account is a trader's only account.
+          */}
+          <p>
+            Ranked on public closed trades, grouped by how the numbers got here.
+            Ranking is available at Trader level and above — which the 14-day
+            trial also grants — so a name here means an eligible account, not a
+            paying one. Self-reported rows are typed in by the trader and are
+            not verified;{' '}
+            <Link href="/verification">what we can and cannot check</Link>.
+          </p>
         </div></header>
+
+        {/*
+          Personal progress is the first thing on the page, and on the main
+          column rather than the rail. It used to sit in `.ts-feed-side`, which
+          `globals.css` hides outright under 900px — so on a phone the page was
+          other people's numbers and nothing else. For a product whose pitch is
+          your own process, "how am I doing" cannot be the part that disappears
+          first.
+        */}
+        <LeaderboardRail
+          supabase={supabase} userId={user.id} cat={cat} period={period}
+          sort={sort} minTrades={minTrades} canRank={canRank}
+        />
 
         <LeaderboardTabs cat={cat} />
         <LeaderboardControls period={period} sort={sort} cat={cat} verify={verify} minTrades={String(minTrades)} canAdvFilters={canAdvFilters} />
+
+        {cat === 'performance' && (
+          <div className="lb-method">
+            <p>
+              Ranked by <b>{PERF_SORT_LABEL[sort]}</b> over public closed trades{' '}
+              {PERIOD_LABEL[period]}, minimum sample <b>{minTrades} trades</b>.{' '}
+              {minTrades === MIN_RANKED_TRADES
+                ? `That is the floor: below ${MIN_RANKED_TRADES} trades there is not enough of a sample to rank an account honestly, so it is not ranked at all.`
+                : `The board never ranks an account on fewer than ${MIN_RANKED_TRADES} trades.`}
+            </p>
+            {coerced && (
+              <p className="lb-method-note">
+                You asked for <b>{PERF_SORT_LABEL[requestedSort]}</b>. Sorting by anything
+                other than {PERF_SORT_LABEL[DEFAULT_PERF_SORT]} needs Trader-level access,
+                so the board below is sorted by {PERF_SORT_LABEL[DEFAULT_PERF_SORT]}{' '}
+                instead — <Link href="/settings/billing">see plans</Link>.
+              </p>
+            )}
+          </div>
+        )}
 
         {cat === 'performance'
           ? <PerformanceBoard supabase={supabase} period={period} sort={sort} verify={verify} minTrades={minTrades} userId={user.id} />
           : <XpBoard supabase={supabase} period={period} userId={user.id} />}
       </div>
-
-      <aside className="ts-feed-side">
-        <LeaderboardRail supabase={supabase} userId={user.id} cat={cat} period={period} canRank={canRank} />
-      </aside>
     </main>
   )
 }
@@ -143,7 +210,7 @@ async function XpBoard({ supabase, period, userId }: { supabase: Awaited<ReturnT
   )
 }
 
-async function LeaderboardRail({ supabase, userId, cat, period, canRank }: { supabase: Awaited<ReturnType<typeof createClient>>; userId: string; cat: 'performance' | 'xp'; period: Period; canRank: boolean }) {
+async function LeaderboardRail({ supabase, userId, cat, period, sort, minTrades, canRank }: { supabase: Awaited<ReturnType<typeof createClient>>; userId: string; cat: 'performance' | 'xp'; period: Period; sort: PerfSort; minTrades: number; canRank: boolean }) {
   if (cat === 'xp') {
     const xp = await getUserXp(supabase, userId)
     const pct = Math.round(xp.level.progress * 100)
@@ -156,8 +223,12 @@ async function LeaderboardRail({ supabase, userId, cat, period, canRank }: { sup
       </div>
     )
   }
-  // Rank the rail to the SAME period as the board so the rank matches its period label.
-  const board = await getPerformanceRanking(supabase, period)
+  // Rank the standing card to the SAME period, metric and sample floor as the
+  // board it now sits above. It used to pass period only, so it silently used
+  // the getPerformanceRanking defaults: with the default metric no longer Total
+  // P/L, a rank computed on a different metric than the table underneath it
+  // would be a number the page contradicts on the next scroll.
+  const board = await getPerformanceRanking(supabase, period, sort, 'all', minTrades)
   const me = board.find((e) => e.userId === userId) ?? null
   // Ranks are per cohort now (item 15 F5), so "#3 of 40" has to be read within
   // the viewer's own cohort or the rail contradicts the table it sits beside.
@@ -170,11 +241,15 @@ async function LeaderboardRail({ supabase, userId, cat, period, canRank }: { sup
       rank={me?.rank ?? null}
       total={cohortRows.length}
       cohortLabel={me ? COHORT_HEADING[me.cohort].toLowerCase() : null}
+      metricLabel={PERF_SORT_LABEL[sort]}
+      metric={me ? perfMetric(me, sort) : 0}
+      leaderMetric={leader ? perfMetric(leader, sort) : null}
+      sort={sort}
       pnl={me?.pnl ?? 0}
       winRate={me?.winRate ?? 0}
       periodLabel={PERIOD_LABEL[period]}
-      leaderPnl={leader?.pnl ?? null}
       leaderHandle={leader && leader.userId !== userId ? leader.username : null}
+      minRankedTrades={minTrades}
       canRank={canRank}
     />
   )
