@@ -1055,3 +1055,50 @@ tier and sends Free users `winRate` and `netR` — a pre-existing breach of the
 free/paid line that predates all three C tasks. Its most-tagged-mistake line will
 also start firing for Free accounts once `0072` runs; that part is now consistent,
 since those users can find the tag in their journal.
+
+### Migrations applied to production (2026-09-10)
+
+Project `jmpanzrjxflovdfwcbye`. **Three of four applied. `0072` deliberately held.**
+
+| Migration | Status |
+|---|---|
+| `0070_process_logs` | **applied** |
+| `0071_trade_reflections` | **applied** |
+| `0073_weekly_reviews` | **applied** |
+| `0072_mistake_tagging_free` | **held — must run AFTER the code deploys** |
+
+Verified post-apply: both reflection columns exist on `trades`, both new tables
+exist, the two `grant update` column privileges are in place, and
+`feature_flags.mistake_tagging.free` is still `false`.
+
+All three applied migrations are additive — new tables, new columns, constraints
+scoped to those new columns, indexes, RLS policies and grants on the new objects
+only. Nothing touches existing data or existing columns, and deployed code that
+knows nothing about them is unaffected.
+
+**Why `0072` is the exception, and why C1's stated order is wrong for it.**
+
+C1 recommended migration-first on the grounds that the gap would be invisible —
+"a Free user who can write a tag the UI hasn't offered yet". That is true of the
+tag write. It is not true of the analysis card.
+
+Deployed `main` has **one** boolean covering both:
+
+```
+app/src/app/journal/page.tsx:192
+const canMistakes = canFlag(flags, tier, 'mistake_tagging')
+```
+
+The `mistake_analysis: 'trader'` key that separates the paid card from the free
+tag exists **only on the integration branch**. So flipping the flag against
+currently-deployed code hands every Free user the **mistake-analysis card** — a
+Trader feature — until the new code ships.
+
+Correct order for this one migration:
+
+1. Merge and deploy the integration branch (which introduces `mistake_analysis`).
+2. *Then* apply `0072`.
+
+Between those two steps the pricing page claims free mistake tagging that the
+flag row still denies — a false advertisement, but a quiet one, and strictly
+better than giving away the paid card. Keep the gap short.
