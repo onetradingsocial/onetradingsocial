@@ -26,6 +26,14 @@ export type JTrade = {
   emotion?: string | null
   note?: string | null
   is_public?: boolean | null
+  // Per-trade rule reflection (migration 0071). Ungated at every tier, and
+  // deliberately NOT part of the edit-modal set above: `note` is the private
+  // journal note and a Trader perk, `reflection_note` is the short ungated
+  // sentence beside the yes/no/unsure answer. Optional for the same reason the
+  // rest are — the public profile query selects a narrower list and must not
+  // start shipping a stranger's reflections to satisfy a type.
+  reflection_outcome?: string | null
+  reflection_note?: string | null
 }
 
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

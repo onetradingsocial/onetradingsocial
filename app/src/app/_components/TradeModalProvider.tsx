@@ -11,6 +11,7 @@ import { InstrumentCombobox } from './InstrumentCombobox'
 import { Mt5ImportTab } from './Mt5ImportTab'
 import { LivePriceChip } from './LivePriceChip'
 import { PrivacyNote } from './LegalNotice'
+import { TradeReflectionPrompt } from './TradeReflectionPrompt'
 import { prepareImageUpload } from '@/lib/image-prep'
 import Link from 'next/link'
 
@@ -52,6 +53,12 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [tab, setTab] = useState<'manual' | 'import'>('manual')
+  // The trade that was just saved, and the reason this modal no longer closes
+  // on save. Audit 2026-09-05, Wave D4: the third step of the improvement cycle
+  // is asking whether the trade followed the rules, and it has to be asked while
+  // the trade is still in front of the user — not later, in an edit form.
+  // Skipping is free; `null` again means the modal closes.
+  const [savedTradeId, setSavedTradeId] = useState<string | null>(null)
   // Quick mode (default): the 60-second capture — market, direction, prices,
   // size, date, strategy. Detailed keeps the full risk/psychology workflow.
   const [quick, setQuick] = useState(true)
@@ -146,11 +153,24 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
         await saveTradeChartUrl(res.tradeId, signed.url)
       }
     }
-    setPending(false); onSaved()
+    setPending(false)
+    // Hand straight to the reflection prompt rather than closing. If the insert
+    // somehow came back without an id there is nothing to reflect ON, so fall
+    // back to the old behaviour instead of stranding the user in a dead panel.
+    if (res.tradeId) setSavedTradeId(res.tradeId)
+    else onSaved()
+  }
+
+  // Closing after a save is a skip, not a cancel: the trade is already in the
+  // database, so the backdrop and the ✕ have to take the `onSaved` path or the
+  // journal behind the modal never refreshes and the new trade appears to have
+  // vanished. Skipping the reflection itself costs nothing.
+  const dismiss = () => {
+    if (savedTradeId) { setSavedTradeId(null); onSaved() } else onClose()
   }
 
   return (
-    <div className="ts-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+    <div className="ts-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) dismiss() }}>
       <div className="ts-modal ts-modal--wide">
         <div className="ts-modal-head">
           <div className="flex items-center gap-3">
@@ -160,9 +180,29 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
               <p className="ts-sub">Log your trade in seconds. Stay consistent.</p>
             </div>
           </div>
-          <button type="button" className="ts-modal-close" onClick={onClose}>✕</button>
+          <button type="button" className="ts-modal-close" onClick={dismiss}>✕</button>
         </div>
 
+        {savedTradeId ? (
+          /* Step three of the cycle, asked immediately after the save.
+             Ungated: no `config` flag is read here and none should be — the
+             reflection is the one improvement primitive a Free user must reach.
+             The optional line is `reflection_note`, which is NOT the private
+             trade note above (that one is a Trader perk); they are separate
+             fields and are kept visibly separate. */
+          <div className="mt-4">
+            <p className="ts-sub" style={{ marginBottom: 10 }}>
+              ✓ Trade saved. One last thing, while it&apos;s fresh:
+            </p>
+            <TradeReflectionPrompt
+              tradeId={savedTradeId}
+              current={null}
+              onSkip={() => { setSavedTradeId(null); onSaved() }}
+              skipLabel="Skip for now"
+            />
+          </div>
+        ) : (
+        <>
         <div className="mt-4" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <div className="ts-subtabs" style={{ maxWidth: 320 }}>
             <button type="button" data-active={tab === 'manual'} onClick={() => setTab('manual')}>Manual entry</button>
@@ -468,6 +508,8 @@ function TradeModal({ config, onClose, onSaved }: { config: Config; onClose: () 
           <button className="btn btn-primary" disabled={pending}>{pending ? 'Saving…' : '✓ Save Trade'}</button>
         </div>
         </form>
+        )}
+        </>
         )}
       </div>
     </div>

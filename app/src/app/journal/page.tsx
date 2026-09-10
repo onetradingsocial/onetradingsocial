@@ -38,6 +38,8 @@ import { StreaksCard } from './_components/StreaksCard'
 import { ProcessLogCard } from '@/app/_components/ProcessLogCard'
 import { getProcessLogs } from '@/lib/server/process'
 import { processDays, daysWithKind, flatDays, entriesForDay } from '@/lib/process'
+import { ReflectTradesCard, type ReflectRow } from './_components/ReflectTradesCard'
+import { countReflections } from '@/lib/reflection'
 import { getComparison } from '@/lib/server/compare'
 import { ComparisonCard } from './_components/ComparisonCard'
 import type { EditTradeConfig } from './_components/EditTradeModal'
@@ -55,7 +57,10 @@ export default async function JournalPage() {
     // the caller's own, and RLS (`trades_select`) would refuse anyone else's.
     // `note` in particular is the private journal field — never add it to the
     // public profile query, which reads other people's rows.
-    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, stop_price, target_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, mistake_tags, emotion, confidence, note, sizing_mode, risk_percent, lots, risk_amount, is_public, traded_at, source')
+    // `reflection_outcome` / `reflection_note` (0071) feed the reflect card and
+    // the per-row chip. Same "own rows only" argument as `note` above — and
+    // like `note`, never add them to the public profile query.
+    .select('id, instrument, market, direction, status, outcome, entry_price, exit_price, stop_price, target_price, r_multiple, pnl_amount, planned_rr, setup_type, strategy_tags, mistake_tags, emotion, confidence, note, sizing_mode, risk_percent, lots, risk_amount, is_public, traded_at, source, reflection_outcome, reflection_note')
     .eq('user_id', user.id)
     .order('traded_at', { ascending: false })
 
@@ -83,6 +88,22 @@ export default async function JournalPage() {
     canPrivateNotes: canFlag(flags, tier, 'private_notes'),
     maxStrategyTags: canFlag(flags, tier, 'strategy_tracking') ? (tier === 'pro' ? 8 : 1) : 0,
   }
+
+  // Per-trade rule reflections (0071) — ungated, no `canFlag` anywhere near it.
+  //
+  // Both the tally and the list are built from `visibleTrades`, not `trades`.
+  // On Free the list is capped at JOURNAL_FREE_LIMIT rows, and a card that said
+  // "45 not yet answered" while offering 30 would be describing a population the
+  // user cannot act on — the same one-population rule the Recent Trades footer
+  // was fixed to follow. Nothing is hidden by this: the hidden rows are hidden
+  // from the whole page, and their reflections are untouched in the database.
+  const reflectRows: ReflectRow[] = visibleTrades.map((t) => ({
+    id: t.id, instrument: t.instrument, direction: t.direction,
+    traded_at: t.traded_at, source: t.source ?? 'manual',
+    reflection_outcome: t.reflection_outcome ?? null,
+    reflection_note: t.reflection_note ?? null,
+  }))
+  const reflectionCounts = countReflections(reflectRows)
 
   const now = new Date()
   const year = now.getFullYear(), month = now.getMonth()
@@ -287,6 +308,14 @@ export default async function JournalPage() {
           options={['Very easy', 'OK', 'Clunky']}
         />
       )}
+
+      {/* Above the analytics on purpose: a reflection is an input to the week,
+          not a report on it, and it is the step of the cycle a Free user has to
+          be able to reach. `#reflect` is the anchor the MT5 import success
+          screen hands off to. */}
+      <div className="mt-5">
+        <ReflectTradesCard trades={reflectRows} counts={reflectionCounts} />
+      </div>
 
       {canInsights && (
         <div className="mt-5">

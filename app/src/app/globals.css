@@ -2750,3 +2750,19 @@ body { padding-bottom: 84px; }
  */
 body.has-cookie-notice { padding-bottom: 220px; }
 @media (min-width: 720px) { body.has-cookie-notice { padding-bottom: 150px; } }
+
+/*
+ * Per-trade rule reflection (audit 2026-09-05, Wave D4).
+ *
+ * The prompt appears in three places — the save modal, the journal's reflect
+ * card, and inside a trade row — so its box lives here once rather than as
+ * three near-identical inline style objects. `[data-subtle]` is the in-row
+ * variant: no border of its own, because the row already draws one around it.
+ */
+.ts-reflect { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); }
+.ts-reflect[data-subtle] { border: 0; padding: 8px 0 0; background: transparent; }
+.ts-reflect-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+.ts-reflect-item + .ts-reflect-item { margin-top: 10px; }
+.ts-reflect-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.ts-reflect-tally { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+.ts-reflect-tally span { border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; }

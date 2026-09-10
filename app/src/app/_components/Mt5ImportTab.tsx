@@ -57,10 +57,31 @@ export function Mt5ImportTab({ canImport, onDone }: { canImport: boolean; onDone
     return (
       <div className="ts-mt5-locked">
         <span style={{ fontSize: 28 }}>✓</span>
-        <p className="ts-sub" style={{ margin: '8px 0 12px' }}>
+        <p className="ts-sub" style={{ margin: '8px 0 4px' }}>
           Imported {inserted} trade{inserted === 1 ? '' : 's'} to your journal.
         </p>
-        <button type="button" className="btn btn-primary" onClick={onDone}>Done</button>
+        {/*
+          The reflection step (audit 2026-09-05, Wave D4) is per TRADE, and one
+          upload can land two hundred of them — a two-hundred-step wizard here
+          would be a two-hundred-step dismissal, so the prompt is not inlined.
+          The handoff goes to the journal's reflect card instead, which is
+          anchored at #reflect and lists exactly the trades still waiting.
+
+          Imported execution data stays locked; the reflection does not. That is
+          the whole reason this link exists: import is how most real evidence
+          arrives, so a cycle a user could only complete on hand-typed trades
+          would not be a cycle.
+        */}
+        <p className="faint" style={{ margin: '0 0 12px', fontSize: 12 }}>
+          Next: say whether they followed your rules. Their execution data stays as
+          your broker reported it — the reflection is yours.
+        </p>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/journal#reflect" className="btn btn-primary" onClick={onDone}>
+            Reflect on {inserted === 1 ? 'it' : 'them'}
+          </Link>
+          <button type="button" className="btn" onClick={onDone}>Done</button>
+        </div>
       </div>
     )
   }
