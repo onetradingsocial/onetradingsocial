@@ -65,9 +65,16 @@ export function generateInsights(tradesInput: InsightTrade[]): Insight[] {
     const wr = Math.round((afterWins / afterN) * 100)
     const base = Math.round((closed.filter((t) => isWin(t.rMultiple)).length / closed.length) * 100)
     if (wr < base - 8) {
+      // The comparison figure used to be described as "overall". It is not: it
+      // is a win rate over the R-bearing closed trades only, counted by the
+      // sign of R, and on a journal with stop-less closes it sits on a smaller
+      // sample than the header's win rate — which counts every closed trade by
+      // `outcome`. Two different denominators reached the same viewport, one of
+      // them claiming totality. Both numbers are correct; only the word was
+      // wrong. The base now names its own population and its own size.
       out.push({
         id: 'tilt', tone: 'bad', sample: afterN,
-        text: `After two straight losses your win rate drops to ${wr}% (vs ${base}% overall) — consider stepping away.`,
+        text: `After two straight losses your win rate drops to ${wr}% over ${afterN} such trades, against ${base}% across all ${closed.length} R-scored closed trades in your history — consider stepping away.`,
       })
     }
   }

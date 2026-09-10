@@ -76,6 +76,15 @@ export default async function JournalReportPage({ searchParams }: { searchParams
   const { data: profile } = await supabase.from('profiles').select('username, display_name').eq('id', user.id).single()
   const generated = new Date().toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
+  // The date range every "all time" figure below is actually over. `trades` is
+  // ordered traded_at desc, so the ends are the first and last rows. ISO slices,
+  // not toLocaleDateString: this string is rendered on the server and again on
+  // the client, and a locale-formatted date is how React #418 gets into a page.
+  const dates = trades.map((t) => t.traded_at).sort()
+  const coverage = dates.length
+    ? `${dates[0].slice(0, 10)} → ${dates[dates.length - 1].slice(0, 10)}`
+    : 'no trades logged'
+
   return (
     <main>
       <div className="jr-toolbar" style={{ display: 'flex', gap: 10 }}>
@@ -87,28 +96,36 @@ export default async function JournalReportPage({ searchParams }: { searchParams
       <div className="jr-report">
         <div className="jr-head">
           <h1>Trading journal report</h1>
-          <span>{profile?.display_name ?? profile?.username} · {verification} · Generated {generated}</span>
+          <span>{profile?.display_name ?? profile?.username} · {verification} · Covers {coverage} · Generated {generated}</span>
         </div>
 
+        {/* Every tile names its date range, denominator, units and exclusions.
+            "Avg R:R" was the worst of them: R:R is planned risk:reward, but
+            `metrics.avgRr` is the mean REALISED R of closed trades — the same
+            number the journal page correctly calls "Avg R". A genuine planned
+            figure exists separately, as "Avg planned R:R" in the journal's risk
+            card, so the two were live on the same account under names that
+            swapped their meanings. */}
         <div className="jr-stats">
-          <div className="jr-stat"><div className="k">Total trades</div><div className="v">{metrics.total}</div></div>
-          <div className="jr-stat"><div className="k">Win rate</div><div className="v">{Math.round(metrics.winRate * 100)}%</div></div>
-          <div className="jr-stat"><div className="k">Net P/L</div><div className={'v ' + (metrics.netPnl >= 0 ? 'jr-up' : 'jr-down')}>{money(metrics.netPnl, true)}</div></div>
-          <div className="jr-stat"><div className="k">Avg R:R</div><div className="v">{metrics.avgRr.toFixed(1)}</div></div>
-          <div className="jr-stat"><div className="k">Profit factor</div><div className="v">{metrics.profitFactor === Infinity ? '∞' : metrics.profitFactor.toFixed(2)}</div></div>
+          <div className="jr-stat"><div className="k">Closed trades</div><div className="v">{metrics.total}</div><div className="n">all time · {metrics.open} open excluded</div></div>
+          <div className="jr-stat"><div className="k">Win rate</div><div className="v">{Math.round(metrics.winRate * 100)}%</div><div className="n">all time · by outcome · n={metrics.total} closed</div></div>
+          <div className="jr-stat"><div className="k">Net P/L</div><div className={'v ' + (metrics.netPnl >= 0 ? 'jr-up' : 'jr-down')}>{money(metrics.netPnl, true)}</div><div className="n">all time · closed · money</div></div>
+          <div className="jr-stat"><div className="k">Avg R realised</div><div className="v">{metrics.avgRr.toFixed(2)}R</div><div className="n">all time · n={metrics.rCount} R-scored · not planned R:R</div></div>
+          <div className="jr-stat"><div className="k">Profit factor</div><div className="v">{metrics.profitFactor === Infinity ? '∞' : metrics.profitFactor.toFixed(2)}</div><div className="n">all time · R-weighted · n={metrics.rCount}</div></div>
         </div>
 
         <div className="jr-charts">
           <div>
-            <h2 className="jr-h2">Monthly P/L · {year}</h2>
+            <h2 className="jr-h2">Monthly P/L · {year} · closed</h2>
             <MonthlyPL data={monthlyPnl(closed, year)} />
           </div>
           <div>
-            <h2 className="jr-h2">Equity curve</h2>
+            {/* Same series as the journal page: all closed history, not YTD. */}
+            <h2 className="jr-h2">Equity curve · all time · closed</h2>
             <EquityCurve points={eq.points} />
           </div>
           <div>
-            <h2 className="jr-h2">Asset distribution</h2>
+            <h2 className="jr-h2">Asset distribution · by trade count · all trades incl. open</h2>
             <AssetDonut data={dist} total={trades.length} />
           </div>
         </div>

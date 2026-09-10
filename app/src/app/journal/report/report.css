@@ -7,6 +7,8 @@
 .jr-stat { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
 .jr-stat .k { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
 .jr-stat .v { font-family: var(--display); font-size: 19px; font-weight: 700; margin-top: 4px; }
+/* Provenance line: date range, denominator, units, exclusions. Prints. */
+.jr-stat .n { font-size: 9.5px; line-height: 1.35; color: var(--faint); margin-top: 4px; }
 .jr-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .jr-table th, .jr-table td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line-2); }
 .jr-table th { color: var(--faint); font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .03em; }

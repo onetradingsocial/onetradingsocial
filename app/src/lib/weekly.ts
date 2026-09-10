@@ -24,6 +24,75 @@ export type WeeklyDetail = {
 
 const EPS = 1e-9
 
+/** The two periods a weekly review compares, reduced to what the card needs. */
+export type WeekTotals = {
+  /** closed trades in the window */
+  total: number
+  netPnl: number
+  winRate: number
+  avgRr: number
+  /** closed trades in the window that carry an r_multiple */
+  rCount: number
+}
+
+export type WeeklyComparison = {
+  /** the current window has at least one closed trade */
+  hasCurrent: boolean
+  /** the previous window has at least one closed trade */
+  hasPrevious: boolean
+  /**
+   * Null wherever the change cannot be measured. `trades` is a count and is
+   * always real; the rest are quantities over a period that may not exist.
+   */
+  deltas: { trades: number; netPnl: number | null; winRate: number | null; avgRr: number | null }
+  /** Set when there is nothing to review. Null when the card should render. */
+  emptyReason: 'no-current' | 'no-history' | null
+}
+
+/**
+ * Weekly review comparison — P0 from the audit.
+ *
+ * `computeMetrics([])` returns zeros, because it must return a Metrics. The
+ * card then subtracted last week from those zeros and drew an arrow. A trader
+ * who took no trades this week, after a week that averaged −0.6R and lost $400,
+ * was shown "▲ 0.60R vs last week" and "▲ $400 vs last week" — the review
+ * congratulated them for the absence of data. Two zeros that mean "nothing
+ * happened" are not a result, and the difference between them and last week's
+ * result is not an improvement.
+ *
+ * So: when the current window is empty there are no deltas at all, and
+ * `emptyReason` tells the card to render a no-data state instead.
+ */
+export function compareWeeks(current: WeekTotals, previous: WeekTotals): WeeklyComparison {
+  const hasCurrent = current.total > 0
+  const hasPrevious = previous.total > 0
+
+  if (!hasCurrent) {
+    return {
+      hasCurrent, hasPrevious,
+      deltas: { trades: current.total - previous.total, netPnl: null, winRate: null, avgRr: null },
+      emptyReason: hasPrevious ? 'no-current' : 'no-history',
+    }
+  }
+
+  // Money and win rate need a previous week to be a change at all. Avg R needs
+  // one more thing on top: an R-bearing trade on both sides, or the "previous"
+  // avg R is the zero that `computeMetrics` returns for a stop-less week rather
+  // than a measured average.
+  const both = hasPrevious
+  const rBoth = both && current.rCount > 0 && previous.rCount > 0
+  return {
+    hasCurrent, hasPrevious,
+    deltas: {
+      trades: current.total - previous.total,
+      netPnl: both ? current.netPnl - previous.netPnl : null,
+      winRate: both ? current.winRate - previous.winRate : null,
+      avgRr: rBoth ? current.avgRr - previous.avgRr : null,
+    },
+    emptyReason: null,
+  }
+}
+
 export function computeWeeklyDetail(trades: WeeklyTrade[]): WeeklyDetail | null {
   const closed = trades.filter((t) => t.rMultiple != null)
   if (closed.length === 0) return null

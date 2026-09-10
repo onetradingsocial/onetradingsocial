@@ -57,6 +57,61 @@ export function assetDistribution(trades: JTrade[]) {
     .sort((a, b) => b.count - a.count)
 }
 
+/**
+ * The Recent Trades segmented filter, as a pure predicate.
+ *
+ * It lives here rather than inline in the component so the table's row count
+ * and the footer's net are derived from ONE definition of "shown". They were
+ * two: `shown.length` came from this predicate and the net came from
+ * `periodSums().monthNet`, a current-calendar-month figure that no filter
+ * touched. Selecting "Losses" changed the count and left the net alone.
+ */
+export function matchesTradeFilter(t: JTrade, key: string): boolean {
+  if (key === 'all') return true
+  // outcome, not r_multiple: stop-less trades close with a win/loss and no R.
+  if (key === 'wins') return t.status === 'closed' && t.outcome === 'win'
+  if (key === 'losses') return t.status === 'closed' && t.outcome === 'loss'
+  return t.market === key
+}
+
+/**
+ * Net realised money over a set of rows, with the exclusions it depends on.
+ *
+ * `counted` is the population the net is actually over; `excluded` is every row
+ * on screen that contributes nothing (open, or closed without a P/L because the
+ * account has no balance set). Returning both is the point — a net printed
+ * beside a row count that is larger than its own denominator is the defect.
+ */
+export function netOfTrades(trades: JTrade[]): { net: number; counted: number; excluded: number } {
+  let net = 0, counted = 0, excluded = 0
+  for (const t of trades) {
+    if (t.status === 'closed' && t.pnl_amount != null) { net += t.pnl_amount; counted++ }
+    else excluded++
+  }
+  return { net, counted, excluded }
+}
+
+/**
+ * Tone for a profit-factor readout.
+ *
+ * The journal's stat card hard-coded `subTone="pos"`, so a profit factor of
+ * 0.54 — losing 1R for every 0.54R won — rendered in the same green as a 2.10.
+ * Break-even is 1, so that is where the sign flips, with a dead band either
+ * side because 0.99 and 1.01 are the same result and neither earns a colour.
+ *
+ * `Infinity` is winning R trades with no losing ones. `rCount === 0` is no
+ * R-bearing trades at all — an absence, not a loss, and it must not go red.
+ * (`computeMetrics` returns profitFactor 0 in exactly that case, which is the
+ * value a naive `pf < 1` test would paint as the worst possible result.)
+ */
+export function profitFactorTone(pf: number, rCount: number): 'pos' | 'neg' | 'muted' {
+  if (rCount === 0) return 'muted'
+  if (!Number.isFinite(pf)) return 'pos'
+  if (pf > 1.01) return 'pos'
+  if (pf < 0.99) return 'neg'
+  return 'muted'
+}
+
 export type CalCell = { day: number; inMonth: boolean; pnl: number; count: number }
 
 export function calendarCells(trades: JTrade[], year: number, month: number): CalCell[] {
