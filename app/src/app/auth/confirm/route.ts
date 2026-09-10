@@ -1,5 +1,7 @@
 import { type NextRequest } from 'next/server'
 import { consumeGrant } from '@/lib/server/auth-grant'
+import { createServiceClient } from '@/lib/supabase/service'
+import { startTrialIfUnstarted } from '@/lib/server/trial-start'
 
 /**
  * Email-confirmation callback (item 9 F2). Inert until "Confirm email" is
@@ -14,10 +16,42 @@ import { consumeGrant } from '@/lib/server/auth-grant'
  * This path must be added to the Supabase Redirect URL allowlist:
  *   https://app.tradingsocial.io/auth/confirm
  */
+
+/**
+ * Which grants at this endpoint mean "a new account has just been confirmed",
+ * and therefore start the 14-day Pro trial.
+ *
+ * NOT the full `expectTypes` list below. That list is defensively broad;
+ * `email_change` and `magiclink` would both be a grant redeemed by an account
+ * that already exists and has been using the product, and stamping a trial
+ * there could arm the end-of-trial wall on someone 0041 deliberately left out
+ * of the backfill (an internal/seed account, or a live subscriber) simply
+ * because they changed their email address.
+ *
+ * A PKCE `code` carries no type at all, and is included: nothing in this
+ * codebase issues a confirm-link for anything but a signup — `emailRedirectTo`
+ * points here from `signUp` and from `resendConfirmation({ type: 'signup' })`
+ * only, and no call to `updateUser({ email })` exists — so an untyped grant
+ * arriving here is a signup confirmation. If an email-change flow is ever
+ * added, it must not redirect to this route.
+ */
+function grantStartsTrial(otpType: string | null): boolean {
+  return otpType === null || otpType === 'signup' || otpType === 'invite'
+}
+
 export async function GET(request: NextRequest) {
   return consumeGrant(request, {
     successPath: '/welcome',
     expectTypes: ['signup', 'invite', 'magiclink', 'email_change'],
     label: 'auth/confirm',
+    // The point of the whole change: with confirmation ON, this is the first
+    // moment the account has a session, so this is when the 14 days start.
+    // Idempotent and `is null`-filtered — see lib/server/trial-start.ts — so
+    // while the 0041 trigger is still stamping at signup this is a no-op, and a
+    // user who clicks the link twice gets one trial, not two.
+    onSession: async ({ userId, otpType }) => {
+      if (!userId || !grantStartsTrial(otpType)) return
+      await startTrialIfUnstarted(createServiceClient(), userId)
+    },
   })
 }

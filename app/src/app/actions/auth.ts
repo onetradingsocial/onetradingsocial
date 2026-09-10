@@ -17,6 +17,7 @@ import {
   SIGNUP_BUDGET,
 } from '@/lib/server/auth-throttle'
 import { logError } from '@/lib/server/log'
+import { startTrialIfUnstarted } from '@/lib/server/trial-start'
 
 export type ActionState = {
   error?: string
@@ -144,6 +145,19 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
       // The same cookie doubles as a referral code when it matches one.
       await attributeReferral(svc, data.user.id, ref)
     }
+    // The trial starts when the account first has a session, not when the row
+    // is created — see lib/server/trial-start.ts. THIS is the confirmation-OFF
+    // arm of that rule: GoTrue handed back a session, so the account is usable
+    // right now and the 14 days should be running. With confirmation ON there
+    // is no session here and nothing is stamped; `/auth/confirm` starts it when
+    // the user actually clicks the link.
+    //
+    // Idempotent and `is null`-filtered, so while the 0041 trigger is still
+    // stamping at INSERT this call simply finds the value set and does nothing.
+    if (data.session) {
+      await startTrialIfUnstarted(createServiceClient(), data.user.id)
+    }
+
     // `confirmed` distinguishes "in the funnel already" from "waiting on an
     // email click", which the funnel would otherwise read as a flat drop-off
     // the day confirmation is switched on.
