@@ -45,8 +45,8 @@ function fakeSupabase(tables: Record<string, Row[]>): SupabaseClient {
   return { from: (t: string) => make(t) } as unknown as SupabaseClient
 }
 
-const ev = (event: string, user_id: string | null, is_internal = false): Row =>
-  ({ event, user_id, is_internal, anon_id: null, props: {}, created_at: '2026-08-20T00:00:00.000Z' })
+const ev = (event: string, user_id: string | null, is_internal = false, props: Row = {}): Row =>
+  ({ event, user_id, is_internal, anon_id: null, props, created_at: '2026-08-20T00:00:00.000Z' })
 
 const profile = (id: string, is_internal: boolean): Row =>
   ({ id, is_internal, created_at: '2026-07-01T00:00:00.000Z', onboarding_completed: true, acquisition_source: null })
@@ -116,5 +116,70 @@ describe('getFunnelDashboard — internal traffic is judged by profiles, not the
     expect(f.brokerFunnel.find((r) => r.step === 'Broker card on screen')!.count).toBe(1)
     // A seed account must never be able to report the differentiator working.
     expect(f.brokerFunnel.find((r) => r.step === 'Broker connected')!.count).toBe(0)
+  })
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // "Top broken paths" — the same rule, applied to the list under the stat
+  //
+  // The path list is a second query, because the stat needs a count and the
+  // list needs `props`. It selected `props` ALONE: `user_id` never came back,
+  // so the profiles test below the loop had nothing to test, and the
+  // `is_internal` pre-filter was missing outright. The panel therefore counted
+  // traffic the number directly above it excluded, and the page showed the two
+  // disagreeing — 5 against 7, the gap being an admin's own browsing.
+  //
+  // A stat and the breakdown of that stat have to be filtered identically or
+  // one of them is lying. That is what these pin.
+  // ─────────────────────────────────────────────────────────────────────────
+  describe('top broken paths use the same exclusions as the 404 stat', () => {
+    it('excludes an admin-stamped 404 from the path list, not just the count', async () => {
+      const svc = fakeSupabase({
+        profiles: [profile('real', false), profile('admin', false)],
+        analytics_events: [
+          ev('not_found', 'real', false, { broken_path: '/ghost' }),
+          ev('not_found', 'admin', true, { broken_path: '/pinkhorror' }),
+          ev('not_found', 'admin', true, { broken_path: '/pinkhorror' }),
+        ],
+        trades: [], subscriptions: [], broker_accounts: [],
+        lesson_completions: [], posts: [], messages: [],
+      })
+      const f = await getFunnelDashboard(svc)
+      expect(f.topBrokenPaths).toEqual([{ path: '/ghost', count: 1 }])
+      // And the two must reconcile: the list sums to the stat.
+      expect(f.topBrokenPaths.reduce((n, p) => n + p.count, 0)).toBe(f.notFound30d)
+    })
+
+    it('excludes a stale-stamped 404 whose user is internal now', async () => {
+      // The other half of the rule: the row says false, the profile says true.
+      const svc = fakeSupabase({
+        profiles: [profile('real', false), profile('seed', true)],
+        analytics_events: [
+          ev('not_found', 'real', false, { broken_path: '/ghost' }),
+          ev('not_found', 'seed', false, { broken_path: '/seeded' }),
+        ],
+        trades: [], subscriptions: [], broker_accounts: [],
+        lesson_completions: [], posts: [], messages: [],
+      })
+      const f = await getFunnelDashboard(svc)
+      expect(f.topBrokenPaths).toEqual([{ path: '/ghost', count: 1 }])
+      expect(f.notFound30d).toBe(1)
+    })
+
+    it('keeps anonymous 404s, which are the ones worth fixing', async () => {
+      // The exclusion must not quietly become "signed-in only" — a broken link
+      // hit by logged-out visitors is the case this panel exists for.
+      const svc = fakeSupabase({
+        profiles: [profile('real', false)],
+        analytics_events: [
+          ev('not_found', null, false, { broken_path: '/ghost' }),
+          ev('not_found', null, false, { broken_path: '/ghost' }),
+        ],
+        trades: [], subscriptions: [], broker_accounts: [],
+        lesson_completions: [], posts: [], messages: [],
+      })
+      const f = await getFunnelDashboard(svc)
+      expect(f.topBrokenPaths).toEqual([{ path: '/ghost', count: 2 }])
+      expect(f.notFound30d).toBe(2)
+    })
   })
 })

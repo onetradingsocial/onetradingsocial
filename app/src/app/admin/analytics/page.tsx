@@ -14,17 +14,24 @@ export const dynamic = 'force-dynamic'
 // Brief plain-English explanation for each metric, shown as a hover/focus
 // tooltip. Keyed by label so the map stays next to the copy it describes.
 const HINTS: Record<string, string> = {
-  // Funnel steps (last 30 days, internal traffic excluded)
-  'App visitors': 'Distinct people who opened the app in the last 30 days (signed-in users + anonymous visitors).',
-  'Signups completed': 'Accounts that finished the signup form in the last 30 days.',
-  'Onboarding completed': 'Users who finished the first-run onboarding flow.',
-  'First trade logged': 'Users who logged their first trade — the activation moment.',
-  'Statement imports': 'Users who imported a broker statement (MT5 / CSV).',
-  'Weekly review viewed': 'Users who opened their weekly review at least once.',
-  'Checkout started': 'Users who began Stripe checkout for a paid plan.',
-  Subscribed: 'Users who completed a paid subscription.',
-  // Broker connect (last 30 days, internal traffic excluded)
-  'Broker card viewed': 'Times the MT5 auto-sync card was rendered on /settings — the step before any attempt.',
+  // Funnel steps (last 30 days, internal traffic excluded). These hints used to
+  // read "Users who…" throughout; only the first bar counts people. The rest
+  // count event rows, and saying so is the difference between a caveat and a
+  // wrong number.
+  'App visitors (est.)': 'Best estimate of the distinct people who opened the app in the last 30 days. A person who browsed logged-out and then signed in on that device counts once. An upper bound, not a headcount: the anonymous id is per-device and rotates every 180 days, so one person on a phone and a laptop can still count twice.',
+  'Signups completed': 'signup_completed events in the last 30 days — one per new account, email and Google alike.',
+  'Onboarding completed': 'onboarding_completed events in the last 30 days. Event rows, not distinct users.',
+  'First trade logged': 'first_trade_logged events — the activation moment. Event rows, not distinct users.',
+  'Statement imports': 'trade_imported events (MT5 / CSV): one per import, so a user importing twice counts twice.',
+  'Weekly review viewed': 'weekly_review_viewed events. A user opening their review every week counts every week.',
+  'Checkout started': 'checkout_started events: a user who abandons and retries counts each attempt.',
+  Subscribed: 'subscribed events in the last 30 days. For distinct paying users, read "Paid" in the lifecycle table below.',
+  // Broker connect (last 30 days, internal traffic excluded). Keyed by the
+  // labels lib/server/funnel.ts actually returns: the first two read
+  // 'Broker card viewed' here and had no tooltip at all, because HINTS is
+  // keyed by label and nothing notices when a key stops matching one.
+  'Settings page reached': 'Times /settings rendered the MT5 auto-sync card — the step before any attempt. Server-side, so ad-blockers cannot hide it.',
+  'Broker card on screen': 'Times the card actually entered the viewport. Client-fired, so ad-blockers and declined analytics consent make this a floor, not an exact count.',
   'Connect submitted': 'Times the connect form was actually submitted, counted before the Pro gate so a blocked attempt still registers.',
   'Broker connected': 'Attempts that ended in a live broker connection.',
   // Lifecycle buckets (DB truth, each user in exactly one bucket)
@@ -95,9 +102,19 @@ export default async function AnalyticsPage() {
 
   return (
     <>
+      {/* The old sub read "Every figure counts genuine users only". Neither
+          half survived the audit. Not "genuine users": seven of the eight
+          funnel bars are `.length` on an event query — rows, not people (see
+          lib/server/funnel.ts). And not "every figure": internal traffic is
+          excluded everywhere, but by two different rules — event figures test
+          the stamped `is_internal` column AND today's profiles table, while
+          table-derived figures (lifecycle, sources, adoption) test the profile
+          alone, because there is no stamp to go stale. Rebuilding the funnel on
+          distinct users is its own piece of work; this sentence just stops the
+          page claiming it has already happened. */}
       <PageHead
         title="Analytics"
-        sub="Product health over the last 30 days. Every figure counts genuine users only — admins, the team, seeded demo accounts and automated test signups are filtered out."
+        sub="Product health over the last 30 days. Internal traffic — admins, the team, seeded demo accounts and automated test signups — is excluded from every figure. Counting differs by section: the funnel and ops figures count events, so one person can appear more than once, while lifecycle, sources and feature adoption count distinct users from the tables."
         right={<span className="v-badge vb-broker">Internal excluded</span>}
       />
 

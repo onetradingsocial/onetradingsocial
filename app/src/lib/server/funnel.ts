@@ -3,6 +3,13 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type FunnelDashboard = {
   // Core funnel counts, last 30 days, internal traffic excluded.
+  //
+  // Mixed units, and the page says so rather than pretending otherwise: the
+  // first bar counts distinct visitors (see the identity collapse below), and
+  // every bar under it counts EVENT ROWS via `eventCount` — one user who logs
+  // two trades is two. Rebuilding the whole funnel on distinct users is a
+  // separate piece of work; until it happens the labels and the page copy have
+  // to carry the caveat.
   funnel: { step: string; count: number }[]
   // Broker-connect funnel + why attempts failed. Event-based on purpose: the
   // `broker_accounts` table only records successes, so it cannot tell a
@@ -115,7 +122,28 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
     failCounts.set(reason, (failCounts.get(reason) ?? 0) + 1)
   }
 
-  // Distinct visitors (anon ids + users) from app page views in the window.
+  // Distinct visitors from app page views in the window.
+  //
+  // This used to key the set on `user_id ?? anon_id`, which counted everyone
+  // who signed in TWICE: the same person's logged-out page views carry an
+  // anon_id and a null user_id, their signed-in ones carry both, and the two
+  // keys are different members of the same set. Measured at the audit
+  // timestamp: 117 anon_ids + 11 user_ids = the 128 the page displayed, and
+  // all 12 anon_ids ever seen next to a user_id also appear with user_id null.
+  // Because the inflation is exactly the people who converted, it landed on
+  // the DENOMINATOR of visitor → signup and pushed that rate down.
+  //
+  // So the anon_id is resolved to its owner first: any anon_id ever seen
+  // alongside a user_id in the window is that user, whether or not they were
+  // signed in at the time. What remains — an anon_id that never appears with a
+  // user — is an unidentified visitor and keeps its own key.
+  //
+  // The result is still an UPPER BOUND on people, and the funnel label says so.
+  // `anonId()` is per-device and rotates every 180 days (lib/track.ts), so one
+  // person on a phone and a laptop is two rows here unless they signed in on
+  // both, and one who never signs in is a fresh visitor twice a year. Nothing
+  // in this table can close that gap; the fix is to stop the double-count it
+  // could see, not to claim a precision it cannot have.
   const { data: pv } = await svc
     .from('analytics_events')
     .select('anon_id, user_id')
@@ -123,10 +151,14 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
     .eq('is_internal', false)
     .gte('created_at', since)
     .limit(20000)
+  const pageViews = (pv ?? []).filter((r) => !r.user_id || !internalIds.has(r.user_id))
+  const anonOwner = new Map<string, string>()
+  for (const r of pageViews) {
+    if (r.user_id && r.anon_id) anonOwner.set(r.anon_id, r.user_id)
+  }
   const visitors = new Set(
-    (pv ?? [])
-      .filter((r) => !r.user_id || !internalIds.has(r.user_id))
-      .map((r) => r.user_id ?? r.anon_id)
+    pageViews
+      .map((r) => r.user_id ?? (r.anon_id ? anonOwner.get(r.anon_id) ?? r.anon_id : null))
       .filter(Boolean),
   ).size
 
@@ -233,21 +265,42 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
   ]
 
   const [nf, ce] = await Promise.all([eventCount('not_found'), eventCount('client_error')])
+
+  // The paths behind the 404 stat above. A SEPARATE query, and it has to stay
+  // one — the stat needs a count and this needs `props` — but it must select
+  // the same rows, and it did not: it selected `props` alone, so `user_id` was
+  // never fetched, the internalIds test below had nothing to test, and the
+  // `is_internal` pre-filter was simply missing. The list therefore counted
+  // admin traffic that the number above it excluded, and the two disagreed in
+  // public: 5 against 7, the difference being two /pinkhorror hits from an
+  // admin's own browsing. Both tests, same as `realEvents`.
+  //
+  // One divergence is left standing on purpose: this caps at 5,000 rows and the
+  // stat caps at 20,000, so past 5,000 404s in a month the list would under-sum
+  // the number again. Raising it means pulling 20,000 `props` blobs into the
+  // render for a panel that shows ten rows; at the current volume (single
+  // digits) the cap is nowhere near, and the honest fix is an aggregate query,
+  // not a bigger fetch.
   const { data: nfRows } = await svc
     .from('analytics_events')
-    .select('props')
+    .select('props, user_id')
     .eq('event', 'not_found')
+    .eq('is_internal', false)
     .gte('created_at', since)
     .limit(5000)
   const pathCounts = new Map<string, number>()
   for (const r of nfRows ?? []) {
+    if (r.user_id && internalIds.has(r.user_id)) continue
     const p = String((r.props as { broken_path?: string })?.broken_path ?? '')
     if (p) pathCounts.set(p, (pathCounts.get(p) ?? 0) + 1)
   }
 
   return {
     funnel: [
-      { step: 'App visitors', count: visitors },
+      // "(est.)" is load-bearing: see the identity collapse above. The label
+      // and the HINTS entry keyed off it in admin/analytics/page.tsx move
+      // together.
+      { step: 'App visitors (est.)', count: visitors },
       { step: 'Signups completed', count: signups },
       { step: 'Onboarding completed', count: onboarded },
       { step: 'First trade logged', count: firstTrades },

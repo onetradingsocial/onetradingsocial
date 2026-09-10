@@ -357,7 +357,13 @@ describe('both signup paths write a record', () => {
 
   it('the Google path records the notice it now shows', () => {
     const cb = read('app/src/app/auth/callback/route.ts')
-    expect(cb).toContain("recordTermsAcceptance(createServiceClient(), data.user.id, 'oauth_notice')")
+    // Matched on the arguments rather than the whole expression: the service
+    // client is now built once and shared with the signup event that was added
+    // beside this call, so the client argument is a local. What has to hold is
+    // that the acceptance is recorded for this user, under the oauth mechanism,
+    // with a service client — not the exact spelling of the first argument.
+    expect(cb).toMatch(/recordTermsAcceptance\([a-zA-Z]+(\(\))?, data\.user\.id, 'oauth_notice'\)/)
+    expect(cb).toContain('createServiceClient()')
   })
 
   it('nothing records an acceptance on the password login path', () => {
