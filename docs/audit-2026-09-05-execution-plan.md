@@ -1160,3 +1160,36 @@ reflections at every tier, and the basic weekly review.
 - The four decisions from the Trust Pass report that were never part of this
   work: sync cadence, the three sold-but-unbuilt entitlements, the AFSL position
   behind `/learn`, and Confirm-email on the dev project.
+
+### Dev brought to parity (2026-09-10)
+
+Project `sixixwutvrguqemqzvvw`. **Dev was 13 migrations behind, not four.**
+
+Its recorded history ended at `devsync_c_0054_to_0060` — dev is migrated by hand,
+in ad-hoc bundles, and had never received `0061`–`0069`. Probed before applying
+anything: no `cron_runs` (0065), no `feedback_replies` columns (0066), no
+`intended_source` / `welcome_email_at` / `trial_email_stage` on `profiles`
+(0062/0063/0064).
+
+Applying only `0070`–`0073` on top of that gap would have succeeded and left dev
+diverging from production in a way nothing would surface — `0071`'s column grants
+compose with `0067`'s, and `0067` was missing, so the reflection write would have
+landed on a different grant surface than production. That is the exact class of
+difference dev exists to catch, and it would have been invisible because the E2E
+suite has not run since August.
+
+So all thirteen were applied in order: `0061` through `0073`.
+
+**Parity verified after:** both projects now report **31** `UPDATE` column
+privileges on `public.trades` for `authenticated`, and the same three new tables.
+On dev as on production, `mistake_tagging` is now `free = true` while
+`mistake_analysis` and `multiple_goals` have **no `feature_flags` row at all**,
+so they fall through to the code defaults.
+
+One correction to the record: an earlier note held that the dev project's
+management API rejected auth with Postgres `28P01`. That was true on 2026-09-03
+and is not true now — `list_migrations`, `execute_sql` and `apply_migration` all
+worked against dev today.
+
+Dev's schema is now current. The E2E suite is still blocked on "Confirm email"
+being ON for that project, which is a dashboard setting and not a migration.
