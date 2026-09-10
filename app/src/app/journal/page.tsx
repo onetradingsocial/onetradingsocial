@@ -40,6 +40,10 @@ import { getProcessLogs } from '@/lib/server/process'
 import { processDays, daysWithKind, flatDays, entriesForDay } from '@/lib/process'
 import { ReflectTradesCard, type ReflectRow } from './_components/ReflectTradesCard'
 import { countReflections } from '@/lib/reflection'
+import { BasicWeeklyReviewCard } from './_components/BasicWeeklyReviewCard'
+import { summarizeBasicWeek, utcWeekStart, type ReviewFocus } from '@/lib/basic-review'
+import { getRecentReviews } from '@/lib/server/weekly-review'
+import { GOAL_META, type GoalKind } from '@/lib/goals'
 import { getComparison } from '@/lib/server/compare'
 import { ComparisonCard } from './_components/ComparisonCard'
 import type { EditTradeConfig } from './_components/EditTradeModal'
@@ -177,11 +181,14 @@ export default async function JournalPage() {
   const streaks = computeStreaks({
     journalDays: [...new Set((all ?? []).map((t) => dayKey(t.traded_at)))],
     processDays: processDays(processLogs),
-    // Both sources, unioned. `weekly_review_viewed` fires only from
+    // Both sources, unioned. `weekly_review_viewed` used to fire only from
     // WeeklyReviewCard, which returns null for Free users, so on its own this
-    // streak is pinned at zero for every Free account by construction. The plan
-    // gate on the card is a pricing decision and is untouched; the self-recorded
-    // review beside it is reachable at every tier, which is what un-pins it.
+    // streak was pinned at zero for every Free account by construction. B3 added
+    // the self-recorded `process_logs` review beside it as a second source; C3
+    // closed the hole at source by emitting the event from the ungated basic
+    // card as well. The plan gate on the PAID card is a pricing decision and is
+    // still untouched. Only one emitter mounts per page view, and this union is
+    // by day anyway, so neither change can count one review twice.
     reviewDays: [...new Set([
       ...(reviewEvents ?? []).map((r) => dayKey(r.created_at)),
       ...daysWithKind(processLogs, 'review'),
@@ -225,6 +232,52 @@ export default async function JournalPage() {
   const weekPnls = thisWeekTrades.map((t) => t.pnl_amount ?? 0)
   const bestTrade = weekPnls.length ? Math.max(...weekPnls) : null
   const worstTrade = weekPnls.length ? Math.min(...weekPnls) : null
+
+  // Basic weekly review (C3) — ungated, at every tier.
+  //
+  // Counted over `thisWeekTrades`, which comes from `closed` (the FULL list),
+  // never over `reflectRows`, which comes from `visibleTrades` and is capped at
+  // JOURNAL_FREE_LIMIT on Free. The reflect card is right to count the capped
+  // list — it offers rows the user can act on. This card makes a different
+  // claim ("this week"), and counting the capped list would silently omit this
+  // week's trades on any account holding more than 30 in total.
+  const basicWeek = summarizeBasicWeek({
+    closedThisWeek: thisWeekTrades, logs: processLogs, now: now.getTime(),
+  })
+  // The single standing focus. Free holds one (FREE_ACTIVE_GOAL_LIMIT); a
+  // Trader+ account running several is shown the first, which is the one
+  // `getGoalsWithProgress` orders by created_at — their oldest live intention.
+  const firstGoal = goals[0]
+  const reviewFocus: ReviewFocus | null = firstGoal
+    ? {
+        kind: firstGoal.kind,
+        label: GOAL_META[firstGoal.kind as GoalKind]?.label ?? firstGoal.kind,
+        current: firstGoal.progress.current,
+        target: firstGoal.progress.target,
+        unit: GOAL_META[firstGoal.kind as GoalKind]?.unit ?? '',
+      }
+    : null
+  // Read-only. Rendering the summary must not by itself count as a completed
+  // review (audit), so nothing on this path writes a `weekly_reviews` row —
+  // only `actions/weekly-review.ts` does, when the user picks a next action.
+  const recentReviews = await getRecentReviews(createServiceClient(), user.id)
+  const currentWeekStart = utcWeekStart(now.getTime())
+  const thisWeekReview = recentReviews.find((r) => r.weekStart === currentWeekStart) ?? null
+  const lastWeekReview = recentReviews.find((r) => r.weekStart < currentWeekStart) ?? null
+
+  // Mistake tags, keyed by trade id, for the Recent Trades rows.
+  //
+  // Passed as its own map rather than widened onto `JTrade`, deliberately. That
+  // type also backs the public profile query (`/[username]/page.tsx`), which
+  // selects a narrower column list; a `mistake_tags` field on the shared type
+  // is a standing invitation to add it to that select "to satisfy the type",
+  // and it would ship a stranger's self-assessment of their own errors. This
+  // map is built here, from this page's own-rows-only query, and cannot travel.
+  const mistakeTagsById: Record<string, string[]> = {}
+  for (const t of all ?? []) {
+    const tags = (t.mistake_tags ?? []).filter(Boolean)
+    if (tags.length > 0) mistakeTagsById[t.id] = tags
+  }
 
   const thisMonthClosed = monthSlice(closed, 0)
   const lastMonthClosed = monthSlice(closed, 1)
@@ -323,6 +376,20 @@ export default async function JournalPage() {
         </div>
       )}
 
+      {/* Ungated, and above the paid card on purpose: the basic review is the
+          step that closes the cycle, and the performance review is the analysis
+          of it. `emitViewed` is false when the paid card is also mounting, so
+          the page emits `weekly_review_viewed` exactly once at every tier. */}
+      <div className="mt-5">
+        <BasicWeeklyReviewCard
+          summary={basicWeek}
+          focus={reviewFocus}
+          thisWeekReview={thisWeekReview}
+          lastWeekReview={lastWeekReview}
+          emitViewed={!canWeeklyReview}
+        />
+      </div>
+
       {canWeeklyReview && (
         <div className="mt-5">
           <WeeklyReviewCard thisWeek={thisWeekMetrics} lastWeek={lastWeekMetrics} best={bestTrade} worst={worstTrade} detail={weeklyDetail} locked={false} />
@@ -353,7 +420,9 @@ export default async function JournalPage() {
         <StreaksCard streaks={streaks} />
       </div>
 
-      <div className="mt-5">
+      {/* `#process-goals` is the anchor the basic review points at when the user
+          has no focus to keep, revise or retire. */}
+      <div className="mt-5" id="process-goals">
         <GoalsCard goals={goals} canMultiple={canFlag(flags, tier, 'multiple_goals')} />
       </div>
 
@@ -421,7 +490,7 @@ export default async function JournalPage() {
       </div>
 
       <div className="mt-3" id="recent-trades">
-        <RecentTrades trades={visibleTrades} canMistakeTag={canFlag(flags, tier, 'mistake_tagging')} editConfig={editConfig} />
+        <RecentTrades trades={visibleTrades} canMistakeTag={canFlag(flags, tier, 'mistake_tagging')} mistakeTags={mistakeTagsById} editConfig={editConfig} />
         {hiddenCount > 0 && (
           <div className="ts-banner mt-3">
             Showing your last {JOURNAL_FREE_LIMIT} trades. {hiddenCount} older{' '}

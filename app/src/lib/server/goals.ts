@@ -57,6 +57,20 @@ export async function getGoalsWithProgress(
     svc.from('process_logs').select('day')
       .eq('user_id', userId).eq('kind', 'review').gte('day', sinceDay),
   ])
+  // ── C3: still exactly two sources, and that is the fix, not an omission ────
+  //
+  // The Free-tier card (BasicWeeklyReviewCard) now emits `weekly_review_viewed`
+  // too, which is what un-pins a Free account's streak AT SOURCE. It does not
+  // double-count anything here for two independent reasons: journal/page.tsx
+  // mounts exactly ONE emitter at any tier (`emitViewed={!canWeeklyReview}`),
+  // and the union below is by DAY, so even two events on one day collapse.
+  //
+  // Migration 0073's `weekly_reviews` table — a COMPLETED review, with the
+  // evidence and the chosen next action — is deliberately NOT read here. It
+  // would be a third source for the same day the card view already counted, so
+  // adding it could only turn one review into two. It is a richer record of the
+  // same event, not another event.
+  //
   // One review per day per source; a paid user who both viewed the card and
   // ticked the entry on the same day has done one review, not two.
   const reviewDays = new Set<string>([

@@ -67,11 +67,16 @@ describe('the free/paid line', () => {
 
   it('the migration and the constant describe the same row', () => {
     // canFlag lets a feature_flags row override FEATURE_MIN_TIER outright, so
-    // the constant below is inert in production until 0071 runs. This pins the
+    // the constant below is inert in production until 0072 runs. This pins the
     // two together: if someone edits the matrix back, or edits the migration to
     // a different shape, one of these fails.
+    //
+    // Renumbered 0071 -> 0072 in C3: C1 and C2 were cut from the same base and
+    // both landed a `0071_`. Nothing depends on the order of the two (one
+    // updates `feature_flags`, the other alters `trades`), so the file that
+    // moved was the one with a single reference — this line.
     const sql = readFileSync(
-      join(process.cwd(), 'supabase', 'migrations', '0071_mistake_tagging_free.sql'), 'utf8',
+      join(process.cwd(), 'supabase', 'migrations', '0072_mistake_tagging_free.sql'), 'utf8',
     )
     expect(defaultMatrix('mistake_tagging')).toEqual({ free: true, trader: true, pro: true })
     expect(sql).toMatch(/update public\.feature_flags\s+set free = true\s+where feature = 'mistake_tagging'/)

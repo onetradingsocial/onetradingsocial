@@ -2766,3 +2766,8 @@ body.has-cookie-notice { padding-bottom: 220px; }
 .ts-reflect-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 13px; }
 .ts-reflect-tally { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; }
 .ts-reflect-tally span { border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; }
+
+/* A mistake tag read back to its author (C3). Tinted, not alarmed: naming the
+   mistake is the behaviour the product wants, so the chip must not look like an
+   error state on a row the user did the right thing on. */
+.ts-tag--mistake { background: var(--down-soft); color: var(--down); border-color: transparent; }
