@@ -3,6 +3,8 @@ import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { assembleFeed, boostFavorites } from '@/lib/feed'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { weekChain } from '@/lib/streaks'
+import { getProcessLogs } from '@/lib/server/process'
+import { processDays } from '@/lib/process'
 import { FEED_POST_SELECT, hydrateFeedPosts, type RawPost } from '@/lib/server/feed-hydration'
 import { getPerformanceRanking } from '@/lib/server/ranking'
 import { getUserXp } from '@/lib/server/xp'
@@ -112,8 +114,16 @@ export default async function Home({
   //
   // Same UTC day keys as `computeStreaks` on the journal page, so the two
   // read the same week. See weekChain() for the timezone caveat.
+  //
+  // Audit 2026-09-05, P0: the union with process days is load-bearing. Built
+  // from trade days alone, "don't break the chain" broke on every day the trader
+  // correctly stayed out — a habit mechanic that punished the habit.
+  const processLogs = await getProcessLogs(supabase, user.id)
   const chain = weekChain(
-    [...new Set(trades.map((t) => t.traded_at.slice(0, 10)))],
+    [...new Set([
+      ...trades.map((t) => t.traded_at.slice(0, 10)),
+      ...processDays(processLogs),
+    ])],
     new Date().toISOString().slice(0, 10),
   )
 
@@ -163,14 +173,15 @@ export default async function Home({
 
   // Onboarding checklist (row 14): computed from real data, shown until done.
   //
-  // Tier-filtered against the same gate the features themselves read (audit
-  // B5). Two of the six steps are Trader+ — tagging a strategy is
-  // `strategy_tracking`, the weekly review is `weekly_review` — so on Free they
-  // were setup instructions for things the account cannot do: an unstrikeable
-  // chip, a progress bar that can never reach 100%, and a card that therefore
-  // never disappears (OnboardingChecklist only hides at done === length).
-  // Trial users hold 'pro' for 14 days, so they still see both; a user who
-  // drops to Free afterwards simply gets a shorter list.
+  // Tier-filtered against the same gate the feature itself reads (audit B5).
+  // On Free these were setup instructions for things the account cannot do: an
+  // unstrikeable chip, a progress bar that can never reach 100%, and a card
+  // that therefore never disappears (OnboardingChecklist only hides at
+  // done === length). Trial users hold 'pro' for 14 days, so they see the full
+  // list; a user who drops to Free afterwards simply gets a shorter one.
+  //
+  // Only tagging is still gated. The review step is not, since audit B3 gave it
+  // an ungated route — see the note on that item below.
   const canTagStrategy = canFlag(flags, tier, 'strategy_tracking')
   const canWeeklyReview = canFlag(flags, tier, 'weekly_review')
   // Only worth a round-trip when the item it feeds can be shown at all.
@@ -186,9 +197,14 @@ export default async function Home({
     ...(canTagStrategy
       ? [{ key: 'strategy', label: 'Tag your first strategy', done: trades.some((t) => (t.strategy_tags ?? []).length > 0 || !!t.setup_type), href: '/journal' }]
       : []),
-    ...(canWeeklyReview
-      ? [{ key: 'review', label: 'Read your weekly review', done: reviewViews > 0, href: '/journal' }]
-      : []),
+    // Not gated, unlike tagging above. `weekly_review_viewed` fires only from
+    // WeeklyReviewCard, which renders nothing for Free users, so on that signal
+    // alone this item was permanently unticked for every Free account. Audit B3
+    // added a self-recorded review that is reachable at every tier, so either
+    // route ticks it and the step is achievable rather than hidden. `reviewViews`
+    // is 0 on Free by construction — the query above only runs when the card can
+    // be seen — so process_logs is what carries it there. No plan gate moved.
+    { key: 'review', label: 'Complete your first review', done: reviewViews > 0 || processLogs.some((l) => l.kind === 'review'), href: '/journal' },
     { key: 'follows', label: 'Follow 3 traders', done: followingIds.length >= 3, href: '/leaderboard' },
     // Learn hidden for now — we are not financial advisors. Restore lesson item when compliant.
   ]

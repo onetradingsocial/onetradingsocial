@@ -35,6 +35,9 @@ import { getGoalsWithProgress } from '@/lib/server/goals'
 import { createServiceClient } from '@/lib/supabase/service'
 import { computeStreaks } from '@/lib/streaks'
 import { StreaksCard } from './_components/StreaksCard'
+import { ProcessLogCard } from '@/app/_components/ProcessLogCard'
+import { getProcessLogs } from '@/lib/server/process'
+import { processDays, daysWithKind, flatDays, entriesForDay } from '@/lib/process'
 import { getComparison } from '@/lib/server/compare'
 import { ComparisonCard } from './_components/ComparisonCard'
 import type { EditTradeConfig } from './_components/EditTradeModal'
@@ -126,9 +129,10 @@ export default async function JournalPage() {
 
   // Meaningful streaks (row 34): process-based day sets.
   const svcForStreaks = createServiceClient()
-  const [{ data: reviewEvents }, { data: lessonRows }] = await Promise.all([
+  const [{ data: reviewEvents }, { data: lessonRows }, processLogs] = await Promise.all([
     svcForStreaks.from('analytics_events').select('created_at').eq('user_id', user.id).eq('event', 'weekly_review_viewed').limit(2000),
     svcForStreaks.from('lesson_completions').select('completed_at').eq('user_id', user.id).limit(2000),
+    getProcessLogs(supabase, user.id),
   ])
   const dayKey = (iso: string) => iso.slice(0, 10)
   const closedByDay = new Map<string, { total: number; clean: number }>()
@@ -139,12 +143,30 @@ export default async function JournalPage() {
     if ((t.mistake_tags ?? []).length === 0) e.clean++
     closedByDay.set(d, e)
   }
+  // Days on which no rule could have been broken because nothing was traded by
+  // choice. Folded into rule compliance so a disciplined flat day sustains the
+  // streak instead of reading as a gap — without this the "compliance" streak is
+  // a trading streak that only counts days you had a position.
+  const flat = flatDays(processLogs)
+  const todayKey = new Date().toISOString().slice(0, 10)
   const streaks = computeStreaks({
     journalDays: [...new Set((all ?? []).map((t) => dayKey(t.traded_at)))],
-    reviewDays: [...new Set((reviewEvents ?? []).map((r) => dayKey(r.created_at)))],
-    compliantDays: [...closedByDay.entries()].filter(([, e]) => e.total > 0 && e.clean === e.total).map(([d]) => d),
+    processDays: processDays(processLogs),
+    // Both sources, unioned. `weekly_review_viewed` fires only from
+    // WeeklyReviewCard, which returns null for Free users, so on its own this
+    // streak is pinned at zero for every Free account by construction. The plan
+    // gate on the card is a pricing decision and is untouched; the self-recorded
+    // review beside it is reachable at every tier, which is what un-pins it.
+    reviewDays: [...new Set([
+      ...(reviewEvents ?? []).map((r) => dayKey(r.created_at)),
+      ...daysWithKind(processLogs, 'review'),
+    ])],
+    compliantDays: [...new Set([
+      ...[...closedByDay.entries()].filter(([, e]) => e.total > 0 && e.clean === e.total).map(([d]) => d),
+      ...flat,
+    ])],
     learningDays: [...new Set((lessonRows ?? []).map((r) => dayKey(r.completed_at)))],
-    todayKey: new Date().toISOString().slice(0, 10),
+    todayKey,
   })
 
   // Trader comparison (row 36): own history + anonymised peer benchmark.
@@ -216,6 +238,13 @@ export default async function JournalPage() {
           canImport={canFlag(flags, tier, 'mt5_import')}
           canAutosync={canFlag(flags, tier, 'mt5_autosync')}
         />
+        {/* Present on the empty journal too, and this is the point of the whole
+            change: a trader with no trades yet is not locked out of the reward
+            system until they take one. Recording a planned no-trade session is a
+            complete day's quest. */}
+        <div className="mt-5">
+          <ProcessLogCard today={entriesForDay(processLogs, todayKey)} />
+        </div>
       </main>
     )
   }
@@ -271,6 +300,10 @@ export default async function JournalPage() {
 
       <div className="mt-5">
         <ComparisonCard data={comparison} />
+      </div>
+
+      <div className="mt-5">
+        <ProcessLogCard today={entriesForDay(processLogs, todayKey)} />
       </div>
 
       <div className="mt-5">

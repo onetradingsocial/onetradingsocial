@@ -3,10 +3,25 @@ import {
   XP, xpForLevel, levelFromXp,
   DAILY_QUESTS, WEEKLY_QUESTS, utcDayStart, utcWeekStart, dayKey, weekKey,
   dailyQuestProgress, weeklyQuestProgress, type XpTrade,
-  closedCount, totalXpFromTrades, windowXp, windowCutoff,
-  historicalDailyBonus, historicalWeeklyBonus,
-  questStreak, maxQuestStreak, winStreakMax, evaluateBadges, BADGES,
+  closedCount, baseTradeXp, windowTradeXp, windowCutoff,
+  historicalDailyBonus, historicalWeeklyBonus, totalProcessXp, processWindowXp,
+  questStreak, maxQuestStreak, evaluateBadges, BADGES,
 } from '@/lib/xp'
+import type { ProcessLog } from '@/lib/process'
+
+/**
+ * ── Audit 2026-09-05, P0 ─────────────────────────────────────────────────────
+ *
+ * Quests, streaks and badges used to be computed from `trades`. They are now
+ * computed from `process_logs`, and the trades table contributes exactly one
+ * thing: a flat `BASE_PER_TRADE` per closed trade, with no threshold, streak or
+ * quota resting on it. The tests below are split along that line — anything
+ * taking `XpTrade[]` is testing the flat part; everything else takes
+ * `ProcessLog[]`.
+ *
+ * The "no reward requires a trade" invariant itself is asserted structurally in
+ * `process-rewards.test.ts`, not here.
+ */
 
 describe('xpForLevel', () => {
   it('cumulative rising cost: reach(L) = 100*(L-1)*L/2', () => {
@@ -43,6 +58,10 @@ describe('levelFromXp', () => {
 const mk = (t: string, c: string | null = null, o = 'win'): XpTrade =>
   ({ traded_at: t, closed_at: c, status: c ? 'closed' : 'open', outcome: o })
 
+/** A process entry on `day`. Defaults to the cheapest kind to record. */
+const p = (day: string, kind: ProcessLog['kind'] = 'no_trade', outcome: ProcessLog['outcome'] = null): ProcessLog =>
+  ({ kind, day, outcome })
+
 describe('UTC boundaries', () => {
   it('utcDayStart floors to 00:00:00Z', () => {
     expect(new Date(utcDayStart(Date.parse('2026-06-22T15:30:00Z'))).toISOString())
@@ -60,194 +79,222 @@ describe('UTC boundaries', () => {
   })
 })
 
+describe('quest definitions', () => {
+  it('there is exactly one daily quest, and it accepts any process entry', () => {
+    // Load-bearing: `questStreak` requires EVERY daily quest to be met, so a
+    // second daily quest would be a second thing a resting trader must do to
+    // keep the chain alive.
+    expect(DAILY_QUESTS.map((q) => q.id)).toEqual(['daily_process'])
+    expect(DAILY_QUESTS[0]).toMatchObject({ target: 1, source: 'any_process' })
+  })
+  it('weekly quests are a review and three reflection days', () => {
+    expect(WEEKLY_QUESTS.map((q) => q.id)).toEqual(['weekly_review', 'weekly_reflect'])
+    expect(WEEKLY_QUESTS.find((q) => q.id === 'weekly_review')).toMatchObject({ target: 1, source: 'review' })
+    expect(WEEKLY_QUESTS.find((q) => q.id === 'weekly_reflect')).toMatchObject({ target: 3, source: 'reflection_days' })
+  })
+})
+
 describe('quest progress (current window)', () => {
   const now = Date.parse('2026-06-22T12:00:00Z')
-  it('daily: counts today created vs closed per quest', () => {
-    const trades = [
-      mk('2026-06-22T01:00:00Z', '2026-06-22T02:00:00Z'),
-      mk('2026-06-21T23:00:00Z'),
+
+  it('daily: any single process entry today completes the day', () => {
+    const d = dailyQuestProgress([p('2026-06-22', 'review')], now)
+    expect(d.find((q) => q.id === 'daily_process')).toMatchObject({ current: 1, target: 1, done: true })
+  })
+
+  it('daily: yesterday does not count toward today', () => {
+    const d = dailyQuestProgress([p('2026-06-21', 'review')], now)
+    expect(d.find((q) => q.id === 'daily_process')).toMatchObject({ current: 0, done: false })
+  })
+
+  it('daily: four entries on one day are still one day of credit', () => {
+    // The unique index caps this in the DB; the counter agrees with it.
+    const logs = [
+      p('2026-06-22', 'review'), p('2026-06-22', 'rule_reflection', 'unknown'),
+      p('2026-06-22', 'no_trade'), p('2026-06-22', 'rest'),
     ]
-    const d = dailyQuestProgress(trades, now)
-    expect(d.find((q) => q.id === 'log_trade')).toMatchObject({ current: 1, target: 1, done: true })
-    expect(d.find((q) => q.id === 'close_trade')).toMatchObject({ current: 1, target: 1, done: true })
+    expect(dailyQuestProgress(logs, now).find((q) => q.id === 'daily_process')?.current).toBe(1)
   })
-  it('weekly: 10 created this week meets log_10', () => {
-    const trades = Array.from({ length: 10 }, (_, i) => mk(`2026-06-22T0${i % 8}:0${i % 6}:00Z`, null))
-    const w = weeklyQuestProgress(trades, now)
-    expect(w.find((q) => q.id === 'log_10')).toMatchObject({ current: 10, target: 10, done: true })
+
+  it('weekly: one review this week meets weekly_review', () => {
+    const w = weeklyQuestProgress([p('2026-06-23', 'review')], now)
+    expect(w.find((q) => q.id === 'weekly_review')).toMatchObject({ current: 1, target: 1, done: true })
   })
-  it('exposes quest definitions as data', () => {
-    expect(DAILY_QUESTS.map((q) => q.id)).toEqual(['log_trade', 'close_trade'])
-    expect(WEEKLY_QUESTS.map((q) => q.id)).toEqual(['log_10', 'close_5'])
+
+  it('weekly: reflection quest counts DISTINCT days, any outcome', () => {
+    const logs = [
+      p('2026-06-22', 'rule_reflection', 'followed'),
+      p('2026-06-23', 'rule_reflection', 'broke'),
+      p('2026-06-24', 'rule_reflection', 'unknown'),
+    ]
+    const w = weeklyQuestProgress(logs, now)
+    expect(w.find((q) => q.id === 'weekly_reflect')).toMatchObject({ current: 3, target: 3, done: true })
+  })
+
+  it('weekly: entries in the previous ISO week do not leak in', () => {
+    // 2026-06-21 is a Sunday — the tail of the PREVIOUS week.
+    const w = weeklyQuestProgress([p('2026-06-21', 'review')], now)
+    expect(w.find((q) => q.id === 'weekly_review')).toMatchObject({ current: 0, done: false })
   })
 })
 
-describe('totals & bonuses', () => {
-  it('totalXpFromTrades = trades*BASE + daily + weekly bonuses', () => {
-    const trades = [mk('2026-06-22T01:00:00Z', '2026-06-22T02:00:00Z')]
-    expect(closedCount(trades)).toBe(1)
-    expect(historicalDailyBonus(trades)).toBe(60)
-    expect(historicalWeeklyBonus(trades)).toBe(0)
-    expect(totalXpFromTrades(trades)).toBe(110)
+describe('quest bonuses', () => {
+  it('one process day = one daily bonus', () => {
+    expect(historicalDailyBonus([p('2026-06-22')])).toBe(XP.DAILY_QUEST_BONUS)
   })
-  it('weekly bonus triggers once 10 created in a week', () => {
-    const trades = Array.from({ length: 10 }, (_, i) => mk(`2026-06-22T0${i % 8}:0${i % 6}:00Z`, null))
-    expect(historicalWeeklyBonus(trades)).toBe(150)
+
+  it('daily bonus is per calendar day, not per entry', () => {
+    const oneDay = [p('2026-06-22', 'review'), p('2026-06-22', 'rest'), p('2026-06-22', 'no_trade')]
+    expect(historicalDailyBonus(oneDay)).toBe(XP.DAILY_QUEST_BONUS)
+    const threeDays = [p('2026-06-20'), p('2026-06-21'), p('2026-06-22')]
+    expect(historicalDailyBonus(threeDays)).toBe(3 * XP.DAILY_QUEST_BONUS)
+  })
+
+  it('weekly bonuses are per ISO week and per quest', () => {
+    const logs = [
+      p('2026-06-22', 'review'),
+      p('2026-06-22', 'rule_reflection', 'followed'),
+      p('2026-06-23', 'rule_reflection', 'unknown'),
+      p('2026-06-24', 'rule_reflection', 'broke'),
+    ]
+    // Both weekly quests met inside the one week.
+    expect(historicalWeeklyBonus(logs)).toBe(2 * XP.WEEKLY_QUEST_BONUS)
+  })
+
+  it('a week short of the reflection target pays only the review bonus', () => {
+    const logs = [p('2026-06-22', 'review'), p('2026-06-23', 'rule_reflection', 'followed')]
+    expect(historicalWeeklyBonus(logs)).toBe(XP.WEEKLY_QUEST_BONUS)
+  })
+
+  it('a week spanning a Monday boundary scores each week on its own', () => {
+    // 2026-06-21 Sun (week of 06-15), 2026-06-22 Mon (week of 06-22).
+    const logs = [p('2026-06-21', 'review'), p('2026-06-22', 'review')]
+    expect(historicalWeeklyBonus(logs)).toBe(2 * XP.WEEKLY_QUEST_BONUS)
+  })
+
+  it('totalProcessXp is the sum of both ladders and needs no trade at all', () => {
+    const logs = [p('2026-06-22', 'review')]
+    expect(totalProcessXp(logs)).toBe(XP.DAILY_QUEST_BONUS + XP.WEEKLY_QUEST_BONUS)
+  })
+
+  it('no process entries -> no quest XP', () => {
+    expect(totalProcessXp([])).toBe(0)
+    expect(historicalDailyBonus([])).toBe(0)
+    expect(historicalWeeklyBonus([])).toBe(0)
   })
 })
 
-describe('windowXp', () => {
+describe('windowed XP', () => {
   const now = Date.parse('2026-06-22T12:00:00Z')
-  it('all-period equals total', () => {
-    const trades = [mk('2026-06-22T01:00:00Z', '2026-06-22T02:00:00Z')]
-    expect(windowXp(trades, 'all', now)).toBe(totalXpFromTrades(trades))
-  })
-  it('week window excludes trades closed before the cutoff', () => {
-    const trades = [
-      mk('2026-06-21T00:00:00Z', '2026-06-21T01:00:00Z'),
-      mk('2026-05-01T00:00:00Z', '2026-05-01T01:00:00Z'),
-    ]
-    expect(windowXp(trades, 'week', now)).toBe(110)
-  })
+
   it('windowCutoff: week=now-7d, month=now-30d, all=null', () => {
     expect(windowCutoff('all', now)).toBeNull()
     expect(windowCutoff('week', now)).toBe(now - 7 * 864e5)
     expect(windowCutoff('month', now)).toBe(now - 30 * 864e5)
   })
+
+  it('trade XP: all-period equals the flat total', () => {
+    const trades = [mk('2026-06-22T01:00:00Z', '2026-06-22T02:00:00Z')]
+    expect(windowTradeXp(trades, 'all', now)).toBe(baseTradeXp(trades))
+  })
+
+  it('trade XP: the week window excludes trades closed before the cutoff', () => {
+    const trades = [
+      mk('2026-06-21T00:00:00Z', '2026-06-21T01:00:00Z'),
+      mk('2026-05-01T00:00:00Z', '2026-05-01T01:00:00Z'),
+    ]
+    // Flat only — no quest bonus rides on a trade any more.
+    expect(windowTradeXp(trades, 'week', now)).toBe(XP.BASE_PER_TRADE)
+  })
+
+  it('process XP: all-period equals the historical total', () => {
+    const logs = [p('2026-06-22', 'review')]
+    expect(processWindowXp(logs, 'all', now)).toBe(totalProcessXp(logs))
+  })
+
+  it('process XP: buckets starting before the cutoff drop out of the window', () => {
+    const logs = [p('2026-06-22'), p('2026-03-02')]
+    // Only the recent day survives a 7-day window; its week does too.
+    expect(processWindowXp(logs, 'week', now)).toBe(XP.DAILY_QUEST_BONUS)
+    expect(processWindowXp(logs, 'all', now)).toBe(2 * XP.DAILY_QUEST_BONUS)
+  })
+})
+
+describe('flat trade XP', () => {
+  it('closedCount counts only closed trades', () => {
+    expect(closedCount([mk('2026-06-22T01:00:00Z', '2026-06-22T02:00:00Z'), mk('2026-06-22T03:00:00Z')])).toBe(1)
+  })
+  it('baseTradeXp is linear — the 100th closed trade is worth the 1st', () => {
+    const one = [mk('2026-06-22T01:00:00Z', '2026-06-22T02:00:00Z')]
+    const many = Array.from({ length: 100 }, (_, i) =>
+      mk(`2026-06-22T01:00:0${i % 10}Z`, `2026-06-22T02:00:0${i % 10}Z`))
+    expect(baseTradeXp(one)).toBe(XP.BASE_PER_TRADE)
+    expect(baseTradeXp(many)).toBe(100 * XP.BASE_PER_TRADE)
+  })
+  it('trades carry no quest bonus of their own any more', () => {
+    // The regression this guards: re-attaching a bonus to trade volume.
+    const trades = Array.from({ length: 30 }, (_, i) =>
+      mk(`2026-06-${String(i % 28 + 1).padStart(2, '0')}T01:00:00Z`, `2026-06-${String(i % 28 + 1).padStart(2, '0')}T02:00:00Z`))
+    expect(baseTradeXp(trades)).toBe(30 * XP.BASE_PER_TRADE)
+    // Whatever the trades say, quest XP comes from an empty process log: zero.
+    expect(totalProcessXp([])).toBe(0)
+  })
 })
 
 describe('streaks', () => {
   const now = Date.parse('2026-06-22T12:00:00Z')
-  const dayDone = (d: string): XpTrade[] => [mk(`${d}T01:00:00Z`, `${d}T02:00:00Z`)]
-  it('questStreak counts consecutive complete days up to today', () => {
-    const trades = [...dayDone('2026-06-22'), ...dayDone('2026-06-21'), ...dayDone('2026-06-20')]
-    expect(questStreak(trades, now)).toBe(3)
+
+  it('questStreak counts consecutive process days up to today', () => {
+    const logs = [p('2026-06-22'), p('2026-06-21'), p('2026-06-20')]
+    expect(questStreak(logs, now)).toBe(3)
   })
-  it('today incomplete -> streak counts the run ending yesterday', () => {
-    const trades = [...dayDone('2026-06-21'), ...dayDone('2026-06-20')]
-    expect(questStreak(trades, now)).toBe(2)
+  it('today incomplete -> the streak is the run ending yesterday', () => {
+    expect(questStreak([p('2026-06-21'), p('2026-06-20')], now)).toBe(2)
   })
   it('a gap breaks the streak', () => {
-    const trades = [...dayDone('2026-06-22'), ...dayDone('2026-06-20')]
-    expect(questStreak(trades, now)).toBe(1)
+    expect(questStreak([p('2026-06-22'), p('2026-06-20')], now)).toBe(1)
   })
   it('maxQuestStreak finds the longest historical run', () => {
-    const trades = [...dayDone('2026-06-01'), ...dayDone('2026-06-02'), ...dayDone('2026-06-22')]
-    expect(maxQuestStreak(trades)).toBe(2)
+    expect(maxQuestStreak([p('2026-06-01'), p('2026-06-02'), p('2026-06-22')])).toBe(2)
   })
-  it('winStreakMax = longest run of consecutive wins by close time', () => {
-    const trades = [
-      mk('2026-06-01T00:00:00Z', '2026-06-01T01:00:00Z', 'win'),
-      mk('2026-06-02T00:00:00Z', '2026-06-02T01:00:00Z', 'win'),
-      mk('2026-06-03T00:00:00Z', '2026-06-03T01:00:00Z', 'loss'),
-      mk('2026-06-04T00:00:00Z', '2026-06-04T01:00:00Z', 'win'),
-    ]
-    expect(winStreakMax(trades)).toBe(2)
+  it('duplicate days do not inflate the longest run', () => {
+    const logs = [p('2026-06-01', 'review'), p('2026-06-01', 'rest'), p('2026-06-01', 'no_trade')]
+    expect(maxQuestStreak(logs)).toBe(1)
   })
-  it('empty trades -> all streaks are 0', () => {
+  it('empty logs -> all streaks are 0', () => {
     expect(questStreak([], now)).toBe(0)
     expect(maxQuestStreak([])).toBe(0)
-    expect(winStreakMax([])).toBe(0)
+  })
+  it('a malformed day key cannot be counted as a complete day', () => {
+    expect(maxQuestStreak([{ kind: 'rest', day: 'not-a-date', outcome: null }])).toBe(0)
   })
 })
 
 describe('evaluateBadges', () => {
   it('marks earned vs locked with current progress', () => {
-    const badges = evaluateBadges({ closedCount: 12, level: 3, maxQuestStreak: 7, maxWinStreak: 4, lessonsCompleted: 0 })
-    expect(badges.find((b) => b.id === 'trades_10')).toMatchObject({ earned: true, current: 12 })
-    expect(badges.find((b) => b.id === 'trades_50')).toMatchObject({ earned: false, current: 12 })
+    const badges = evaluateBadges({ reviewsCompleted: 12, level: 3, maxQuestStreak: 7, lessonsCompleted: 0 })
+    expect(badges.find((b) => b.id === 'reviews_10')).toMatchObject({ earned: true, current: 12 })
+    expect(badges.find((b) => b.id === 'reviews_25')).toMatchObject({ earned: false, current: 12 })
     expect(badges.find((b) => b.id === 'level_5')).toMatchObject({ earned: false, current: 3 })
     expect(badges.find((b) => b.id === 'streak_7')).toMatchObject({ earned: true, current: 7 })
-    expect(badges.find((b) => b.id === 'wins_5')).toMatchObject({ earned: false, current: 4 })
+    expect(badges.find((b) => b.id === 'streak_30')).toMatchObject({ earned: false, current: 7 })
   })
-  it('declares all four trade/level/streak badge categories', () => {
+  it('declares exactly the four surviving badge categories', () => {
+    // 'trades' and 'winStreak' are gone — audit 2026-09-05 P0.
     expect(new Set(BADGES.map((b) => b.category)))
-      .toEqual(new Set(['trades', 'level', 'questStreak', 'winStreak', 'lessons']))
+      .toEqual(new Set(['reviews', 'level', 'questStreak', 'lessons']))
   })
-})
-
-describe('evaluateBadges — lessons', () => {
   it('earns lesson badges by lessonsCompleted', () => {
-    const badges = evaluateBadges({ closedCount: 0, level: 1, maxQuestStreak: 0, maxWinStreak: 0, lessonsCompleted: 6 })
+    const badges = evaluateBadges({ reviewsCompleted: 0, level: 1, maxQuestStreak: 0, lessonsCompleted: 6 })
     expect(badges.find((b) => b.id === 'lessons_1')).toMatchObject({ earned: true, current: 6 })
     expect(badges.find((b) => b.id === 'lessons_5')).toMatchObject({ earned: true, current: 6 })
     expect(badges.find((b) => b.id === 'lessons_25')).toMatchObject({ earned: false, current: 6 })
   })
-})
-
-// ── Audit item 15, F7 — quest bonuses are not retroactively farmable ────────
-//
-// XP is not a ledger: it is recomputed from the trades table on every read, and
-// quest bonuses are awarded per UTC calendar bucket. The bucket used to come
-// from `traded_at` / `closed_at`, both of which the user supplies, and
-// `createTrade` deliberately permits backdating. So bulk-inserting backdated
-// rows bought months of daily (30 XP) and weekly (150 XP) bonuses in one
-// sitting. Buckets now key on `created_at`, which is a Postgres default and is
-// excluded from the client INSERT and UPDATE grants by migration 0045.
-
-describe('quest bonuses bucket on created_at (item 15 F7)', () => {
-  const row = (traded: string, closed: string | null, created: string): XpTrade =>
-    ({ traded_at: traded, closed_at: closed, created_at: created, status: closed ? 'closed' : 'open', outcome: 'win' })
-
-  it('a backdated bulk insert collapses into ONE daily bucket, not one per day', () => {
-    // 30 trades dated across 30 different days, all written today.
-    const created = '2026-06-22T09:00:00Z'
-    const farm = Array.from({ length: 30 }, (_, i) => {
-      const d = `2026-05-${String(i + 1).padStart(2, '0')}`
-      return row(`${d}T01:00:00Z`, `${d}T02:00:00Z`, created)
-    })
-    // Two daily quests (log + close), both satisfied in the single created_at
-    // bucket. One bonus each, not 30 each.
-    expect(historicalDailyBonus(farm)).toBe(2 * XP.DAILY_QUEST_BONUS)
-  })
-
-  it('the same rows would have paid out ~30x under the old traded_at bucketing', () => {
-    const legacy = Array.from({ length: 30 }, (_, i) => {
-      const d = `2026-05-${String(i + 1).padStart(2, '0')}`
-      return mk(`${d}T01:00:00Z`, `${d}T02:00:00Z`) // no created_at -> old behaviour
-    })
-    expect(historicalDailyBonus(legacy)).toBe(60 * XP.DAILY_QUEST_BONUS)
-  })
-
-  it('a backdated bulk insert collapses into ONE weekly bucket too', () => {
-    const created = '2026-06-22T09:00:00Z'
-    // 10 logged + 10 closed in one created_at week satisfies both weekly quests
-    // exactly once, however many calendar weeks the trades claim to span.
-    const farm = Array.from({ length: 10 }, (_, i) =>
-      row(`2026-0${i < 5 ? 3 : 4}-1${i % 5}T01:00:00Z`, `2026-0${i < 5 ? 3 : 4}-1${i % 5}T02:00:00Z`, created))
-    expect(historicalWeeklyBonus(farm)).toBe(2 * XP.WEEKLY_QUEST_BONUS)
-  })
-
-  it('leaves genuine multi-day trading alone: one bonus per real day of work', () => {
-    const days = ['2026-06-20', '2026-06-21', '2026-06-22']
-    const real = days.map((d) => row(`${d}T01:00:00Z`, `${d}T02:00:00Z`, `${d}T01:00:00Z`))
-    expect(historicalDailyBonus(real)).toBe(3 * 2 * XP.DAILY_QUEST_BONUS)
-  })
-
-  it('a trade opened Monday and closed Wednesday still counts toward Wednesday', () => {
-    // closed_at is later than created_at, so the clamp does not move it — the
-    // ordinary swing-trade case is unchanged.
-    const t = row('2026-06-22T09:00:00Z', '2026-06-24T15:00:00Z', '2026-06-22T09:05:00Z')
-    const wed = Date.parse('2026-06-24T18:00:00Z')
-    expect(dailyQuestProgress([t], wed).find((q) => q.id === 'close_trade')?.done).toBe(true)
-  })
-
-  it('a backfilled already-closed trade counts on the day it was recorded', () => {
-    // Logged today, describing last month. The user did the work today, so
-    // today's "close a trade" quest is the one it can satisfy — and last
-    // month's is not retroactively re-opened.
-    const t = row('2026-05-10T09:00:00Z', '2026-05-10T15:00:00Z', '2026-06-22T09:00:00Z')
-    const today = Date.parse('2026-06-22T18:00:00Z')
-    expect(dailyQuestProgress([t], today).find((q) => q.id === 'close_trade')?.done).toBe(true)
-    const backThen = Date.parse('2026-05-10T18:00:00Z')
-    expect(dailyQuestProgress([t], backThen).find((q) => q.id === 'close_trade')?.done).toBe(false)
-  })
-
-  it('base XP per closed trade is untouched — this bounds bonuses, not volume', () => {
-    const created = '2026-06-22T09:00:00Z'
-    const farm = Array.from({ length: 30 }, (_, i) =>
-      row(`2026-05-${String(i + 1).padStart(2, '0')}T01:00:00Z`, `2026-05-${String(i + 1).padStart(2, '0')}T02:00:00Z`, created))
-    expect(closedCount(farm)).toBe(30)
-    expect(totalXpFromTrades(farm)).toBe(30 * XP.BASE_PER_TRADE + 2 * XP.DAILY_QUEST_BONUS + 2 * XP.WEEKLY_QUEST_BONUS)
+  it('an account that has never traded can still earn every non-lesson badge', () => {
+    const badges = evaluateBadges({ reviewsCompleted: 25, level: 25, maxQuestStreak: 30, lessonsCompleted: 0 })
+    const earned = badges.filter((b) => b.earned).map((b) => b.id)
+    expect(earned).toEqual(expect.arrayContaining([
+      'reviews_1', 'reviews_10', 'reviews_25', 'level_5', 'level_10', 'level_25', 'streak_7', 'streak_30',
+    ]))
   })
 })

@@ -4,7 +4,20 @@
 export type StreakInputs = {
   // Sorted-desc distinct day keys (YYYY-MM-DD, UTC) where the behaviour happened.
   journalDays: string[]       // days a trade was logged
-  reviewDays: string[]        // days a weekly review was viewed
+  /**
+   * Days carrying a process entry — a review, a rule reflection, a planned
+   * no-trade session or a scheduled rest (`process_logs`, migration 0070).
+   *
+   * ── Audit 2026-09-05, P0 ──────────────────────────────────────────────────
+   *
+   * Unioned into the journaling streak below. Before this, `journalDays` was
+   * "days a trade was logged" and nothing else, so the streak the product calls
+   * "good process — not trade volume or profit" broke on any day the trader
+   * correctly stood aside. That is a trade-volume streak wearing a process
+   * streak's label, and on a screen whose own subtitle disclaims it.
+   */
+  processDays: string[]
+  reviewDays: string[]        // days a review was completed (or the Trader+ card viewed)
   compliantDays: string[]     // days where every closed trade followed the rules
   learningDays: string[]      // days a lesson was completed
   todayKey: string            // current UTC day key
@@ -33,8 +46,11 @@ export function computeStreaks(x: StreakInputs): Streak[] {
     id, label, icon, days: consecutiveDays(new Set(days), x.todayKey),
   })
   return [
-    mk('journal', 'Journaling', '📓', x.journalDays),
-    mk('review', 'Weekly reviews', '📊', x.reviewDays),
+    // A day you logged a trade OR recorded any process entry. The union is the
+    // fix: a deliberate no-trade day is journaling, and treating it as a gap
+    // penalised the decision the product exists to encourage.
+    mk('journal', 'Journaling', '📓', [...x.journalDays, ...x.processDays]),
+    mk('review', 'Reviews', '📊', x.reviewDays),
     mk('compliance', 'Rule compliance', '✅', x.compliantDays),
     // Learn hidden for now — we are not financial advisors. Restore
     // `mk('learning', 'Learning', '📚', x.learningDays),` here when compliant
@@ -70,6 +86,13 @@ export type ChainDay = 'done' | 'today' | 'missed' | 'future'
  * known and pre-existing property of every streak in this file, not something
  * this function introduces — fixing it means storing a timezone and moving all
  * of them together.
+ */
+/**
+ * `journalDays` is the union the CALLER builds: days a trade was logged plus days
+ * carrying a process entry (see `StreakInputs.processDays`). The signature is
+ * deliberately one flat list — the chain asks "did you show up", and after the
+ * 2026-09-05 audit a planned no-trade day is showing up. Passing trade days
+ * alone paints a disciplined flat week as four missed cells.
  */
 export function weekChain(journalDays: string[], todayKey: string): ChainDay[] {
   const DAY = 864e5
