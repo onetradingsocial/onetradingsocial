@@ -1259,3 +1259,49 @@ switched on. Turning confirmation on still needs, in order: **custom SMTP**
 is what has been failing on dev since August), `/auth/confirm` added to the
 Supabase Redirect URL allowlist, and `AUTH_EMAIL_CONFIRMATION=on` set alongside
 the dashboard toggle. All three are owner actions.
+
+---
+
+## Production incident: confirmation on without setup (2026-09-10 → 09-11)
+
+**What happened.** "Confirm email" was switched on in the production Supabase
+project between the last auto-confirmed signup (2026-09-08 23:58Z) and the first
+signup that was sent a confirmation email (2026-09-10 15:49Z) — before production
+had custom SMTP or `AUTH_EMAIL_CONFIRMATION` set. Production was still on
+Supabase's built-in mailer (`noreply@mail.app.supabase.io`), whose hourly cap was
+actively biting: one user's password-reset request got
+`429: email rate limit exceeded`.
+
+Combined with `0074` (the trigger no longer stamps a trial) and the missing
+password-sign-in latch, **three real production signups were stranded**: none got
+a trial; one confirmed within 23s but never got a session, then spent 25+ minutes
+retrying; two never confirmed.
+
+It was caught by the trial-fix agent's read-only checks against production, not
+by any alert. The error boundary's `client_error` telemetry could not see it —
+the failure mode is "can't get in", not an error page.
+
+**A correction made along the way:** this plan earlier stated the built-in mailer
+refuses every non-team address. Production shows it delivered to at least one
+outside address; for this project its rate limit, not an address filter, is what
+failed.
+
+**Fixed forward rather than rolled back** (owner's decision — confirmation stays):
+
+1. Owner configured Resend SMTP in production and set
+   `AUTH_EMAIL_CONFIRMATION=on` in Vercel before the deploy.
+2. `bc3246e` deployed: the trial now starts at the **first observed session**, via
+   a chokepoint in `getEntitlements` (zero I/O when a trial already exists; wrapped
+   so it cannot throw), gated on a new `profiles.trial_eligible` marker.
+3. `0075` applied to production and dev after the deploy reported success. It was
+   dry-run against production first and selected exactly the three stranded
+   accounts. Result — production: 3 eligible (all awaiting trial), 484 not, zero
+   internal or comped caught; dev: 3 eligible, 25 not. New rows default eligible.
+
+The three stranded production accounts get their trial on their next session.
+The two that never confirmed still cannot sign in on their own.
+
+**Also found while testing locally:** `next dev` on every Node 22.x crashes
+server-action submits (nodejs/node#62036); the production build does not, and
+production itself completed onboarding 104/104. Local form testing uses
+`npm run build && npm run start`. Recorded in `app/tests/e2e/README.md`.
