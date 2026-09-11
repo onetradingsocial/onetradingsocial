@@ -10,6 +10,7 @@ import { parseAdminEmails, emailIsAdmin } from '@/lib/admin'
 import { boardEligibleIds } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { createServiceClient } from '@/lib/supabase/service'
+import { trialStartForSession } from '@/lib/server/trial-start'
 
 export type TrialGate = { state: TrialState; daysLeft: number; showWall: boolean }
 export type WelcomeState = { show: boolean; tier: Tier }
@@ -34,7 +35,13 @@ const NO_GATE: TrialGate = { state: 'none', daysLeft: 0, showWall: false }
  *  shows Pro perks to everyone, not just themselves (looked up by the target
  *  user's own email, independent of who is viewing / which client is passed
  *  in). They still get a real gate, so an admin who is genuinely mid-trial
- *  still sees the countdown chip; tier 'pro' exempts them from the wall. */
+ *  still sees the countdown chip; tier 'pro' exempts them from the wall.
+ *
+ *  ONE SIDE EFFECT, deliberately: this is the 14-day trial's chokepoint. When
+ *  `supabase` holds `userId`'s own session and that account is trial-eligible
+ *  but has never had a trial, the trial is started here, once, and the result
+ *  computed from it. Nothing is written for any other account or caller — see
+ *  trialStartForSession (lib/server/trial-start.ts). */
 export async function getEntitlements(
   supabase: SupabaseClient, userId: string,
 ): Promise<Entitlements> {
@@ -71,7 +78,20 @@ export async function getEntitlements(
     ])
 
   const now = new Date()
-  const state = trialState(prof?.trial_started_at, prof?.trial_ack_at, now)
+
+  // The trial's chokepoint: "the trial starts the first time the account has a
+  // session", enforced where the trial fields are already loaded for the
+  // signed-in user, so that every route by which a session can first appear
+  // (password sign-in, a password reset, a magic link, a Google sign-in on an
+  // existing account, a confirmation link whose exchange failed) is covered by
+  // the next render rather than by a call site of its own. A set trial returns
+  // without any I/O; see trialStartForSession for the gate and the costs.
+  // Skipped on a failed or missing profile read — nothing to go on.
+  const trialStartedAt = profError || !prof
+    ? prof?.trial_started_at
+    : await trialStartForSession(svc, supabase, userId, prof.trial_started_at, now)
+
+  const state = trialState(trialStartedAt, prof?.trial_ack_at, now)
 
   // A failed subscriptions read means the tier is UNKNOWN, not free.
   const tierKnown = !subsError && !!subs
@@ -79,7 +99,7 @@ export async function getEntitlements(
     isAdmin: !!user && emailIsAdmin(user.email, parseAdminEmails(process.env.ADMIN_EMAILS)),
     compTier: prof?.comp_tier,
     subs: tierKnown ? subs : [],
-    trialStartedAt: prof?.trial_started_at,
+    trialStartedAt,
     trialAckAt: prof?.trial_ack_at,
   }, now)
 
@@ -98,7 +118,7 @@ export async function getEntitlements(
     tier,
     gate: {
       state,
-      daysLeft: trialDaysLeft(prof.trial_started_at, now),
+      daysLeft: trialDaysLeft(trialStartedAt, now),
       showWall,
     },
     welcome: {

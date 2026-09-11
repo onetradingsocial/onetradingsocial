@@ -17,9 +17,22 @@ const UID = '22222222-2222-4222-8222-222222222222'
 // a second writer sees what the first one committed.
 // ---------------------------------------------------------------------------
 
-type Row = { trial_started_at: string | null } | undefined
+// `trial_eligible` is the 0075 marker. A brand-new account has it true (the
+// column default); the 0041-skipped cohort has it false.
+type Row = { trial_started_at: string | null; trial_eligible?: boolean } | undefined
 
-function fakeProfiles(initial: Row, opts: { updateError?: { message: string; code?: string }; readError?: { message: string } } = {}) {
+/** What PostgREST says about a column the database does not have yet. */
+const MARKER_MISSING = { code: '42703', message: 'column profiles.trial_eligible does not exist' }
+
+function fakeProfiles(
+  initial: Row,
+  opts: {
+    updateError?: { message: string; code?: string }
+    readError?: { message: string }
+    /** The database is still pre-0075: no trial_eligible column. */
+    markerMissing?: boolean
+  } = {},
+) {
   let row = initial === undefined ? undefined : { ...initial }
   const writes: Record<string, unknown>[] = []
   const filters: [string, unknown][] = []
@@ -29,26 +42,36 @@ function fakeProfiles(initial: Row, opts: { updateError?: { message: string; cod
       return {
         update(values: Record<string, unknown>) {
           writes.push(values)
+          const mine: [string, unknown][] = []
           const chain = {
-            eq(col: string, val: unknown) { filters.push([col, val]); return chain },
+            eq(col: string, val: unknown) { filters.push([col, val]); mine.push([col, val]); return chain },
             is(col: string, val: unknown) {
               filters.push([col, val])
+              mine.push([col, val])
               if (opts.updateError) {
                 return Promise.resolve({ error: opts.updateError, count: null })
               }
-              // The conditional write, evaluated NOW against committed state.
-              const matches = row !== undefined && row[col as 'trial_started_at'] === val
-              if (matches) row = { ...row, ...(values as { trial_started_at: string }) }
+              if (opts.markerMissing && mine.some(([c]) => c === 'trial_eligible')) {
+                return Promise.resolve({ error: MARKER_MISSING, count: null })
+              }
+              // The conditional write, evaluated NOW against committed state,
+              // on EVERY filter — the marker included.
+              const matches = row !== undefined && mine.every(([c, v]) =>
+                c === 'id' ? v === UID : (row as Record<string, unknown>)[c] === v)
+              if (matches) row = { ...row!, ...(values as { trial_started_at: string }) }
               return Promise.resolve({ error: null, count: matches ? 1 : 0 })
             },
           }
           return chain
         },
-        select(_cols: string) {
+        select(cols: string) {
           const chain = {
             eq(_col: string, _val: unknown) { return chain },
             maybeSingle() {
               if (opts.readError) return Promise.resolve({ data: null, error: opts.readError })
+              if (opts.markerMissing && cols.includes('trial_eligible')) {
+                return Promise.resolve({ data: null, error: MARKER_MISSING })
+              }
               return Promise.resolve({ data: row ?? null, error: null })
             },
           }
@@ -60,6 +83,9 @@ function fakeProfiles(initial: Row, opts: { updateError?: { message: string; cod
   return { client, writes, filters, current: () => row }
 }
 
+/** A brand-new account created after 0075: no trial, eligible by default. */
+const NEW_ACCOUNT = { trial_started_at: null, trial_eligible: true }
+
 afterEach(() => vi.restoreAllMocks())
 
 // ---------------------------------------------------------------------------
@@ -68,18 +94,55 @@ afterEach(() => vi.restoreAllMocks())
 
 describe('startTrialIfUnstarted', () => {
   it('starts the trial on an account that has never had one', async () => {
-    const { client, writes, current } = fakeProfiles({ trial_started_at: null })
+    const { client, writes, current } = fakeProfiles(NEW_ACCOUNT)
     const at = new Date('2026-09-10T01:02:03.000Z')
     expect(await startTrialIfUnstarted(client as never, UID, at)).toBe('started')
     expect(writes).toEqual([{ trial_started_at: '2026-09-10T01:02:03.000Z' }])
     expect(current()?.trial_started_at).toBe('2026-09-10T01:02:03.000Z')
   })
 
-  it('writes ONLY where trial_started_at is null — the whole safety property', async () => {
-    const { client, filters } = fakeProfiles({ trial_started_at: null })
+  it('writes ONLY where trial_started_at is null AND the account is eligible — the whole safety property', async () => {
+    const { client, filters } = fakeProfiles(NEW_ACCOUNT)
     await startTrialIfUnstarted(client as never, UID)
     expect(filters).toContainEqual(['id', UID])
     expect(filters).toContainEqual(['trial_started_at', null])
+    // The 0075 marker is in the WHERE clause of the one write, for every
+    // caller — not a check a call site can forget.
+    expect(filters).toContainEqual(['trial_eligible', true])
+  })
+
+  it('refuses the 0041-skipped cohort even at an entry point, and says so', async () => {
+    // A pre-0075 account whose trial is null ON PURPOSE (internal/seed, or a
+    // then-live subscriber). No entry point should ever reach one; if one
+    // does, the database refuses and the anomaly is logged.
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { client, current } = fakeProfiles({ trial_started_at: null, trial_eligible: false })
+    expect(await startTrialIfUnstarted(client as never, UID)).toBe('ineligible')
+    expect(current()?.trial_started_at).toBeNull()
+    expect(spy).toHaveBeenCalled()
+    expect(String(spy.mock.calls[0][1])).toContain('not marked trial_eligible')
+  })
+
+  it('before 0075 is applied, an entry point still starts the trial — and logs that the migration is missing', async () => {
+    // Code first, migration second. Until 0075 lands the marker filter fails
+    // with 42703; the entry points fall back to the pre-0075 write so that
+    // new signups keep getting their trial exactly as they did yesterday.
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { client, current, writes } = fakeProfiles({ trial_started_at: null }, { markerMissing: true })
+    const at = new Date('2026-09-11T05:00:00.000Z')
+    expect(await startTrialIfUnstarted(client as never, UID, at)).toBe('started')
+    expect(current()?.trial_started_at).toBe(at.toISOString())
+    expect(writes).toHaveLength(2) // the refused marker write, then the fallback
+    expect(String(spy.mock.calls[0][1])).toContain('0075 not applied')
+  })
+
+  it('does not mistake some OTHER missing column for the marker', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { client, writes } = fakeProfiles(NEW_ACCOUNT, {
+      updateError: { code: '42703', message: 'column profiles.something_else does not exist' },
+    })
+    expect(await startTrialIfUnstarted(client as never, UID)).toBe('failed')
+    expect(writes).toHaveLength(1) // no unfiltered retry
   })
 
   it('never restarts or extends a trial that is already running', async () => {
@@ -104,7 +167,7 @@ describe('startTrialIfUnstarted', () => {
     // A double-clicked confirm link, or a retried callback. Both issue
     // `update ... where trial_started_at is null`; the second re-evaluates the
     // predicate against what the first committed and matches nothing.
-    const { client, writes, current } = fakeProfiles({ trial_started_at: null })
+    const { client, writes, current } = fakeProfiles(NEW_ACCOUNT)
     const a = new Date('2026-09-10T01:00:00.000Z')
     const b = new Date('2026-09-10T01:00:05.000Z')
     const [r1, r2] = await Promise.all([
@@ -149,7 +212,7 @@ describe('startTrialIfUnstarted', () => {
           select() {
             const chain = {
               eq() { return chain },
-              maybeSingle() { return Promise.resolve({ data: { trial_started_at: null }, error: null }) },
+              maybeSingle() { return Promise.resolve({ data: { trial_started_at: null, trial_eligible: true }, error: null }) },
             }
             return chain
           },
@@ -162,7 +225,7 @@ describe('startTrialIfUnstarted', () => {
 
   it('swallows a database error rather than failing the signup', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { client } = fakeProfiles({ trial_started_at: null }, {
+    const { client } = fakeProfiles(NEW_ACCOUNT, {
       updateError: { message: 'connection reset', code: '08006' },
     })
     expect(await startTrialIfUnstarted(client as never, UID)).toBe('failed')
@@ -184,10 +247,13 @@ describe('startTrialIfUnstarted', () => {
 
   it('has no throw path — a signup can never fail because of it', async () => {
     const src = read('app/src/lib/server/trial-start.ts')
-    const code = src.slice(src.indexOf('export async function startTrialIfUnstarted'))
+    // The latch body, shared by every caller, and the chokepoint.
+    const code = src.slice(src.indexOf('async function latch'))
     expect(code).toContain('try {')
     expect(code).toContain('} catch (err) {')
     expect(code).not.toMatch(/^\s*throw /m)
+    const choke = src.slice(src.indexOf('export async function trialStartForSession'))
+    expect(choke).toContain('} catch (err) {')
   })
 })
 
@@ -226,17 +292,19 @@ describe('every path that mints a first session starts the trial', () => {
     expect(src).toContain('isFreshAccount(data.user.created_at, now)')
   })
 
-  it('the password LOGIN path does not start a trial', () => {
-    // signIn mints a session on every login. A latch call there would arm a
-    // trial for the accounts 0041's backfill deliberately left null.
+  it('the password LOGIN path has no call site of its own — the chokepoint covers it', () => {
+    // signIn mints a session on every login. It is covered by the render it
+    // redirects to (see "every other route" below), where the 0075 marker
+    // decides — not by an unguarded latch call here.
     const src = authSrc()
     const signIn = src.slice(src.indexOf('export async function signIn'))
     const next = signIn.indexOf('export async function', 1)
     expect(signIn.slice(0, next)).not.toContain('startTrialIfUnstarted')
   })
 
-  it('/auth/reset does not start a trial', () => {
-    // A password-recovery grant is a session for an existing account.
+  it('/auth/reset has no call site of its own — the chokepoint covers it', () => {
+    // A password-recovery grant is a session for an EXISTING account, which
+    // may be in the skipped cohort. Only the marker may decide.
     expect(read('app/src/app/auth/reset/route.ts')).not.toContain('startTrial')
   })
 
@@ -303,6 +371,69 @@ describe('migration 0074', () => {
 
   it('states the code-first ordering the change depends on', () => {
     expect(sql()).toMatch(/APPLY THIS \*AFTER\* THE CODE/)
+  })
+})
+
+describe('migration 0075 — the trial_eligible marker', () => {
+  const raw = () => read('app/supabase/migrations/0075_trial_eligible_marker.sql')
+  const statements = () => raw()
+    .split('\n')
+    .filter((l) => !l.trimStart().startsWith('--'))
+    .join('\n')
+
+  it('adds the column FALSE for every existing row, then defaults it TRUE for new ones', () => {
+    const s = statements()
+    const add = s.search(/add column if not exists trial_eligible boolean not null default false/)
+    const flip = s.search(/alter column trial_eligible set default true/)
+    expect(add).toBeGreaterThan(-1)
+    expect(flip).toBeGreaterThan(add)
+    // In one transaction, so no signup can land between the two and be born
+    // ineligible.
+    expect(s).toMatch(/^begin;/m)
+    expect(s).toMatch(/^commit;/m)
+  })
+
+  it('does not replace handle_new_user() — the OAuth metadata capture cannot be dropped', () => {
+    // 0041 and 0074 both warn that a replaced trigger body silently loses
+    // display_name/avatar_url on Google sign-up. The column default makes
+    // touching it unnecessary.
+    expect(statements()).not.toMatch(/handle_new_user/i)
+  })
+
+  it('its backfill can only mark accounts with no trial created after 0074, bounded twice', () => {
+    const s = statements()
+    const update = s.slice(s.indexOf('update public.profiles'))
+    const where = update.slice(0, update.indexOf(';'))
+    expect(where).toContain('set trial_eligible = true')
+    expect(where).toContain('trial_started_at is null')
+    // (a) the cutoff read from THIS database's own history, not hardcoded …
+    expect(where).toContain('created_at >= cut_0074')
+    expect(s).toContain("name like '%trial_starts_at_confirmation'")
+    expect(s).toContain("version ~ '^[0-9]{14}$'")
+    // … and (b) newer than every row the old trigger stamped, which alone
+    // excludes the whole pre-0041 cohort.
+    expect(where).toContain('created_at > last_trigger_stamp')
+    expect(s).toContain('where trial_started_at = created_at')
+    // Both bounds fail closed: no cutoff, no backfill.
+    expect(s).toMatch(/if cut_0074 is null or last_trigger_stamp is null then[\s\S]*?return;/)
+    // No literal date anywhere in the executable SQL.
+    expect(s).not.toMatch(/'20\d\d-\d\d-\d\d/)
+    // The only UPDATE in the file is that one.
+    expect(s.match(/\bupdate\s+public\.profiles\b/gi)).toHaveLength(1)
+  })
+
+  it('keeps the column service-role only', () => {
+    expect(statements()).toMatch(
+      /revoke select \(trial_eligible\), update \(trial_eligible\) on public\.profiles from anon, authenticated;/,
+    )
+    expect(statements()).not.toMatch(/grant [^;]*trial_eligible/i)
+  })
+
+  it('names both projects and states the deploy order', () => {
+    const s = raw()
+    expect(s).toContain('jmpanzrjxflovdfwcbye')
+    expect(s).toContain('sixixwutvrguqemqzvvw')
+    expect(s).toContain('CODE FIRST, THEN THIS MIGRATION')
   })
 })
 
