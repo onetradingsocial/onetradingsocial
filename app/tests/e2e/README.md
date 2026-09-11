@@ -38,94 +38,71 @@ real sentence in front of you before the browser starts.
 
 ---
 
-## Blocker 1 (disputed) — the Node pin
+## Node version — resolved 2026-09-11
 
-`.nvmrc` pins **22.11.0**. Machines here run 22.19.0.
+`.nvmrc` pins **22.23.2**, and the machine runs it.
 
-The pin was justified by a claim that newer Node breaks the dev server's
-streaming SSR — the response dying with
-`controller[kState].transformAlgorithm is not a function` just before React's
-`$RC` reveal script, so hard page loads hang on the Suspense skeleton.
+**The `transformAlgorithm` failure is real.** This file used to say it had never
+been reproduced and asked whoever found it to say so here. It was found on
+2026-09-11: on Node 22.19.0, a local signup submit crashed three times out of
+three with
 
-**That has never been reproduced as version-dependent, and has been contradicted
-twice.**
+```
+TypeError: controller[kState].transformAlgorithm is not a function
+```
 
-- `docs/qa-sweep-2026-08-21.md` retracts it. The "page stuck on its skeleton"
-  observation came from a preview tab that is permanently
-  `visibilityState: "hidden"`. Chrome runs no `requestAnimationFrame` in a
-  hidden tab, and React 19.2 defers the Suspense reveal through rAF — so every
-  page emitting `$RC(` looks frozen in that harness while the HTML it produced
-  is byte-perfect and already carries a working reveal call.
-- Re-checked on Node **v22.19.0** during the B0 audit follow-up. `/login`,
-  `/signup`, `/demo` and `/leaderboard` each return 200 with a complete
-  `</html>` and a `$RC` reveal. Playwright's own headless Chromium renders
-  `/signup`, fills it and submits it without trouble — the dev server logs the
-  resulting `POST /signup 200`.
+before the request ever reached Supabase — no signup in the dev project's edge
+logs, no row in `auth.users`.
 
-So the preflight reports a Node mismatch as a **warning**, not a blocker.
+It is a Node bug, not app code: a race in `stream/web`'s TransformStream, where
+a pending write runs after cancel or close has already cleared the algorithm
+(nodejs/node#62036). The fix, nodejs/node#62040, merged 2026-03-04, shipped in
+v24.15.0 and v25.8.1 and was backported to the 22 line. v22.19.0 is from
+2025-08-28 and predates it. Node hits the race consistently where browsers
+rarely do.
 
-Two things follow:
+**Why it was wrongly marked disproven:** it is a race, so it is timing-
+dependent. The B0 follow-up saw page loads and six signup POSTs pass on 22.19.0
+and took that as proof it did not exist. Passing runs cannot rule out a race;
+only the Node version can.
 
-1. **Nothing needs a Node downgrade to run this suite today.** If you do hit a
-   hard page load hanging on a skeleton, check the dev server's stdout for
-   `transformAlgorithm` before blaming Playwright — and if you find it, say so
-   in this file, because nobody has yet.
-2. **The pin is actively harmful for the rest of the toolchain.** 22.11.0 cannot
-   run vitest at all (`ERR_REQUIRE_ESM`; `require(esm)` landed in 22.12). Raising
-   `.nvmrc` to at least 22.12 is an open item from the 2026-08-21 sweep and
-   still open.
+The hidden-tab observation in `docs/qa-sweep-2026-08-21.md` is still correct on
+its own terms — a permanently hidden preview tab does make `$RC` pages look
+frozen — but it explained a different symptom, not this error.
 
-There is no version manager installed on the current machine (no nvm, fnm,
-volta, nodenv, nvs or asdf), and the only real Node on disk is
-`C:\Program Files\nodejs` at v22.19.0. Even if the pin were a genuine
-requirement, satisfying it needs an install nobody has done.
+22.11.0 was wrong for a second reason too: it cannot run vitest
+(`ERR_REQUIRE_ESM`; `require(esm)` landed in 22.12).
+
+If "Something went wrong" appears on a form submit locally, check `node -v` and
+the dev server's stdout for `transformAlgorithm` before debugging anything else.
 
 ---
 
-## Blocker 2 — "Confirm email" is ON for the dev Supabase project
-
-**This is the one that actually stops the suite, and it cannot be fixed from
-inside this repo.**
+## Blocker — the suite does not yet handle email confirmation
 
 `app/.env.local` points at the dev project `sixixwutvrguqemqzvvw`
 (*TradingSocial-Dev*), which is correct — the production project is
 `jmpanzrjxflovdfwcbye` and the suite must never touch it.
 
-But that dev project has **Confirm email** switched **ON**. Its own GoTrue
-config says so:
+**Confirmation is ON in dev, on purpose.** On 2026-09-10 the owner chose to
+support email confirmation rather than turn it off, and dev now sends through
+custom SMTP (Resend, `accounts@tradingsocial.io`). Runbook:
+`docs/auth-email-smtp.md`. Do not "fix" the suite by turning it off.
 
-```
-GET https://<project>.supabase.co/auth/v1/settings   ->   "mailer_autoconfirm": false
-```
+This section used to say the fix was to turn confirmation off, and blamed the
+built-in mailer's rate limit. The real reason dev signups had failed since
+2026-08-21 was harder: Supabase's built-in mailer **refuses any address that is
+not a member of the organization's team** (*"Email address not authorized"*).
+Custom SMTP removes both limits.
 
-Two consequences, and the second is the one people miss:
+What still stops the suite: with confirmation on, `signUp()` returns no
+session, so specs that expect to land on `/welcome` after signup never will.
+The preflight still aborts on this, correctly.
 
-1. **Every `auth.signUp()` also tries to send a confirmation email.** Supabase's
-   built-in SMTP allows only a couple of messages per hour per project, so
-   signups start coming back `email rate limit exceeded` almost immediately and
-   then stay that way for the rest of the hour. `friendlyAuthError()` maps that
-   to *"Too many attempts right now. Please wait a minute and try again."*, the
-   browser stays on `/signup`, and the spec times out waiting for `/welcome`.
-   No account is created. The newest user in the dev project dates from
-   2026-08-21, which is roughly when this started.
-
-2. **Raising the email rate limit would not fix it.** With confirmation ON,
-   `signUp()` returns no session even when it succeeds. The user is never logged
-   in, so the funnel never leaves `/signup` and `/welcome` is still never
-   reached. Confirmation has to be **off**, which is also how production is
-   configured — `seed-users.md`: *"email confirmation is OFF — accounts work
-   immediately"*.
-
-### Owner action
-
-Supabase dashboard, **dev project `sixixwutvrguqemqzvvw` only**:
-
-> Authentication → Sign In / Providers → Email → turn **off** "Confirm email"
-
-Then keep `AUTH_EMAIL_CONFIRMATION` in `app/.env.local` at `off`, matching it.
-`.env.example` is explicit that the dashboard toggle and that variable are
-flipped in the same change, never one without the other; the preflight warns
-when they disagree.
+**Open item:** specs that merely need a signed-in user should create and confirm
+it through the admin API (`auth.admin.createUser` with `email_confirm: true`)
+rather than the signup form. `auth.spec.ts` is the exception — it tests the real
+signup flow and should assert the `/check-email` step instead of `/welcome`.
 
 Nobody but the project owner can do this. It is a dashboard setting on a hosted
 project, not a file in this repository.

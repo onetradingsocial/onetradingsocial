@@ -61,26 +61,19 @@ function loadEnvLocal() {
 
 // ── 1. Node version ─────────────────────────────────────────────────────────
 //
-// Deliberately a WARNING and not a blocker. `.nvmrc` pins 22.11.0 and the
-// `"//engines"` note in package.json attributes a dev-server streaming-SSR
-// failure (`controller[kState].transformAlgorithm is not a function`) to newer
-// Node. That attribution has now been contradicted twice and never reproduced:
+// `.nvmrc` pins 22.23.2, and the reason is real. Node 22.x from before the
+// 2026-03 backport of nodejs/node#62040 has a stream/web TransformStream race
+// that throws `controller[kState].transformAlgorithm is not a function` when a
+// pending write runs after cancel/close (nodejs/node#62036). On 22.19.0 it
+// crashed local signup submits three of three on 2026-09-11, before the request
+// reached Supabase.
 //
-//   - docs/qa-sweep-2026-08-21.md retracts it. The "every page blank in dev"
-//     observation was an artifact of a preview tab that is permanently
-//     `visibilityState: "hidden"`; Chrome runs no requestAnimationFrame in a
-//     hidden tab and React 19.2 defers the Suspense reveal through rAF, so any
-//     page emitting `$RC(` looks frozen there. The HTML itself is byte-perfect.
-//   - Re-checked on Node v22.19.0 during the B0 audit follow-up: `/login`,
-//     `/signup`, `/demo` and `/leaderboard` all return 200 with a complete
-//     `</html>` and a `$RC` reveal, and Playwright's own headless Chromium
-//     fills and submits the signup form without trouble.
+// An earlier version of this comment called the failure disproven because page
+// loads and a few signup POSTs passed on 22.19.0. That was wrong: it is a race,
+// and passing runs cannot rule a race out. See tests/e2e/README.md.
 //
-// The pin is also known to be unusable for the rest of the toolchain: 22.11.0
-// cannot run vitest (`ERR_REQUIRE_ESM`; `require(esm)` landed in 22.12).
-//
-// Blocking on a pin that is both unreproduced and known-broken elsewhere would
-// stop the suite for a reason that is not real, so this reports and moves on.
+// Still a warning rather than a hard stop, because a mismatch is usually a
+// NEWER Node, which is fine. Treat any older 22.x as suspect.
 function checkNode() {
   let pinned = null
   try {
@@ -93,11 +86,11 @@ function checkNode() {
   warn(
     `Node ${running} does not match the .nvmrc pin (${pinned})`,
     [
-      'Not treated as a blocker. The streaming-SSR failure the pin cites has',
-      'never been reproduced as version-dependent, and was retracted in',
-      'docs/qa-sweep-2026-08-21.md as a hidden-tab rAF artifact.',
-      'If you DO see hard page loads hang on a Suspense skeleton, check the dev',
-      "server's stdout for `transformAlgorithm` before blaming the test.",
+      'A newer Node is fine. An OLDER 22.x may predate the fix for a Node',
+      'web-streams race (nodejs/node#62036) that crashes form submits with',
+      '`transformAlgorithm is not a function` — seen on 22.19.0.',
+      'If a submit shows "Something went wrong", check the dev server stdout',
+      'for `transformAlgorithm` before blaming the test.',
       'See tests/e2e/README.md, "Node version".',
     ].join('\n    '),
   )
