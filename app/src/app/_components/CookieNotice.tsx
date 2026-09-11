@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
 
   purgeTier,
@@ -71,16 +71,36 @@ export function CookieNotice({ initial }: { initial: ConsentState }) {
   // button, so consent had to be dismissed before a returning user could see
   // the way in. The class is removed on unmount and on a choice, so nothing
   // outlives the banner. See `body.has-cookie-notice` in globals.css.
+  //
+  // The reservation is the banner's MEASURED height, published as
+  // `--cookie-notice-h`, not a guess. A fixed 220px was too little on a phone,
+  // where the copy wraps and the banner is ~248px, and it grows again when
+  // "Manage" opens — so a constant always drifts. The observer keeps the value
+  // true through both. The CSS keeps the old constants as fallbacks for the
+  // frame before this runs.
+  const noticeRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
-    document.body.classList.add('has-cookie-notice')
-    return () => document.body.classList.remove('has-cookie-notice')
+    const body = document.body
+    body.classList.add('has-cookie-notice')
+    const el = noticeRef.current
+    const publish = () => {
+      if (el) body.style.setProperty('--cookie-notice-h', `${Math.ceil(el.getBoundingClientRect().height)}px`)
+    }
+    publish()
+    const observer = el && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(publish) : null
+    if (observer && el) observer.observe(el)
+    return () => {
+      observer?.disconnect()
+      body.classList.remove('has-cookie-notice')
+      body.style.removeProperty('--cookie-notice-h')
+    }
   }, [open])
 
   if (!open) return null
 
   return (
-    <div className="cookie-notice" role="dialog" aria-label="Cookies and tracking">
+    <div ref={noticeRef} className="cookie-notice" role="dialog" aria-label="Cookies and tracking">
       <div className="cookie-notice-in">
         <p>
           <strong>Cookies and tracking</strong>

@@ -2748,8 +2748,37 @@ body { padding-bottom: 84px; }
  * way in. CookieNotice adds this class while it is on screen and removes it on
  * a choice, so the reservation lasts exactly as long as the banner does.
  */
-body.has-cookie-notice { padding-bottom: 220px; }
-@media (min-width: 720px) { body.has-cookie-notice { padding-bottom: 150px; } }
+/* --cookie-notice-h is the banner's measured height, set by CookieNotice and
+   kept current by a ResizeObserver; the constants are only the first-frame
+   fallback. They used to be the whole answer, and 220px was short on a phone. */
+body.has-cookie-notice { padding-bottom: var(--cookie-notice-h, 220px); }
+@media (min-width: 720px) { body.has-cookie-notice { padding-bottom: var(--cookie-notice-h, 150px); } }
+
+/*
+ * The padding above does nothing for full-screen overlays. They are
+ * position:fixed, so they are placed against the viewport and never see the
+ * body's padding — and the notice outranks all of them (its z-index is the
+ * maximum), so while it is open it sits over each overlay's bottom edge.
+ *
+ * On onboarding that is exactly where "Enter TradingSocial" sits. In
+ * production on 2026-09-11 a new account reached the final screen and could
+ * not finish: clicks landed on the notice, no request ever left the browser,
+ * and nothing was logged anywhere, because nothing had failed. The welcome
+ * popup that follows onboarding, the trial wall and every modal had the same
+ * exposure.
+ *
+ * So end each overlay where the notice begins, rather than padding it: several
+ * centre their content with flexbox, and extra padding on a centred overflow
+ * can push the top of a tall dialog out of scroll reach. `min-height: 0` undoes
+ * `.fl-stage--full`'s 100dvh, which would otherwise override the new bottom.
+ * Uses the same measured height as the reservation above.
+ */
+body.has-cookie-notice :is(.ob-scrim, .ts-modal-backdrop, .wpop-backdrop, .fl-stage--full, .ref-backdrop, .tg-backdrop) {
+  bottom: var(--cookie-notice-h, 220px); min-height: 0;
+}
+@media (min-width: 720px) {
+  body.has-cookie-notice :is(.ob-scrim, .ts-modal-backdrop, .wpop-backdrop, .fl-stage--full, .ref-backdrop, .tg-backdrop) { bottom: var(--cookie-notice-h, 150px); }
+}
 
 /*
  * Per-trade rule reflection (audit 2026-09-05, Wave D4).
