@@ -95,7 +95,14 @@ the user sees no error and no confirmation.
 - **Authentication → Sign In / Providers → Email → Confirm email:** on
 - **`AUTH_EMAIL_CONFIRMATION=on`** in that environment (Vercel for production)
 
-These must move together, and the application says so itself. With the flag off
+**In production, set the variable and redeploy first, then flip the toggle the
+moment the deploy is live.** A Vercel environment change only takes effect on the
+next deployment, so "together" really means "variable first". That order is safe:
+while the toggle is still off, signup still returns a session and the flag is
+never consulted. The reverse order sends new users a confirmation email but
+drops them on the wrong page, because the code has not been told to expect it.
+
+These must end up matching, and the application says so itself. With the flag off
 but the toggle on, `signUp` logs
 `no session with AUTH_EMAIL_CONFIRMATION off — check the dashboard setting`
 and routes the user somewhere safe instead of `/welcome`. With the flag on but
