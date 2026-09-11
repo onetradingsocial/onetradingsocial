@@ -38,43 +38,52 @@ real sentence in front of you before the browser starts.
 
 ---
 
-## Node version — resolved 2026-09-11
+## Node version, and the dev-server crash
 
-`.nvmrc` pins **22.23.2**, and the machine runs it.
+`.nvmrc` pins **22.23.2**: current 22.x, the same major Vercel runs, and able to
+run vitest (22.11.0 could not; `require(esm)` landed in 22.12). **It does not fix
+the crash below** — an earlier revision of this file said it did, and that was
+wrong.
 
 **The `transformAlgorithm` failure is real.** This file used to say it had never
-been reproduced and asked whoever found it to say so here. It was found on
-2026-09-11: on Node 22.19.0, a local signup submit crashed three times out of
-three with
+been reproduced, and asked whoever found it to say so here. On 2026-09-11, under
+`next dev`, server-action submits crashed with
 
 ```
 TypeError: controller[kState].transformAlgorithm is not a function
 ```
 
-before the request ever reached Supabase — no signup in the dev project's edge
-logs, no row in `auth.users`.
+— signup 3 of 3 on Node 22.19.0, and onboarding 3 of 3 on 22.23.2, each before
+the action wrote anything.
 
-It is a Node bug, not app code: a race in `stream/web`'s TransformStream, where
-a pending write runs after cancel or close has already cleared the algorithm
-(nodejs/node#62036). The fix, nodejs/node#62040, merged 2026-03-04, shipped in
-v24.15.0 and v25.8.1 and was backported to the 22 line. v22.19.0 is from
-2025-08-28 and predates it. Node hits the race consistently where browsers
-rarely do.
+It is a Node bug: a race in `stream/web`'s TransformStream where a write lands
+after cancel has cleared the algorithm (nodejs/node#62036). The fix,
+nodejs/node#62040, is confirmed only in **v24.15.0** and **v25.8.1**. The
+official reproduction still fails on 22.23.2. A summary claiming a 22.x backport
+was taken on trust and turned out to be wrong; test the version, don't read
+about it.
 
-**Why it was wrongly marked disproven:** it is a race, so it is timing-
-dependent. The B0 follow-up saw page loads and six signup POSTs pass on 22.19.0
-and took that as proof it did not exist. Passing runs cannot rule out a race;
-only the Node version can.
+**It only triggers under the dev server.** On the same Node 22.23.2,
+`next build && next start` completed the same onboarding cleanly, and production
+(Vercel, Node 22) completed onboarding 104 of 104 over 60 days. Whatever the dev
+server does extra with its streams is what exposes the race.
+
+So, for anything that submits a form:
+
+- run the production build locally — `npm run build && npm run start` — which is
+  also the closest thing to what users get, or
+- run `next dev` on Node ≥ 24.15, accepting that it no longer matches Vercel's
+  major.
+
+This matters for the suite too: if Playwright's `webServer` runs `next dev` on
+Node 22, server-action specs can fail on this race rather than on the app.
+
+**Why it was once marked disproven:** it is a race. Passing runs cannot rule a
+race out — only the Node version, or a verified reproduction, can.
 
 The hidden-tab observation in `docs/qa-sweep-2026-08-21.md` is still correct on
 its own terms — a permanently hidden preview tab does make `$RC` pages look
 frozen — but it explained a different symptom, not this error.
-
-22.11.0 was wrong for a second reason too: it cannot run vitest
-(`ERR_REQUIRE_ESM`; `require(esm)` landed in 22.12).
-
-If "Something went wrong" appears on a form submit locally, check `node -v` and
-the dev server's stdout for `transformAlgorithm` before debugging anything else.
 
 ---
 

@@ -61,19 +61,19 @@ function loadEnvLocal() {
 
 // ── 1. Node version ─────────────────────────────────────────────────────────
 //
-// `.nvmrc` pins 22.23.2, and the reason is real. Node 22.x from before the
-// 2026-03 backport of nodejs/node#62040 has a stream/web TransformStream race
-// that throws `controller[kState].transformAlgorithm is not a function` when a
-// pending write runs after cancel/close (nodejs/node#62036). On 22.19.0 it
-// crashed local signup submits three of three on 2026-09-11, before the request
-// reached Supabase.
+// `.nvmrc` pins 22.23.2 to match Vercel's major and run vitest. It does NOT
+// avoid the dev-server crash: every Node 22.x tested, 22.23.2 included, has a
+// stream/web TransformStream race (nodejs/node#62036) that throws
+// `controller[kState].transformAlgorithm is not a function`. Under `next dev`
+// it crashed server-action submits on 2026-09-11; under `next build && next
+// start` on the same Node it did not, and production completed onboarding
+// 104/104. The fix is confirmed only in Node 24.15.0 and 25.8.1.
 //
-// An earlier version of this comment called the failure disproven because page
-// loads and a few signup POSTs passed on 22.19.0. That was wrong: it is a race,
-// and passing runs cannot rule a race out. See tests/e2e/README.md.
+// An earlier version of this comment called the failure disproven, and a later
+// one said 22.x had the fix. Both were wrong. See tests/e2e/README.md.
 //
-// Still a warning rather than a hard stop, because a mismatch is usually a
-// NEWER Node, which is fine. Treat any older 22.x as suspect.
+// A warning, not a hard stop: what decides the crash is dev-vs-production
+// server, not whether this machine matches the pin.
 function checkNode() {
   let pinned = null
   try {
@@ -86,11 +86,10 @@ function checkNode() {
   warn(
     `Node ${running} does not match the .nvmrc pin (${pinned})`,
     [
-      'A newer Node is fine. An OLDER 22.x may predate the fix for a Node',
-      'web-streams race (nodejs/node#62036) that crashes form submits with',
-      '`transformAlgorithm is not a function` — seen on 22.19.0.',
-      'If a submit shows "Something went wrong", check the dev server stdout',
-      'for `transformAlgorithm` before blaming the test.',
+      'Separately: on Node < 24.15, `next dev` can crash form submits with',
+      '`transformAlgorithm is not a function` (nodejs/node#62036) — every 22.x',
+      'tested is affected. The production build does not trigger it. If a',
+      'server-action spec fails, check the server stdout for it first.',
       'See tests/e2e/README.md, "Node version".',
     ].join('\n    '),
   )
