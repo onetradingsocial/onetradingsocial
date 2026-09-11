@@ -105,6 +105,12 @@ const nextConfig: NextConfig = {
   // webpack bundling it into the serverless functions — removes the benign
   // "Critical dependency" build warning and shrinks bundle/cold-start.
   serverExternalPackages: ['ccxt'],
+  // Dev only — ignored by `next build`. Lets a phone or second machine on the
+  // LAN load the dev server's /_next/* assets and HMR socket, which Next 15
+  // otherwise treats as cross-origin. Comma-separated hostnames from .env.local
+  // (DEV_ALLOWED_ORIGINS), never committed, because the address belongs to
+  // whichever machine is running `next dev`.
+  allowedDevOrigins: process.env.DEV_ALLOWED_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean),
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }]
   },
