@@ -60,6 +60,13 @@ export async function GET(request: NextRequest) {
     // so the wall would eventually land on a demo account or on a subscriber
     // who churned. The latch's `is null` filter alone does not cover that; the
     // freshness test is what makes this "the signup" rather than "a login".
+    //
+    // Since 0075 the latch's write also requires `profiles.trial_eligible`,
+    // false for every pre-0075 account without a trial, so this test is now
+    // the second gate rather than the only one. A NON-fresh account that has
+    // never had a session (confirmed on another device, then chose Google) is
+    // not lost either: the render this redirect leads to passes through the
+    // chokepoint in getEntitlements, which starts an eligible account's trial.
     if (isFreshAccount(data.user.created_at, now)) {
       await startTrialIfUnstarted(svc, data.user.id)
     }

@@ -34,6 +34,14 @@ import { startTrialIfUnstarted } from '@/lib/server/trial-start'
  * only, and no call to `updateUser({ email })` exists — so an untyped grant
  * arriving here is a signup confirmation. If an email-change flow is ever
  * added, it must not redirect to this route.
+ *
+ * Since 0075 this is the SECOND gate, not the only one. The latch's write also
+ * requires `profiles.trial_eligible`, which is false for every account that
+ * existed before 0075 without a trial, so even an email_change or magiclink
+ * grant that got past this test could not arm the skipped cohort. And a grant
+ * this test declines is not a lost trial for a genuinely new account: the
+ * `/welcome` render that follows passes through the chokepoint in
+ * getEntitlements (see lib/server/trial-start.ts), which starts it there.
  */
 function grantStartsTrial(otpType: string | null): boolean {
   return otpType === null || otpType === 'signup' || otpType === 'invite'
