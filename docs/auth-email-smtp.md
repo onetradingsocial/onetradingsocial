@@ -111,6 +111,85 @@ email is sent.
 
 ---
 
+---
+
+## 5. The email templates — the step this runbook was missing
+
+**Authentication → Emails → Confirm signup / Reset password.**
+
+Everything above can be right and the flow still strands people, because the
+link inside the mail is what decides whether a session is ever created. This was
+missed when confirmation went on in production on 2026-09-10, and cost eleven
+accounts — see [pending-2026-09-14.md](pending-2026-09-14.md).
+
+### Why the default link cannot work
+
+`{{ .ConfirmationURL }}` renders as
+`…/auth/v1/verify?token=pkce_…&type=signup&redirect_to=…`. `@supabase/ssr`
+hardcodes `flowType: 'pkce'`, so GoTrue issues a PKCE token: `/auth/v1/verify`
+spends it, stamps `email_confirmed_at`, and redirects to us with `?code=…`.
+`exchangeCodeForSession` can only redeem that code in the browser that started
+the signup, because the `code_verifier` is in that browser's cookie.
+
+Open the mail on a phone, or in Gmail's in-app browser, and the address is
+confirmed and the session is never created. The token is spent, so there is no
+second chance — and the same applies to the reset link, which is the page our
+own error path sends those users to.
+
+### The link shape to use instead
+
+`{{ .TokenHash }}` → `verifyOtp`, which is browser-independent. Both routes
+already prefer it (`lib/auth-recovery.ts`, `lib/server/auth-grant.ts`).
+
+**Confirm signup:**
+
+```html
+<h2>Confirm your email address</h2>
+
+<p>Follow the link below to confirm this email address and finish signing up.</p>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=signup">Confirm email address</a></p>
+```
+
+**Reset password:**
+
+```html
+<h2>Reset your password</h2>
+
+<p>We received a request to reset your password. Follow the link below to choose a new one.</p>
+<p><a href="{{ .SiteURL }}/auth/reset?token_hash={{ .TokenHash }}&amp;type=recovery">Reset password</a></p>
+
+<p>If you didn't request this, you can safely ignore this email.</p>
+```
+
+Three things that will bite if changed:
+
+- **`&type=` is mandatory.** `parseRecoveryRequest` defaults a missing `type` to
+  `recovery`, which is not in `/auth/confirm`'s `expectTypes`, so a new signup
+  would be bounced to `/forgot-password?error=denied`.
+- **`{{ .SiteURL }}` must be the app origin.** Check
+  **Authentication → URL Configuration → Site URL** is `https://app.tradingsocial.io`
+  on production (`http://localhost:3000` on dev). If it points anywhere else,
+  hardcode the origin instead of using the variable.
+- **`&amp;` or `&` both work** — Go escapes the ampersand in an href context
+  either way, and the browser sees `&`.
+
+### Verifying it took
+
+Do not test by clicking the link on the machine that signed up. That is the one
+path that works whatever the template says, and it is why the 2026-09-11 test
+passed while production was stranding people.
+
+Sign up on a desktop, open the mail **on a phone**, and confirm you land signed
+in on `/welcome`. Then check the row: `auth.users.last_sign_in_at` must be set,
+not just `email_confirmed_at`.
+
+```sql
+select email_confirmed_at, last_sign_in_at from auth.users order by created_at desc limit 1;
+```
+
+A confirmed row with a null `last_sign_in_at` means the link is still PKCE, or
+something consumed it before the human did.
+
 ## What changes the moment it is on
 
 - Signup no longer returns a session. Users land on `/check-email`, which reads
