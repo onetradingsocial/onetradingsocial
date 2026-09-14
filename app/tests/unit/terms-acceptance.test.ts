@@ -338,7 +338,11 @@ describe('both signup paths write a record', () => {
     const auth = read('app/src/app/actions/auth.ts')
     // The enforcement that existed and left no trace.
     expect(auth).toContain("if (!terms) return")
-    expect(auth).toContain("recordTermsAcceptance(createServiceClient(), data.user.id, 'signup_checkbox')")
+    // Runs inside the action's after() block since 2026-09-14 — deferred past
+    // the response, not dropped. `userId` is captured before the closure
+    // because TypeScript's narrowing of `data.user` does not survive into it.
+    expect(auth).toContain("recordTermsAcceptance(createServiceClient(), userId, 'signup_checkbox')")
+    expect(auth).toMatch(/const userId = data\.user\.id/)
   })
 
   it('the email path\'s checkbox actually gates the submit button', () => {

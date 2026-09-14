@@ -273,8 +273,12 @@ describe('every path that mints a first session starts the trial', () => {
     const body = signUp.slice(0, next)
     // Gated on the session, not on the user: with confirmation ON there is a
     // user and no session here, and stamping then would be the bug this change
-    // exists to remove.
-    expect(body).toMatch(/if \(data\.session\) \{\s*\n\s*await startTrialIfUnstarted\(createServiceClient\(\), data\.user\.id\)/)
+    // exists to remove. Since 2026-09-14 the call runs inside the action's
+    // after() block, so the flag is read from `data.session` up front and the
+    // gate tests that captured value — assert both halves, or the gate could be
+    // widened to 'any signup' without this failing.
+    expect(body).toMatch(/const hasSession = !!data\.session/)
+    expect(body).toMatch(/if \(hasSession\) \{\s*\n\s*await startTrialIfUnstarted\(createServiceClient\(\), userId\)/)
   })
 
   it('confirmation ON: /auth/confirm starts it when the link is redeemed', () => {

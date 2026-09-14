@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -124,47 +125,74 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   // attributing against it would write nowhere and would fire a signup event
   // for a signup that did not happen.
   if (data.user && !alreadyRegistered) {
-    // The consent above is enforced but was, until WS9, never written down:
-    // the checkbox blocked the submit and then left no trace, so on any dispute
-    // there was nothing to produce. Recorded here rather than in the form
-    // because this is the point at which the acceptance was actually enforced.
-    //
-    // Deliberately BEFORE the email-confirmation branch below: the user ticked
-    // the box and agreed now, whether or not they ever click the link. And
-    // deliberately not awaited for its result — `recordTermsAcceptance` never
-    // throws and never blocks a signup (see its comment block).
-    await recordTermsAcceptance(createServiceClient(), data.user.id, 'signup_checkbox')
-
-    // Attribution: the campaign/ref code captured by middleware sticks to the
-    // profile at signup (service client: the trigger-created row is ours).
+    const userId = data.user.id
+    const hasSession = !!data.session
+    // Read here, used inside after(): the cookie store is sealed by the time
+    // the deferred block runs.
     const ref = (await cookies()).get('ts_ref')?.value ?? null
-    if (ref) {
-      const svc = createServiceClient()
-      await svc.from('profiles')
-        .update({ acquisition_source: ref.slice(0, 64) }).eq('id', data.user.id)
-      // The same cookie doubles as a referral code when it matches one.
-      await attributeReferral(svc, data.user.id, ref)
-    }
-    // The trial starts when the account first has a session, not when the row
-    // is created — see lib/server/trial-start.ts. THIS is the confirmation-OFF
-    // arm of that rule: GoTrue handed back a session, so the account is usable
-    // right now and the 14 days should be running. With confirmation ON there
-    // is no session here and nothing is stamped; `/auth/confirm` starts it when
-    // the user actually clicks the link.
-    //
-    // Idempotent and `is null`-filtered, so while the 0041 trigger is still
-    // stamping at INSERT this call simply finds the value set and does nothing.
-    if (data.session) {
-      await startTrialIfUnstarted(createServiceClient(), data.user.id)
-    }
 
-    // `confirmed` distinguishes "in the funnel already" from "waiting on an
-    // email click", which the funnel would otherwise read as a flat drop-off
-    // the day confirmation is switched on.
-    await trackServer('signup_completed', { id: data.user.id, email }, {
-      method: 'email',
-      source: ref,
-      confirmed: !!data.session,
+    // Everything below used to be awaited HERE, between GoTrue returning and
+    // the redirect being issued: four serial round trips that held the response
+    // open for 4-5 seconds after the account already existed. On 2026-09-14 a
+    // signup was lost to exactly that — the account was created, the
+    // confirmation email was delivered, and the browser sat on a "Creating..."
+    // button whose response never arrived, because `useActionState` keeps the
+    // transition pending until the action settles.
+    //
+    // None of it is anything the user is waiting for, so it runs after the
+    // response instead. The redirect now goes out as soon as GoTrue answers.
+    after(async () => {
+      try {
+        // The consent above is enforced but was, until WS9, never written down:
+        // the checkbox blocked the submit and then left no trace, so on any
+        // dispute there was nothing to produce. Recorded here rather than in
+        // the form because this is the point at which the acceptance was
+        // actually enforced — the box was ticked whether or not the
+        // confirmation link is ever clicked.
+        await recordTermsAcceptance(createServiceClient(), userId, 'signup_checkbox')
+
+        // Attribution: the campaign/ref code captured by middleware sticks to
+        // the profile at signup (service client: the trigger-created row is
+        // ours).
+        if (ref) {
+          const svc = createServiceClient()
+          await svc.from('profiles')
+            .update({ acquisition_source: ref.slice(0, 64) }).eq('id', userId)
+          // The same cookie doubles as a referral code when it matches one.
+          await attributeReferral(svc, userId, ref)
+        }
+
+        // The trial starts when the account first has a session, not when the
+        // row is created — see lib/server/trial-start.ts. THIS is the
+        // confirmation-OFF arm of that rule: GoTrue handed back a session, so
+        // the account is usable right now and the 14 days should be running.
+        // With confirmation ON there is no session here and nothing is stamped;
+        // `/auth/confirm` starts it when the user actually clicks the link.
+        //
+        // Safe to defer: the /welcome render this redirect lands on passes
+        // through the getEntitlements chokepoint, which starts the trial there
+        // if this has not landed yet.
+        //
+        // Idempotent and `is null`-filtered, so while the 0041 trigger is still
+        // stamping at INSERT this call simply finds the value set and does
+        // nothing.
+        if (hasSession) {
+          await startTrialIfUnstarted(createServiceClient(), userId)
+        }
+
+        // `confirmed` distinguishes "in the funnel already" from "waiting on an
+        // email click", which the funnel would otherwise read as a flat
+        // drop-off the day confirmation is switched on.
+        await trackServer('signup_completed', { id: userId, email }, {
+          method: 'email',
+          source: ref,
+          confirmed: hasSession,
+        })
+      } catch (e) {
+        // Detached from the response, so a throw here would otherwise vanish
+        // and take the terms record and the funnel event with it.
+        logError('signUp after', e)
+      }
     })
   }
 
