@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useActionState, useState } from 'react'
 import { resendConfirmation, type ActionState } from '@/app/actions/auth'
 import { AuthShell, LockIcon } from '@/app/_components/AuthShell'
+import { Turnstile } from '@/app/_components/Turnstile'
 
 const initial: ActionState = {}
 
@@ -43,6 +44,10 @@ export function CheckEmailForm({ email }: { email: string | null }) {
           </span>
         </div>
 
+        {/* Inert until NEXT_PUBLIC_TURNSTILE_SITE_KEY is set. `resetOn` is the
+            action result: a new object on every return, so a refused submit
+            always gets a fresh challenge rather than replaying a spent token. */}
+        <Turnstile resetOn={state} />
         {state.error && <p className="fl-err">{state.error}</p>}
         {state.notice && <p className="ts-callout" style={{ marginTop: 14 }}>{state.notice}</p>}
 

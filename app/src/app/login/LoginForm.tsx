@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react'
 import { signIn, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
 import { AuthShell, EyeIcon, LockIcon } from '@/app/_components/AuthShell'
+import { Turnstile } from '@/app/_components/Turnstile'
 import { OAuthLegalNotice } from '@/app/_components/LegalNotice'
 
 const initial: ActionState = {}
@@ -74,6 +75,10 @@ export function LoginForm({ deleted = false }: { deleted?: boolean }) {
           <Link href="/forgot-password" className="fl-forgot">Forgot password?</Link>
         </div>
 
+        {/* Inert until NEXT_PUBLIC_TURNSTILE_SITE_KEY is set. `resetOn` is the
+            action result: a new object on every return, so a refused submit
+            always gets a fresh challenge rather than replaying a spent token. */}
+        <Turnstile resetOn={state} />
         {state.error && <p className="fl-err">{state.error}</p>}
 
         {/* Only reachable once Supabase "Confirm email" is on, and only when the

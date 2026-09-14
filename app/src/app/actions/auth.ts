@@ -19,6 +19,7 @@ import {
 } from '@/lib/server/auth-throttle'
 import { logError } from '@/lib/server/log'
 import { startTrialIfUnstarted } from '@/lib/server/trial-start'
+import { CAPTCHA_FIELD } from '@/app/_components/Turnstile'
 
 export type ActionState = {
   error?: string
@@ -53,6 +54,20 @@ function authRedirectUrl(path: '/auth/reset' | '/auth/confirm'): string {
   return `${site.replace(/\/+$/, '')}${path}`
 }
 
+/**
+ * The Turnstile token the form carried, or undefined when CAPTCHA is not
+ * configured (no site key -> the widget renders nothing -> no field).
+ *
+ * Passed to every GoTrue call that the dashboard's Attack Protection setting
+ * covers — signup, sign-in and recovery — not just signup. Wiring one of them
+ * would leave the others returning "captcha protection: request disallowed" the
+ * moment the setting is switched on. Guarded by tests/unit/captcha.test.ts.
+ */
+function captchaToken(formData: FormData): string | undefined {
+  const t = String(formData.get(CAPTCHA_FIELD) ?? '').trim()
+  return t || undefined
+}
+
 /** Supabase auth errors are implementation detail — "email rate limit exceeded"
  *  and `Email address "x@y" is invalid` tell a user nothing they can act on. Map
  *  the cases we know about to something actionable; the raw text stays in the
@@ -61,6 +76,9 @@ function friendlyAuthError(raw: string, fallback: string): string {
   const m = raw.toLowerCase()
   if (m.includes('rate limit') || m.includes('too many requests') || m.includes('for security purposes')) {
     return 'Too many attempts right now. Please wait a minute and try again.'
+  }
+  if (m.includes('captcha')) {
+    return 'That security check did not complete. Please reload the page and try again.'
   }
   if (m.includes('is invalid') && m.includes('email')) {
     return 'That email address was not accepted. Please try a different one.'
@@ -108,7 +126,11 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { username }, emailRedirectTo: authRedirectUrl('/auth/confirm') },
+    options: {
+      data: { username },
+      emailRedirectTo: authRedirectUrl('/auth/confirm'),
+      captchaToken: captchaToken(formData),
+    },
   })
   if (error) {
     logError('signUp', error.message)
@@ -236,7 +258,11 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    options: { captchaToken: captchaToken(formData) },
+  })
   if (error) {
     logError('signIn', error.message)
     // "Email not confirmed" is only ever returned when the password was
@@ -278,6 +304,7 @@ export async function requestPasswordReset(_prev: ActionState, formData: FormDat
     const supabase = await createClient()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: authRedirectUrl('/auth/reset'),
+      captchaToken: captchaToken(formData),
     })
     // Logged, never surfaced. A GoTrue rate-limit message shown to the user
     // would say "this address is real and we just tried to mail it".
@@ -346,7 +373,10 @@ export async function resendConfirmation(_prev: ActionState, formData: FormData)
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: authRedirectUrl('/auth/confirm') },
+      options: {
+        emailRedirectTo: authRedirectUrl('/auth/confirm'),
+        captchaToken: captchaToken(formData),
+      },
     })
     if (error) logError('resendConfirmation', error.message)
   }

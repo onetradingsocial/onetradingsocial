@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react'
 import { signUp, type ActionState } from '@/app/actions/auth'
 import { GoogleButton } from '@/app/_components/GoogleButton'
 import { AuthShell, EyeIcon, LockIcon } from '@/app/_components/AuthShell'
+import { Turnstile } from '@/app/_components/Turnstile'
 import { OAuthLegalNotice } from '@/app/_components/LegalNotice'
 import { LEGAL, EXTERNAL_LINK } from '@/lib/marketing'
 import { passwordProblem, scorePassword, STRENGTH_LABELS, PASSWORD_MIN_LENGTH } from '@/lib/password'
@@ -133,6 +134,10 @@ export function SignupForm() {
         {!problem && pw && !agreed && (
           <p className="fl-err">Please accept the Terms, Privacy Policy and financial disclaimer to continue.</p>
         )}
+        {/* Inert until NEXT_PUBLIC_TURNSTILE_SITE_KEY is set. `resetOn` is the
+            action result: a new object on every return, so a refused submit
+            always gets a fresh challenge rather than replaying a spent token. */}
+        <Turnstile resetOn={state} />
         {state.error && <p className="fl-err">{state.error}</p>}
 
         <button disabled={pending || !!problem || !pw || !agreed} className="fl-submit">

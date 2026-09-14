@@ -40,7 +40,7 @@ import path from 'path'
 // a bigger change than this row warrants.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.redditstatic.com https://connect.facebook.net",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://www.googletagmanager.com https://www.redditstatic.com https://connect.facebook.net",
   // Fonts are self-hosted by next/font at build time — the Google Fonts hosts
   // were never contacted at runtime.
   "style-src 'self' 'unsafe-inline'",
@@ -52,10 +52,10 @@ const csp = [
   // Removed: api.twelvedata.com (server-only — the browser never calls it) and
   // vitals.vercel-insights.com (@vercel/speed-insights is not installed).
   // Added: www.google.com, which Google Signals beacons to.
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://www.google.com https://*.reddit.com https://www.facebook.com",
+  "connect-src 'self' https://challenges.cloudflare.com https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://www.google.com https://*.reddit.com https://www.facebook.com",
   // Removed the Stripe frame hosts: there is no Stripe.js anywhere, checkout is
   // a full-page redirect.
-  "frame-src 'self'",
+  "frame-src 'self' https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
