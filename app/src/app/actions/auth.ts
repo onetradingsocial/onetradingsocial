@@ -19,7 +19,7 @@ import {
 } from '@/lib/server/auth-throttle'
 import { logError } from '@/lib/server/log'
 import { startTrialIfUnstarted } from '@/lib/server/trial-start'
-import { CAPTCHA_FIELD } from '@/app/_components/Turnstile'
+import { CAPTCHA_FIELD } from '@/lib/captcha'
 
 export type ActionState = {
   error?: string

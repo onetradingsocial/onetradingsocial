@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { CAPTCHA_FIELD } from '@/lib/captcha'
 
 /**
  * Cloudflare Turnstile widget for the four auth forms.
@@ -29,10 +30,9 @@ import { useEffect, useRef, useState } from 'react'
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
 
-/** The form field GoTrue's token is read from. Server side: `captchaToken()` in
- *  `app/actions/auth.ts`. Kept as Turnstile's own conventional name so the two
- *  ends are greppable together. */
-export const CAPTCHA_FIELD = 'cf-turnstile-response'
+/** Field name lives in `lib/captcha` — a plain module, importable from both
+ *  sides. Exported from here it crossed the RSC boundary as a client reference
+ *  and the server read the wrong key. See that file. */
 
 type TurnstileApi = {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string

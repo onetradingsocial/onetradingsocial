@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 // repo root is three levels up from app/tests/unit
@@ -40,12 +40,40 @@ describe('captcha is wired into every auth path, not just signup', () => {
   })
 
   it('reads the token from the field the widget actually writes', () => {
-    // One constant, imported by the action from the component, so the two ends
-    // cannot drift apart silently.
-    expect(read(AUTH)).toContain("import { CAPTCHA_FIELD } from '@/app/_components/Turnstile'")
+    // One constant in a module with NO directive, imported by both ends, so the
+    // two cannot drift apart and neither side can be the odd one out.
+    expect(read(AUTH)).toContain("import { CAPTCHA_FIELD } from '@/lib/captcha'")
     expect(read(AUTH)).toContain('formData.get(CAPTCHA_FIELD)')
     expect(read('app/src/app/_components/Turnstile.tsx'))
+      .toContain("import { CAPTCHA_FIELD } from '@/lib/captcha'")
+    expect(read('app/src/lib/captcha.ts'))
       .toContain("export const CAPTCHA_FIELD = 'cf-turnstile-response'")
+  })
+
+  it('the server action imports no plain value from a "use client" module', () => {
+    // 2026-09-14, the whole afternoon. CAPTCHA_FIELD was imported from
+    // Turnstile.tsx, which is 'use client'. Across the RSC boundary that import
+    // is a client reference, not the string — so formData.get() looked up a key
+    // that was never in the form, captchaToken() returned undefined, and GoTrue
+    // refused every login with "no captcha_token found" while the widget sat
+    // there showing a green Success.
+    //
+    // Same shape as the /admin/feedback outage in CLAUDE.md, and just as quiet:
+    // tsc resolves it, the bundle builds, and the previous version of THIS test
+    // asserted the broken import line was present.
+    const src = read(AUTH)
+    const specs = [...src.matchAll(/from '(@\/[^']+)'/g)].map((m) => m[1])
+    expect(specs.length, 'no aliased imports found — did the alias change?').toBeGreaterThan(0)
+    for (const spec of specs) {
+      const base = join(ROOT, 'app', 'src', spec.slice(2))
+      const file = ['.ts', '.tsx', '/index.ts', '/index.tsx']
+        .map((ext) => base + ext)
+        .find((p) => existsSync(p))
+      if (!file) continue
+      const head = readFileSync(file, 'utf8').trimStart().slice(0, 20)
+      expect(head, `${AUTH} imports ${spec}, which is a 'use client' module`)
+        .not.toMatch(/^['"]use client['"]/)
+    }
   })
 
   const FORMS = [
