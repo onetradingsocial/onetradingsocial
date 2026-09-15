@@ -127,7 +127,7 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     email,
     password,
     options: {
-      data: { username },
+      data: { username: v.name },
       emailRedirectTo: authRedirectUrl('/auth/confirm'),
       captchaToken: captchaToken(formData),
     },

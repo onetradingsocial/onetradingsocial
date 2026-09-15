@@ -35,7 +35,7 @@ export async function saveOnboarding(_prev: ProfileState, formData: FormData): P
   if (!v.ok) return { error: v.error }
 
   const input: OnboardingInput = {
-    username,
+    username: v.name,
     experience_level: String(formData.get('experience_level') ?? 'beginner') as ExperienceLevel,
     main_markets: formData.getAll('main_markets').map(String),
     trading_styles: formData.getAll('trading_styles').map(String),
@@ -234,7 +234,7 @@ export async function saveProfileSettings(
   const { error } = await supabase
     .from('profiles')
     .update({
-      username,
+      username: v.name,
       display_name: clean('display_name'),
       bio: clean('bio'),
       goal: clean('goal'),
