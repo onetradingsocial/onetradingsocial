@@ -35,8 +35,11 @@ export async function AppNav({ tier, gate }: { tier: Tier | null; gate: TrialGat
 
   let profile: { username: string; avatar_url: string | null } | null = null
   let isPro = false
-  const onTrial = gate?.state === 'active'
-  const trialDaysLeft = gate?.daysLeft ?? 0
+  // gate.trial, not gate.state: the countdown has to cover the Stripe trial
+  // too, or a user with a card on file sees no sign anywhere in the app that a
+  // trial is running or that a charge follows it.
+  const onTrial = !!gate?.trial
+  const trialDaysLeft = gate?.trial?.daysLeft ?? 0
   let initialNotifCount = 0
   let initialNotifItems: Notification[] = []
   let initialMsgUnread = 0
@@ -67,7 +70,7 @@ export async function AppNav({ tier, gate }: { tier: Tier | null; gate: TrialGat
               <ReferralLauncher />
               <NewTradeButton className="btn btn-primary btn-sm" />
               {onTrial
-                ? <TrialChip daysLeft={trialDaysLeft} />
+                ? <TrialChip daysLeft={trialDaysLeft} cardOnFile={gate?.trial?.cardOnFile ?? false} />
                 : isPro
                   ? <span className="ts-pro-badge">PRO</span>
                   : <Link href="/settings/billing" className="btn btn-sm" style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px' }}>Upgrade</Link>}

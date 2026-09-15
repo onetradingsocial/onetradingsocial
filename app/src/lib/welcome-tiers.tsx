@@ -27,10 +27,17 @@ export type WelcomeCopy = {
   feats: WelcomeFeat[]
 }
 
-/** Shown instead of the tier's own price while a no-card trial is active: a
- *  trialist holds Pro features but has paid nothing, so "A$50 / month · billed
- *  monthly" would be plainly false for them. */
-export const TRIAL_PRICE = '14 days free · then choose a plan'
+/** Shown instead of the tier's own price while a trial of either kind is
+ *  running: a trialist holds Pro features but has paid nothing yet, so
+ *  "A$50 / month · billed monthly" would be plainly false for them on the day
+ *  they were charged A$0.
+ *
+ *  It no longer says "then choose a plan". That was true of the card-free trial,
+ *  where the user genuinely had a choice to make at the end; under the Stripe
+ *  trial the plan is already chosen and continues on its own, so the old line
+ *  implied an action that is not required and, worse, implied that nothing
+ *  happens without it. This wording is true of both. */
+export const TRIAL_PRICE = '14 days free · nothing charged yet'
 
 export const WELCOME_TIERS: Record<Tier, WelcomeCopy> = {
   free: {

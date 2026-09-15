@@ -19,13 +19,22 @@ const CLOSE: ReactNode = (
  *
  *  It exists because during a trial getTier() returns 'pro', so /settings/billing
  *  shows Pro as the disabled current plan and its remaining CTAs POST to the
- *  billing portal, which 400s (a trial creates no Stripe customer). This modal
- *  is the working subscribe path for a trial user. */
+ *  billing portal. For a GRANDFATHERED card-free trial that portal call 400s,
+ *  because such a trial creates no Stripe customer, and this modal is the only
+ *  working subscribe path. A Stripe trialist does have a customer and can use
+ *  the portal — they reach this modal from the same chip, so it has to be
+ *  honest for both.
+ *
+ *  `cardOnFile` is what keeps it honest. "No charge until you subscribe" is
+ *  true of the card-free trial and flatly false of the Stripe one, where a
+ *  charge is already scheduled. */
 export function TrialUpsellModal({
   daysLeft,
+  cardOnFile = false,
   onClose,
 }: {
   daysLeft: number
+  cardOnFile?: boolean
   onClose: () => void
 }) {
   const [mounted, setMounted] = useState(false)
@@ -79,14 +88,17 @@ export function TrialUpsellModal({
           <span className="tg-eyebrow"><span className="dot" />
             {daysLeft === 1 ? '1 day left' : `${daysLeft} days left`}
           </span>
-          <h2 id="tu-title">Keep Pro after your trial.</h2>
+          <h2 id="tu-title">{cardOnFile ? 'Your plan after the trial.' : 'Keep Pro after your trial.'}</h2>
           <p>
             {/* Learn hidden for now — we are not financial advisors. This line read
                 '…MT5 sync and premium courses stay exactly where they are.'
                 Restore when compliant. */}
             You are on Pro until your trial ends. Subscribe now and nothing changes when it does —
             unlimited journal, advanced analytics and MT5 sync stay exactly where
-            they are. No charge until you subscribe.
+            they are.
+            {cardOnFile
+              ? ' Your card is already on file, so your plan continues automatically unless you cancel in Settings → Billing.'
+              : ' No charge until you subscribe.'}
           </p>
         </div>
 

@@ -11,12 +11,41 @@ import { boardEligibleIds } from '@/lib/feature-flags'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { createServiceClient } from '@/lib/supabase/service'
 import { trialStartForSession } from '@/lib/server/trial-start'
+import { activeTrialWindow, windowDaysLeft } from '@/lib/trial-window'
 
-export type TrialGate = { state: TrialState; daysLeft: number; showWall: boolean }
+/**
+ * What the app shows about a running trial, across BOTH mechanisms.
+ *
+ * `state`, `daysLeft` and `showWall` describe the LOCAL trial only, and must
+ * keep doing so — the end-of-trial wall is a local-trial concept and a Stripe
+ * trial has nothing to wall, because Stripe either bills it or cancels it.
+ *
+ * `trial` is the display window, and it is the one that understands both. It is
+ * null when no trial of either kind is running. Every countdown, chip and
+ * banner reads it, because a Stripe trialist who sees nothing in the app has no
+ * in-product indication that a charge is coming — which is a disclosure gap,
+ * not a cosmetic one.
+ */
+export type TrialBadge = {
+  daysLeft: number
+  /** A card is on file and a charge follows. Drives the copy, not the count. */
+  cardOnFile: boolean
+}
+export type TrialGate = {
+  state: TrialState
+  daysLeft: number
+  showWall: boolean
+  trial: TrialBadge | null
+  /** Internal/seed account. Suppresses the add-a-card invitation, which would
+   *  otherwise land on the demo users that make up most of the trial cohort. */
+  isInternal: boolean
+}
 export type WelcomeState = { show: boolean; tier: Tier }
 export type Entitlements = { tier: Tier; gate: TrialGate; welcome: WelcomeState }
 
-const NO_GATE: TrialGate = { state: 'none', daysLeft: 0, showWall: false }
+const NO_GATE: TrialGate = {
+  state: 'none', daysLeft: 0, showWall: false, trial: null, isInternal: false,
+}
 
 /** Tier AND trial gate from one pass over the same two rows.
  *
@@ -55,12 +84,19 @@ export async function getEntitlements(
     await Promise.all([
       svc.auth.admin.getUserById(userId),
       svc.from('profiles')
-        .select('comp_tier, trial_started_at, trial_ack_at')
+        .select('comp_tier, trial_started_at, trial_ack_at, is_internal')
         .eq('id', userId).maybeSingle(),
       // updated_at is selected because the past_due grace window is measured
       // from it (see PAST_DUE_GRACE_DAYS). Omit it and every past_due customer
       // silently loses their grace — the pre-WS1 behaviour.
-      supabase.from('subscriptions').select('tier, status, updated_at').eq('user_id', userId),
+      // trial_start/trial_end/cancel_at_period_end (0076) are here so the
+      // display window below can see a Stripe trial. 0076 is applied to both
+      // projects; if it ever were not, this select fails with 42703 and the
+      // documented fail-safe applies — tier UNKNOWN, no wall — rather than a
+      // silent wrong answer.
+      supabase.from('subscriptions')
+        .select('tier, status, updated_at, trial_start, trial_end, cancel_at_period_end')
+        .eq('user_id', userId),
       // Deliberately its OWN query, not folded into the profiles select above.
       // welcome_tier_seen / onboarding_completed are the newest columns here
       // (Task 4); if a deploy ships the code before migration 0043 reaches a
@@ -114,12 +150,21 @@ export async function getEntitlements(
   const wallTier: Tier = tierKnown ? tier : 'pro'
   const showWall = shouldShowWall(state, wallTier, process.env.TRIAL_WALL_ENABLED === 'true')
 
+  // The display window, across both mechanisms. Stripe wins when both are
+  // running — see lib/trial-window.ts for why that ordering is a safety rule
+  // rather than a recency one. Null for the overwhelming majority of accounts.
+  const win = tierKnown
+    ? activeTrialWindow({ trial_started_at: trialStartedAt, trial_ack_at: prof.trial_ack_at }, subs, now)
+    : null
+
   return {
     tier,
     gate: {
       state,
       daysLeft: trialDaysLeft(trialStartedAt, now),
       showWall,
+      trial: win ? { daysLeft: windowDaysLeft(win, now), cardOnFile: win.cardOnFile } : null,
+      isInternal: prof.is_internal === true,
     },
     welcome: {
       // Gated on tierKnown for the same reason as wallTier above: a failed

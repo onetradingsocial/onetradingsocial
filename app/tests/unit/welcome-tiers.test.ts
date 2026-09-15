@@ -72,7 +72,20 @@ describe('WELCOME_TIERS', () => {
   })
 
   it('offers a trial price line that does not claim a charge', () => {
-    expect(TRIAL_PRICE).toBe('14 days free · then choose a plan')
+    // Asserted as a PROPERTY rather than a literal. This line stands in for a
+    // price on the welcome popup, so what matters is that it quotes no figure
+    // to someone who has been charged nothing — not its exact wording, which
+    // changed once already when the trial moved to Stripe.
     expect(TRIAL_PRICE).not.toContain('$')
+    expect(TRIAL_PRICE).not.toMatch(/\d+\s*\/\s*(month|year)|per month|monthly/i)
+    expect(TRIAL_PRICE).toMatch(/free/i)
+  })
+
+  it('does not tell a Stripe trialist to choose a plan they have already chosen', () => {
+    // It used to read "14 days free · then choose a plan". True of the card-free
+    // trial, where a choice really was pending. Under the Stripe trial the plan
+    // is chosen and continues on its own, so that line implied both an action
+    // that is not required and — worse — that nothing happens without it.
+    expect(TRIAL_PRICE).not.toMatch(/choose a plan/i)
   })
 })

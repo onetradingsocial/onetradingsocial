@@ -678,7 +678,37 @@ migration **before** the merge.
    browser: `/welcome` needs an authenticated mid-signup user, and `next dev` on
    Node 22 breaks form submits here.
 7. Grandfathering banner for the 7, plus an explicit marker so internal accounts
-   are never swept into it.
+   are never swept into it. ✅ **Shipped 2026-09-15.**
+
+   Doing this properly meant fixing something larger first. `gate` was computed
+   from the local trial alone, so **a Stripe trialist saw no countdown, no
+   banner and no sign anywhere in the app that a charge was coming** — a
+   disclosure gap, not a cosmetic one. `gate` now carries `trial`
+   (`{daysLeft, cardOnFile}`) from `activeTrialWindow`, and every countdown
+   surface reads it. `state`/`showWall` stay local-only, because the wall is a
+   local-trial concept and a Stripe trial has nothing to wall.
+
+   - **Two banner windows**, extracted to `shouldShowTrialBanner` so the rule is
+     testable rather than buried in JSX. Card-on-file gets **3 days** (Stripe's
+     day-11 email is the notice of record; this only reminds). Card-free gets
+     **7**, because for a grandfathered account this is not a reminder of
+     anything — it is the only invitation to add a card before a trial that
+     otherwise lapses silently into Free, exactly as promised.
+   - **Internal accounts excluded**, via `gate.isInternal`. They were 19 of the
+     26 mid-trial accounts and none of them buys anything.
+   - Banner, chip and upsell copy all split on `cardOnFile`. The upsell said
+     *"No charge until you subscribe"* — true of the grandfathered trial, flatly
+     false of the Stripe one.
+   - `TRIAL_PRICE` was *"14 days free · then choose a plan"*. True when a choice
+     was pending; under the Stripe trial the plan is chosen and continues on its
+     own, so it implied an action that is not required and that nothing happens
+     without it.
+   - `WelcomeModal`'s `trialActive` was driven by the local trial, so it quoted
+     **A$50/month to every Stripe trialist on the day they were charged A$0**.
+
+   1631 tests, clean `tsc`, clean `next build`. A JSX comment placed inside an
+   attribute list was caught by the build and not by the test suite — worth
+   remembering that `vitest` does not typecheck the layout.
 8. After the last local trial drains (~21 days, per 5.3), delete the local trial
    mechanism.
 

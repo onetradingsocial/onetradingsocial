@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   activeTrialWindow, stripeTrialWindow, localTrialWindow,
-  willCharge, windowDaysLeft, windowDaysElapsed,
+  willCharge, windowDaysLeft, windowDaysElapsed, shouldShowTrialBanner,
   type TrialSubRow,
 } from '@/lib/trial-window'
 import { trialSequenceHtml } from '@/lib/server/email'
@@ -106,6 +106,44 @@ describe('activeTrialWindow — which trial describes this user', () => {
 
   it('is null when neither is running — never "day 0 of something"', () => {
     expect(activeTrialWindow({ trial_started_at: null, trial_ack_at: null }, [], NOW)).toBeNull()
+  })
+})
+
+describe('shouldShowTrialBanner — who gets the final-days nudge', () => {
+  const card = (daysLeft: number) => ({ daysLeft, cardOnFile: true })
+  const free = (daysLeft: number) => ({ daysLeft, cardOnFile: false })
+
+  it('gives a card-on-file trial the last 3 days — Stripe already emailed on day 11', () => {
+    expect(shouldShowTrialBanner(card(3), false)).toBe(true)
+    expect(shouldShowTrialBanner(card(1), false)).toBe(true)
+    expect(shouldShowTrialBanner(card(4), false)).toBe(false)
+  })
+
+  it('gives a GRANDFATHERED card-free trial 7, because this is its only invitation', () => {
+    // These accounts get no Stripe email and no charge — their trial lapses
+    // silently into Free exactly as promised. The banner is the only prompt to
+    // add a card, so it needs runway rather than a deadline.
+    expect(shouldShowTrialBanner(free(7), false)).toBe(true)
+    expect(shouldShowTrialBanner(free(4), false)).toBe(true)
+    expect(shouldShowTrialBanner(free(8), false)).toBe(false)
+  })
+
+  it('never shows to an internal or seed account', () => {
+    // 19 of the 26 accounts mid-trial on 2026-09-15. None of them buys anything,
+    // and an add-a-card banner across the demo users is noise in every
+    // screenshot of the product.
+    expect(shouldShowTrialBanner(free(2), true)).toBe(false)
+    expect(shouldShowTrialBanner(card(1), true)).toBe(false)
+  })
+
+  it('shows nothing when no trial is running', () => {
+    expect(shouldShowTrialBanner(null, false)).toBe(false)
+  })
+
+  it('shows nothing once the window has run out', () => {
+    // daysLeft floors at 0, and a banner saying "ends in 0 days" is a bug.
+    expect(shouldShowTrialBanner(free(0), false)).toBe(false)
+    expect(shouldShowTrialBanner(card(0), false)).toBe(false)
   })
 })
 

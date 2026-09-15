@@ -11,7 +11,7 @@ import { TrialUpsellModal } from './TrialUpsellModal'
  *
  *  Rendered as a button rather than a link for the same reason, and styled by
  *  the unchanged .ts-trial-chip rule so it stays visually identical. */
-export function TrialChip({ daysLeft }: { daysLeft: number }) {
+export function TrialChip({ daysLeft, cardOnFile = false }: { daysLeft: number; cardOnFile?: boolean }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -24,7 +24,7 @@ export function TrialChip({ daysLeft }: { daysLeft: number }) {
       >
         PRO TRIAL · {daysLeft}d left
       </button>
-      {open && <TrialUpsellModal daysLeft={daysLeft} onClose={() => setOpen(false)} />}
+      {open && <TrialUpsellModal daysLeft={daysLeft} cardOnFile={cardOnFile} onClose={() => setOpen(false)} />}
     </>
   )
 }

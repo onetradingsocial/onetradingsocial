@@ -21,6 +21,7 @@ import { recoveryGuardSource } from '@/lib/auth-recovery'
 import { canFlag } from '@/lib/feature-flags'
 import { TrialGateModal } from './_components/TrialGateModal'
 import { TrialEndingBanner } from './_components/TrialEndingBanner'
+import { shouldShowTrialBanner } from '@/lib/trial-window'
 import { WelcomeModal } from './_components/WelcomeModal'
 
 const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display' })
@@ -98,8 +99,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: recoveryGuardSource() }} />
         <TradeModalProvider config={config}>
           <AppNav tier={tier} gate={gate} />
-          {gate?.state === 'active' && gate.daysLeft <= 3 && (
-            <TrialEndingBanner daysLeft={gate.daysLeft} />
+          {/* Reads gate.trial, so it covers BOTH trials — a Stripe trialist who
+              saw nothing here would have no in-product sign that a charge was
+              coming.
+
+              Two windows on purpose. A card-on-file trial gets the last 3 days,
+              because Stripe's own day-11 email is the notice of record and this
+              only reminds. A GRANDFATHERED card-free trial gets 7, because for
+              those accounts this is not a reminder of anything — it is the only
+              invitation to add a card before a trial that will otherwise lapse
+              silently into Free, exactly as they were promised.
+
+              Internal/seed accounts are excluded. They are most of the trial
+              cohort by count (19 of 26 on 2026-09-15) and none of them is going
+              to buy anything. */}
+          {gate?.trial && shouldShowTrialBanner(gate.trial, gate.isInternal) && (
+            <TrialEndingBanner daysLeft={gate.trial.daysLeft} cardOnFile={gate.trial.cardOnFile} />
           )}
           {children}
           {/* APP 5: the app had no footer and no link to the privacy policy on
@@ -108,11 +123,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <AppFooter />
           {user && <HelpWidget />}
           {user && <TrialGateModal show={!!gate?.showWall} />}
+          {/* trialActive reads gate.trial, not gate.state. Driven by the local
+              trial alone it was false for every Stripe trialist, so the popup
+              quoted them A$50/month on the day they were charged A$0. */}
           {user && welcome?.show && (
             <WelcomeModal
               tier={welcome.tier}
               username={username}
-              trialActive={gate?.state === 'active'}
+              trialActive={!!gate?.trial}
             />
           )}
         </TradeModalProvider>

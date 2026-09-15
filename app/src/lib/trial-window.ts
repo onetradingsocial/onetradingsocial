@@ -70,6 +70,43 @@ export type TrialSubRow = {
   cancel_at_period_end?: boolean | null
 }
 
+/**
+ * How many days out the final-days banner starts, by kind of trial.
+ *
+ * They differ because the banner is doing two different jobs.
+ *
+ *   cardOnFile — a REMINDER. Stripe's own `trial_will_end` email fires on day
+ *     11 and is the notice of record, so three days is enough and more would
+ *     just be nagging someone who has already been told.
+ *
+ *   cardFree — an INVITATION, and the only one these accounts get. A
+ *     grandfathered trial lapses silently into Free with no charge and no
+ *     Stripe email, exactly as promised, so seven days is the runway to decide
+ *     to add a card. There are about seven such accounts and they drain within
+ *     a fortnight of launch; after that this branch is dead and goes with the
+ *     rest of the local trial.
+ */
+export const TRIAL_BANNER_DAYS = { cardOnFile: 3, cardFree: 7 } as const
+
+/**
+ * Whether the final-days banner should render.
+ *
+ * Pure, so the product rule is testable rather than living in a JSX condition.
+ *
+ * Internal/seed accounts are excluded: on 2026-09-15 they were 19 of the 26
+ * accounts mid-trial, none of them is going to buy anything, and an
+ * add-a-card banner on the demo users would be noise in every screenshot.
+ */
+export function shouldShowTrialBanner(
+  trial: { daysLeft: number; cardOnFile: boolean } | null,
+  isInternal: boolean,
+): boolean {
+  if (!trial || isInternal) return false
+  // daysLeft is 0 once the window has passed; the banner is for a LIVE trial.
+  if (trial.daysLeft < 1) return false
+  return trial.daysLeft <= (trial.cardOnFile ? TRIAL_BANNER_DAYS.cardOnFile : TRIAL_BANNER_DAYS.cardFree)
+}
+
 /** Whether money actually moves when this window ends. */
 export function willCharge(w: TrialWindow): boolean {
   return w.cardOnFile && !w.cancelAtPeriodEnd
