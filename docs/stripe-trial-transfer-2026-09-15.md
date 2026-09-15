@@ -222,10 +222,30 @@ tier". The invariant it *intends* is "no grace to someone who never paid". The
 invariant it *expresses* is "no grace if the status is `incomplete`". Those were
 the same thing until trials created subscriptions.
 
-The lever needed already exists and is unused: `billing_reason` is declared on
-`StripeInvoiceLike` at `lib/billing-webhook.ts:92` and never read. The robust
-discriminator is "has this subscription ever had a paid invoice", which is a
-further argument for the mirror column in 5.3.
+✅ **Fixed 2026-09-15 — owner decision.** Grace is now **7 days**, and only for a
+subscription with `first_paid_at` set. A never-paid `past_due` gets none.
+
+- **0079** adds `first_paid_at`, backfills every existing row (until the trial
+  moved to Stripe, the only ways to create a subscription were buying one and
+  claiming a referral reward — so `created_at` is a sound lower bound, and null
+  now means exactly one thing).
+- The webhook handles `invoice.paid` / `invoice.payment_succeeded`, which were
+  previously unhandled. **It requires `amount_paid > 0`** — a trial's A$0
+  opening invoice is also marked paid, and counting it would stamp every
+  trialist on day one and make the whole change a no-op that looks implemented.
+- **A database trigger latches the column.** Two code paths upsert this table
+  and the column is not in the upsert payload, so whether it survives depends on
+  how PostgREST builds `ON CONFLICT`. If that assumption is ever wrong, every
+  paying customer silently loses their grace and the symptom — someone in
+  dunning cut off early — is not something anyone reports as a bug. The trigger
+  makes the question moot. **Verified empirically on dev**: an explicit
+  `set first_paid_at = null` did not clear it, and a deliberate correction to a
+  real value was still honoured.
+- 7 rather than 14: still covers Stripe's Smart Retries (~1 week), still shorter
+  than the full retry cycle, exposure down from half a monthly period to a
+  quarter (A$7.50 Trader / A$12.50 Pro). Deliberately **no longer equal to
+  `TRIAL_DAYS`** — sharing one number was for explainability, and that stopped
+  being a virtue once a trial could become a dunning case.
 
 ### 5.1b The referral reward pays out on a signup — funded abuse, one line
 

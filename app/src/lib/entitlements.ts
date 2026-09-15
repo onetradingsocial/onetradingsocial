@@ -33,20 +33,35 @@ const ACTIVE_STATUSES = new Set(['active', 'trialing'])
  *  strictly more generous than the contract promises, so the code and the terms
  *  agree either way.
  *
- *  WHY 14 DAYS.
+ *  WHY 7 DAYS, AND ONLY FOR A CUSTOMER WHO HAS PAID.
+ *
+ *  This was 14 days for everyone in `past_due`. Owner decision, 2026-09-15:
+ *  seven days, and only where `first_paid_at` is set.
+ *
+ *  The second half is the substantive change. Grace is for a RENEWAL that
+ *  failed — which presupposes the customer paid at least once already. A failed
+ *  TRIAL CONVERSION lands in the same `past_due` status having never paid us
+ *  anything, so before this the 14-day window sat on top of the 14 trial days
+ *  and handed out 28 days of Pro on a card that declined, repeatable with a
+ *  fresh account. The rule now matches the principle the `incomplete` case
+ *  below already states.
+ *
+ *  On the number itself:
  *   1. Stripe's default Smart Retries make their attempts across roughly the
- *      first week, so a fortnight covers essentially every recovery that is
- *      going to happen. A customer who updates their card within two weeks
+ *      first week, so seven days still covers essentially every recovery that
+ *      is going to happen. A customer who updates their card within a week
  *      never experiences an outage at all.
- *   2. It is strictly SHORTER than Stripe's ~3-week full retry cycle, so access
- *      can never outlive the dunning process — and, critically, it still ends
- *      even if the Stripe subscription setting after retries are exhausted is
- *      "leave the subscription past_due", which would otherwise grant free
+ *   2. It is still strictly SHORTER than Stripe's ~3-week full retry cycle, so
+ *      access can never outlive the dunning process — and, critically, it still
+ *      ends even if the Stripe subscription setting after retries are exhausted
+ *      is "leave the subscription past_due", which would otherwise grant free
  *      service forever.
- *   3. Worst-case exposure is bounded at half a monthly period: A$15 on Trader,
- *      A$25 on Pro. Acceptable at any scale this product will see soon.
- *   4. It reuses the number already in the product (TRIAL_DAYS), so there is one
- *      "14 days" to explain rather than two.
+ *   3. Worst-case exposure is now a quarter of a monthly period rather than
+ *      half: A$7.50 on Trader, A$12.50 on Pro.
+ *   4. It is deliberately NO LONGER the same number as TRIAL_DAYS. The two used
+ *      to be shared for explainability, and that stopped being a virtue the
+ *      moment a trial could turn into a dunning case — one number doing both
+ *      jobs invited exactly the confusion this change exists to remove.
  *
  *  WHY IT IS MEASURED FROM `updated_at`. The obvious candidate,
  *  `current_period_end`, does NOT work: Stripe advances the billing period when
@@ -58,17 +73,27 @@ const ACTIVE_STATUSES = new Set(['active', 'trialing'])
  *  start". This is why the reconciliation cron must not rewrite rows that have
  *  not changed — a no-op UPDATE would still fire the trigger and silently
  *  restart the grace clock. See lib/server/billing-reconcile.ts. */
-export const PAST_DUE_GRACE_DAYS = 14
+export const PAST_DUE_GRACE_DAYS = 7
 const PAST_DUE_GRACE_MS = PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000
 
-/** The shape every tier decision needs. `updated_at` is optional so a caller
- *  that did not select it degrades to the pre-grace behaviour (past_due drops
- *  the tier immediately) rather than throwing or, worse, granting forever. */
+/** The shape every tier decision needs.
+ *
+ *  `updated_at` and `first_paid_at` are both optional so a caller that did not
+ *  select them degrades to the pre-grace behaviour — past_due drops the tier
+ *  immediately — rather than throwing or, worse, granting forever. Both
+ *  omissions therefore fail in the same safe direction, but they are NOT
+ *  harmless: a caller that forgets `first_paid_at` silently cuts every paying
+ *  customer's dunning window to zero, and the symptom is a customer in dunning
+ *  losing access early, which nobody reports as a bug. Every real call site
+ *  selects both. */
 export type SubRow = {
   tier: string
   status: string
   updated_at?: string | null
   current_period_end?: string | null
+  /** When this subscription first took a payment above zero (0079). Null means
+   *  it never has — a failed trial conversion, not a failed renewal. */
+  first_paid_at?: string | null
 }
 
 /** Type guard: validates that a string is a known tier using an explicit
@@ -85,20 +110,36 @@ export function isTier(t: string): t is Tier {
  *  Note `unpaid` deliberately gets NO grace — Stripe only reaches `unpaid` once
  *  the retry schedule is exhausted, so it is the end of dunning, not the
  *  middle of it. Nor does `incomplete`, where the FIRST payment never
- *  succeeded and the customer has therefore never held the tier. */
+ *  succeeded and the customer has therefore never held the tier.
+ *
+ *  `past_due` WITHOUT `first_paid_at` is that same case, reached by a different
+ *  route: a trial whose conversion charge declined. Stripe calls it `past_due`
+ *  because the subscription was established, but the customer has paid nothing,
+ *  so it gets no grace either. Same principle, one more status. */
 export function subscriptionGrantsTier(s: SubRow, now: Date): boolean {
   if (ACTIVE_STATUSES.has(s.status)) return true
   if (s.status !== 'past_due') return false
+  if (!hasEverPaid(s)) return false
   if (!s.updated_at) return false
   const since = Date.parse(s.updated_at)
   if (Number.isNaN(since)) return false
   return now.getTime() - since < PAST_DUE_GRACE_MS
 }
 
+/** Whether this subscription has ever taken real money. Unparseable is treated
+ *  as "no", with the rest of this module's fail-closed handling. */
+function hasEverPaid(s: SubRow): boolean {
+  if (!s.first_paid_at) return false
+  return !Number.isNaN(Date.parse(s.first_paid_at))
+}
+
 /** Days of grace left on a past_due row, rounded up, clamped to
- *  [0, PAST_DUE_GRACE_DAYS]. 0 for any row that is not in grace. */
+ *  [0, PAST_DUE_GRACE_DAYS]. 0 for any row that is not in grace — which now
+ *  includes a past_due row that never paid, so the billing page cannot offer a
+ *  countdown the tier logic will not honour. */
 export function graceDaysLeft(s: SubRow, now: Date): number {
   if (s.status !== 'past_due' || !s.updated_at) return 0
+  if (!hasEverPaid(s)) return 0
   const since = Date.parse(s.updated_at)
   if (Number.isNaN(since)) return 0
   const remaining = since + PAST_DUE_GRACE_MS - now.getTime()

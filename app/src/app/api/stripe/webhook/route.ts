@@ -2,7 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
-import { subscriptionRow, paymentFailure, trialEnding, mirrorNeedsRepair } from '@/lib/billing-webhook'
+import {
+  subscriptionRow, paymentFailure, trialEnding, mirrorNeedsRepair, invoiceSubscriptionId,
+} from '@/lib/billing-webhook'
 import { sendRedditConversion } from '@/lib/server/reddit-capi'
 import { ADS_DEFAULT } from '@/lib/consent'
 import { markReferralPaid } from '@/lib/server/referral'
@@ -200,6 +202,51 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         await upsertFromSubscription(svc, stripe, event.data.object as Stripe.Subscription)
+        break
+      }
+
+      // A payment SUCCEEDED. Previously unhandled, because the subscription's
+      // own status change carried everything we needed.
+      //
+      // It is needed now because `first_paid_at` (0079) is what separates a
+      // failed renewal from a failed trial conversion, and only the invoice
+      // knows that money actually moved.
+      //
+      // Both event names are handled: Stripe fires `invoice.paid` and
+      // `invoice.payment_succeeded` for the same thing, and which one an
+      // account sends depends on its API version. The write is a set-once
+      // latch, so receiving both is harmless.
+      case 'invoice.paid':
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as unknown as
+          Parameters<typeof paymentFailure>[0] & { amount_paid?: number | null }
+
+        // THE LINE THAT MAKES THIS MEAN ANYTHING. A subscription opened in a
+        // trial raises a A$0 invoice on day one, and Stripe marks it paid.
+        // Counting that as payment would stamp first_paid_at for every trialist
+        // on their first day, restore the full grace window to cards that have
+        // never worked, and make 0079 a no-op that looks implemented.
+        if ((invoice.amount_paid ?? 0) <= 0) {
+          logInfo('stripe webhook', { note: 'zero-value invoice paid — not a payment', id: invoice.id ?? null })
+          break
+        }
+
+        const subscriptionId = invoiceSubscriptionId(invoice)
+        if (!subscriptionId) break // one-off invoice, nothing to stamp
+
+        // `.is(null)` makes it a latch: the FIRST payment is the one recorded,
+        // and every renewal after it matches zero rows. The database trigger in
+        // 0079 guards the other direction, so a later upsert cannot clear it.
+        const { error: paidError } = await svc.from('subscriptions')
+          .update({ first_paid_at: new Date().toISOString() })
+          .eq('id', subscriptionId).is('first_paid_at', null)
+        // PostgREST reports failures in the result rather than throwing, so
+        // without this an unrecorded payment would look like a recorded one —
+        // and the customer would lose their dunning grace months later.
+        if (paidError) {
+          logError('stripe webhook', paidError.message, { note: 'first_paid_at not recorded', id: subscriptionId })
+          throw new Error(`first_paid_at update failed for ${subscriptionId}`)
+        }
         break
       }
 

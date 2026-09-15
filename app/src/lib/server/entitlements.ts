@@ -95,7 +95,7 @@ export async function getEntitlements(
       // documented fail-safe applies — tier UNKNOWN, no wall — rather than a
       // silent wrong answer.
       supabase.from('subscriptions')
-        .select('tier, status, updated_at, trial_start, trial_end, cancel_at_period_end')
+        .select('tier, status, updated_at, first_paid_at, trial_start, trial_end, cancel_at_period_end')
         .eq('user_id', userId),
       // Deliberately its OWN query, not folded into the profiles select above.
       // welcome_tier_seen / onboarding_completed are the newest columns here
@@ -253,7 +253,7 @@ export async function getTierMap(userIds: string[], now = new Date()): Promise<M
   const [{ data: profs, error: profError }, { data: subs, error: subsError }, admins] = await Promise.all([
     svc.from('profiles').select('id, comp_tier, trial_started_at, trial_ack_at').in('id', ids),
     // updated_at: same reason as getEntitlements — it carries the grace window.
-    svc.from('subscriptions').select('user_id, tier, status, updated_at').in('user_id', ids),
+    svc.from('subscriptions').select('user_id, tier, status, updated_at, first_paid_at').in('user_id', ids),
     adminUserIds(),
   ])
   // Either read failing makes EVERY tier unknown: a partial answer here would
@@ -370,7 +370,7 @@ export async function getSubscription(
 ): Promise<CurrentSub | null> {
   const { data } = await supabase
     .from('subscriptions')
-    .select('tier, status, price_id, current_period_end, cancel_at_period_end, updated_at')
+    .select('tier, status, price_id, current_period_end, cancel_at_period_end, updated_at, first_paid_at')
     .eq('user_id', userId)
   if (!data || data.length === 0) return null
   const now = new Date()
