@@ -69,7 +69,11 @@ export async function reconcileBilling(
   // subscription ever created), so a full read is cheaper than N point reads.
   const { data: mirror, error: mirrorError } = await svc
     .from('subscriptions')
-    .select('id, user_id, status, tier, price_id, current_period_end, cancel_at_period_end, updated_at')
+    // trial_start/trial_end (0076) must be here for the same reason they are in
+    // the webhook's select: mirrorNeedsRepair compares them, and a column it
+    // compares but the caller does not select reads as a difference on every
+    // row, every pass — rewriting everything and restarting every grace clock.
+    .select('id, user_id, status, tier, price_id, current_period_end, cancel_at_period_end, trial_start, trial_end, updated_at')
   if (mirrorError) {
     out.errors.push(`mirror read failed: ${mirrorError.message}`)
     return out

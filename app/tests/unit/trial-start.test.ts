@@ -340,11 +340,11 @@ describe('LOCAL_TRIAL_DISABLED — the launch switch for the move to Stripe', ()
 })
 
 // ---------------------------------------------------------------------------
-// Migration 0076 — the durable half of the same disarm
+// Migration 0077 — the durable half of the same disarm
 // ---------------------------------------------------------------------------
 
-describe('migration 0076 — trial_eligible DEFAULT false', () => {
-  const sql = read('app/supabase/migrations/0076_trial_eligible_default_off.sql')
+describe('migration 0077 — trial_eligible DEFAULT false', () => {
+  const sql = read('app/supabase/migrations/0077_trial_eligible_default_off.sql')
 
   it('flips the DEFAULT that 0075 set, and nothing else', () => {
     expect(sql).toMatch(/alter\s+column\s+trial_eligible\s+set\s+default\s+false/i)

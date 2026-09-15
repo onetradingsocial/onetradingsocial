@@ -56,7 +56,10 @@ async function upsertFromSubscription(
   // otherwise silently restart the grace period. Idempotency, made explicit.
   const { data: existing } = await svc
     .from('subscriptions')
-    .select('status, tier, price_id, current_period_end, cancel_at_period_end')
+    // trial_start/trial_end (0076) are selected because mirrorNeedsRepair
+    // compares them: omitting a compared column makes every event look like a
+    // change, which rewrites the row and restarts the past_due grace clock.
+    .select('status, tier, price_id, current_period_end, cancel_at_period_end, trial_start, trial_end')
     .eq('id', row.id).maybeSingle()
   if (mirrorNeedsRepair(existing, row)) {
     const { error } = await svc

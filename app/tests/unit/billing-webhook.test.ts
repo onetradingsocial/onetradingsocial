@@ -27,7 +27,40 @@ describe('subscriptionRow', () => {
       price_id: 'price_tm',
       current_period_end: '2023-11-14T22:13:20.000Z',
       cancel_at_period_end: false,
+      // 0076. Null for an ordinary purchase: no trial ever existed.
+      trial_start: null,
+      trial_end: null,
     })
+  })
+
+  it('mirrors the trial window when Stripe sends one', () => {
+    const row = subscriptionRow(
+      sub('price_tm', { status: 'trialing', trial_start: 1_700_000_000, trial_end: 1_701_209_600 }),
+      ENV,
+    )
+    expect(row?.status).toBe('trialing')
+    expect(row?.trial_start).toBe('2023-11-14T22:13:20.000Z')
+    expect(row?.trial_end).toBe('2023-11-28T22:13:20.000Z')
+  })
+
+  it('keeps trial_end separate from current_period_end once a trial converts', () => {
+    // The whole reason 0076 exists. While trialing the two are equal; on
+    // conversion Stripe advances the period to the next billing date and the
+    // trial boundary would be lost if we only kept the period.
+    const row = subscriptionRow(
+      sub('price_tm', { status: 'active', trial_start: 1_700_000_000, trial_end: 1_701_209_600 },
+        { current_period_end: 1_703_801_600 }),
+      ENV,
+    )
+    expect(row?.trial_end).toBe('2023-11-28T22:13:20.000Z')
+    expect(row?.current_period_end).toBe('2023-12-28T22:13:20.000Z')
+  })
+
+  it('survives a missing or malformed trial timestamp rather than writing Invalid Date', () => {
+    for (const bad of [undefined, null, NaN, Infinity]) {
+      const row = subscriptionRow(sub('price_tm', { trial_end: bad }), ENV)
+      expect(row?.trial_end).toBeNull()
+    }
   })
   it('carries status and cancel flag', () => {
     const row = subscriptionRow(sub('price_pa', { status: 'past_due', cancel_at_period_end: true }), ENV)
@@ -201,6 +234,7 @@ describe('trialEnding', () => {
 const mirrored = {
   status: 'active', tier: 'trader', price_id: 'price_tm',
   current_period_end: '2026-09-01T00:00:00.000Z', cancel_at_period_end: false,
+  trial_start: null, trial_end: null,
 }
 const fromStripe = { id: 'sub_1', ...mirrored, tier: 'trader' as const }
 
@@ -223,6 +257,31 @@ describe('mirrorNeedsRepair', () => {
     expect(mirrorNeedsRepair({ ...mirrored, price_id: 'price_other' }, { ...fromStripe })).toBe(true)
     expect(mirrorNeedsRepair({ ...mirrored, cancel_at_period_end: true }, { ...fromStripe })).toBe(true)
     expect(mirrorNeedsRepair({ ...mirrored, current_period_end: '2026-10-01T00:00:00.000Z' }, { ...fromStripe })).toBe(true)
+    // 0076: a trial extended or cut short in the dashboard is a real change.
+    expect(mirrorNeedsRepair({ ...mirrored, trial_end: '2026-09-15T00:00:00.000Z' }, { ...fromStripe })).toBe(true)
+    expect(mirrorNeedsRepair({ ...mirrored, trial_start: '2026-09-01T00:00:00.000Z' }, { ...fromStripe })).toBe(true)
+  })
+
+  it('a caller that FORGETS to select the trial columns is caught here, not in production', () => {
+    // The hazard is not faulty logic, it is an incomplete select. A caller that
+    // omits a compared column hands us `undefined` while Stripe hands us a real
+    // value, so every event reads as a change, the row is rewritten every time,
+    // and subscriptions_touch_updated_at restarts the past_due grace clock on
+    // each one — granting unlimited free access to a dunning account.
+    //
+    // Both real callers select them: api/stripe/webhook/route.ts and
+    // lib/server/billing-reconcile.ts.
+    const trialing = { ...fromStripe, trial_start: '2026-09-01T00:00:00.000Z', trial_end: '2026-09-15T00:00:00.000Z' }
+    const forgot = { status: 'active', tier: 'trader', price_id: 'price_tm',
+      current_period_end: '2026-09-01T00:00:00.000Z', cancel_at_period_end: false }
+    expect(mirrorNeedsRepair(forgot, trialing)).toBe(true)
+    // ...whereas a complete select on an unchanged row is a no-op, as it must be.
+    expect(mirrorNeedsRepair({ ...forgot, trial_start: trialing.trial_start, trial_end: trialing.trial_end }, trialing)).toBe(false)
+  })
+
+  it('compares trial timestamps as instants too', () => {
+    const t = { ...fromStripe, trial_end: '2026-09-15T00:00:00.000Z' }
+    expect(mirrorNeedsRepair({ ...mirrored, trial_end: '2026-09-15T00:00:00+00:00' }, t)).toBe(false)
   })
 
   it('compares period ends as instants, not strings', () => {

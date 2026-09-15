@@ -11,6 +11,7 @@ type StripeSubLike = {
   id: string
   status: string
   cancel_at_period_end: boolean
+  trial_start?: number | null
   trial_end?: number | null
   default_payment_method?: string | { id: string } | null
   default_source?: string | { id: string } | null
@@ -34,6 +35,24 @@ export type SubscriptionRow = {
   price_id: string
   current_period_end: string | null
   cancel_at_period_end: boolean
+  /** Stripe's trial window, mirrored since 0076. NULL for a subscription that
+   *  never had a trial — which is every ordinary purchase.
+   *
+   *  `trial_end` is NOT interchangeable with `current_period_end`. They are
+   *  equal while the subscription is `trialing`, and then diverge permanently:
+   *  on conversion Stripe advances the period to the next billing date and the
+   *  trial boundary is gone. Anything asking "when did/does the trial end" must
+   *  read this, not the period. */
+  trial_start: string | null
+  trial_end: string | null
+}
+
+/** Stripe sends its timestamps as epoch SECONDS. Null-safe, and NaN-safe: a
+ *  malformed value becomes null rather than an `Invalid Date` that would
+ *  serialise as null anyway but throw on the way there. */
+function epochToIso(s: number | null | undefined): string | null {
+  if (s == null || !Number.isFinite(s)) return null
+  return new Date(s * 1000).toISOString()
 }
 
 /** Pure map from a Stripe subscription to a mirror row. Null when the price is
@@ -53,6 +72,8 @@ export function subscriptionRow(sub: StripeSubLike, env: PlanEnv): SubscriptionR
       ? new Date(item.current_period_end * 1000).toISOString()
       : null,
     cancel_at_period_end: sub.cancel_at_period_end,
+    trial_start: epochToIso(sub.trial_start),
+    trial_end: epochToIso(sub.trial_end),
   }
 }
 
@@ -208,6 +229,8 @@ export type MirrorRow = {
   price_id?: string | null
   current_period_end?: string | null
   cancel_at_period_end?: boolean | null
+  trial_start?: string | null
+  trial_end?: string | null
 }
 
 export function mirrorNeedsRepair(existing: MirrorRow | null | undefined, next: SubscriptionRow): boolean {
@@ -218,7 +241,18 @@ export function mirrorNeedsRepair(existing: MirrorRow | null | undefined, next: 
     existing.price_id !== next.price_id ||
     existing.cancel_at_period_end !== next.cancel_at_period_end ||
     // Timestamps round-trip through Postgres, so compare instants not strings.
-    !sameInstant(existing.current_period_end, next.current_period_end)
+    !sameInstant(existing.current_period_end, next.current_period_end) ||
+    // 0076. A trial being extended or cut short in the Stripe dashboard is a
+    // real difference and must be mirrored.
+    //
+    // EVERY CALLER MUST SELECT THESE. A caller that omits them hands us
+    // `undefined` for `existing` while `next` holds a real value, so this
+    // returns true on every single event, the row is rewritten every time, and
+    // `subscriptions_touch_updated_at` restarts the past_due grace clock on
+    // each one — the exact hazard the header comment above exists to prevent,
+    // reintroduced by an incomplete select rather than by faulty logic.
+    !sameInstant(existing.trial_start, next.trial_start) ||
+    !sameInstant(existing.trial_end, next.trial_end)
   )
 }
 
