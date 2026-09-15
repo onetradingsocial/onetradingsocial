@@ -33,9 +33,22 @@ export default async function BillingPage({
     ? planForPrice(sub.priceId, process.env as Record<string, string | undefined>)?.interval ?? null
     : null
 
-  // A trial grants tier 'pro' without any Stripe object, so "are they paying?"
-  // must be answered by the subscription, never by the tier.
-  const onTrial = gate.state === 'active' && !sub
+  // "Are they paying?" must still be answered by the subscription, never by the
+  // tier — a trial grants 'pro' either way.
+  //
+  // But `gate.state === 'active' && !sub` is no longer the way to ask "are they
+  // on a trial". That read "a trial is a user with no subscription", which was
+  // true only while a trial created no Stripe object. A Stripe trialist fails
+  // BOTH halves — gate.state tracks the local trial only, and they do have a
+  // subscription — so the page fell through to the paid branch and told someone
+  // who has paid nothing that their plan "renews" on the day of their FIRST
+  // charge, labelled with the raw Stripe status "trialing".
+  //
+  // gate.trial understands both mechanisms; cardOnFile says whether money
+  // follows.
+  const onTrial = !!gate.trial
+  const trialDaysLeft = gate.trial?.daysLeft ?? 0
+  const trialWillCharge = gate.trial?.cardOnFile === true
 
   return (
     <main className="ts-page" style={{ maxWidth: 1040 }}>
@@ -55,9 +68,18 @@ export default async function BillingPage({
       <p className="ts-sub">
         {onTrial ? (
           <>
-            You&apos;re on the <b>Pro trial</b> — {gate.daysLeft}{' '}
-            {gate.daysLeft === 1 ? 'day' : 'days'} left. Pick a plan to keep your
-            tools when it ends.
+            You&apos;re on the <b>Pro trial</b> — {trialDaysLeft}{' '}
+            {trialDaysLeft === 1 ? 'day' : 'days'} left.{' '}
+            {trialWillCharge ? (
+              <>
+                {renews
+                  ? <>Your plan starts on {renews} and the card you saved will be charged.</>
+                  : <>Your plan starts when the trial ends and the card you saved will be charged.</>}
+                {' '}Cancel before then and you won&apos;t be charged.
+              </>
+            ) : (
+              <>Pick a plan to keep your tools when it ends.</>
+            )}
           </>
         ) : (
           <>

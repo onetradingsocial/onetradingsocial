@@ -26,23 +26,71 @@ async function expectAcked(username: string, tier: string) {
   }, { timeout: 15000, message: 'ackWelcome should persist welcome_tier_seen' }).toBe(tier)
 }
 
-test('shows the Pro variant with a trial-honest price after onboarding', async ({ page }) => {
+/** The Stripe trial a browser test cannot buy — see trial.spec.ts for why the
+ *  subscription is written directly rather than bought through Checkout. */
+async function giveStripeTrial(username: string, daysLeft = 9) {
+  const svc = createServiceClient()
+  const { data: prof, error: profErr } = await svc
+    .from('profiles').select('id').eq('username', username).single()
+  if (profErr || !prof) throw new Error(`no profile for ${username}: ${profErr?.message}`)
+
+  const endsAt = new Date(Date.now() + daysLeft * 24 * 60 * 60 * 1000).toISOString()
+  const { error } = await svc.from('subscriptions').insert({
+    id: `sub_e2e_${Date.now().toString(36)}`,
+    user_id: prof.id,
+    status: 'trialing',
+    tier: 'pro',
+    price_id: process.env.STRIPE_PRICE_PRO_MONTHLY ?? 'price_e2e_pro_monthly',
+    current_period_end: endsAt,
+    trial_start: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    trial_end: endsAt,
+    cancel_at_period_end: false,
+  })
+  if (error) throw new Error(`could not create Stripe trial: ${error.message}`)
+}
+
+// The tier a fresh account lands on changed. Signing up no longer hands out a
+// trial — /welcome offers one, and the helper above takes the decline route
+// because the accept route goes to Stripe. So the popup a new user sees is the
+// FREE variant, and the Pro variant needs a trial to exist first.
+
+test('shows the Free variant to someone who declined the trial', async ({ page }) => {
   await signUpAndOnboard(page)
+  const modal = page.getByRole('dialog', { name: 'Welcome to free' })
+  await expect(modal).toBeVisible()
+  await expect(modal).toContainText("You're on Free")
+  await expect(modal).toContainText('A$0 / month')
+})
+
+test('shows the Pro variant with a trial-honest price to a trialist', async ({ page }) => {
+  const username = await signUpAndOnboard(page)
+  await giveStripeTrial(username)
+  await page.reload()
+
   const modal = page.getByRole('dialog', { name: 'Welcome to pro' })
   await expect(modal).toBeVisible()
   await expect(modal).toContainText("You're on Pro Trader")
-  // The entire reason for the price override: a no-card trialist must not be
-  // told they are being billed $50/month.
-  await expect(modal).toContainText('14 days free · then choose a plan')
-  await expect(modal).not.toContainText('$50 / month')
+  // The entire reason for the price override: a trialist who has been charged
+  // A$0 must not be shown A$50 / month as though it had already been taken.
+  // This used to read "then choose a plan", which was true of the card-free
+  // trial and wrong for a Stripe one, where the plan is already chosen.
+  await expect(modal).toContainText('14 days free · nothing charged yet')
+  await expect(modal).not.toContainText('A$50 / month')
 })
 
-test('shows the six features and fills the counter to 6 / 6', async ({ page }) => {
+test('reveals every feature and fills the counter to match', async ({ page }) => {
   await signUpAndOnboard(page)
   const modal = popup(page)
-  await expect(modal.locator('.wpop-feat')).toHaveCount(6)
+
+  // Counted, not hardcoded. This used to assert exactly 6 because every new
+  // account was Pro, and Pro lists six; a fresh account now lands on Free,
+  // which lists seven. The number was never what the test was for — the
+  // invariant is that the reveal sequence finishes and the counter agrees with
+  // what is on screen, which holds for whichever tier the popup is showing.
+  const count = await modal.locator('.wpop-feat').count()
+  expect(count).toBeGreaterThan(0)
   // The reveal sequence finishes around 3.8s.
-  await expect(modal).toContainText('6 / 6', { timeout: 10000 })
+  await expect(modal).toContainText(`${count} / ${count}`, { timeout: 10000 })
 })
 
 test('does not reappear after dismissal', async ({ page }) => {
@@ -53,7 +101,7 @@ test('does not reappear after dismissal', async ({ page }) => {
   // Wait for the ack to actually persist before reloading — otherwise the
   // reload can outrun the fire-and-forget write, the server recomputes
   // welcome.show = true, and the popup deterministically resurfaces.
-  await expectAcked(username, 'pro')
+  await expectAcked(username, 'free')
   await page.reload()
   await expect(page.locator('.wpop-backdrop')).toHaveCount(0)
 })
@@ -67,11 +115,12 @@ test('clicking the CTA navigates and persists the ack', async ({ page }) => {
   const username = await signUpAndOnboard(page)
   await expect(popup(page)).toBeVisible()
   await page.locator('.wpop-cta').click()
-  // A fresh trial user is on the Pro tier, whose CTA href is /journal. The
-  // component awaits ackWelcome() before calling router.push, so this needs a
-  // generous timeout rather than the default.
-  await expect(page).toHaveURL(/\/journal/, { timeout: 15000 })
-  await expectAcked(username, 'pro')
+  // A fresh account is now on Free, whose CTA is "Explore your Profile" and
+  // resolves to /{username} (WELCOME_TIERS.free carries an empty href on
+  // purpose — the handle is only known at render). The component awaits
+  // ackWelcome() before calling router.push, so this needs a generous timeout.
+  await expect(page).toHaveURL(new RegExp(`/${username}`), { timeout: 15000 })
+  await expectAcked(username, 'free')
 })
 
 test('records the tier so a reload after "Maybe later" stays quiet', async ({ page }) => {
@@ -79,7 +128,7 @@ test('records the tier so a reload after "Maybe later" stays quiet', async ({ pa
   await expect(popup(page)).toBeVisible()
   await page.locator('.wpop-secondary').click()
   await expect(page.locator('.wpop-backdrop')).toHaveCount(0)
-  await expectAcked(username, 'pro')
+  await expectAcked(username, 'free')
 })
 
 test('stays hidden while the end-of-trial wall is up', async ({ page }) => {
