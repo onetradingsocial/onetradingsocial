@@ -1,5 +1,12 @@
 # Turning on CAPTCHA
 
+> **Status: live since 2026-09-14.** Enforcing on all four auth forms in
+> production. This document stays as the runbook for dev, for a re-issue of the
+> keys, and for the rollback. What the rollout actually cost is in
+> [pending-2026-09-14.md](pending-2026-09-14.md) — the short version is that
+> `NEXT_PUBLIC_` needs a rebuild, not just a saved variable, and that
+> `no captcha_token found` in the GoTrue log means our code never sent one.
+
 The code ships inert. With no `NEXT_PUBLIC_TURNSTILE_SITE_KEY` the widget
 renders nothing and submits no token, which is the correct state right up until
 the Supabase switch is flipped. What follows is configuration, in an order that
