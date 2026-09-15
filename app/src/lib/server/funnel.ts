@@ -203,9 +203,33 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
     .from('subscriptions')
     .select('user_id, status')
     .in('status', ['active', 'trialing'])
-  const paidIds = new Set(
-    (subs ?? []).map((s) => s.user_id).filter((id) => realIdSet.has(id)),
-  )
+
+  // 'Paid' and 'Trialing' are separate rows, and the split is the point.
+  //
+  // These two used to be one figure. That was harmless while a Stripe trial was
+  // the rare referral reward; it stops being harmless the moment every signup
+  // opens a trialing subscription, because 'Paid' would then count the entire
+  // user base from day 0 and the number would go UP, looking like success. A
+  // metric that silently inflates is worse than one that zeroes — nobody
+  // investigates good news.
+  //
+  // Disjoint by construction: a user holding both an active and a trialing row
+  // (an upgrade mid-trial) is Paid, not both, so the buckets still add up.
+  //
+  // `past_due` is in NEITHER, which is unchanged from before and deliberate for
+  // now. It reads as "was paying, currently in dunning" — but after a failed
+  // TRIAL CONVERSION it is also the status of someone who has never paid a cent,
+  // and until that is distinguishable (it needs the never-paid signal, not just
+  // the status) putting past_due into 'Paid' would quietly re-inflate the very
+  // number this split exists to protect.
+  const paidIds = new Set<string>()
+  const trialingIds = new Set<string>()
+  for (const s of subs ?? []) {
+    if (!realIdSet.has(s.user_id)) continue
+    if (s.status === 'active') paidIds.add(s.user_id)
+    else if (s.status === 'trialing') trialingIds.add(s.user_id)
+  }
+  for (const id of paidIds) trialingIds.delete(id)
 
   let registered = 0, onboarding = 0, activated = 0, engaged = 0, retained = 0, atRisk = 0, churned = 0
   for (const p of profiles) {
@@ -327,6 +351,7 @@ export async function getFunnelDashboard(svc: SupabaseClient, now = new Date()):
       { status: 'Retained (7d, older accts)', count: retained },
       { status: 'At risk (8–30d idle)', count: atRisk },
       { status: 'Churned (30d+ idle)', count: churned },
+      { status: 'Trialing', count: trialingIds.size },
       { status: 'Paid', count: paidIds.size },
     ],
     sources: [...srcCounts.entries()].sort((a, b) => b[1] - a[1]).map(([source, count]) => ({ source, count })),

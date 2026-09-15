@@ -25,7 +25,7 @@ const HINTS: Record<string, string> = {
   'Statement imports': 'trade_imported events (MT5 / CSV): one per import, so a user importing twice counts twice.',
   'Weekly review viewed': 'weekly_review_viewed events. A user opening their review every week counts every week.',
   'Checkout started': 'checkout_started events: a user who abandons and retries counts each attempt.',
-  Subscribed: 'subscribed events in the last 30 days. For distinct paying users, read "Paid" in the lifecycle table below.',
+  Subscribed: 'subscribed events in the last 30 days. Counts checkouts that completed, which includes ones that opened a trial rather than taking money — for distinct users who have actually paid, read "Paid" in the lifecycle table below.',
   // Broker connect (last 30 days, internal traffic excluded). Keyed by the
   // labels lib/server/funnel.ts actually returns: the first two read
   // 'Broker card viewed' here and had no tooltip at all, because HINTS is
@@ -42,7 +42,8 @@ const HINTS: Record<string, string> = {
   'Retained (7d, older accts)': 'Engaged users whose account is older than 7 days — real retention, not fresh signups.',
   'At risk (8–30d idle)': 'Activated but no trade in 8–30 days. Winnable back.',
   'Churned (30d+ idle)': 'Activated but no trade in over 30 days.',
-  Paid: 'Genuine users with an active or trialing Stripe subscription.',
+  Trialing: 'Genuine users inside a Stripe trial — the tier is granted but nothing has been paid. Separate from "Paid" on purpose: once every signup opens a trial, folding these together would count the whole user base as customers from day 0.',
+  Paid: 'Genuine users with an ACTIVE Stripe subscription — money has actually moved. Excludes trials (see "Trialing") and excludes past_due, which after a failed trial conversion can also mean someone who never paid.',
   // Growth / engagement / content / ops
   'Total users': 'All genuine accounts (internal, seed and test signups excluded).',
   'New (7d)': 'Genuine signups in the last 7 days.',

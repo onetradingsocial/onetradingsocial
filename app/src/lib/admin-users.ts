@@ -1,7 +1,20 @@
 import { higherTier, normalizeCompTier, type Tier } from '@/lib/entitlements'
 import { emailIsAdmin } from '@/lib/admin'
 
-export type TierSource = 'Admin' | 'Comp' | 'Paid' | 'Free'
+/**
+ * Why a trial is its own source rather than a kind of 'Paid'.
+ *
+ * `trialing` grants the tier, so it belongs in the ACTIVE set below and always
+ * has. What it does NOT mean is that anyone has paid us. That distinction did
+ * not matter while the only Stripe trial was the rare referral reward; it
+ * matters completely once every signup opens a trialing subscription, because
+ * from that moment /admin/users would label the ENTIRE user base "Pro, source
+ * Paid" and there would be no way left to tell a customer from a trialist.
+ *
+ * A metric that silently inflates is harder to catch than one that zeroes,
+ * because nobody investigates good news.
+ */
+export type TierSource = 'Admin' | 'Comp' | 'Paid' | 'Trialing' | 'Free'
 
 const ACTIVE = new Set(['active', 'trialing'])
 
@@ -22,8 +35,13 @@ export function userTierSummary(input: {
 
   const tier = higherTier(comp, paid)
   if (tier === 'free') return { tier, source: 'Free' }
-  // Whichever grant actually reaches the effective tier names the source; comp wins ties.
-  const source: TierSource = comp === tier ? 'Comp' : 'Paid'
+  // Whichever grant actually reaches the effective tier names the source; comp
+  // wins ties. When it is the SUBSCRIPTION that reaches it, the status decides
+  // whether that is money or a trial — see TierSource. A comped user who also
+  // holds a trial still reads 'Comp', because the comp is what they keep.
+  const source: TierSource = comp === tier
+    ? 'Comp'
+    : input.subStatus === 'trialing' ? 'Trialing' : 'Paid'
   return { tier, source }
 }
 

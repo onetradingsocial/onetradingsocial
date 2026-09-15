@@ -515,7 +515,31 @@ migration **before** the merge.
    distinction being "a charge is impossible" versus "here is how to prevent
    it". 1580 tests pass.
 3. Give `funnel.ts`, `admin-users.ts` and the admin user page a distinct
-   `Trialing` bucket, before trialists start inflating "Paid".
+   `Trialing` bucket. ✅ **Shipped 2026-09-15.**
+
+   - `TierSource` gains `'Trialing'`; a `trialing` subscription still grants the
+     tier but no longer reads as `Paid`. Amber badge, deliberately not the green
+     `Paid` one — at a glance those must not look like the same thing.
+   - Lifecycle gains a `Trialing` row. `Paid` is now `active` **only**, and the
+     two are disjoint: a user holding both is Paid, so the table still adds up.
+   - `past_due` stays in **neither**, unchanged. It reads as "was paying, now in
+     dunning" — but after a failed trial conversion it is also the status of
+     someone who has never paid a cent (see 5.1), so putting it in `Paid` would
+     re-inflate the exact number this split protects. Revisit once the
+     never-paid signal exists.
+   - The `HINTS` copy moved in the same commit, per that file's own warning that
+     nothing notices when a key stops matching a label.
+   - **Migration 0078**, found while doing the above: `admin_search_users` picks
+     a user's representative subscription ordering on **tier alone**. Now that
+     `sub_status` names the source, a user with two rows in the active set at the
+     same tier gets whichever Postgres returns first — so a paying customer can
+     read as "Trialing", and the label can change between page loads. Fixed with
+     a status tiebreak, mirrored in `admin/users/[id]/page.tsx` so the list and
+     detail pages agree. Verified against the live production definition before
+     replacing it — `CREATE OR REPLACE` swaps the whole body, which is the 0041
+     lesson, and there is a test asserting every filter survived.
+
+   1595 tests pass.
 4. Generalise the `trial_will_end` path and its copy.
 5. Terms / pricing / welcome copy, and the GST decision.
 6. `/welcome` gains the card CTA; checkout gains the `flow: 'trial'` branch.

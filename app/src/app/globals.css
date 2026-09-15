@@ -2454,6 +2454,10 @@ button.ts-burger-link {
 .adm-src--admin   { background: rgba(201,145,20,.16); color: #8a5a00; }
 .adm-src--comp    { background: rgba(124,92,230,.12); color: var(--violet-br); }
 .adm-src--paid    { background: rgba(16,150,90,.14);  color: #0f7a45; }
+/* Trialing is deliberately NOT the green 'paid' badge: the tier is granted but
+   nothing has been paid, and at a glance those must not look like the same
+   thing. Amber reads as "in progress" beside paid's green. */
+.adm-src--trialing { background: rgba(201,145,20,.14); color: #8a5a00; }
 .adm-src--free    { background: var(--surface-3);      color: var(--dim); }
 .adm-chip--test {
   display: inline-flex; align-items: center; height: 16px; padding: 0 6px;

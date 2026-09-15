@@ -35,8 +35,14 @@ export default async function AdminUserDetail({ params }: { params: Promise<{ id
 
   const email = authRes.user?.email ?? null
   // Highest active/trialing sub, mirroring admin_search_users ordering.
+  // Tier first, then a real `active` ahead of a `trialing` at the SAME tier:
+  // the status picked here is what names the source, so without the tiebreak a
+  // paying customer who also holds a trial row could be labelled "Trialing".
   const active = (subs ?? []).filter((s) => s.status === 'active' || s.status === 'trialing')
-  const best = active.sort((a, b) => (b.tier === 'pro' ? 1 : 0) - (a.tier === 'pro' ? 1 : 0))[0] ?? null
+  const best = active.sort((a, b) =>
+    ((b.tier === 'pro' ? 1 : 0) - (a.tier === 'pro' ? 1 : 0)) ||
+    ((b.status === 'active' ? 1 : 0) - (a.status === 'active' ? 1 : 0)),
+  )[0] ?? null
 
   const { tier, source } = userTierSummary({
     email,
