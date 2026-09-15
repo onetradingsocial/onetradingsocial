@@ -73,7 +73,7 @@ test('non-admin cannot reach the admin area', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Admin/i })).toHaveCount(0)
 })
 
-test('admin can publish a new course and it appears in Learn', async ({ page }) => {
+test('admin can create and publish a course with a lesson', async ({ page }) => {
   test.skip(!ADMIN, 'E2E_ADMIN_EMAIL is not set')
   await signInAsAdmin(page, ADMIN!)
 
@@ -97,8 +97,20 @@ test('admin can publish a new course and it appears in Learn', async ({ page }) 
   await page.click('button[title="Click to publish"]')
   await expect(page.locator('button:has-text("Published")')).toBeVisible()
 
-  // Add + publish a lesson
+  // Add + publish a lesson.
+  //
+  // WAIT FOR THE NAVIGATION before filling. "+ Add lesson" is a <Link>, so it
+  // is a client-side transition, and the course page underneath has its own
+  // edit form carrying the same `name="title"` and `name="slug"`. Fill straight
+  // after the click and the values land on the COURSE form, the transition then
+  // completes, and the lesson page renders empty.
+  //
+  // It failed silently rather than loudly: both inputs are `required`, so the
+  // browser blocked submission natively — no action call, no error state, and a
+  // completely clean server log. The only visible symptom was the URL never
+  // leaving /lessons/new.
   await page.click('text=+ Add lesson')
+  await expect(page).toHaveURL(/\/lessons\/new$/)
   await page.fill('input[name="title"]', 'E2E Lesson')
   await page.fill('input[name="slug"]', 'e2e-lesson')
   await page.fill('textarea[name="body"]', '<p>hello</p>')
@@ -107,9 +119,22 @@ test('admin can publish a new course and it appears in Learn', async ({ page }) 
   await page.click('button[title="Click to publish"]')
   await expect(page.locator('button:has-text("Published")')).toBeVisible()
 
-  // It now shows in Learn
+  // The course and its lesson are both published — asserted above, on the
+  // toggles themselves.
+  //
+  // This used to finish by checking the course appeared on /learn. That
+  // assertion cannot pass and has not been able to for some time: the Learn
+  // section is deliberately switched off (`LEARN_HIDDEN = true` in
+  // app/src/app/learn/page.tsx, "we are not financial advisors"), so /learn
+  // redirects to '/' for everyone including admins.
+  //
+  // Rather than delete the coverage, assert the hide is actually in force —
+  // that is a compliance property worth a test of its own, and it fails loudly
+  // if someone flips the flag without meaning to. Restore the visibility check
+  // in place of this when Learn is turned back on.
   await page.goto('/learn')
-  await expect(page.getByText('E2E Course')).toBeVisible()
+  await expect(page).toHaveURL(/\/$|\/\?/)
+  await expect(page.getByText('E2E Course')).toHaveCount(0)
 })
 
 test('admin can change feedback status', async ({ page }) => {
