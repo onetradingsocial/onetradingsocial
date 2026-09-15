@@ -87,13 +87,19 @@ export type LegalDoc = {
 export const LEGAL_DOCUMENTS: Readonly<Record<LegalDocKey, LegalDoc>> = {
   terms: {
     file: 'terms.html',
-    // 2026-09-15: §7 now states the GST position — not registered, so the price
-    // shown is the total payable. Bumped WITH the bodyHash and the page's own
-    // "Last updated" line, per the guard's instructions: acceptance records
-    // written from here on must not claim a version that no longer says what it
-    // said. No price changed; this documents what was always being charged.
+    // 2026-09-15, two changes under one version because they SHIP TOGETHER and
+    // no user has ever been shown either: the GST position in §7, and the §8
+    // rewrite for the card-required trial (plus §9 cancelling during a free
+    // period and §10 a first payment failing). Bumped WITH the bodyHash and the
+    // page's own "Last updated" line, per the guard's instructions — acceptance
+    // records must not claim a version that no longer says what it said.
+    //
+    // ⚠ RE-BUMP BOTH TO THE ACTUAL LAUNCH DATE when §8 ships. It describes a
+    // trial that takes a card, so it cannot be published before the card-required
+    // trial is live, and the date a user sees must be the date they could first
+    // have read it. See docs/stripe-trial-transfer-2026-09-15.md.
     version: '2026-09-15',
-    bodyHash: '888c5732f2a6e39d',
+    bodyHash: '0a5e27b0e48fac40',
   },
   privacy: {
     file: 'privacy.html',

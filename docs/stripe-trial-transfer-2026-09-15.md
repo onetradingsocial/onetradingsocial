@@ -27,9 +27,25 @@ Env, both unset — the code ships inert until these move:
 | `LOCAL_TRIAL_DISABLED` | unset (local trial armed) | Launch day, with 0077 and step 6 |
 | `TRIAL_WALL_ENABLED` | unset | Becomes a no-op for new accounts anyway — see 5.7 |
 
-Branch `feat/trial-to-stripe` holds steps 0–3. **Nothing user-visible has changed
-yet**, by design: the columns exist and sit unused, the latch is still armed, and
-the Stripe checkout branch does not exist.
+Branch `feat/trial-to-stripe` holds steps 0–5 (terms). **Nothing user-visible has
+changed yet**, by design: the columns exist and sit unused, the latch is still
+armed, and the Stripe checkout branch does not exist.
+
+### Launch day — these flip together or not at all
+
+Each one alone is wrong in some direction, so treat this as one atomic change.
+
+| # | Action | Alone, it would… |
+|---|---|---|
+| 1 | Ship the `flow: 'trial'` checkout branch (step 6) | — |
+| 2 | Set `LOCAL_TRIAL_DISABLED=true` in Vercel | leave new signups with no trial at all |
+| 3 | Apply **0077** to both projects | same, and durably |
+| 4 | Publish Terms §8 | describe a card requirement that does not exist |
+| 5 | **Re-bump** `terms` version + "Last updated" to the real launch date | date a document to a day nobody could read it |
+
+Step 4's terms text is drafted and committed but carries a `MUST NOT BE
+PUBLISHED BEFORE` comment for exactly this reason. Item 5 is the one most easily
+forgotten: the drafting date (2026-09-15) is a placeholder.
 
 ## 1. Where we are today
 

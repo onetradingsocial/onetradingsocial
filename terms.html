@@ -1107,8 +1107,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 
     <h2 id="subscriptions">7. Plans, prices and payment</h2>
     <p>TradingSocial has one free plan and two paid plans, <b>Trader</b> and <b>Pro Trader</b>. The
-    Free plan is free forever and needs no payment details. The paid plans can be bought monthly or
-    annually.</p>
+    Free plan is free forever, and you can use it indefinitely without ever paying us — though
+    starting a free trial does require a card, and section 8 explains what happens when that trial
+    ends. The paid plans can be bought monthly or annually.</p>
 
     <p><b>All prices are in Australian dollars (AUD).</b> The current prices are always the ones
     shown on our <a href="/pricing">pricing page</a> and in Settings &rarr; Billing inside the app.
@@ -1142,24 +1143,47 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     <p>Prices can change. If a change would increase what you pay, section 15 applies: we will give
     you notice before it takes effect and you can cancel first.</p>
 
-    <h2>8. Your 14-day Pro trial</h2>
-    <p>Every new account gets <b>14 days of Pro Trader features, free</b>. This trial is exactly what
-    it sounds like:</p>
+    <!-- ⚠ SECTION 8 MUST NOT BE PUBLISHED BEFORE THE CARD-REQUIRED TRIAL IS
+         LIVE. It describes a trial that takes a card and converts. Publishing it
+         while the card-free trial is still running would misdescribe the product
+         in the opposite direction. It ships in the same change as the
+         `flow: 'trial'` checkout branch, migration 0077 and
+         LOCAL_TRIAL_DISABLED=true — and the "Last updated" line and
+         LEGAL_VERSION must be re-bumped to that day, not left at the drafting
+         date. See docs/stripe-trial-transfer-2026-09-15.md. -->
+    <h2>8. Your 14-day free trial</h2>
+    <p>Every new account gets <b>14 days of Pro Trader features, free</b>. Here is exactly how it
+    works, so none of it is a surprise:</p>
     <ul>
-      <li><b>No payment details are required</b> — we do not ask for a card and we do not create a
-      subscription or any other billing record for it.</li>
-      <li><b>It does not convert into a paid subscription.</b> Nothing is ever charged, because
-      there is nothing to charge.</li>
-      <li>When the 14 days end, your account simply moves to the Free plan and the Pro-only features
-      close. Nothing you have logged is deleted, though the Free plan only shows your most recent 30
-      trades until you subscribe. You can subscribe at any time, before or after the trial ends.</li>
+      <li><b>A payment card is required to start.</b> <b>A$0 is charged when you begin</b> — the card
+      is held so the plan can start automatically if you decide to keep it.</li>
+      <li><b>It converts into a paid subscription when the 14 days end.</b> Unless you cancel first,
+      your card is charged the <b>Pro Trader monthly price of A$50 per month</b> and renews monthly
+      until you cancel.</li>
+      <li><b>We tell you before that happens.</b> We email you about three days before the trial
+      ends, naming the amount, the date, and how to cancel.</li>
+      <li><b>Cancelling during the trial costs you nothing.</b> Go to Settings &rarr; Billing at any
+      time before the end date. You keep the Pro features for the rest of the 14 days and you are
+      not charged.</li>
+      <li>If we do not hold a usable card when the trial ends, the paid plan simply does not start
+      and your account moves to the Free plan.</li>
+      <li>Whether it converts or not, <b>nothing you have logged is deleted</b>. The Free plan shows
+      your most recent 30 trades; the rest come straight back if you subscribe later.</li>
     </ul>
 
-    <p>The one exception is our referral reward. If you claim free months of Pro that you have
-    earned by referring other traders, that reward <b>is</b> set up as a subscription: we ask for a
-    payment method, nothing is charged during your free months, and <b>when the free months end the
-    subscription renews automatically at the Pro Trader monthly price of A$50 per month</b> until
-    you cancel. You can cancel at any time during the free period and you will not be charged.</p>
+    <p><b>If you started a trial before we introduced the card requirement</b>, your trial runs on
+    the terms you accepted: we hold no card for it, nothing can be charged, and when it ends your
+    account moves to the Free plan. You are welcome to add a card and subscribe at any time, but
+    nothing happens automatically.</p>
+
+    <p>Our referral reward works the same way. If you claim free months of Pro that you have earned
+    by referring other traders, we ask for a payment method, nothing is charged during your free
+    months, and <b>when the free months end the subscription renews automatically at the Pro Trader
+    monthly price of A$50 per month</b> until you cancel. You can cancel at any time during the free
+    period and you will not be charged.</p>
+
+    <p>One free trial per person. We may decline or end a trial if it is being used to obtain repeat
+    free access through multiple accounts.</p>
 
     <h2>9. Cancelling your subscription</h2>
     <p>You can cancel at any time yourself, without contacting us. Go to Settings &rarr; Billing and
@@ -1169,6 +1193,11 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     <p>Cancellation takes effect <b>at the end of the billing period you have already paid for</b>.
     You keep your paid features until that date, and you are not charged again. We do not cut your
     access off the moment you cancel.</p>
+
+    <p><b>If you cancel during a free trial or a free reward period</b>, there is no period you have
+    paid for, so this works slightly differently: you keep the paid features until the free period
+    was due to end, the subscription then stops instead of starting, and <b>you are not charged
+    anything at all</b>.</p>
 
     <p>Two things worth knowing:</p>
     <ul>
@@ -1189,6 +1218,11 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     subscription is marked past due, and <b>access to paid features may be unavailable until the
     payment succeeds</b>. Updating your card in the billing portal is usually enough to restore it.
     If the payment is never made, the subscription is cancelled.</p>
+
+    <p><b>If the very first payment fails — the one at the end of a free trial</b> — the paid plan
+    never starts. You have not paid us anything and you do not owe us anything. Your account moves
+    to the Free plan, and you can subscribe whenever you like by adding a working card in Settings
+    &rarr; Billing. We will email you to say the payment did not go through.</p>
 
     <h2>11. Refunds</h2>
     <p>Paid plans are charged in advance and you keep full access for the whole period you have paid
@@ -1247,9 +1281,13 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     and cancellation rights above. Section 9 was corrected: deleting your account now cancels an
     active subscription immediately, where previously it did not cancel it at all.</em></p>
 
-    <p><em>September 2026 update: section 7 now states our GST position. We are not registered for
-    GST, so no GST applies to our prices and the amount shown is the total amount payable. This is a
-    clarification of what you were already charged — no price has changed.</em></p>
+    <p><em>September 2026 update: section 7 now states our GST position — we are not registered for
+    GST, so no GST applies to our prices and the amount shown is the total amount payable. No price
+    has changed. Section 8 was rewritten: the 14-day trial now takes a payment card and converts
+    into a paid subscription unless you cancel before it ends, where previously it took no card and
+    could not charge anyone. Trials started before that change continue on the old terms and cannot
+    be charged. Section 9 now covers cancelling during a free period, and section 10 now covers a
+    first payment failing at the end of a trial.</em></p>
 
     <h2>16. Governing law</h2>
     <p>These terms are governed by the laws of South Australia, Australia, and you submit to the
