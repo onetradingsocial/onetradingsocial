@@ -615,8 +615,35 @@ migration **before** the merge.
    `tests/unit/trial-ending-notice.test.ts` pins the three things that must hold
    on every branch, for every plan and interval: the **amount**, the **date**,
    the **way out**. 1614 tests pass.
-5. Terms / pricing / welcome copy, and the GST decision.
-6. `/welcome` gains the card CTA; checkout gains the `flow: 'trial'` branch.
+5. Terms / pricing / welcome copy, and the GST decision. ✅ **Shipped 2026-09-15.**
+
+   - **Terms** §8 rewritten (card required, A$0 today, converts at A$50/mo,
+     day-11 notice, cancel costs nothing), §9 gains a free-period branch, §10 a
+     first-charge branch, §7 qualified. Grandfathering is **self-identifying**
+     rather than date-stamped — the switchover date is unknown at drafting and a
+     wrong date in a contract is worse than none. §11 deliberately unchanged:
+     a trial-specific refund promise is a business decision, still **open**.
+   - **Static site**, 18 files. The shared hero note carried "No card required"
+     verbatim on 14 pages; five comparison pages had a "Start free — no card"
+     button. Leading with the card requirement costs some conversion, and that
+     is the right trade — a user who meets a card form after being told none is
+     needed is a support ticket and a trust problem.
+   - **Two JSON-LD blocks** carried the claim machine-readably and each had a
+     visible twin that had to move with it. Those matter more than visible copy:
+     eligible for rich results, and they outlive an HTML edit in Google's cache.
+     Every `ld+json` block on the touched pages was re-parsed after editing.
+   - **Not changed, on purpose:** "the Free plan logs trades with no card
+     required" on two `for/` pages. That describes the **Free plan**, which
+     genuinely takes no card.
+
+   ⚠ **That exemption creates a hard requirement for step 6.** It holds only
+   while a user can decline the trial and reach Free *without* entering a card —
+   and Terms §7 now says so in writing. **`/welcome` must keep a way past the
+   card form.** If it does not, those two lines become false, Terms §7 becomes
+   false, and the Free plan is unreachable without a card.
+
+6. `/welcome` gains the card CTA **and keeps a decline route** (see 5); checkout
+   gains the `flow: 'trial'` branch.
 7. Grandfathering banner for the 7, plus an explicit marker so internal accounts
    are never swept into it.
 8. After the last local trial drains (~21 days, per 5.3), delete the local trial
