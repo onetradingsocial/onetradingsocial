@@ -96,7 +96,12 @@ export async function notifyPaymentFailed(
 }
 
 /** Notify a customer that a Stripe trial with a card behind it is about to
- *  convert. Only the referral flow can produce one — see trialEnding(). */
+ *  convert.
+ *
+ *  Once the advertised trial runs on Stripe this is the pre-charge notice for
+ *  every signup, not a courtesy to a handful of referrers — see trialEndingHtml
+ *  for what that obliges it to say. `notice.kind` picks the noun; everything
+ *  about the money comes from Stripe. */
 export async function notifyTrialWillEnd(
   svc: SupabaseClient,
   userId: string,
@@ -114,11 +119,16 @@ export async function notifyTrialWillEnd(
     if (email) {
       const res = await sendEmail({
         to: email,
-        subject: willCharge
-          ? 'Your free Pro months end soon — here\'s what you\'ll be charged'
-          : 'Your free Pro months end soon',
+        subject: notice.kind === 'reward'
+          ? (willCharge
+              ? 'Your free Pro months end soon — here\'s what you\'ll be charged'
+              : 'Your free Pro months end soon')
+          : (willCharge
+              ? `Your trial ends ${endsOn ? `on ${endsOn}` : 'soon'} — here's what you'll be charged`
+              : 'Your trial ends soon'),
         html: trialEndingHtml({
           name, amount: notice.amount, interval: notice.interval, endsOn, willCharge,
+          kind: notice.kind,
         }),
       })
       if (!res.sent) logError('billing', res.error, { note: 'trial_will_end email not sent' })
@@ -138,7 +148,23 @@ export async function notifyTrialWillEnd(
  *  customer is retrieved before we tell anyone they will not be charged. That
  *  asymmetry is deliberate: a wrong "you will be charged" is an annoyance, a
  *  wrong "nothing will be charged" is a disclosure failure. Any error resolving
- *  it therefore assumes a charge IS coming. */
+ *  it therefore assumes a charge IS coming.
+ *
+ *  ── THE CUSTOMER LOOKUP IS THE NORMAL PATH, NOT THE FALLBACK ────────────────
+ *
+ *  Worth knowing before anyone reads the ordering as an optimisation: Checkout
+ *  with `payment_method_collection: 'always'` attaches the card to the
+ *  CUSTOMER's `invoice_settings.default_payment_method`, not to the
+ *  subscription. So `paymentMethodOnSubscription` is false for essentially
+ *  every trial this product creates, and the `customers.retrieve` below runs on
+ *  effectively every trial_will_end event — one Stripe API call per trialling
+ *  user, three days before each conversion.
+ *
+ *  That is fine at any volume this product will see soon, and the correctness
+ *  argument above outranks it: the cheap check cannot answer the question, and
+ *  guessing from it would mean telling people with a card on file that nothing
+ *  will be charged. If it ever needs to be cheaper, cache the customer's
+ *  default payment method on the mirror rather than reordering these. */
 export async function willChargeAtTrialEnd(
   stripe: Stripe,
   customerId: string,

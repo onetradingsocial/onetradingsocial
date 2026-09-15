@@ -167,30 +167,55 @@ export function paymentFailedHtml(x: {
 
 /** A Stripe trial with a card on file is about to convert.
  *
- *  Only the referral flow can produce this — the advertised 14-day Pro trial
- *  takes no card and creates no Stripe subscription, so it can never charge
- *  anyone. Terms §8 draws that distinction and this email is where the code
- *  keeps it: the amount, the date and the cancel route, all named, before any
- *  money moves. The `willCharge: false` branch exists so we never assert a
- *  charge we cannot see a payment method for. */
+ *  ── THIS IS THE PRE-CHARGE NOTICE ───────────────────────────────────────────
+ *
+ *  It used to be reachable only from the referral flow, because the advertised
+ *  14-day trial took no card and created no Stripe subscription. Every string
+ *  here was written for that one case, which is why it talked about "free Pro
+ *  months" and "the card you saved when you claimed the reward".
+ *
+ *  Once the advertised trial runs on Stripe, this fires on day 11 for every
+ *  signup. It stops being a courtesy to a handful of referrers and becomes the
+ *  notice the whole customer base gets before money leaves their account — the
+ *  document a chargeback or an ACCC complaint would be argued from. Three
+ *  things therefore have to be true of it, on every branch:
+ *
+ *    1. it names the AMOUNT, from Stripe's own price, never a hardcoded figure;
+ *    2. it names the DATE; and
+ *    3. it names the way out, and says that taking it costs nothing.
+ *
+ *  `kind` only changes the noun — "your free trial" or "your free Pro months".
+ *  It must never change points 1 to 3.
+ *
+ *  The `willCharge: false` branch exists so we never assert a charge we cannot
+ *  see a payment method for. */
 export function trialEndingHtml(x: {
   name: string
   amount: string | null
   interval: string | null
   endsOn: string | null
   willCharge: boolean
+  /** 'trial' = the advertised signup trial, 'reward' = referral free months. */
+  kind?: 'trial' | 'reward'
 }): string {
   const when = x.endsOn ? ` on <b>${x.endsOn}</b>` : ' shortly'
   const per = x.interval ? `/${x.interval}` : ''
-  const price = x.amount ? `<b>${x.amount}${per}</b>` : 'the standard Pro monthly price'
+  // No hardcoded plan in the fallback. This used to read "the standard Pro
+  // monthly price", which named the wrong plan and the wrong interval for a
+  // Trader or annual subscriber whenever the amount was missing.
+  const price = x.amount ? `<b>${x.amount}${per}</b>` : 'the price shown on your billing page'
+  const subject = x.kind === 'reward' ? 'free Pro months' : 'free trial'
+  const noun = x.kind === 'reward' ? 'Your free Pro months are' : 'Your free trial is'
+  const card = x.kind === 'reward' ? 'the card you saved when you claimed the reward' : 'the card on file'
   const body = x.willCharge
-    ? `<p style="font-size:14px;line-height:1.6">Your free Pro months are ending${when}. After that your subscription renews automatically at ${price} and the card you saved when you claimed the reward will be charged.</p>
-       <p style="font-size:14px;line-height:1.6">If you'd rather not continue, cancel before that date and you won't be charged anything. Settings → Billing → <b>Manage billing &amp; invoices</b>.</p>`
-    : `<p style="font-size:14px;line-height:1.6">Your free Pro months are ending${when}. We don't have a payment method on file, so nothing will be charged — your subscription will simply end and the account moves to Free.</p>
-       <p style="font-size:14px;line-height:1.6">To keep Pro, add a card from Settings → Billing.</p>`
-  return shell(`${x.name}, your free Pro months are nearly up`, `
+    ? `<p style="font-size:14px;line-height:1.6">${noun} ending${when}. After that your subscription continues automatically at ${price} and ${card} will be charged.</p>
+       <p style="font-size:14px;line-height:1.6">If you'd rather not continue, cancel before that date and you won't be charged anything. Settings → Billing → <b>Manage billing &amp; invoices</b>.</p>
+       <p style="font-size:13px;line-height:1.6;color:#56536b">Prices are in Australian dollars (AUD). No GST is charged — the amount above is the total that will be taken.</p>`
+    : `<p style="font-size:14px;line-height:1.6">${noun} ending${when}. We don't have a payment method on file, so nothing will be charged — your subscription will simply end and the account moves to Free.</p>
+       <p style="font-size:14px;line-height:1.6">To keep your plan, add a card from Settings → Billing.</p>`
+  return shell(`${x.name}, your ${subject} ${x.willCharge ? 'ends soon' : 'is nearly up'}`, `
     ${body}
-    ${button(`${APP}/settings/billing`, 'Review your plan')}
+    ${button(`${APP}/settings/billing`, x.willCharge ? 'Review or cancel your plan' : 'Review your plan')}
   `)
 }
 

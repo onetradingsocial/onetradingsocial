@@ -7,10 +7,16 @@
  * 34 trials had already lapsed without a word. That fix told people afterwards.
  * Nobody was told during.
  *
- * `trialEndingHtml` looks like it should cover this and does not: its only call
- * site is lib/server/billing.ts, on the Stripe-trial path used by the referral
- * reward flow. The advertised trial takes no card and creates no Stripe
- * subscription, so that email can never fire for an ordinary signup.
+ * `trialEndingHtml` looks like it should cover this and, for a card-free trial,
+ * does not: its only call site is lib/server/billing.ts, on the Stripe-trial
+ * path. A card-free trial creates no Stripe subscription, so that email can
+ * never fire for one.
+ *
+ * FOR A STRIPE TRIAL IT IS THE OTHER WAY ROUND. `trialEndingHtml` fires on day
+ * 11 as the pre-charge notice, so stage 12 here would be a second email about
+ * the same charge a day later — and the cron suppresses it for exactly that
+ * reason (see api/cron/lifecycle-emails). Stages 1 and 7 still run for both
+ * kinds of trial, with their payment lines switched by `cardOnFile`.
  */
 
 /** Days into the trial at which each email goes out. */

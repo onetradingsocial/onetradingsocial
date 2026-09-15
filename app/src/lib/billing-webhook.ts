@@ -1,4 +1,4 @@
-import { planForPrice, type PlanEnv, type Tier } from '@/lib/entitlements'
+import { planForPrice, TRIAL_DAYS, type PlanEnv, type Tier } from '@/lib/entitlements'
 
 /** Structural, NOT `Stripe.Subscription`, and deliberately so.
  *
@@ -187,22 +187,53 @@ export type TrialEnding = {
   cancelAtPeriodEnd: boolean
   amount: string | null
   interval: string | null
+  /**
+   * What the customer thinks is ending — a signup trial, or referral months.
+   *
+   * INFERRED FROM THE TRIAL'S LENGTH, and deliberately so. The two producers of
+   * a Stripe trial set different lengths: the advertised trial is TRIAL_DAYS
+   * (14) and a referral reward is `referralMonths * 30`, so anything longer
+   * than the advertised trial is a reward. Reading it off the payload means it
+   * works for subscriptions created before any metadata scheme existed, and
+   * needs nothing stamped at checkout.
+   *
+   * WHY GUESSING IS ACCEPTABLE HERE, when guessing about money never is: this
+   * picks a NOUN, never a number. The amount, the date, the card and the cancel
+   * route are identical on both branches and come straight from Stripe. Get
+   * this wrong and a user reads "your free months" instead of "your free
+   * trial" — a cosmetic mislabel, not a misstatement about a charge.
+   *
+   * If a durable answer is ever wanted, stamp `subscription_data.metadata.flow`
+   * at checkout and prefer it over this.
+   */
+  kind: 'trial' | 'reward'
 }
 
 /** Pure read of a `customer.subscription.trial_will_end` payload.
  *
- *  IMPORTANT product context. The advertised 14-day Pro trial creates NO Stripe
- *  object at all — it is two timestamps on `profiles` (migration 0041), takes
- *  no card and can never charge anyone. So the only way this event can reach us
- *  today is the referral flow, which opens a real Stripe trial WITH a card
- *  (`payment_method_collection: 'always'`, api/billing/checkout/route.ts) that
- *  auto-charges Pro monthly when the free months run out. Terms §8 draws
- *  exactly that distinction; the notice this feeds is what makes the code
- *  honour it. The amount and date are carried through so the email can name the
- *  charge instead of gesturing at "the monthly rate". */
+ *  ── THIS USED TO BE A RARE EVENT. IT IS ABOUT TO BE THE COMMON ONE ──────────
+ *
+ *  The comment here used to say this could only ever come from the referral
+ *  flow, because the advertised 14-day trial creates no Stripe object and so can
+ *  never charge anyone. That was true, and it is the reason every string this
+ *  feeds talks about "free Pro months".
+ *
+ *  Once the advertised trial moves to Stripe, this fires on day 11 for EVERY
+ *  signup and becomes the product's principal pre-charge notice — the thing a
+ *  customer is shown before money moves, and the thing a chargeback dispute
+ *  would be argued from. So it has to describe both producers, and `kind` is
+ *  how it tells them apart. See that field for why inferring it is safe.
+ *
+ *  The amount and date are carried through so the email can name the charge
+ *  instead of gesturing at "the monthly rate". */
 export function trialEnding(sub: StripeSubLike): TrialEnding | null {
   if (!sub.id) return null
   const price = sub.items?.data?.[0]?.price
+  // Longer than the advertised trial ⇒ referral months. Unknown length falls
+  // back to 'trial', the shorter and more common of the two.
+  const days = sub.trial_start != null && sub.trial_end != null
+    ? Math.round((sub.trial_end - sub.trial_start) / 86_400)
+    : null
   return {
     subscriptionId: sub.id,
     trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
@@ -210,6 +241,7 @@ export function trialEnding(sub: StripeSubLike): TrialEnding | null {
     cancelAtPeriodEnd: !!sub.cancel_at_period_end,
     amount: formatStripeAmount(price?.unit_amount, price?.currency),
     interval: price?.recurring?.interval ?? null,
+    kind: days != null && days > TRIAL_DAYS ? 'reward' : 'trial',
   }
 }
 

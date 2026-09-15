@@ -34,7 +34,12 @@ const SYSTEM_TEXT: Record<string, string> = {
   rule_breach: 'A trade broke one of your rules',
   new_learning: 'New learning material for you',
   payment_failed: 'Your payment didn\'t go through — update your card',
-  trial_ending: 'Your free Pro months are nearly up',
+  // Neutral on purpose: this one type covers the referral reward, the signup
+  // trial, and the case where no card is on file and nothing will be charged.
+  // Naming "free Pro months" was wrong for two of those three. The email
+  // carries the amount, the date and the cancel route; this is the nudge to go
+  // and read it.
+  trial_ending: 'Your free period ends soon — review your plan',
   trial_expired: 'Your Pro trial has ended — you\'re on Free',
   feedback_reply: 'We replied to your message',
 }

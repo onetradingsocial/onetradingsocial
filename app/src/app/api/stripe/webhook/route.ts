@@ -224,13 +224,16 @@ export async function POST(request: NextRequest) {
         break
       }
 
-      // Stripe fires this three days before a trial converts. The advertised
-      // 14-day Pro trial takes no card and creates no Stripe object, so it can
-      // never produce this event; the referral flow — which DOES put a card on
-      // file and auto-charges Pro monthly — is the only thing that can. Terms
-      // §8 draws that exact distinction, and this handler is where the code
-      // keeps it: name the amount, the date and the cancel route before any
-      // money moves.
+      // Stripe fires this three days before a trial converts.
+      //
+      // It used to be reachable only from the referral flow, because the
+      // advertised 14-day trial took no card and created no Stripe object.
+      // Once that trial runs on Stripe this fires on day 11 for EVERY signup
+      // and becomes the product's principal pre-charge notice — the thing a
+      // customer sees before money leaves their account. `trialEnding()` tells
+      // the two producers apart so the copy can name the right thing; the
+      // amount, the date and the cancel route are identical either way and come
+      // straight from Stripe.
       case 'customer.subscription.trial_will_end': {
         const sub = event.data.object as Stripe.Subscription
         const notice = trialEnding(sub as never)

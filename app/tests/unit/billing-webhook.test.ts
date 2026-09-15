@@ -227,6 +227,39 @@ describe('trialEnding', () => {
     expect(t.trialEndsAt).toBeNull()
     expect(t.amount).toBeNull()
   })
+
+  // `kind` tells the two producers of a Stripe trial apart, from the trial's
+  // own length: the advertised trial is 14 days, a referral reward is a
+  // multiple of 30. It picks a NOUN only — the amount, date, card and cancel
+  // route are identical on both branches.
+  describe('kind — which trial the customer thinks is ending', () => {
+    const DAY = 86_400
+    const withWindow = (days: number) =>
+      trialEnding(trialSub({ trial_start: 1_800_000_000 - days * DAY, trial_end: 1_800_000_000 }))!
+
+    it('reads a 14-day window as the advertised signup trial', () => {
+      expect(withWindow(14).kind).toBe('trial')
+    })
+
+    it('reads a 30-day-or-longer window as referral months', () => {
+      expect(withWindow(30).kind).toBe('reward')
+      expect(withWindow(60).kind).toBe('reward')
+      expect(withWindow(90).kind).toBe('reward')
+    })
+
+    it('reads a SHORTER-than-advertised window as a trial, not a reward', () => {
+      // A trial cut short in the dashboard is still the signup trial.
+      expect(withWindow(3).kind).toBe('trial')
+      expect(withWindow(0).kind).toBe('trial')
+    })
+
+    it('falls back to the commoner case when the window is unknown', () => {
+      // A row from before trial_start was mirrored must not be announced as
+      // referral months to someone who never referred anyone.
+      expect(trialEnding(trialSub())!.kind).toBe('trial')
+      expect(trialEnding(trialSub({ trial_start: 1_800_000_000 - 30 * DAY, trial_end: null }))!.kind).toBe('trial')
+    })
+  })
 })
 
 /* ── Reconciliation ─────────────────────────────────────────────────────── */

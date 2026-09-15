@@ -562,7 +562,43 @@ migration **before** the merge.
      lesson, and there is a test asserting every filter survived.
 
    1595 tests pass.
-4. Generalise the `trial_will_end` path and its copy.
+4. Generalise the `trial_will_end` path and its copy. ✅ **Shipped 2026-09-15.**
+
+   This event used to be reachable only from the referral flow — a handful of
+   people who had deliberately claimed free months. Once the advertised trial
+   runs on Stripe it fires on **day 11 for every signup** and becomes the
+   product's principal pre-charge notice: the last thing a customer sees before
+   money leaves their account, and the document a chargeback or ACCC complaint
+   would be argued from.
+
+   - `TrialEnding` gains **`kind`**, inferred from the trial's own length —
+     anything longer than `TRIAL_DAYS` is referral months. Inference is safe
+     here precisely because it picks a **noun, never a number**: the amount,
+     date, card and cancel route are identical on both branches and come from
+     Stripe. Get it wrong and someone reads "free months" instead of "free
+     trial". (If a durable answer is wanted, stamp
+     `subscription_data.metadata.flow` at checkout and prefer it.)
+   - **A real defect in the fallback:** when the amount was missing the email
+     read *"the standard Pro monthly price"* — naming the wrong plan and the
+     wrong interval for any Trader or annual subscriber, in the one email that
+     exists to say what will be taken. Now "the price shown on your billing
+     page".
+   - Copy no longer says "the card you saved when you claimed the reward" to
+     someone who never claimed one, and the no-card branch no longer tells a
+     Trader subscriber to keep "Pro".
+   - Carries the AUD and GST lines, now that §7 settles them.
+   - `NotificationBell`'s `trial_ending` label was "Your free Pro months are
+     nearly up" — wrong for two of the three cases that type covers. Now
+     neutral.
+   - `willChargeAtTrialEnd` is unchanged but documented: Checkout attaches the
+     card to the **customer**, not the subscription, so the `customers.retrieve`
+     branch is the normal path, not a fallback — one Stripe call per trialling
+     user per conversion. Fine at this volume, and the correctness argument
+     outranks it; cache on the mirror if it ever needs to be cheaper.
+
+   `tests/unit/trial-ending-notice.test.ts` pins the three things that must hold
+   on every branch, for every plan and interval: the **amount**, the **date**,
+   the **way out**. 1614 tests pass.
 5. Terms / pricing / welcome copy, and the GST decision.
 6. `/welcome` gains the card CTA; checkout gains the `flow: 'trial'` branch.
 7. Grandfathering banner for the 7, plus an explicit marker so internal accounts
