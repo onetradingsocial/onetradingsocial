@@ -13,7 +13,7 @@ async function signUpAndOnboard(page: Page, prefix: string) {
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')
   await expect(page).toHaveURL(/\/welcome/, { timeout: 15000 })
-  await page.click('button:has-text("Start my trial")')
+  await page.click('button:has-text("Continue on Free")')
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 15000 })
   await page.click('button:has-text("Build my identity")')
   await page.click('button:has-text("Forex")')

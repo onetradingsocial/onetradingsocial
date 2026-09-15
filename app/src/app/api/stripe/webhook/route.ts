@@ -173,7 +173,17 @@ export async function POST(request: NextRequest) {
           // being treated as consent.
           const adsConsent = session.metadata?.ads_consent
           const adsAllowed = adsConsent != null ? adsConsent === '1' : ADS_DEFAULT
-          if (adsAllowed) {
+          // A trial checkout takes A$0. Reporting it as a Purchase would send a
+          // zero-value conversion for EVERY signup once the trial runs on
+          // Stripe, which does two things, both bad: it teaches the ad platform
+          // to find people who convert at nothing, and it buries the real
+          // purchases in noise. The conversion that matters for a trial happens
+          // on day 14, and arrives here as an invoice, not a session.
+          const isPurchase = (session.amount_total ?? 0) > 0
+          if (!isPurchase) {
+            logInfo('stripe webhook', { note: 'zero-value session — no Purchase conversion', flow: session.metadata?.flow ?? null })
+          }
+          if (adsAllowed && isPurchase) {
             await sendRedditConversion({
               eventType: 'Purchase',
               conversionId: session.id,

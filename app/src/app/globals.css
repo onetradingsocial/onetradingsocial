@@ -1925,6 +1925,19 @@ button.ts-burger-link {
 .fl-plan-note { font-family: var(--mono); font-size: 11.5px; color: var(--faint); display: flex; align-items: center; gap: 7px; }
 .fl-plan-note svg { width: 14px; height: 14px; color: var(--up); }
 .fl-plan-foot .sp { flex: 1; }
+/* The pre-charge disclosure on /welcome. Small, but NOT faint: it is the only
+   place the card requirement and the day-14 price appear before the button, so
+   it uses the body colour rather than --faint. */
+.fl-plan-terms { margin: 18px 30px 0; font-size: 12.5px; line-height: 1.6; color: var(--dim); }
+/* "Continue on Free". Secondary by design — the trial is what we want people to
+   take — but a real button with a real label, because terms §7 and two landing
+   pages depend on this route existing. Never a greyed-out link. */
+.fl-plan-decline { display: inline-flex; align-items: center; justify-content: center; height: 50px; padding: 0 22px;
+  border-radius: 14px; border: 1px solid var(--line); background: transparent; color: var(--dim);
+  font-weight: 600; font-size: 14px; cursor: pointer; transition: border-color .15s, color .15s; }
+.fl-plan-decline:hover { border-color: var(--line-vio); color: var(--ink); }
+.fl-plan-decline:disabled { opacity: .5; pointer-events: none; }
+.fl-plan-error { margin: 12px 30px 22px; font-size: 13px; color: var(--down); }
 .fl-continue { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 50px; padding: 0 30px; border-radius: 14px;
   font-family: var(--display); font-weight: 600; font-size: 15.5px; color: #fff; background: var(--grad); background-size: 160% auto;
   box-shadow: 0 10px 26px -10px rgba(124,92,230,0.7), inset 0 1px 0 rgba(255,255,255,0.3); transition: transform .16s, box-shadow .2s, background-position .3s, opacity .2s; }
@@ -1953,6 +1966,13 @@ button.ts-burger-link {
   .fl-pgrid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
   .fl-plan-foot { flex-wrap: wrap; }
   .fl-plan-note { order: 3; width: 100%; justify-content: center; }
+  /* Stack at phone width, trial first. The decline route stays full-width and
+     tappable rather than being squeezed beside the primary button. */
+  .fl-plan-foot .sp { display: none; }
+  .fl-continue { order: 1; width: 100%; }
+  .fl-plan-decline { order: 2; width: 100%; }
+  .fl-plan-terms { margin-inline: 22px; }
+  .fl-plan-error { margin-inline: 22px; }
 }
 @media (max-width: 520px) {
   .fl-stage { padding: 0; min-height: calc(100dvh - 57px); }

@@ -643,7 +643,40 @@ migration **before** the merge.
    false, and the Free plan is unreachable without a card.
 
 6. `/welcome` gains the card CTA **and keeps a decline route** (see 5); checkout
-   gains the `flow: 'trial'` branch.
+   gains the `flow: 'trial'` branch. ✅ **Shipped 2026-09-15.**
+
+   - **`trial_settings.end_behavior.missing_payment_method: 'cancel'`**, set
+     explicitly for both trial flows. This is the line that closes the 28-day
+     exploit in 5.1: the account default is `create_invoice`, which routes a
+     card-less trial into `past_due` and hands it the dunning grace. It is not
+     observable from this repo, so it is never relied on.
+   - Server-priced like the referral flow — the client cannot choose the plan.
+   - **Two pre-existing bugs fixed in passing**, both from reading the raw
+     request body instead of the server-priced value: the success URL would have
+     carried `undefined` for a server-priced flow, and the annual coupon guard
+     could have been slipped by posting `interval: 'annual'`.
+   - The Reddit **Purchase** conversion is now gated on `amount_total > 0`.
+     Every trial checkout is A$0, so without this each signup reports a
+     zero-value purchase — teaching the ad platform to find people who convert
+     at nothing, and burying the real purchases.
+   - `subscription_data.metadata.flow` is stamped, so `trialEnding()` reads the
+     answer rather than inferring it from the trial's length (the length test
+     remains as a fallback for older subscriptions).
+   - **The decline route exists and is styled as a real button.** Terms §7 and
+     two `for/` pages depend on it — see 5.
+
+   **E2E:** all 18 signup helpers clicked `Start my trial`, which now opens
+   Stripe and cannot complete in a browser test. They now take the decline
+   route — the affordance terms required turns out to be what keeps signup
+   testable at all. Their tier assumptions still hold **only because**
+   `LOCAL_TRIAL_DISABLED` is unset and 0077 unapplied, so the chokepoint still
+   stamps a local trial on first render. On launch day that stops being true and
+   `trial.spec.ts` / `welcome-popup.spec.ts` must grant the tier explicitly
+   rather than inheriting it. Noted in `tests/e2e/utils/onboard.ts`.
+
+   Verified by `next build` (clean) and 1625 unit tests. **Not** verified in a
+   browser: `/welcome` needs an authenticated mid-signup user, and `next dev` on
+   Node 22 breaks form submits here.
 7. Grandfathering banner for the 7, plus an explicit marker so internal accounts
    are never swept into it.
 8. After the last local trial drains (~21 days, per 5.3), delete the local trial

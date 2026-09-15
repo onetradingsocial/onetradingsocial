@@ -17,7 +17,7 @@ async function signUp(page: Page, prefix: string) {
   await page.click('button:has-text("Join the Beta")')
   // Trial welcome step — 14 days of Pro, no card
   await expect(page).toHaveURL(/\/welcome/, { timeout: 15000 })
-  await page.click('button:has-text("Start my trial")')
+  await page.click('button:has-text("Continue on Free")')
   // Onboarding multi-step flow (5 steps + reveal)
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 15000 })
   await page.click('button:has-text("Build my identity")')

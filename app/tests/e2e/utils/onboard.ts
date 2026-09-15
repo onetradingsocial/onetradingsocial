@@ -20,9 +20,25 @@ export async function signUpAndOnboard(page: Page, prefix = 'e2e'): Promise<stri
   await expect(page.locator('input[name="terms"]')).toBeChecked()
   await page.click('button:has-text("Join the Beta")')
 
-  // Trial welcome step — 14 days of Pro, no card.
+  // Trial welcome step.
+  //
+  // We take the DECLINE route on purpose. The primary button now opens Stripe
+  // Checkout, which a browser test cannot complete, so "Continue on Free" is
+  // the only path through signup that stays in the app — the decline route
+  // terms §7 requires happens to be what makes this helper possible at all.
+  //
+  // ⚠ Declining does NOT currently mean the user lands on Free. While
+  // LOCAL_TRIAL_DISABLED is unset and migration 0077 unapplied, the chokepoint
+  // in lib/server/trial-start.ts still stamps a local trial on the first
+  // authenticated render, so these users are still Pro — which is why the specs
+  // that assert "Pro Trader" after signup continue to pass.
+  //
+  // THAT CHANGES ON LAUNCH DAY. Once the local trial is disarmed, a user who
+  // declines really is Free, and every spec asserting a Pro tier after signup
+  // (trial.spec.ts, welcome-popup.spec.ts) has to grant the tier explicitly
+  // instead of inheriting it. See docs/stripe-trial-transfer-2026-09-15.md.
   await expect(page).toHaveURL(/\/welcome/, { timeout: 15000 })
-  await page.click('button:has-text("Start my trial")')
+  await page.click('button:has-text("Continue on Free")')
 
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 15000 })
   await page.click('button:has-text("Build my identity")')

@@ -13,6 +13,7 @@ type StripeSubLike = {
   cancel_at_period_end: boolean
   trial_start?: number | null
   trial_end?: number | null
+  metadata?: Record<string, string> | null
   default_payment_method?: string | { id: string } | null
   default_source?: string | { id: string } | null
   items: {
@@ -190,21 +191,20 @@ export type TrialEnding = {
   /**
    * What the customer thinks is ending — a signup trial, or referral months.
    *
-   * INFERRED FROM THE TRIAL'S LENGTH, and deliberately so. The two producers of
-   * a Stripe trial set different lengths: the advertised trial is TRIAL_DAYS
-   * (14) and a referral reward is `referralMonths * 30`, so anything longer
-   * than the advertised trial is a reward. Reading it off the payload means it
-   * works for subscriptions created before any metadata scheme existed, and
-   * needs nothing stamped at checkout.
+   * `subscription_data.metadata.flow` is stamped at checkout, so for anything
+   * this codebase creates the answer is carried rather than guessed.
    *
-   * WHY GUESSING IS ACCEPTABLE HERE, when guessing about money never is: this
-   * picks a NOUN, never a number. The amount, the date, the card and the cancel
-   * route are identical on both branches and come straight from Stripe. Get
-   * this wrong and a user reads "your free months" instead of "your free
-   * trial" — a cosmetic mislabel, not a misstatement about a charge.
+   * THE FALLBACK INFERS IT FROM THE TRIAL'S LENGTH, for subscriptions that
+   * predate the stamp or were created by hand in the dashboard. The two
+   * producers set different lengths — the advertised trial is TRIAL_DAYS (14),
+   * a referral reward is `referralMonths * 30` — so anything longer than the
+   * advertised trial is a reward.
    *
-   * If a durable answer is ever wanted, stamp `subscription_data.metadata.flow`
-   * at checkout and prefer it over this.
+   * WHY A GUESS IS TOLERABLE HERE, when guessing about money never is: it picks
+   * a NOUN, never a number. The amount, the date, the card and the cancel route
+   * are identical on both branches and come straight from Stripe. Get this
+   * wrong and a user reads "your free months" instead of "your free trial" — a
+   * cosmetic mislabel, not a misstatement about a charge.
    */
   kind: 'trial' | 'reward'
 }
@@ -229,11 +229,19 @@ export type TrialEnding = {
 export function trialEnding(sub: StripeSubLike): TrialEnding | null {
   if (!sub.id) return null
   const price = sub.items?.data?.[0]?.price
+  // The stamp first. Only 'referral' means a reward — any other flow, and an
+  // absent one, falls through to the length test rather than being trusted.
+  const stamped = sub.metadata?.flow
   // Longer than the advertised trial ⇒ referral months. Unknown length falls
   // back to 'trial', the shorter and more common of the two.
   const days = sub.trial_start != null && sub.trial_end != null
     ? Math.round((sub.trial_end - sub.trial_start) / 86_400)
     : null
+  const kind: 'trial' | 'reward' = stamped === 'referral'
+    ? 'reward'
+    : stamped === 'trial'
+      ? 'trial'
+      : (days != null && days > TRIAL_DAYS ? 'reward' : 'trial')
   return {
     subscriptionId: sub.id,
     trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
@@ -241,7 +249,7 @@ export function trialEnding(sub: StripeSubLike): TrialEnding | null {
     cancelAtPeriodEnd: !!sub.cancel_at_period_end,
     amount: formatStripeAmount(price?.unit_amount, price?.currency),
     interval: price?.recurring?.interval ?? null,
-    kind: days != null && days > TRIAL_DAYS ? 'reward' : 'trial',
+    kind,
   }
 }
 

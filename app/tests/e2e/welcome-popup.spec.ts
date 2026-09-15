@@ -116,7 +116,7 @@ test('no popup anywhere in the signup funnel', async ({ page }) => {
   await page.click('button:has-text("Join the Beta")')
   await expect(page).toHaveURL(/\/welcome/, { timeout: 15000 })
   await expect(page.locator('.wpop-backdrop')).toHaveCount(0)
-  await page.click('button:has-text("Start my trial")')
+  await page.click('button:has-text("Continue on Free")')
   await expect(page).toHaveURL(/\/onboarding/, { timeout: 15000 })
   await expect(page.locator('.wpop-backdrop')).toHaveCount(0)
 })

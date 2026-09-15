@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { priceForPlan, type Tier, type Interval } from '@/lib/entitlements'
+import { priceForPlan, TRIAL_DAYS, type Tier, type Interval } from '@/lib/entitlements'
 import { getReferralStats } from '@/lib/server/referral'
 import { earnedMonths } from '@/lib/referral'
 import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   if (!rl.ok) return tooMany(rl.retryAfter)
 
   const { tier, interval, flow } = (await request.json().catch(() => ({}))) as {
-    tier?: Tier; interval?: Interval; flow?: 'referral' | 'trial_end'
+    tier?: Tier; interval?: Interval; flow?: 'referral' | 'trial_end' | 'trial'
   }
 
   const env = process.env as Record<string, string | undefined>
@@ -51,15 +51,21 @@ export async function POST(request: NextRequest) {
     if (referralMonths < 1) {
       return NextResponse.json({ error: 'no referral reward earned yet' }, { status: 400 })
     }
-  } else if ((tier !== 'trader' && tier !== 'pro') || (interval !== 'monthly' && interval !== 'annual')) {
+  } else if (flow !== 'trial' && ((tier !== 'trader' && tier !== 'pro') || (interval !== 'monthly' && interval !== 'annual'))) {
     return NextResponse.json({ error: 'bad request' }, { status: 400 })
   }
 
-  // What the customer is actually being sold, after the referral flow's
-  // server-side override. Used for the price lookup and stamped onto the
-  // session so the webhook can report the plan on the `subscribed` event.
-  const soldTier: Tier = flow === 'referral' ? 'pro' : (tier as Tier)
-  const soldInterval: Interval = flow === 'referral' ? 'monthly' : (interval as Interval)
+  // What the customer is actually being sold, after the server-side overrides.
+  // Used for the price lookup and stamped onto the session so the webhook can
+  // report the plan on the `subscribed` event.
+  //
+  // The signup trial forces Pro monthly for the same reason the referral flow
+  // does: the price must not be choosable by the client. It is also the product
+  // decision — everyone trials Pro, and anyone who wants Trader or annual
+  // switches in the billing portal before day 14 (terms §8).
+  const serverPriced = flow === 'referral' || flow === 'trial'
+  const soldTier: Tier = serverPriced ? 'pro' : (tier as Tier)
+  const soldInterval: Interval = serverPriced ? 'monthly' : (interval as Interval)
 
   const price = priceForPlan(soldTier, soldInterval, env)
   if (!price) return NextResponse.json({ error: 'price not configured' }, { status: 500 })
@@ -82,10 +88,24 @@ export async function POST(request: NextRequest) {
   // Every checkout now returns to the billing page. tier/interval ride along so
   // that page can attach a value to the ad-pixel Subscribe event; the pixel
   // component strips them after firing.
+  // The signup trial is the one flow that is NOT a purchase the user came to
+  // /settings/billing to make — they are mid-signup, so both exits return them
+  // to the flow rather than to a billing page they have never seen. Cancelling
+  // goes back to /welcome, where the "continue on Free" route still waits.
+  //
+  // soldTier/soldInterval, NOT the raw request fields. The old line read
+  // `tier`/`interval` straight off the body, which was safe only while every
+  // client-priced flow also sent them; a server-priced flow would have put
+  // `undefined` in the URL and fired the billing page's Subscribe pixel with no
+  // value attached.
   const successUrl = flow === 'referral'
     ? `${SITE}/settings/billing?status=referral&months=${referralMonths}`
-    : `${SITE}/settings/billing?status=success&tier=${tier}&interval=${interval}`
-  const cancelUrl = `${SITE}/settings/billing?status=cancelled`
+    : flow === 'trial'
+      ? `${SITE}/onboarding?trial=started`
+      : `${SITE}/settings/billing?status=success&tier=${soldTier}&interval=${soldInterval}`
+  const cancelUrl = flow === 'trial'
+    ? `${SITE}/welcome?checkout=cancelled`
+    : `${SITE}/settings/billing?status=cancelled`
 
   // Beta promo: 76% off the annual list price (= 80% off the 12x monthly rate,
   // since annual list already includes 2 months free). First invoice only —
@@ -125,7 +145,16 @@ export async function POST(request: NextRequest) {
     adaptive_pricing: { enabled: false },
     client_reference_id: user.id,
     line_items: [{ price, quantity: 1 }],
-    discounts: flow !== 'referral' && interval === 'annual' && betaCoupon
+    // soldInterval, not the raw `interval`: a server-priced flow is always
+    // monthly, and reading the request field here would let a client attach the
+    // annual coupon to a monthly subscription by posting interval:'annual'.
+    //
+    // It also keeps the coupon away from the trial entirely, which matters for
+    // a reason that is not obvious: a Checkout subscription opened in a trial
+    // generates a A$0 `subscription_create` invoice at trial start, and a coupon
+    // whose duration is `once` can be consumed by THAT invoice — leaving the
+    // day-14 charge at full price after the customer was quoted a discount.
+    discounts: !serverPriced && soldInterval === 'annual' && betaCoupon
       ? [{ coupon: betaCoupon }] : undefined,
     // Free-Pro reward: collect a card up front ($0 due today) and open the
     // subscription in a trial that lasts one month per earned referral. When the
@@ -133,9 +162,46 @@ export async function POST(request: NextRequest) {
     // later" flow the client asked for. The card is required so conversion is
     // frictionless; the T&Cs (billed monthly after the free period) are shown at
     // checkout and on the referral modal.
-    subscription_data: flow === 'referral'
-      ? { trial_period_days: referralMonths * 30 } : undefined,
-    payment_method_collection: flow === 'referral' ? 'always' : undefined,
+    /**
+     * Both trials, and what happens when one ends.
+     *
+     * `trial_period_days` — referral months, or the advertised TRIAL_DAYS.
+     *
+     * `trial_settings.end_behavior.missing_payment_method: 'cancel'` — set
+     * explicitly for BOTH, and load-bearing rather than tidy. A card is
+     * collected up front, but nothing pins it there: a customer can detach it
+     * in the billing portal mid-trial. What Stripe then does at trial end is
+     * decided entirely by this field, and the account default is
+     * `create_invoice`:
+     *
+     *   create_invoice → an unpaid invoice, subscription goes `past_due`, and
+     *                    `subscriptionGrantsTier` hands it the 14-day dunning
+     *                    grace. 14 trial days + 14 grace days = 28 days of Pro
+     *                    for someone who never paid, repeatable per account.
+     *   pause          → correct only by accident (`paused` grants no tier).
+     *   cancel         → the subscription ends. The only one that means what
+     *                    the trial is supposed to mean.
+     *
+     * The account default is not observable from this repository, which is the
+     * same reason `stripeTermsConsent` is explicit about its own switch. Do not
+     * rely on it.
+     *
+     * `metadata` — which flow opened this subscription, stamped on the
+     * SUBSCRIPTION rather than only the session, so `trialEnding()` can name
+     * the right thing in the pre-charge email without inferring it from the
+     * trial's length.
+     */
+    subscription_data: serverPriced
+      ? {
+          trial_period_days: flow === 'referral' ? referralMonths * 30 : TRIAL_DAYS,
+          trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
+          metadata: { flow: flow as string, tier: soldTier, interval: soldInterval },
+        }
+      : undefined,
+    // A trial that collects no card is not the product described in terms §8 —
+    // it is today's card-free trial with a Stripe object bolted on, which would
+    // never convert. Stripe skips collection on a A$0-due session unless told.
+    payment_method_collection: serverPriced ? 'always' : undefined,
     // Stripe's own terms acceptance (item 5 finding 2). Undefined unless
     // STRIPE_TOS_CONSENT=on, because Stripe rejects this when no ToS URL is set
     // in the Dashboard — see stripeTermsConsent() for the full reasoning and
