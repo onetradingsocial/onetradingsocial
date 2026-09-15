@@ -19,6 +19,7 @@ what is actually live. Update it whenever one moves.
 | 0076 subscriptions trial window | ✅ 2026-09-15 | ✅ 2026-09-15 | Must precede the code merge — the columns are written, not read |
 | 0077 `trial_eligible` DEFAULT false | ⛔ held | ⛔ held | Launch day only, **with** step 6. Applying it alone withdraws the advertised trial |
 | 0078 `admin_search_users` tiebreak | ✅ 2026-09-15 | ✅ 2026-09-15 | Read-only function, safe in any order |
+| 0079 `first_paid_at` + latch | ✅ 2026-09-15 | ✅ 2026-09-15 | Must precede the code merge — the column is written. Latch behaviour tested on dev only; no probe rows were inserted into production |
 
 Env, both unset — the code ships inert until these move:
 
