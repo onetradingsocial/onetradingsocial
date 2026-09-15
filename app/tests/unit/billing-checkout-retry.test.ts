@@ -33,6 +33,10 @@ vi.mock('@/lib/supabase/service', () => ({
     from: () => ({
       select: () => ({
         eq: () => ({
+          // The duplicate-subscription guard reads `.eq().eq().limit()`. No
+          // trial is running in these fixtures, so it returns nothing and
+          // checkout proceeds to the part this file is actually about.
+          eq: () => ({ limit: async () => ({ data: [] }) }),
           single: async () => ({ data: { stripe_customer_id: storedCustomerId() } }),
           maybeSingle: async () => ({ data: null }),
         }),

@@ -10,7 +10,7 @@ import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
 import { stripeTermsConsent } from '@/lib/terms-acceptance'
 import { trackServer } from '@/lib/server/track'
 import { createAndStoreCustomer, isMissingCustomer } from '@/lib/server/billing'
-import { logError } from '@/lib/server/log'
+import { logError, logInfo } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
 
@@ -31,6 +31,38 @@ export async function POST(request: NextRequest) {
 
   const { tier, interval, flow } = (await request.json().catch(() => ({}))) as {
     tier?: Tier; interval?: Interval; flow?: 'referral' | 'trial_end' | 'trial'
+  }
+
+  /**
+   * A user who already holds a TRIALING subscription must not open a second one.
+   *
+   * Checkout always CREATES a subscription; it never modifies an existing one.
+   * That was safe while a trial was two timestamps on `profiles`, because a
+   * trialist had no Stripe subscription and buying a plan was the only way to
+   * get one. It stopped being safe the moment the signup trial became a real
+   * subscription — and the in-app upsell is reachable from the nav countdown
+   * chip, which now renders for exactly those users.
+   *
+   * Left open, the sequence is: sign up (Pro trial, converts to A$50 on day 14),
+   * click the chip on day 2, buy Trader, and now hold BOTH. Nothing cancels the
+   * first, so the customer pays A$80 a month having chosen one plan.
+   *
+   * Every flow is refused, not just the upsell. A second trial is equally wrong,
+   * and a referral claim mid-trial would duplicate in the same way. Changing
+   * plan during a trial belongs in the billing portal, which modifies the
+   * subscription in place instead of adding one.
+   *
+   * 409 rather than 400: nothing is malformed, the account is simply in a state
+   * where this is not the right operation.
+   */
+  const { data: liveTrial } = await createServiceClient()
+    .from('subscriptions')
+    .select('id').eq('user_id', user.id).eq('status', 'trialing').limit(1)
+  if (liveTrial && liveTrial.length > 0) {
+    logInfo('billing checkout', { note: 'refused: trial already in progress', flow: flow ?? 'direct' })
+    return NextResponse.json({
+      error: 'A trial is already running on this account. Manage your plan in Settings → Billing.',
+    }, { status: 409 })
   }
 
   const env = process.env as Record<string, string | undefined>

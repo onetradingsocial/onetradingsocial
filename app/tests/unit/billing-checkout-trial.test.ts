@@ -33,11 +33,17 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }))
 
+/** Rows the guard's `subscriptions` lookup should return. Empty by default: no
+ *  trial in progress, so checkout proceeds. */
+let trialingRows: Array<{ id: string }> = []
+
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: () => ({
-    from: () => ({
+    from: (table: string) => ({
       select: () => ({
         eq: () => ({
+          // The duplicate-subscription guard: .eq().eq().limit()
+          eq: () => ({ limit: async () => ({ data: table === 'subscriptions' ? trialingRows : [] }) }),
           single: async () => ({ data: { stripe_customer_id: CUS } }),
           maybeSingle: async () => ({ data: null }),
         }),
@@ -79,6 +85,7 @@ const subData = () => sent().subscription_data as Record<string, unknown>
 
 beforeEach(() => {
   vi.clearAllMocks()
+  trialingRows = []
   sessionsCreate.mockResolvedValue({ url: 'https://checkout.stripe.com/c/pay/cs_x' })
   process.env.STRIPE_PRICE_TRADER_MONTHLY = 'price_tm'
   process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_pm'
@@ -167,5 +174,38 @@ describe('the other flows are unchanged by the trial branch', () => {
   it('still rejects a malformed ordinary purchase', async () => {
     expect((await post(request({ tier: 'bogus', interval: 'monthly' }))).status).toBe(400)
     expect((await post(request({}))).status).toBe(400)
+  })
+})
+
+describe('a trial already in progress blocks every new subscription', () => {
+  // Checkout CREATES a subscription; it never modifies one. Someone mid-trial
+  // on Pro who buys Trader from the in-app upsell would hold both and pay A$80
+  // a month having chosen one plan. Nothing cancels the first.
+  beforeEach(() => { trialingRows = [{ id: 'sub_trialing' }] })
+
+  it('refuses the in-app upsell — the path that would double-bill', async () => {
+    const res = await post(request({ tier: 'trader', interval: 'monthly', flow: 'trial_end' }))
+    expect(res.status).toBe(409)
+    expect(sessionsCreate).not.toHaveBeenCalled()
+  })
+
+  it('refuses a second trial', async () => {
+    expect((await post(request({ flow: 'trial' }))).status).toBe(409)
+    expect(sessionsCreate).not.toHaveBeenCalled()
+  })
+
+  it('refuses a referral claim mid-trial, which would duplicate the same way', async () => {
+    expect((await post(request({ flow: 'referral' }))).status).toBe(409)
+    expect(sessionsCreate).not.toHaveBeenCalled()
+  })
+
+  it('refuses a plain purchase too', async () => {
+    expect((await post(request({ tier: 'pro', interval: 'annual' }))).status).toBe(409)
+    expect(sessionsCreate).not.toHaveBeenCalled()
+  })
+
+  it('points the customer at the billing portal rather than just failing', async () => {
+    const res = await post(request({ tier: 'trader', interval: 'monthly', flow: 'trial_end' }))
+    expect((await res.json()).error).toMatch(/Settings/)
   })
 })

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import Link from 'next/link'
 import { TrialPlanPicker } from '@/app/_components/TrialPlanPicker'
 
 const CLOSE: ReactNode = (
@@ -102,7 +103,19 @@ export function TrialUpsellModal({
           </p>
         </div>
 
-        <TrialPlanPicker />
+        {/* A card-on-file trialist ALREADY has a subscription, and checkout only
+            ever creates another — it never modifies one. Offering the picker
+            here would let someone mid-trial on Pro buy Trader and end up paying
+            for both. The route refuses it now (409), but a button that exists
+            only to return an error is not an improvement, so they get the
+            billing page instead, which is where a plan change belongs. */}
+        {cardOnFile ? (
+          <Link className="btn btn-primary tg-cta" href="/settings/billing" onClick={onClose}>
+            Manage my plan
+          </Link>
+        ) : (
+          <TrialPlanPicker />
+        )}
       </div>
     </div>,
     document.body,
