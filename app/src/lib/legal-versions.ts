@@ -87,8 +87,13 @@ export type LegalDoc = {
 export const LEGAL_DOCUMENTS: Readonly<Record<LegalDocKey, LegalDoc>> = {
   terms: {
     file: 'terms.html',
-    version: '2026-08-18',
-    bodyHash: '7436428285a62715',
+    // 2026-09-15: §7 now states the GST position — not registered, so the price
+    // shown is the total payable. Bumped WITH the bodyHash and the page's own
+    // "Last updated" line, per the guard's instructions: acceptance records
+    // written from here on must not claim a version that no longer says what it
+    // said. No price changed; this documents what was always being charged.
+    version: '2026-09-15',
+    bodyHash: '888c5732f2a6e39d',
   },
   privacy: {
     file: 'privacy.html',

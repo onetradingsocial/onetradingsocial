@@ -40,7 +40,7 @@ describe('legal document versions', () => {
 
   it('builds the stored version string from the table, so it cannot drift', () => {
     expect(LEGAL_VERSION).toBe(
-      'terms=2026-08-18,privacy=2026-08-18,disclaimer=2026-06-24',
+      'terms=2026-09-15,privacy=2026-08-18,disclaimer=2026-06-24',
     )
     // Derived, not hand-written: rebuild it the same way and compare.
     expect(LEGAL_VERSION).toBe(

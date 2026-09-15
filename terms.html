@@ -1047,7 +1047,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 <main class="legal">
   <div class="wrap">
     <h1>Terms of Service</h1>
-    <p class="legal-updated">Last updated: 18 August 2026</p>
+    <p class="legal-updated">Last updated: 15 September 2026</p>
 
     <p>These terms govern your access to and use of TradingSocial. By creating an account or using
     the platform, you agree to these terms. If you do not agree, do not use TradingSocial.</p>
@@ -1114,19 +1114,21 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     shown on our <a href="/pricing">pricing page</a> and in Settings &rarr; Billing inside the app.
     At the date of these terms they are:</p>
 
-    <!-- GST PLACEHOLDER — OWNER DECISION REQUIRED.
-         Whether these amounts include GST depends on the operating entity's GST
-         registration, which is a business fact not recorded anywhere in this
-         repository. Once confirmed, add ONE of the following to the paragraph
-         below: "These prices include GST." or "We are not registered for GST, so
-         no GST applies to these prices." Do NOT guess — under ACL s48 the price
-         quoted to a consumer must be the total amount actually payable, so an
-         incorrect GST line is itself a misleading price representation. The same
-         placeholder appears on pricing.html and on the in-app billing screens. -->
+    <!-- GST RESOLVED 2026-09-15, owner-confirmed: the operating entity is NOT
+         registered for GST. Source of truth is app/src/lib/plans.ts; the same
+         statement appears on pricing.html and on the in-app billing screens. If
+         the entity ever registers, ACL s48 means the displayed figure must stay
+         the total payable, so that is a repricing decision and not a copy
+         change — see the note in plans.ts before touching this. -->
     <ul>
       <li><b>Trader</b> — A$30 per month, or A$300 per year.</li>
       <li><b>Pro Trader</b> — A$50 per month, or A$500 per year.</li>
     </ul>
+
+    <p><b>We are not registered for GST, so no GST applies to these prices.</b> The
+    amount shown is the total amount payable — nothing is added at checkout. This
+    also means we do not issue tax invoices, so these amounts carry no GST for you
+    to claim back.</p>
 
     <p>We sometimes run a founding-member offer that discounts the first annual invoice — currently
     A$72 for Trader and A$120 for Pro Trader. <b>A promotional price applies to your first billing
@@ -1244,6 +1246,10 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     suspension of a paid account; and replaced the previous change-of-terms clause with the notice
     and cancellation rights above. Section 9 was corrected: deleting your account now cancels an
     active subscription immediately, where previously it did not cancel it at all.</em></p>
+
+    <p><em>September 2026 update: section 7 now states our GST position. We are not registered for
+    GST, so no GST applies to our prices and the amount shown is the total amount payable. This is a
+    clarification of what you were already charged — no price has changed.</em></p>
 
     <h2>16. Governing law</h2>
     <p>These terms are governed by the laws of South Australia, Australia, and you submit to the

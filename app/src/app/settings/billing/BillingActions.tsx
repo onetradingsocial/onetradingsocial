@@ -1,7 +1,7 @@
 'use client'
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { trackMeta } from '@/app/_components/MetaPixel'
-import { CUR, CURRENCY_NOTE } from '@/lib/plans'
+import { CUR, CURRENCY_NOTE, GST_NOTE } from '@/lib/plans'
 import { FREE_ACTIVE_GOAL_LIMIT, requiredPlanLabel } from '@/lib/entitlements'
 
 const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
@@ -202,10 +202,10 @@ export function PlanCards({ currentTier, currentInterval, hasSubscription, onTri
         })}
       </div>
 
-      {/* GST PLACEHOLDER — OWNER DECISION REQUIRED. A GST line belongs in this
-          block once the entity's GST registration status is confirmed. */}
+      {/* GST resolved 2026-09-15: the entity is not registered, so the figure
+          shown IS the total payable. See lib/plans.ts. */}
       <p className="ts-price-fine mt-6">
-        {CURRENCY_NOTE} Paid plans renew automatically at the price shown until you
+        {CURRENCY_NOTE} {GST_NOTE} Paid plans renew automatically at the price shown until you
         cancel. Cancel any time via <b>Manage billing &amp; invoices</b> — access
         continues to the end of the period you have already paid for.{' '}
         <a href={`${MARKETING}/terms#subscriptions`} target="_blank" rel="noopener noreferrer">Subscription terms</a>

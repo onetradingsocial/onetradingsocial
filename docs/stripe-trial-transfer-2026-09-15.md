@@ -576,7 +576,22 @@ block the risky parts from being de-risked.
 
 ## 7. Open questions for the owner
 
-1. **GST** — unresolved in `plans.ts` and now on the critical path.
+1. ~~GST~~ — **settled 2026-09-15**: the entity is **not registered for GST**, so
+   no GST is charged and A$30/A$50 are the total payable. All six placeholders
+   resolved (`plans.ts`, `TrialPlanPicker`, `BillingActions`, `pricing.html` ×3,
+   `terms.html` §7). No repricing needed.
+
+   Terms §7 gained a GST paragraph, which tripped the legal-body hash guard —
+   correctly. `LEGAL_VERSION` is now
+   `terms=2026-09-15,privacy=2026-08-18,disclaimer=2026-06-24`, the page's "Last
+   updated" line moved with it, and a dated changelog entry was added. That was
+   audit item 24, and it means consent records written from here on are
+   distinguishable from pre-change ones.
+
+   Recorded in `plans.ts`: if the entity ever registers, ACL s48 forbids adding
+   10% at checkout for consumers, so A$30 would stay A$30 and net A$27.27. That
+   makes registering a **repricing decision**, not a copy change — plus
+   location logic, since sales to non-residents are GST-free exports.
 2. ~~Trial tier~~ — **settled**: Pro for everyone, then their pick. See decision 2.
 3. **The 42 expired-unresolved users** — in scope for the same add-a-card
    campaign, or left alone?

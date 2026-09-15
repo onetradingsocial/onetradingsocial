@@ -9,14 +9,36 @@ import type { Tier } from '@/lib/entitlements'
  *  line wherever a price block appears. `A$` sits BEFORE the number so it can
  *  never be misread as a bare `$` at a glance.
  *
- *  GST PLACEHOLDER — OWNER DECISION REQUIRED. Whether these amounts include GST
- *  depends on the operating entity's GST registration, which is not recorded
- *  anywhere in this repo. Once confirmed, add the GST line to every surface that
- *  imports CURRENCY_NOTE. Do NOT guess: ACL s48 requires the quoted figure to be
- *  the total payable. */
+ *  GST — RESOLVED 2026-09-15, owner-confirmed. The operating entity is **not
+ *  registered for GST**, so no GST is charged and the figures below are the
+ *  total amount payable exactly as written. A$30 is A$30.
+ *
+ *  This had been an open placeholder since the prices were first written, and
+ *  it stopped being safe to leave open when the trial moved to Stripe: until
+ *  then the figure was a quote a user clicked through several screens to
+ *  accept, each one a chance to state the real total. With a card captured at
+ *  signup and the charge automatic on day 14, the quoted figure becomes the
+ *  authority for a debit nobody re-confirms — so a wrong one is money leaving
+ *  an account at an amount the customer was never shown. ACL s48 requires the
+ *  quoted figure to be the total payable, and now it demonstrably is.
+ *
+ *  IF THE ENTITY EVER REGISTERS, this is the first thing that must change, and
+ *  it is not a copy change alone. ACL s48 forbids adding 10% at checkout for a
+ *  consumer audience, so A$30 would NOT become A$33 — it would stay A$30 and
+ *  net A$27.27 unless the prices are deliberately raised. Registering is a
+ *  repricing decision wearing a compliance hat. Sales to non-residents are
+ *  generally GST-free exports, so it would also mean location logic (Stripe
+ *  Tax) rather than one flat rate.
+ *
+ *  Not advice — the registration position is the owner's, confirmed above. */
 export const CURRENCY = 'AUD'
 export const CUR = 'A$'
 export const CURRENCY_NOTE = 'All prices are in Australian dollars (AUD).'
+
+/** The GST position, for any surface that quotes a price. Pairs with
+ *  CURRENCY_NOTE; kept separate so a surface can carry the currency line
+ *  without the tax line, and so a future registration changes one constant. */
+export const GST_NOTE = 'No GST is charged — the price shown is the total amount payable.'
 
 /** Paid plan copy shared by the signup welcome screen and the end-of-trial
  *  modal. Prices mirror settings/billing; `pip` is a bare tier name so each

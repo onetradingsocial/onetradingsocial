@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import type { Interval } from '@/lib/entitlements'
-import { PAID_PLANS, CUR, CURRENCY_NOTE } from '@/lib/plans'
+import { PAID_PLANS, CUR, CURRENCY_NOTE, GST_NOTE } from '@/lib/plans'
 import { trackMeta } from '@/app/_components/MetaPixel'
 
 const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
@@ -98,11 +98,11 @@ export function TrialPlanPicker({
         ))}
       </div>
 
-      {/* GST PLACEHOLDER — OWNER DECISION REQUIRED. A GST line belongs in this
-          block once the entity's GST registration status is confirmed. */}
+      {/* GST resolved 2026-09-15: the entity is not registered, so the figure
+          shown IS the total payable. See lib/plans.ts. */}
       <p className="tg-fine">
-        {CURRENCY_NOTE} Paid plans renew automatically until you cancel, which you
-        can do at any time in Settings → Billing.{' '}
+        {CURRENCY_NOTE} {GST_NOTE} Paid plans renew automatically until you cancel,
+        which you can do at any time in Settings → Billing.{' '}
         <a href={`${MARKETING}/terms#subscriptions`} target="_blank" rel="noopener noreferrer">Subscription terms</a>
       </p>
 
