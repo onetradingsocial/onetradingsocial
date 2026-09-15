@@ -85,7 +85,9 @@ export function Turnstile({ resetOn }: { resetOn?: unknown }) {
           // We carry the token in our own hidden input below. Turnstile's
           // injected field would collide with it on the same name.
           'response-field': false,
-          theme: 'dark',
+          // The auth cards are light. 'dark' shipped with the inert widget, when
+          // nobody could see it, and read as a black slab once the key went in.
+          theme: 'light',
           callback: (t: string) => setToken(t),
           'expired-callback': () => setToken(''),
           'error-callback': () => setToken(''),
