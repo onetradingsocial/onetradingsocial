@@ -465,7 +465,7 @@ migration **before** the merge.
      fail closed on an unreachable marker. This was the only path that could
      create a local trial without consulting `trial_eligible`, and PGRST204
      made it reachable on a transient schema-cache blip.
-   - **Launch day, with step 6:** apply `0076_trial_eligible_default_off.sql`,
+   - **Launch day, with step 6:** apply `0077_trial_eligible_default_off.sql`,
      written and held with a `DO NOT APPLY THIS YET` header. The env switch is
      the lever; the migration makes the disarm durable against a 0075 replay.
 
