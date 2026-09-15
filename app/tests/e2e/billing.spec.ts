@@ -45,7 +45,15 @@ async function signUpAndOnboard(page: import('@playwright/test').Page) {
 test('free user sees Free plan and Upgrade button on billing page', async ({ page }) => {
   await signUpAndOnboard(page)
   await page.goto('/settings/billing')
-  await expect(page.getByText('Current plan:')).toContainText('Free')
+  // `getByText('Current plan:')` matched nothing — the page has never rendered
+  // that string with a colon; the plan card button reads "✓ Current plan". A
+  // stale selector, predating the trial change, that failed as "element not
+  // found" rather than as a wrong plan.
+  //
+  // Asserted on the page's own summary line instead, which is the sentence a
+  // person actually reads, plus the disabled marker on the Free card.
+  await expect(page.locator('.ts-sub')).toContainText('Free')
+  await expect(page.locator('.pcard-cta', { hasText: '✓ Current plan' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Upgrade to Trader/i })).toBeVisible()
 })
 

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { dismissWelcome } from './utils/welcome'
+import { grantTier } from './utils/tier'
 import { SIGNUP_PASSWORD } from './utils/creds'
 
 async function signUpAndOnboard(page: Page, prefix: string) {
@@ -30,6 +31,20 @@ async function signUpAndOnboard(page: Page, prefix: string) {
   await page.click('button:has-text("Create my profile")')
   await page.click('button:has-text("Enter TradingSocial")')
   await expect(page).toHaveURL('/', { timeout: 15000 })
+  await dismissWelcome(page)
+  // `leaderboard_ranking` is Trader+ in FEATURE_MIN_TIER, and boardEligibleIds
+  // drops a Free account from the board entirely — so a spec about two traders
+  // being RANKED needs a paid tier to mean anything.
+  //
+  // It used to get one by accident: every signup was handed a Pro trial. Signup
+  // no longer grants one, so it is granted explicitly here and the dependency is
+  // visible instead of inherited.
+  //
+  // Honest caveat: this is justified by the gate, not by a green run. The suite
+  // does not complete on this machine (see the e2e notes in the trial plan), so
+  // the grant is correct by construction rather than verified end to end.
+  await grantTier(username)
+  await page.reload()
   await dismissWelcome(page)
   return username
 }
