@@ -9,6 +9,28 @@
    anyone who wants Trader downgrades before day 14 in the billing portal. The
    trial offer therefore does not change — only the card does.
 
+## 0. Applied state
+
+Migrations are hand-applied here and deploys are not, so this is the record of
+what is actually live. Update it whenever one moves.
+
+| Migration | dev `sixixwutvrguqemqzvvw` | prod `jmpanzrjxflovdfwcbye` | Notes |
+|---|---|---|---|
+| 0076 subscriptions trial window | ✅ 2026-09-15 | ✅ 2026-09-15 | Must precede the code merge — the columns are written, not read |
+| 0077 `trial_eligible` DEFAULT false | ⛔ held | ⛔ held | Launch day only, **with** step 6. Applying it alone withdraws the advertised trial |
+| 0078 `admin_search_users` tiebreak | ✅ 2026-09-15 | ✅ 2026-09-15 | Read-only function, safe in any order |
+
+Env, both unset — the code ships inert until these move:
+
+| Variable | State | Flip when |
+|---|---|---|
+| `LOCAL_TRIAL_DISABLED` | unset (local trial armed) | Launch day, with 0077 and step 6 |
+| `TRIAL_WALL_ENABLED` | unset | Becomes a no-op for new accounts anyway — see 5.7 |
+
+Branch `feat/trial-to-stripe` holds steps 0–3. **Nothing user-visible has changed
+yet**, by design: the columns exist and sit unused, the latch is still armed, and
+the Stripe checkout branch does not exist.
+
 ## 1. Where we are today
 
 Two trial mechanisms exist and they share no code.
