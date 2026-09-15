@@ -9,7 +9,11 @@ import { recoveryDue, recoveryNudge } from '@/lib/recovery'
 import { dueTrialStage, trialStageIsOptional } from '@/lib/trial-sequence'
 import { generateInsights } from '@/lib/insights'
 import { journaledCloseAt } from '@/lib/xp'
-import { trialState, trialDaysLeft, JOURNAL_FREE_LIMIT, type Tier } from '@/lib/entitlements'
+import { trialState, JOURNAL_FREE_LIMIT, type Tier } from '@/lib/entitlements'
+import {
+  activeTrialWindow, stripeTrialWindow, windowDaysElapsed, windowDaysLeft,
+  type TrialSubRow,
+} from '@/lib/trial-window'
 import { getTierMap } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
 import { canFlag } from '@/lib/feature-flags'
@@ -299,6 +303,32 @@ export async function GET(req: Request) {
   // which is exactly the deploy order we want.
   let trialNotices = 0
   const nowDate = new Date(now)
+
+  // Every trial Stripe is currently running, read ONCE and shared by both trial
+  // branches below. Since 0076 the mirror carries trial_start/trial_end, so this
+  // is the whole picture of the card-backed population — no Stripe API call.
+  //
+  // Its own try, and a tolerated failure: if this read breaks, both branches
+  // degrade to "nobody has a card", which is the PRE-Stripe behaviour and is
+  // wrong in the dangerous direction. So a failure here must stop the trial
+  // emails rather than send them on a stale assumption. `stripeTrialsKnown`
+  // carries that decision to both branches.
+  const { data: trialSubs, error: trialSubsError } = await svc
+    .from('subscriptions')
+    .select('user_id, status, trial_start, trial_end, cancel_at_period_end')
+    .eq('status', 'trialing')
+  const stripeTrialsKnown = !trialSubsError
+  if (trialSubsError) {
+    logError('lifecycle-emails', trialSubsError.message, {
+      note: 'could not read trialing subscriptions — trial emails skipped rather than sent with no-card copy',
+    })
+  }
+  const subsByUser = new Map<string, TrialSubRow[]>()
+  for (const s of trialSubs ?? []) {
+    const uid = s.user_id as string
+    subsByUser.set(uid, [...(subsByUser.get(uid) ?? []), s as TrialSubRow])
+  }
+
   const { data: trials, error: trialError } = await svc
     .from('profiles')
     .select('id, username, display_name, trial_started_at, trial_ack_at, last_trial_email')
@@ -308,9 +338,28 @@ export async function GET(req: Request) {
 
   if (trialError) {
     logError('lifecycle-emails', trialError.message, { note: 'trial notice skipped (migration not applied?)' })
+  } else if (!stripeTrialsKnown) {
+    logError('lifecycle-emails', undefined, { note: 'trial expiry notice skipped: cannot rule out a Stripe trial' })
   } else {
     for (const t of trials ?? []) {
       if (trialState(t.trial_started_at, t.trial_ack_at, nowDate) !== 'expired') continue
+
+      // This notice is LOCAL-ONLY, and the guard is load-bearing rather than
+      // tidy. `trialExpiredHtml` says "You were never charged and there's
+      // nothing to cancel — the trial never asked for a card." A grandfathered
+      // user who takes the add-a-card invitation holds BOTH: a Stripe trial
+      // with a card, and a local trial that lapses a few days later. Without
+      // this, that lapse mails them a flat denial that a charge is coming,
+      // days before Stripe charges them.
+      //
+      // Why they are skipped rather than sent adapted copy: a Stripe trial does
+      // not "expire into Free" at all — it either converts (nothing ended, and
+      // an ending notice would be false) or Stripe cancels it for a missing
+      // card (a different message again). Writing either is a product decision
+      // about money, and the pre-charge notice is already owned by Stripe's own
+      // trial_will_end event. Nothing is silently dropped here: the user is on
+      // the Stripe path and gets the Stripe path's notices.
+      if (stripeTrialWindow(subsByUser.get(t.id))) continue
       // Only recently lapsed trials — see TRIAL_EXPIRY_NOTICE_WINDOW_DAYS.
       const expiredAt = Date.parse(t.trial_started_at) + 14 * DAY
       if (now - expiredAt > TRIAL_EXPIRY_NOTICE_WINDOW_DAYS * DAY) continue
@@ -347,25 +396,70 @@ export async function GET(req: Request) {
   // one would have suppressed the expiry notice for everyone who got a day-1
   // email — reintroducing the exact silence 0049 fixed, in a narrower form.
   let trialStageEmails = 0
-  const { data: inTrial, error: seqError } = await svc
-    .from('profiles')
-    .select('id, username, display_name, notification_prefs, trial_started_at, trial_ack_at, trial_email_stage')
+  const SEQ_COLS = 'id, username, display_name, notification_prefs, trial_started_at, trial_ack_at, trial_email_stage'
+
+  // TWO cohorts, unioned. The local one is the original query. The Stripe one is
+  // new and cannot be expressed as a filter on `profiles` at all — the fact that
+  // makes a user eligible lives in another table — so it is a second read keyed
+  // on the trialing user ids gathered above.
+  //
+  // Without the second read this branch keeps returning 200 and sending nothing
+  // to anyone on the new trial, which is the failure this whole change exists to
+  // avoid: a green cron and a silent product.
+  const { data: localInTrial, error: seqError } = await svc
+    .from('profiles').select(SEQ_COLS)
     .eq('is_internal', false)
     .not('trial_started_at', 'is', null)
     .is('trial_ack_at', null)
 
+  const stripeIds = [...subsByUser.keys()]
+  const { data: stripeInTrial, error: stripeSeqError } = stripeIds.length
+    ? await svc.from('profiles').select(SEQ_COLS).eq('is_internal', false).in('id', stripeIds)
+    : { data: [] as NonNullable<typeof localInTrial>, error: null }
+
+  if (stripeSeqError) {
+    logError('lifecycle-emails', stripeSeqError.message, { note: 'stripe trial cohort read failed' })
+  }
+
+  // De-duplicated by id: a grandfathered user who added a card appears in both.
+  const inTrial = [...new Map(
+    [...(localInTrial ?? []), ...(stripeInTrial ?? [])].map((p) => [p.id as string, p]),
+  ).values()]
+
   if (seqError) {
     logWarn('lifecycle-emails', seqError.message, { note: 'trial sequence skipped (migration 0064 not applied?)' })
+  } else if (!stripeTrialsKnown) {
+    logError('lifecycle-emails', undefined, { note: 'trial sequence skipped: cannot tell which trials have a card' })
   } else {
-    for (const t of inTrial ?? []) {
-      // trial_ack_at is written by the Stripe webhook on subscribe, so
-      // `resolved` already excludes anyone who upgraded. This also excludes
-      // `expired` — the notice branch owns that side of the line.
-      if (trialState(t.trial_started_at, t.trial_ack_at, nowDate) !== 'active') continue
+    for (const t of inTrial) {
+      // Which trial this user is actually on. Stripe wins when both are
+      // running, because it is the one that ends in a charge and therefore the
+      // one every line of the email has to describe. `trial_ack_at` still
+      // excludes anyone who upgraded, and an expired local trial yields no
+      // window — the notice branch owns that side of the line.
+      const win = activeTrialWindow(t, subsByUser.get(t.id as string), nowDate)
+      if (!win) continue
 
-      const daysSinceStart = Math.floor((now - Date.parse(t.trial_started_at)) / DAY)
-      const stage = dueTrialStage({ daysSinceStart, lastStageSent: t.trial_email_stage ?? null })
+      const stage = dueTrialStage({
+        daysSinceStart: windowDaysElapsed(win, nowDate),
+        lastStageSent: t.trial_email_stage ?? null,
+      })
       if (stage == null) continue
+
+      // Stage 12 is the pre-charge notice for a card-on-file trial — and Stripe
+      // already sends one on day 11 via customer.subscription.trial_will_end.
+      // Sending both means two emails about the same charge a day apart, so
+      // this one yields. Still stamped, so the ratchet does not re-evaluate it
+      // every night forever.
+      if (stage === 12 && win.cardOnFile) {
+        const { error: skipStamp } = await svc.from('profiles')
+          .update({ trial_email_stage: stage }).eq('id', t.id)
+        if (skipStamp) {
+          logError('lifecycle-emails', skipStamp.message, { note: 'could not stamp trial_email_stage, stopping' })
+          break
+        }
+        continue
+      }
 
       const prefs = (t.notification_prefs ?? {}) as Record<string, boolean>
       // Days 1 and 7 are nudges and respect the preference. Day 12 is notice of
@@ -386,11 +480,19 @@ export async function GET(req: Request) {
         await deliver(email, subject, trialSequenceHtml({
           name: t.display_name || t.username,
           stage,
-          daysLeft: trialDaysLeft(t.trial_started_at, nowDate),
+          daysLeft: windowDaysLeft(win, nowDate),
           trades: count ?? 0,
           hasBroker: withBroker.has(t.id),
           canAutosync: tier ? canFlag(flags, tier, 'mt5_autosync') : false,
           kept: JOURNAL_FREE_LIMIT,
+          // Drives every payment line in the template. A wrong value here is
+          // the difference between "nothing will be charged" and the truth.
+          cardOnFile: win.cardOnFile,
+          endsOn: win.cardOnFile
+            ? new Date(win.endsAt).toLocaleDateString('en-AU', {
+                day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney',
+              })
+            : null,
         }))
         trialStageEmails++
       }

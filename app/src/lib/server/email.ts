@@ -214,12 +214,32 @@ export function trialExpiredHtml(x: { name: string; kept: number }): string {
  *  for why the trial was silent until this existed, and why `trialEndingHtml`
  *  does not cover it.
  *
- *  The single most important rule in this copy: **the trial takes no card, so
- *  nothing can be charged.** `trialExpiredHtml` already says so after the fact;
- *  the day-12 email is the one most likely to be misread as a billing warning,
- *  and a user cancelling a subscription that does not exist is the failure mode
- *  to design against. Every stage says what happens in plain terms and none of
- *  them mentions payment.
+ *  ── THE PAYMENT CLAIM IS NOW CONDITIONAL, AND THAT IS THE WHOLE POINT ───────
+ *
+ *  This copy used to rest on one rule: **the trial takes no card, so nothing
+ *  can be charged.** That was true of every trial this product could create,
+ *  so the reassurance was hardcoded into all three stages.
+ *
+ *  It stopped being true when the trial moved to Stripe. The same three emails
+ *  now reach two populations at once for the length of the grandfathering
+ *  window: grandfathered users on the old card-free trial, for whom the
+ *  original copy is still exactly right, and Stripe trialists with a card on
+ *  file and a charge scheduled. Sending "Nothing will be charged" to the second
+ *  group is a written promise not to charge someone we are about to charge —
+ *  the most dangerous sentence this codebase can emit.
+ *
+ *  So `cardOnFile` drives every payment line, and `endsOn` names the date a
+ *  charge lands. The failure mode to design against has INVERTED: it used to be
+ *  a user cancelling a subscription that does not exist; it is now a user who
+ *  does not cancel one that does.
+ *
+ *  Day 12 is the sharp edge. For a card-free trial it is notice of a downgrade.
+ *  For a Stripe trial it would be notice of a charge — except Stripe's own
+ *  `customer.subscription.trial_will_end` already fires on day 11 and owns that
+ *  notice, so the caller suppresses stage 12 for card-on-file trials rather
+ *  than send two contradictory emails a day apart. The branch below is still
+ *  written correctly for that case: a template must not depend on its caller to
+ *  keep it honest about money.
  *
  *  Day 1 and 7 lead with connecting a broker because the trial is the one
  *  window where that CTA is honest — `mt5_autosync` is Pro-gated, and a trial
@@ -233,7 +253,15 @@ export function trialSequenceHtml(x: {
   hasBroker: boolean
   canAutosync: boolean
   kept: number
+  /** A card is on file and a charge follows this trial. See the note above. */
+  cardOnFile?: boolean
+  /** The date the trial converts or lapses, already formatted for display
+   *  (en-AU, Australia/Sydney) by the caller. Only read when `cardOnFile`. */
+  endsOn?: string | null
 }): string {
+  // "on 29 September" when we know the date, "when your trial ends" when we do
+  // not. Never an empty string or an "Invalid Date" in front of a customer.
+  const when = x.endsOn ? `on ${x.endsOn}` : 'when your trial ends'
   // The one next action, shared by days 1 and 7 and chosen the same way the
   // recovery nudge chooses it (lib/recovery.ts) so the two never contradict.
   const action = x.hasBroker
@@ -249,7 +277,9 @@ export function trialSequenceHtml(x: {
     return shell(`${x.name}, one thing to do today`, `
       <p style="font-size:14px;line-height:1.6">You have Pro for the next ${x.daysLeft} days. Rather than list everything it unlocks, here is the single thing that makes the rest of it work.</p>
       ${action}
-      <p style="font-size:13px;line-height:1.6;color:#56536b">No card was taken and none is needed. Nothing will be charged at any point in the trial.</p>
+      <p style="font-size:13px;line-height:1.6;color:#56536b">${x.cardOnFile
+        ? `Your card is on file and nothing has been charged yet. Your plan starts ${when} — cancel before then in Settings &rarr; Billing and you will not be charged.`
+        : 'No card was taken and none is needed. Nothing will be charged at any point in the trial.'}</p>
     `)
   }
 
@@ -261,11 +291,30 @@ export function trialSequenceHtml(x: {
       <p style="font-size:14px;line-height:1.6">A week in, ${x.daysLeft} days of Pro left.</p>
       ${progress}
       ${x.trades === 0 ? action : `${button(`${APP}/journal`, 'See what your trades say')}`}
-      <p style="font-size:13px;line-height:1.6;color:#56536b">Still no card on file. Nothing will be charged.</p>
+      <p style="font-size:13px;line-height:1.6;color:#56536b">${x.cardOnFile
+        ? `Your card is on file. Nothing is charged until your plan starts ${when}; cancel before then in Settings &rarr; Billing and you will not be charged.`
+        : 'Still no card on file. Nothing will be charged.'}</p>
     `)
   }
 
   // Stage 12. Notice of a state change, not a sales email and not a bill.
+  //
+  // With a card on file it is notice of a CHARGE, so it says so first and names
+  // the date and the route out before anything else. Normally unreachable —
+  // Stripe's trial_will_end owns the pre-charge notice on day 11 and the caller
+  // suppresses this stage for card-on-file trials — but correct here regardless,
+  // because a template that depends on its caller to stay honest about money is
+  // one refactor away from lying.
+  if (x.cardOnFile) {
+    return shell(`${x.name}, your Pro trial ends in ${x.daysLeft} ${x.daysLeft === 1 ? 'day' : 'days'}`, `
+      <p style="font-size:14px;line-height:1.6">Your ${x.daysLeft === 1 ? 'last day' : 'final days'} of the free trial. Here is exactly what happens next, so none of it is a surprise.</p>
+      <p style="font-size:14px;line-height:1.6"><b>Your paid plan starts ${when}, and the card you saved will be charged.</b> If you would rather not continue, cancel before then in <b>Settings &rarr; Billing</b> and you will not be charged anything.</p>
+      <p style="font-size:14px;line-height:1.6"><b>Nothing you have logged is deleted</b> either way. Every trade, note and screenshot stays exactly where it is.</p>
+      ${button(`${APP}/settings/billing`, 'Review or cancel your plan')}
+      <p style="font-size:13px;line-height:1.6;color:#56536b">Prices are in Australian dollars (AUD). You can cancel at any time.</p>
+    `)
+  }
+
   return shell(`${x.name}, your Pro trial ends in ${x.daysLeft} ${x.daysLeft === 1 ? 'day' : 'days'}`, `
     <p style="font-size:14px;line-height:1.6">Your ${x.daysLeft === 1 ? 'last day' : 'final days'} of Pro. Here is exactly what happens next, so none of it is a surprise.</p>
     <p style="font-size:14px;line-height:1.6"><b>You will not be charged.</b> The trial never asked for a card and there is nothing to cancel. When it ends your account simply moves to the <b>Free</b> plan.</p>

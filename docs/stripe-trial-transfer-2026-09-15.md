@@ -480,9 +480,40 @@ migration **before** the merge.
 1. Add `trial_end` / `trial_start` to the `subscriptions` mirror and populate
    them in `subscriptionRow()`. Without this the expiry-notice branch cannot be
    rebuilt at all.
-2. Re-key the lifecycle-email queries to read BOTH mechanisms, and split
-   `trialSequenceHtml` / `trialExpiredHtml` on a `cardOnFile` argument. Ship
-   alone. Nothing user-visible changes.
+2. Re-key the lifecycle-email queries to read BOTH mechanisms, and split the
+   copy on `cardOnFile`. ✅ **Shipped 2026-09-15.**
+
+   `lib/trial-window.ts` resolves which trial a user is on. **Stripe wins when
+   both run** — a safety ordering, not a recency one, because the Stripe window
+   is the one ending in a charge and so the one every line must describe. It
+   holds even when the local trial ends later.
+
+   - **Day 1/7/12 sequence** now covers both cohorts. The Stripe cohort cannot
+     be expressed as a filter on `profiles` — the qualifying fact is in another
+     table — so it is a second read, unioned by id.
+   - **Stage 12 is suppressed for card-on-file trials.** Stripe's own
+     `trial_will_end` fires on day 11 and owns the pre-charge notice; sending
+     both is two emails about one charge a day apart. Still stamped, so the
+     ratchet does not re-evaluate nightly.
+   - **A bug found while writing it, not in any audit:** a grandfathered user
+     who takes the add-a-card invitation holds *both* trials. When the local one
+     lapsed a few days later, the expiry branch would have mailed them "You were
+     never charged and there's nothing to cancel — the trial never asked for a
+     card", days before Stripe charged them. The expiry branch now skips anyone
+     with a Stripe trial.
+   - **The expiry notice stays local-only, deliberately.** A Stripe trial does
+     not expire into Free: it converts (nothing ended) or Stripe cancels it for
+     a missing card (a different message). Both are copy about money and belong
+     with step 4, not invented here.
+   - **Failure direction is chosen.** If the `subscriptions` read fails, both
+     branches *skip* rather than fall back to "nobody has a card" — the
+     pre-Stripe assumption, which is wrong in the dangerous direction.
+
+   Guarded by `tests/unit/trial-window.test.ts`: the card-on-file copy is
+   asserted to contain none of the six unconditional denials, while *keeping*
+   the conditional "cancel before then and you will not be charged" — the
+   distinction being "a charge is impossible" versus "here is how to prevent
+   it". 1580 tests pass.
 3. Give `funnel.ts`, `admin-users.ts` and the admin user page a distinct
    `Trialing` bucket, before trialists start inflating "Paid".
 4. Generalise the `trial_will_end` path and its copy.
