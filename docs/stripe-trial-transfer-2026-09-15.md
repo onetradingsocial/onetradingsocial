@@ -28,9 +28,29 @@ Env, both unset — the code ships inert until these move:
 | `LOCAL_TRIAL_DISABLED` | unset (local trial armed) | Launch day, with 0077 and step 6 |
 | `TRIAL_WALL_ENABLED` | unset | Becomes a no-op for new accounts anyway — see 5.7 |
 
-Branch `feat/trial-to-stripe` holds steps 0–5 (terms). **Nothing user-visible has
-changed yet**, by design: the columns exist and sit unused, the latch is still
-armed, and the Stripe checkout branch does not exist.
+Branch `feat/trial-to-stripe` holds steps 0–7. **Nothing user-visible has changed
+yet**, by design: the migrations sit unused until the branch merges, and the
+local trial is still armed.
+
+**The owner-facing summary lives in [`day-14-decisions-2026-09-15.html`](./day-14-decisions-2026-09-15.html)**,
+published as an Artifact at <https://claude.ai/artifact/3TkijPoghJoUBcT6P1AVN3>.
+That file is the source of truth — republish it with `url` set to the link above
+so the same page updates rather than a second one appearing. It is written for
+someone who is not in the code: costs in dollars and days, no file paths. `docs/`
+is in `.vercelignore`, so nothing here is served from the marketing site.
+
+### Stripe dashboard settings, read from the API 2026-09-15
+
+Read with the **test** key from `app/.env.local`; Stripe keeps these per mode, so
+each still needs confirming in Live mode. All three sit at their untouched
+defaults, so live is very likely identical.
+
+| Setting | Value | Consequence |
+|---|---|---|
+| `billing_portal` `subscription_update` | **false** | **Launch blocker.** A trialist cannot switch Pro → Trader. The offer is A$50 or cancel |
+| `billing_portal` `subscription_cancel` | true | Cancelling during the trial works, which terms §8 relies on |
+| `business_profile.terms_of_service_url` | **not set** | Stripe's consent checkbox cannot be enabled until this is set |
+| `STRIPE_COUPON_BETA_ANNUAL` duration | `once`, 76% off | Hazard real, but no path now combines a coupon with a trial |
 
 ### Launch day — these flip together or not at all
 

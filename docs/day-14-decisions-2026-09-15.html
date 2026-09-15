@@ -1,0 +1,712 @@
+<title>Day 14 Decisions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  /* ── Tokens ──────────────────────────────────────────────────────────────
+     Neutrals carry a slight green bias toward the accent, so the greys read
+     as chosen rather than inherited. Severity colour is separate from the
+     accent and is the only place saturation is spent. */
+  :root {
+    --ground:   #F5F7F4;
+    --surface:  #FFFFFF;
+    --sunken:   #EEF1ED;
+    --ink:      #16211E;
+    --dim:      #5C6A65;
+    --faint:    #8A9791;
+    --line:     #DDE3DD;
+    --line-soft:#E9EDE8;
+    --accent:   #0B6B57;
+    --accent-w: #E4F0EB;
+    --alert:    #A33A1E;
+    --alert-w:  #F7E7E1;
+    --warn:     #8A6410;
+    --warn-w:   #F6EEDC;
+    --shadow:   0 1px 2px rgba(22,33,30,.05), 0 8px 24px -16px rgba(22,33,30,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #0D1311;
+      --surface:  #151E1B;
+      --sunken:   #101917;
+      --ink:      #E7EDEA;
+      --dim:      #97A59F;
+      --faint:    #6F7D78;
+      --line:     #25322E;
+      --line-soft:#1D2926;
+      --accent:   #4FBFA1;
+      --accent-w: #122C26;
+      --alert:    #E68162;
+      --alert-w:  #2E1913;
+      --warn:     #D9A845;
+      --warn-w:   #2B2312;
+      --shadow:   0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:   #0D1311;
+    --surface:  #151E1B;
+    --sunken:   #101917;
+    --ink:      #E7EDEA;
+    --dim:      #97A59F;
+    --faint:    #6F7D78;
+    --line:     #25322E;
+    --line-soft:#1D2926;
+    --accent:   #4FBFA1;
+    --accent-w: #122C26;
+    --alert:    #E68162;
+    --alert-w:  #2E1913;
+    --warn:     #D9A845;
+    --warn-w:   #2B2312;
+    --shadow:   0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.8);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    padding-inline: 20px;
+    padding-block: 0;
+  }
+  .wrap { max-width: 780px; margin-inline: auto; padding-block: 56px 88px; }
+
+  /* ── Masthead ─────────────────────────────────────────────────────────── */
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px; font-weight: 500; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  h1 {
+    font-family: Spectral, Georgia, serif;
+    font-weight: 700; font-size: clamp(38px, 7vw, 58px);
+    line-height: 1.04; letter-spacing: -.02em;
+    text-wrap: balance; margin: 14px 0 0;
+  }
+  .standfirst {
+    font-family: Spectral, Georgia, serif;
+    font-size: clamp(17px, 2.4vw, 20px); line-height: 1.55;
+    color: var(--dim); margin: 18px 0 0; max-width: 62ch;
+  }
+  .standfirst b { color: var(--ink); font-weight: 600; }
+  .byline {
+    display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 26px;
+    padding-top: 18px; border-top: 1px solid var(--line);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px; color: var(--faint);
+  }
+  .byline span { white-space: nowrap; }
+  .byline b { color: var(--dim); font-weight: 500; }
+
+  /* ── Figure strip ─────────────────────────────────────────────────────── */
+  .figs {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+    background: var(--line); border: 1px solid var(--line);
+    margin-top: 40px; border-radius: 3px; overflow: hidden;
+  }
+  .fig { background: var(--surface); padding: 18px 16px; }
+  .fig .n {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 26px; font-weight: 600; letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums; display: block; line-height: 1.1;
+  }
+  .fig .n.bad { color: var(--alert); }
+  .fig .l {
+    font-size: 12px; line-height: 1.4; color: var(--faint);
+    margin-top: 7px; display: block;
+  }
+
+  /* ── Sections ─────────────────────────────────────────────────────────── */
+  section { margin-top: 56px; }
+  .sec-head { border-bottom: 2px solid var(--ink); padding-bottom: 9px; margin-bottom: 4px; }
+  h2 {
+    font-family: Spectral, Georgia, serif;
+    font-size: 25px; font-weight: 600; letter-spacing: -.01em;
+    margin: 0; text-wrap: balance;
+  }
+  .sec-sub { font-size: 14px; color: var(--dim); margin: 10px 0 0; max-width: 62ch; }
+
+  /* ── Decision block ───────────────────────────────────────────────────── */
+  .item {
+    border-bottom: 1px solid var(--line-soft);
+    padding: 26px 0 28px 20px;
+    border-left: 3px solid var(--line);
+    padding-left: 20px;
+  }
+  .item.sev-bad  { border-left-color: var(--alert); }
+  .item.sev-warn { border-left-color: var(--warn); }
+  .item.sev-chk  { border-left-color: var(--accent); }
+  .item.sev-done { border-left-color: var(--line); }
+  .item.sev-done h3 { color: var(--dim); }
+
+  .resolved {
+    margin-top: 14px; padding: 13px 15px; border-radius: 3px;
+    background: var(--accent-w); font-size: 14.5px; line-height: 1.6;
+    max-width: 64ch; color: var(--ink);
+  }
+  .resolved .tag {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--accent);
+    display: block; margin-bottom: 4px;
+  }
+  .resolved b { font-weight: 600; }
+
+  .item-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .rank {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px; font-weight: 600; color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .chip {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.bad  { background: var(--alert-w);  color: var(--alert); }
+  .chip.warn { background: var(--warn-w);   color: var(--warn); }
+  .chip.chk  { background: var(--accent-w); color: var(--accent); }
+  .chip.done { background: var(--sunken);   color: var(--dim); }
+
+  h3 {
+    font-family: Spectral, Georgia, serif;
+    font-size: 21px; font-weight: 600; line-height: 1.3;
+    margin: 10px 0 0; letter-spacing: -.01em; text-wrap: balance;
+  }
+  .item p { margin: 12px 0 0; max-width: 64ch; }
+  .item p.tight { margin-top: 8px; }
+
+  .lede { color: var(--dim); }
+  .cost {
+    margin-top: 14px; padding: 11px 14px; background: var(--sunken);
+    border-radius: 3px; font-size: 14.5px; max-width: 64ch;
+  }
+  .cost b { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; }
+
+  .opts { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; max-width: 64ch; }
+  .opts li {
+    display: grid; grid-template-columns: auto 1fr; gap: 11px;
+    font-size: 14.5px; line-height: 1.55; color: var(--dim);
+  }
+  .opts .k {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px; font-weight: 600; color: var(--faint);
+    padding-top: 3px; white-space: nowrap;
+  }
+  .opts li.pick { color: var(--ink); }
+  .opts li.pick .k { color: var(--accent); }
+
+  .rec {
+    margin-top: 16px; font-size: 14.5px; line-height: 1.6;
+    padding-left: 13px; border-left: 2px solid var(--accent); color: var(--ink);
+    max-width: 62ch;
+  }
+  .rec b { font-weight: 600; }
+  .rec .tag {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 3px;
+  }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .875em; background: var(--sunken);
+    padding: 1px 5px; border-radius: 3px; word-break: break-word;
+  }
+
+  /* ── Settled list ─────────────────────────────────────────────────────── */
+  .settled { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 0; }
+  .settled li {
+    display: grid; grid-template-columns: 150px 1fr; gap: 16px;
+    padding: 13px 0; border-bottom: 1px solid var(--line-soft); font-size: 14.5px;
+  }
+  .settled .q { font-weight: 600; color: var(--ink); }
+  .settled .a { color: var(--dim); }
+
+  /* ── Launch checklist ─────────────────────────────────────────────────── */
+  .steps { list-style: none; padding: 0; margin: 18px 0 0; counter-reset: s; display: grid; gap: 0; }
+  .steps li {
+    counter-increment: s;
+    display: grid; grid-template-columns: 30px 1fr; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid var(--line-soft); font-size: 14.5px;
+  }
+  .steps li::before {
+    content: counter(s);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px; font-weight: 600; color: var(--accent);
+    background: var(--accent-w); border-radius: 3px;
+    width: 26px; height: 24px; display: grid; place-items: center;
+  }
+  .steps b { font-weight: 600; }
+  .steps .why { display: block; color: var(--faint); font-size: 13.5px; margin-top: 3px; }
+
+  .closer {
+    margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--line);
+    font-size: 14px; color: var(--dim); max-width: 64ch;
+  }
+
+  @media (max-width: 620px) {
+    .figs { grid-template-columns: repeat(2, 1fr); }
+    .settled li { grid-template-columns: 1fr; gap: 3px; }
+    .wrap { padding-block: 40px 64px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <span class="eyebrow">TradingSocial · Internal</span>
+    <h1>Day 14 Decisions</h1>
+    <p class="standfirst">
+      The 14-day trial is moving onto Stripe: a card at signup, and an automatic
+      charge on day 14 unless the customer cancels. The engineering is built and
+      sitting on a branch. <b>Ten things are not engineering decisions</b> —
+      three were money leaking and are now closed, four are still yours to call,
+      and three were Stripe dashboard settings I have since read off the API.
+      <b>One of those three is a launch blocker.</b>
+    </p>
+    <div class="byline">
+      <span><b>For</b> Nathan</span>
+      <span><b>Date</b> 15 September 2026</span>
+      <span><b>Branch</b> feat/trial-to-stripe</span>
+      <span><b>Ordered by</b> money at risk</span>
+    </div>
+  </header>
+
+  <div class="figs">
+    <div class="fig"><span class="n bad">1</span><span class="l">Launch blocker — plan switching is off in the billing portal</span></div>
+    <div class="fig"><span class="n">28&nbsp;→&nbsp;0</span><span class="l">Days of free Pro on a card that declines, after your grace decision</span></div>
+    <div class="fig"><span class="n">A$80</span><span class="l">Monthly charge a plan switch would have produced, before it was caught</span></div>
+    <div class="fig"><span class="n">A$0</span><span class="l">Live recurring revenue at risk. One subscription exists and it is cancelled</span></div>
+  </div>
+
+  <section>
+    <div class="sec-head"><h2>Money that was leaking</h2></div>
+    <p class="sec-sub">
+      All three would have started costing real money on launch day, and all
+      three are now closed. They are kept here in full rather than deleted,
+      because the reasoning is what makes a decision reviewable later — and
+      because in each case the fix does not cover everything, which is the part
+      worth reading.
+    </p>
+
+    <div class="item sev-done">
+      <div class="item-top">
+        <span class="rank">01</span>
+        <span class="chip done">Decided · built</span>
+      </div>
+      <h3>The referral reward paid out on a signup, not on a trade</h3>
+      <div class="resolved">
+        <span class="tag">Your call, 15 September</span>
+        The reward is earned by <b>activation</b> — the referred person logging a
+        trade — and a payout can now only ever come through it. Someone who
+        subscribes without trading earns their referrer nothing until they do.
+        Built and tested. The referrals table is empty in production, so there is
+        no historical payout to unwind.
+      </div>
+      <p class="lede">
+        A referral is supposed to earn its referrer a free month of Pro once the
+        person they referred <b>actually logs a trade</b>. The payout is currently
+        triggered by a subscription going live — and once every signup opens a
+        trialing subscription, that fires the instant someone enters a card.
+      </p>
+      <p>
+        So a referred user can sign up, add a card, never place a single trade,
+        and their referrer immediately earns a month of Pro. The "logged a trade"
+        gate is skipped entirely.
+      </p>
+      <div class="cost">
+        One free month of Pro is <b>A$50</b>. The cap is six per referrer, so the
+        worst case is <b>A$300</b> of free service per person who shares a link
+        widely enough. It costs us nothing today because nobody is trialing on
+        Stripe yet — it starts the day this launches.
+      </div>
+      <p class="tight">
+        Still worth knowing: this restores the promise the referrals page already
+        makes, but it does not change what a determined person could farm.
+        Six throwaway accounts and six trades is still six months of Pro. The
+        control that would actually close that is email confirmation, which is a
+        Supabase setting currently switched off — the code for it is already in
+        place and waiting.
+      </p>
+    </div>
+
+    <div class="item sev-done">
+      <div class="item-top">
+        <span class="rank">02</span>
+        <span class="chip done">Decided · built</span>
+      </div>
+      <h3>A card that declines on day 14 bought 28 days of Pro</h3>
+      <div class="resolved">
+        <span class="tag">Your call, 15 September</span>
+        Grace drops to <b>7 days</b>, and only for a subscription that has
+        actually paid us at least once. A card that declines at the end of a
+        trial now gets none at all. Built and tested; the database change is on
+        dev and waiting for production.
+      </div>
+      <p class="lede">
+        When a renewal payment fails, we give the customer <b>14 days of grace</b>
+        before their features switch off. That is deliberate and generous: their
+        card expired, the bank held it, and Stripe is still retrying. They have
+        done nothing wrong.
+      </p>
+      <p>
+        The trouble is that a failed <i>first</i> charge — the one at the end of
+        a trial — looks identical to Stripe. So someone whose card declines on
+        day 14 gets 14 trial days plus 14 grace days: <b>28 days of Pro without
+        ever paying us anything</b>, and an email confirming they keep their
+        features. It is repeatable with a fresh account.
+      </p>
+      <div class="cost">
+        <b>A$50</b> of service per occurrence. The code already holds the right
+        principle — it refuses grace to a customer who has never paid — but the
+        status Stripe uses for a failed trial conversion slips past that check.
+      </div>
+      <p class="tight">
+        Worth knowing what this trades away: a genuine new customer whose bank
+        declines a first charge from an unfamiliar merchant — which is common —
+        now loses access immediately rather than keeping it while they sort it
+        out. The day-11 warning email and the payment-failed email both still go
+        out, so they are told twice, but the features stop the same day.
+      </p>
+    </div>
+  </section>
+
+    <div class="item sev-done">
+      <div class="item-top">
+        <span class="rank">03</span>
+        <span class="chip done">Found &amp; fixed</span>
+      </div>
+      <h3>Changing plan during the trial would have charged people twice</h3>
+      <p class="lede">
+        This one was not on the list. It turned up while checking whether the
+        billing portal lets a trialist switch plans (item 08), and it was created
+        by this change rather than found in the old system.
+      </p>
+      <p>
+        Our checkout always <b>creates</b> a subscription — it has no way to
+        modify one. That was fine when a trial was just a date on an account and
+        buying a plan was the only way to get a subscription at all. It stopped
+        being fine when the trial itself became a subscription.
+      </p>
+      <div class="cost">
+        The sequence: sign up, so a Pro trial is running and due to charge
+        <b>A$50</b> on day 14. On day 2, click the countdown in the nav and buy
+        Trader at <b>A$30</b>. Nothing cancels the first one. The customer now
+        pays <b>A$80 a month</b> having deliberately chosen one plan — and the
+        one they chose is the cheaper of the two.
+      </div>
+      <div class="resolved">
+        <span class="tag">Fixed, no decision needed</span>
+        Checkout now refuses to start anything while a trial is running, and the
+        in-app upsell sends a trialist to their billing page instead of offering
+        a purchase. Nobody wants to double-bill, so this did not need asking.
+      </div>
+      <p class="tight">
+        <b>It leaves a gap, and item 08 is why.</b> A trialist now has no route
+        to Trader at all: the in-app one would double-charge and is closed, and
+        the billing portal has plan switching switched off. Until that setting is
+        turned on, the trial is Pro at A$50 or cancel.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Yours to decide</h2></div>
+    <p class="sec-sub">
+      Nothing here is blocked on engineering. Each one changes what we charge,
+      who we email, or what we promise.
+    </p>
+
+    <div class="item sev-warn">
+      <div class="item-top">
+        <span class="rank">04</span>
+        <span class="chip warn">Decision</span>
+      </div>
+      <h3>What happens when someone is charged and meant to cancel</h3>
+      <p class="lede">
+        Today the terms say we do not refund a change of mind, that Australian
+        Consumer Law rights are untouched, and that you should email us and we
+        will work it out. That was written for people who chose to subscribe.
+      </p>
+      <p>
+        After this change the most common refund request becomes <i>"I forgot to
+        cancel"</i> — from someone who never thought of themselves as a customer.
+        We warn them three days ahead by email, and some will still miss it.
+      </p>
+      <div class="cost">
+        A refused refund that becomes a card chargeback costs the A$50
+        <b>plus</b> a dispute fee, and chargebacks count against the Stripe
+        account. Refunding is almost always cheaper than winning.
+      </div>
+      <ul class="opts">
+        <li><span class="k">Option A</span><span>Keep it case-by-case and unpublished. Maximum flexibility, but the person reading the terms sees only "no refunds".</span></li>
+        <li class="pick"><span class="k">Option B</span><span>Publish a short goodwill window — refund the first charge if they ask within, say, 7 days and have not used the paid month.</span></li>
+        <li><span class="k">Option C</span><span>Strict no-refunds beyond the legal minimum.</span></li>
+      </ul>
+      <div class="rec">
+        <span class="tag">Recommendation</span>
+        <b>Option B.</b> At this volume the cost is negligible, it converts an
+        angry chargeback into a cancelled subscription, and it is a genuinely
+        good line to have on the pricing page while asking people for a card for
+        the first time. I have deliberately left the terms unchanged pending
+        your call.
+      </div>
+    </div>
+
+    <div class="item sev-warn">
+      <div class="item-top">
+        <span class="rank">05</span>
+        <span class="chip warn">Decision</span>
+      </div>
+      <h3>The founding-member annual discount becomes unreachable</h3>
+      <p class="lede">
+        The beta promotion is <b>80% off the first year</b> — A$120 instead of
+        A$500 for Pro. It only applies to an annual checkout.
+      </p>
+      <p>
+        The new trial runs on <b>Pro monthly</b> by design, so nobody arriving
+        through it is on an annual plan. Switching to annual later in the billing
+        portal will not carry the discount. After launch, every new signup comes
+        through the trial — so in practice the founding offer stops being
+        claimable by anyone new.
+      </p>
+      <div class="cost">
+        This is the main promotion on the pricing page. A trialist converts at
+        <b>A$50/month</b> instead of <b>A$120 for the year</b> — better monthly
+        revenue, far worse cash up front and worse retention.
+      </div>
+      <ul class="opts">
+        <li><span class="k">Option A</span><span>Accept it. Quietly retire the founding annual offer as the trial takes over.</span></li>
+        <li><span class="k">Option B</span><span>Offer annual at signup as well, which means putting a plan picker back in front of new users.</span></li>
+        <li class="pick"><span class="k">Option C</span><span>Send trialists a discounted annual link before day 14 — the day-11 email already goes out, so it is a link, not a new system.</span></li>
+      </ul>
+      <div class="rec">
+        <span class="tag">Recommendation</span>
+        <b>Option C.</b> It keeps the single-button signup we just decided on,
+        and it puts the offer in front of people at the exact moment they are
+        deciding whether to keep paying.
+      </div>
+    </div>
+
+    <div class="item sev-warn">
+      <div class="item-top">
+        <span class="rank">06</span>
+        <span class="chip warn">Decision</span>
+      </div>
+      <h3>Whether to invite the 42 people whose trial already lapsed</h3>
+      <p class="lede">
+        Production has <b>7 real users mid-trial</b> on the old card-free version.
+        They keep it — they were sold a trial that takes no card, so we cannot put
+        them on one that charges. They get a banner inviting them to add a card,
+        and their trial ends quietly either way.
+      </p>
+      <p>
+        Separately there are <b>42 accounts whose trial expired and who never
+        responded</b> to anything. They were never charged and never told us
+        whether they wanted to continue.
+      </p>
+      <div class="cost">
+        The cost is one email. These are the warmest non-customers we have:
+        they signed up, used Pro for a fortnight, and were never actually asked
+        for a decision.
+      </div>
+      <ul class="opts">
+        <li class="pick"><span class="k">Option A</span><span>Include them in the add-a-card campaign, with copy that is honest about the fact their trial ended some time ago.</span></li>
+        <li><span class="k">Option B</span><span>Leave them. Treat the silence as an answer.</span></li>
+      </ul>
+      <div class="rec">
+        <span class="tag">Recommendation</span>
+        <b>Option A</b>, provided the email says plainly that their trial ended,
+        no card was ever taken, and nothing was charged. Anything vaguer reads as
+        a system that has just woken up.
+      </div>
+    </div>
+
+    <div class="item sev-warn">
+      <div class="item-top">
+        <span class="rank">07</span>
+        <span class="chip warn">Decision</span>
+      </div>
+      <h3>Buying Trader mid-trial silently stops a customer's broker sync</h3>
+      <p class="lede">
+        Everyone trials <b>Pro</b>. Trader is still purchasable during the trial
+        from two places in the app. Someone who buys Trader on day 2 keeps their
+        Pro features until day 14 — then drops to what they paid for.
+      </p>
+      <p>
+        Fifteen features switch off at that moment. The one that matters is
+        automatic broker sync: it is Pro-only, so their MT5 or crypto connection
+        <b>stops overnight and is marked as an error</b>. From their side, the
+        product broke the day after they paid us.
+      </p>
+      <div class="cost">
+        A customer who pays A$30 and loses their broker feed without warning is a
+        cancellation and a support ticket, not a downgrade.
+      </div>
+      <ul class="opts">
+        <li><span class="k">Option A</span><span>Remove the mid-trial Trader route. One plan during the trial, switch afterwards.</span></li>
+        <li class="pick"><span class="k">Option B</span><span>Keep it, but warn clearly at the point of purchase that broker sync is Pro-only and will stop when the trial ends.</span></li>
+        <li><span class="k">Option C</span><span>Make broker sync available on Trader. A pricing change, not a fix.</span></li>
+      </ul>
+      <div class="rec">
+        <span class="tag">Recommendation</span>
+        <b>Option B.</b> Cheapest, and it keeps the cheaper plan buyable. Option
+        A is defensible; Option C is a real pricing conversation and should not
+        be made to solve a warning-message problem.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Three things I checked in Stripe</h2></div>
+    <p class="sec-sub">
+      These live in the Stripe dashboard rather than in our code. I read all
+      three off the Stripe API. <b>One is a launch blocker.</b> A caveat on all
+      of them: the key available locally is the <b>test</b> key, and Stripe keeps
+      these settings separate per mode, so each needs a glance in Live mode to
+      confirm. In every case the setting is at its untouched default, so live is
+      very likely the same.
+    </p>
+
+    <div class="item sev-bad">
+      <div class="item-top">
+        <span class="rank">08</span>
+        <span class="chip bad">Launch blocker</span>
+      </div>
+      <h3>A trialist cannot switch from Pro to Trader — plan switching is off</h3>
+      <p class="lede">
+        The whole decision — everyone trials Pro and picks their real plan later
+        — rests on the billing portal letting them switch. <b>It does not.</b>
+        The portal configuration allows cancelling and updating a card, and
+        nothing else:
+      </p>
+      <div class="cost">
+        <b>subscription_update: false</b> &nbsp;·&nbsp; subscription_cancel: true
+        &nbsp;·&nbsp; payment_method_update: true<br>
+        <span style="color:var(--dim)">Default configuration, unmodified. Stripe ships this off; it has to be turned on and told which plans to offer.</span>
+      </div>
+      <p>
+        So as things stand, the trial is <b>Pro at A$50 or cancel</b>. A customer
+        who wanted the A$30 plan has nowhere to go — and item 03 closed the
+        in-app route because it charged for both plans at once.
+      </p>
+      <ul class="opts">
+        <li class="pick"><span class="k">Option A</span><span>Turn on plan switching in the portal, in Live mode, and allow both paid plans. Restores the decision as made.</span></li>
+        <li><span class="k">Option B</span><span>Accept it and say so plainly: the trial is Pro, and Trader is something you move to after it converts.</span></li>
+      </ul>
+      <div class="rec">
+        <span class="tag">Recommendation</span>
+        <b>Option A, before launch.</b> It is a dashboard setting rather than a
+        build, and without it two other things on this page have nowhere to
+        happen — item 05's annual offer and the "then picks" half of the plan
+        decision. Worth setting proration to "none" at the same time, so a switch
+        during a trial does not raise a surprise charge.
+      </div>
+    </div>
+
+    <div class="item sev-chk">
+      <div class="item-top">
+        <span class="rank">09</span>
+        <span class="chip done">Checked · already safe</span>
+      </div>
+      <h3>The beta coupon would expire on the wrong invoice — but cannot reach one</h3>
+      <p class="lede">
+        A subscription that starts in a trial raises a <b>A$0 invoice on day
+        one</b>. A coupon set to apply "once" can be consumed by that
+        zero-dollar invoice, so the real charge on day 14 bills at full price
+        after the customer was shown 80% off.
+      </p>
+      <div class="cost">
+        The coupon is <b>duration: once</b>, 76% off. So the hazard was real.
+      </div>
+      <div class="resolved">
+        <span class="tag">No action needed</span>
+        No code path now puts a discount and a trial on the same subscription —
+        the trial is priced by the server and never carries a coupon, and a
+        discounted annual purchase has no trial. Nothing to change, but worth
+        knowing the coupon is the kind that would bite if the two were ever
+        brought together.
+      </div>
+    </div>
+
+    <div class="item sev-chk">
+      <div class="item-top">
+        <span class="rank">10</span>
+        <span class="chip warn">Two-step fix</span>
+      </div>
+      <h3>Stripe's own terms checkbox is switched off, and cannot be switched on yet</h3>
+      <p class="lede">
+        Stripe can require customers to tick acceptance of our terms on its
+        checkout page and record it against the payment — a stronger record than
+        anything we can store ourselves, because the acceptance and the
+        transaction are the same object.
+      </p>
+      <div class="cost">
+        <b>terms_of_service_url: NOT SET</b> in the Stripe business profile, and
+        the switch that turns the checkbox on is off in our own configuration.
+        Both halves are needed, in that order — Stripe rejects the request if the
+        URL is missing, so flipping our switch alone would break every checkout.
+      </div>
+      <p>
+        It has been a nice-to-have while checkout was rare. It is about to sit in
+        front of <b>every single signup</b>, which is exactly when it stops being
+        optional.
+      </p>
+      <div class="rec">
+        <span class="tag">Recommendation</span>
+        Set the terms URL in the Stripe dashboard first, confirm the checkbox
+        appears, then turn our switch on. Two small steps, and the order matters.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Already settled</h2></div>
+    <p class="sec-sub">Context, so you are not re-deciding these.</p>
+    <ul class="settled">
+      <li><span class="q">GST</span><span class="a">Not registered. A$30 and A$50 are the total payable, nothing added at checkout. Now stated on the pricing page, in the terms and in the app.</span></li>
+      <li><span class="q">Card at signup</span><span class="a">Yes. A$0 taken on day one, converts automatically on day 14.</span></li>
+      <li><span class="q">Which plan</span><span class="a">Everyone trials Pro monthly. No plan picker at signup — see decisions 05 and 08, which both hang off this.</span></li>
+      <li><span class="q">Existing trials</span><span class="a">The 7 people mid-trial keep the card-free version they were sold. They cannot be moved onto a charging one.</span></li>
+      <li><span class="q">Free plan</span><span class="a">Still reachable without a card. There is a "Continue on Free" route at signup, and the terms now depend on it existing.</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Launch day</h2></div>
+    <p class="sec-sub">
+      Six things that have to happen together. Each one alone is wrong in some
+      direction, so this is one release, not six.
+    </p>
+    <ol class="steps">
+      <li><span><b>Turn on plan switching in the Stripe portal (Live mode).</b><span class="why">Item 08. Without it the trial is Pro at A$50 or cancel, and two other decisions on this page have nowhere to happen.</span></span></li>
+      <li><span><b>Merge the branch.</b><span class="why">Ships the checkout, the new terms and the rewritten marketing copy at once.</span></span></li>
+      <li><span><b>Turn off the old trial in Vercel.</b><span class="why">Without this, new signups get both trials and receive an email saying they will not be charged, two days before they are.</span></span></li>
+      <li><span><b>Apply the held database change to both projects.</b><span class="why">Makes the switch-off permanent rather than a setting someone can undo.</span></span></li>
+      <li><span><b>Re-date the terms.</b><span class="why">They are drafted with today's date as a placeholder. A contract dated to a day nobody could read it is worse than no date.</span></span></li>
+      <li><span><b>Re-run the browser test suite.</b><span class="why">Signup now goes through Stripe. The tests have been pointed at the "Continue on Free" route, but their assumptions change the moment step 2 happens.</span></span></li>
+    </ol>
+  </section>
+
+  <p class="closer">
+    Nothing in this document is live yet. The branch is complete through the
+    grandfathering banner, the database changes that were safe to apply early are
+    applied, and no customer-facing behaviour has changed. All three money leaks
+    are closed. Nothing in 04 to 07 blocks the build, so they can be answered in
+    the week after launch — though 04 is the one most likely to arrive as a
+    surprise, in the form of a chargeback, and 05 quietly decides whether the
+    founding annual offer survives at all.
+
+    <br><br>The one thing that does block launch is <b>08</b>: plan switching is
+    switched off in the billing portal, so the decision to let everyone trial Pro
+    and pick their plan afterwards currently has nowhere to happen. It is a
+    dashboard setting, not a build.
+  </p>
+
+</div>
