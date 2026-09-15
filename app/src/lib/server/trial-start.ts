@@ -145,24 +145,69 @@ export type TrialStartBasis = 'entry_point' | 'observed_session'
 
 type LatchResult = { outcome: TrialStartOutcome; trialStartedAt: string | null }
 
-/** PostgREST's answer to a filter or select naming a column that does not
- *  exist yet — i.e. this code is running ahead of migration 0075. Requires the
- *  column's name, so no other 42703 can be mistaken for it. */
+/** PostgREST's answer when a filter or select names `trial_eligible` and the
+ *  column cannot be reached — either it genuinely does not exist (42703) or the
+ *  schema cache is stale (PGRST204). Requires the column's name, so no other
+ *  42703 can be mistaken for it.
+ *
+ *  This used to select a FALLBACK. It now selects a refusal — see `latch`. */
 function markerMissing(err: { code?: string; message?: string } | null | undefined): boolean {
   if (!err) return false
   return (err.code === '42703' || err.code === 'PGRST204') && /trial_eligible/.test(err.message ?? '')
 }
 
-/** The one write. `trial_started_at is null` makes it start-once; with the
- *  marker, `trial_eligible = true` makes the 0041-skipped cohort unreachable.
+/**
+ * The kill switch: `LOCAL_TRIAL_DISABLED=true` stops this module writing
+ * anything, anywhere, for anyone.
+ *
+ * ── WHY A SWITCH WHEN THERE IS ALREADY A COLUMN ──────────────────────────────
+ *
+ * When the Stripe-native trial ships, the local trial must stop being armed for
+ * new accounts. The obvious lever is `profiles.trial_eligible`, whose DEFAULT
+ * 0075 set to `true`. That lever is necessary but it is not enough on its own,
+ * for two reasons that are properties of how this project deploys rather than
+ * of the code:
+ *
+ *   1. It is a HAND-APPLIED migration, on two projects. 0075's header says so
+ *      in capitals. Its `alter column ... set default true` (0075 line 71) is
+ *      unguarded, so a replay, a cherry-picked hotfix, or someone re-running
+ *      0075 because they are not sure it took will silently re-arm the default
+ *      and every subsequent signup gets a local trial again. Nothing would log.
+ *   2. Database and deploy are not in lockstep here. Migrations are manual and
+ *      Vercel is not, so there is no single moment at which "the trial moved to
+ *      Stripe" happens unless something in the application marks it.
+ *
+ * So the switch is a SECOND, INDEPENDENT lever that a migration replay cannot
+ * undo, living in the one place that is guaranteed to be consistent across both
+ * projects: the deploy. Set it in Vercel at the same moment the Stripe trial
+ * goes live. If the column default is ever accidentally restored, this still
+ * holds the line.
+ *
+ * ── WHY OPT-IN-TO-DISABLE, NOT OPT-IN-TO-ENABLE ──────────────────────────────
+ *
+ * Same shape as `WELCOME_POPUP_DISABLED`, and deliberately NOT the shape of
+ * `TRIAL_WALL_ENABLED`. The local trial is the live, advertised product right
+ * now — 18 static pages promise it — so an unset or misspelled variable must
+ * leave it RUNNING. A switch that defaulted to off would mean a typo in Vercel
+ * silently withdraws the advertised trial from every new signup, which is the
+ * same class of failure this whole change exists to avoid, pointed the other
+ * way.
+ */
+function localTrialDisabled(): boolean {
+  return process.env.LOCAL_TRIAL_DISABLED === 'true'
+}
+
+/** The one write. `trial_started_at is null` makes it start-once, and
+ *  `trial_eligible = true` makes every account the marker excludes unreachable.
+ *  Both filters are unconditional: there is no longer a marker-free variant.
  *  `.is()` stays last: it is the call the fakes in the tests resolve on. */
-function conditionalStamp(svc: SupabaseClient, userId: string, at: Date, withMarker: boolean) {
-  let q = svc
+function conditionalStamp(svc: SupabaseClient, userId: string, at: Date) {
+  return svc
     .from('profiles')
     .update({ trial_started_at: at.toISOString() }, { count: 'exact' })
     .eq('id', userId)
-  if (withMarker) q = q.eq('trial_eligible', true)
-  return q.is('trial_started_at', null)
+    .eq('trial_eligible', true)
+    .is('trial_started_at', null)
 }
 
 async function latch(
@@ -173,17 +218,32 @@ async function latch(
 ): Promise<LatchResult> {
   const none = (outcome: TrialStartOutcome): LatchResult => ({ outcome, trialStartedAt: null })
   try {
-    let withMarker = true
-    let { error, count } = await conditionalStamp(svc, userId, at, true)
+    const { error, count } = await conditionalStamp(svc, userId, at)
 
+    // The marker is unreachable. BOTH bases now fail closed.
+    //
+    // This used to fall back, for an entry-point caller, to a write with no
+    // marker filter at all — "exactly today's behaviour" while 0075 was still
+    // in flight. That reasoning expired with 0075, and the fallback became the
+    // one code path that could create a local trial WITHOUT consulting
+    // `trial_eligible`. `markerMissing` accepts PGRST204, which is a stale
+    // PostgREST schema cache rather than a missing column, so a cache blip on
+    // any entry point was enough to arm a trial on an account the column says
+    // is ineligible — defeating the gate, and, once the Stripe trial ships,
+    // handing a user a SECOND trial that puts them in the legacy email cohort
+    // and promises them in writing that they will not be charged.
+    //
+    // Failing closed costs nothing real: the column exists on both projects, so
+    // this is now only reachable on a transient cache miss, and the very next
+    // authenticated render passes back through the chokepoint and stamps then.
+    // A PERSISTENT 42703 means the migration is gone, which is a loud problem
+    // that should not be papered over by silently arming trials.
     if (error && markerMissing(error)) {
-      // Running ahead of 0075. See the deploy-order note at the top.
-      if (basis === 'observed_session') return none('ineligible')
       logError('startTrial', error, {
-        note: 'trial_eligible missing — migration 0075 not applied; falling back to the entry-point gate alone',
+        note: 'trial_eligible unreachable (missing column or stale schema cache) — no trial started',
+        basis,
       })
-      withMarker = false
-      ;({ error, count } = await conditionalStamp(svc, userId, at, false))
+      return none('ineligible')
     }
 
     if (error) {
@@ -197,7 +257,7 @@ async function latch(
     // alone cannot tell those apart, hence the re-read.
     const { data, error: readErr } = await svc
       .from('profiles')
-      .select(withMarker ? 'trial_started_at, trial_eligible' : 'trial_started_at')
+      .select('trial_started_at, trial_eligible')
       .eq('id', userId)
       .maybeSingle<{ trial_started_at: string | null; trial_eligible?: boolean | null }>()
 
@@ -215,7 +275,7 @@ async function latch(
     if (data.trial_started_at) {
       return { outcome: 'already_started', trialStartedAt: data.trial_started_at }
     }
-    if (withMarker && data.trial_eligible !== true) {
+    if (data.trial_eligible !== true) {
       // For the chokepoint this is the skipped cohort doing exactly what it
       // should (and is normally caught before any write — see
       // trialStartForSession). For an entry point it is a brand-new account
@@ -265,6 +325,10 @@ export async function startTrialIfUnstarted(
   userId: string,
   at: Date = new Date(),
 ): Promise<TrialStartOutcome> {
+  // The Stripe-native trial now owns this. Not logged: once the switch is on
+  // this is the expected answer on every signup, and logging it would write a
+  // line per account forever. See localTrialDisabled().
+  if (localTrialDisabled()) return 'ineligible'
   return (await latch(svc, userId, at, 'entry_point')).outcome
 }
 
@@ -319,6 +383,12 @@ export async function trialStartForSession(
   at: Date = new Date(),
 ): Promise<string | null> {
   if (loadedTrialStartedAt) return loadedTrialStartedAt
+  // Before any I/O. This is the hot path — every authenticated render of every
+  // account whose trial is null — so once the switch is on it must cost nothing
+  // at all, not even the marker read. See the cost table above: with the local
+  // trial retired, `trial_started_at` is null for the whole future user base,
+  // so the early-out on the line above stops covering anyone new.
+  if (localTrialDisabled()) return null
   try {
     const { data: claims } = await session.auth.getClaims()
     if (claims?.claims?.sub !== userId) return null

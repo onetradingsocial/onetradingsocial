@@ -1,0 +1,86 @@
+-- Stop arming the local 14-day Pro trial for new accounts, because the Stripe
+-- trial now owns it.
+--
+-- ⚠ DO NOT APPLY THIS YET. ⚠
+--
+-- Unlike every other migration in this directory, this one must NOT be applied
+-- ahead of the code. It is the launch switch for the trial moving to Stripe, and
+-- applying it early withdraws the advertised 14-day trial from every new signup
+-- while index.html, pricing.html and 16 other pages still promise it. Apply it
+-- ONLY in the same change that ships the `flow: 'trial'` checkout branch.
+--
+-- Until then the application-level switch does the same job reversibly — set
+-- LOCAL_TRIAL_DISABLED=true in Vercel. That is the lever to reach for first;
+-- this migration is what makes the disarm durable afterwards.
+--
+-- WHEN APPLIED, APPLY BY HAND TO BOTH PROJECTS:
+--   production  jmpanzrjxflovdfwcbye
+--   dev         sixixwutvrguqemqzvvw
+--
+-- ── WHAT IT DOES ─────────────────────────────────────────────────────────────
+--
+-- Exactly one thing: flips the column DEFAULT that 0075 set to `true` back to
+-- `false`, so a profile row inserted from here on is NOT entitled to a local
+-- trial. It touches no existing row, on purpose — see the grandfathering note
+-- below.
+--
+-- ── WHY IT DOES NOT TOUCH EXISTING ROWS ──────────────────────────────────────
+--
+-- The accounts mid-trial when this lands keep their trial and run it out. On
+-- 2026-09-15 that was 26 rows on production, of which 19 are internal/seed and
+-- 7 are real users, with 2 to 14 days left. They were sold a trial that
+-- explicitly takes no card (terms §8), so they cannot be moved onto a
+-- card-required Stripe subscription; they are grandfathered and invited to add
+-- a card instead.
+--
+-- No cohort test and no date arithmetic are needed to protect them, because the
+-- latch already excludes them twice over: `trialStartForSession` returns on its
+-- first line for any account whose `trial_started_at` is set, and the write
+-- itself is filtered `.is('trial_started_at', null)`. A row that already has a
+-- trial is unreachable by every path in this codebase regardless of what this
+-- column says. Setting `trial_eligible = false` on them would therefore change
+-- nothing, and would destroy the only record of which accounts were eligible.
+--
+-- ── WHY THIS IS A NEW MIGRATION AND NOT AN EDIT TO 0075 ──────────────────────
+--
+-- 0075 is already applied by hand to both projects, so editing it in place
+-- changes nothing live — it would only desynchronise the file from the
+-- databases. It would also break app/tests/unit/trial-start.test.ts, which
+-- reads 0075's SQL text and asserts the `set default true` it contains.
+--
+-- ── THE ORDERING HAZARD THIS GUARDS AGAINST ──────────────────────────────────
+--
+-- 0075 line 71 runs `alter column trial_eligible set default true` with no
+-- guard, and 0075 is hand-applied. So any replay of it AFTER this migration —
+-- a cherry-picked hotfix, a fresh branch database seeded in version order then
+-- patched, or simply someone re-running 0075 because they are unsure it took —
+-- silently re-arms the default, and every subsequent signup gets a local trial
+-- again with nothing logged. Two defences:
+--
+--   1. LOCAL_TRIAL_DISABLED lives in the deploy, not the database, so a
+--      migration replay cannot undo it. That is the durable lever.
+--   2. The verification query at the bottom of this file asserts the default is
+--      `false`. Re-run it after any hand-application of migration history.
+
+alter table public.profiles
+  alter column trial_eligible set default false;
+
+comment on column public.profiles.trial_eligible is
+  'Whether this account may be granted the legacy local 14-day Pro trial on its first session. DEFAULT false since 0076: the trial moved to Stripe, and new accounts get a trialing subscription instead. Rows marked true are the pre-0076 cohort running out their grandfathered trial.';
+
+-- ── VERIFY (expect one row, column_default = 'false') ────────────────────────
+--
+-- select column_default
+-- from information_schema.columns
+-- where table_schema = 'public'
+--   and table_name   = 'profiles'
+--   and column_name  = 'trial_eligible';
+--
+-- And to confirm no grandfathered trial was disturbed — expect the same counts
+-- as before the migration (2026-09-15 production: 26 active, 7 non-internal):
+--
+-- select count(*) filter (where coalesce(is_internal,false) = false) as real_users,
+--        count(*)                                                    as total
+-- from public.profiles
+-- where trial_started_at is not null and trial_ack_at is null
+--   and now() - trial_started_at < interval '14 days';

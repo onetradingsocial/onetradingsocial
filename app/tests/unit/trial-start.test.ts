@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { startTrialIfUnstarted } from '@/lib/server/trial-start'
+import { startTrialIfUnstarted, trialStartForSession } from '@/lib/server/trial-start'
 import { isFreshAccount, OAUTH_SIGNUP_WINDOW_MS } from '@/lib/server/oauth-signup'
 import { trialState, trialDaysLeft, TRIAL_DAYS } from '@/lib/entitlements'
 
@@ -123,17 +123,29 @@ describe('startTrialIfUnstarted', () => {
     expect(String(spy.mock.calls[0][1])).toContain('not marked trial_eligible')
   })
 
-  it('before 0075 is applied, an entry point still starts the trial — and logs that the migration is missing', async () => {
-    // Code first, migration second. Until 0075 lands the marker filter fails
-    // with 42703; the entry points fall back to the pre-0075 write so that
-    // new signups keep getting their trial exactly as they did yesterday.
+  it('an unreachable marker starts NO trial, at an entry point as much as anywhere', async () => {
+    // This test used to assert the opposite. Until 0075 was applied, an entry
+    // point fell back to a write with no marker filter, so new signups kept
+    // getting their trial "exactly as they did yesterday". 0075 is applied to
+    // both projects now, and that fallback had become the one code path able to
+    // create a local trial WITHOUT consulting trial_eligible.
+    //
+    // It matters because `markerMissing` also accepts PGRST204 — a stale
+    // PostgREST schema cache, not a missing column — so a transient cache blip
+    // on any entry point was enough to arm a trial on an account the column
+    // says is ineligible. Once the Stripe trial ships, that hands the user a
+    // SECOND trial, puts them in the legacy lifecycle-email cohort, and mails
+    // them "You will not be charged" two days before Stripe charges them.
+    //
+    // Failing closed costs nothing: the next authenticated render passes back
+    // through the chokepoint and stamps then, once the cache recovers.
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { client, current, writes } = fakeProfiles({ trial_started_at: null }, { markerMissing: true })
     const at = new Date('2026-09-11T05:00:00.000Z')
-    expect(await startTrialIfUnstarted(client as never, UID, at)).toBe('started')
-    expect(current()?.trial_started_at).toBe(at.toISOString())
-    expect(writes).toHaveLength(2) // the refused marker write, then the fallback
-    expect(String(spy.mock.calls[0][1])).toContain('0075 not applied')
+    expect(await startTrialIfUnstarted(client as never, UID, at)).toBe('ineligible')
+    expect(current()?.trial_started_at).toBeNull()
+    expect(writes).toHaveLength(1) // the refused marker write, and no retry
+    expect(String(spy.mock.calls[0][1])).toContain('trial_eligible unreachable')
   })
 
   it('does not mistake some OTHER missing column for the marker', async () => {
@@ -260,6 +272,102 @@ describe('startTrialIfUnstarted', () => {
 // ---------------------------------------------------------------------------
 // The three entry points — one per way a session can first appear
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// The kill switch
+// ---------------------------------------------------------------------------
+
+describe('LOCAL_TRIAL_DISABLED — the launch switch for the move to Stripe', () => {
+  afterEach(() => { delete process.env.LOCAL_TRIAL_DISABLED })
+
+  it('writes nothing at an entry point when the switch is on', async () => {
+    process.env.LOCAL_TRIAL_DISABLED = 'true'
+    const { client, current, writes } = fakeProfiles(NEW_ACCOUNT)
+    expect(await startTrialIfUnstarted(client as never, UID)).toBe('ineligible')
+    expect(current()?.trial_started_at).toBeNull()
+    expect(writes).toHaveLength(0)
+  })
+
+  it('does NO I/O AT ALL at the chokepoint when the switch is on', async () => {
+    // The chokepoint runs on every authenticated render. Once the local trial
+    // is retired, trial_started_at is null for the entire future user base, so
+    // the "already set" early-out stops covering anyone new and this switch
+    // becomes the thing standing between that and one marker read per render,
+    // forever. It must therefore short-circuit before any client is touched.
+    process.env.LOCAL_TRIAL_DISABLED = 'true'
+    const { client, writes } = fakeProfiles(NEW_ACCOUNT)
+    const session = {
+      auth: { getClaims: vi.fn(async () => ({ data: { claims: { sub: UID } } })) },
+    }
+    expect(await trialStartForSession(client as never, session as never, UID, null)).toBeNull()
+    expect(writes).toHaveLength(0)
+    expect(session.auth.getClaims).not.toHaveBeenCalled()
+  })
+
+  it('is OFF unless the value is exactly "true" — a typo must not withdraw the live trial', async () => {
+    // Opt-in-to-disable, like WELCOME_POPUP_DISABLED and deliberately unlike
+    // TRIAL_WALL_ENABLED. The local trial is the advertised product on 18
+    // static pages; an unset or misspelled variable has to leave it running,
+    // or a Vercel typo silently withdraws the trial from every new signup.
+    for (const v of ['false', 'TRUE', '1', 'yes', '']) {
+      process.env.LOCAL_TRIAL_DISABLED = v
+      const { client, current } = fakeProfiles(NEW_ACCOUNT)
+      const at = new Date('2026-09-15T05:00:00.000Z')
+      expect(await startTrialIfUnstarted(client as never, UID, at)).toBe('started')
+      expect(current()?.trial_started_at).toBe(at.toISOString())
+    }
+  })
+
+  it('unset behaves exactly as before the switch existed', async () => {
+    delete process.env.LOCAL_TRIAL_DISABLED
+    const { client, current } = fakeProfiles(NEW_ACCOUNT)
+    const at = new Date('2026-09-15T05:00:00.000Z')
+    expect(await startTrialIfUnstarted(client as never, UID, at)).toBe('started')
+    expect(current()?.trial_started_at).toBe(at.toISOString())
+  })
+
+  it('cannot restart a grandfathered trial even while OFF', async () => {
+    // The 7 real accounts mid-trial at launch keep running out on the local
+    // mechanism. Flipping the switch on and back off must never re-stamp them.
+    const started = '2026-09-10T00:00:00.000Z'
+    const { client, current } = fakeProfiles({ trial_started_at: started, trial_eligible: true })
+    process.env.LOCAL_TRIAL_DISABLED = 'true'
+    expect(await startTrialIfUnstarted(client as never, UID)).toBe('ineligible')
+    delete process.env.LOCAL_TRIAL_DISABLED
+    expect(await startTrialIfUnstarted(client as never, UID)).toBe('already_started')
+    expect(current()?.trial_started_at).toBe(started)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Migration 0076 — the durable half of the same disarm
+// ---------------------------------------------------------------------------
+
+describe('migration 0076 — trial_eligible DEFAULT false', () => {
+  const sql = read('app/supabase/migrations/0076_trial_eligible_default_off.sql')
+
+  it('flips the DEFAULT that 0075 set, and nothing else', () => {
+    expect(sql).toMatch(/alter\s+column\s+trial_eligible\s+set\s+default\s+false/i)
+    // No backfill. Existing rows carry the record of who was eligible, and the
+    // grandfathered trials are already excluded by the latch's own filters.
+    expect(sql).not.toMatch(/^\s*update\s+/im)
+  })
+
+  it('carries the do-not-apply-early warning, because applying it alone removes the advertised trial', () => {
+    expect(sql).toMatch(/DO NOT APPLY THIS YET/)
+    expect(sql).toMatch(/LOCAL_TRIAL_DISABLED/)
+  })
+
+  it('names both projects, as every hand-applied migration here must', () => {
+    expect(sql).toContain('jmpanzrjxflovdfwcbye')
+    expect(sql).toContain('sixixwutvrguqemqzvvw')
+  })
+
+  it('does not edit 0075 — that file is applied and its text is asserted elsewhere', () => {
+    expect(read('app/supabase/migrations/0075_trial_eligible_marker.sql'))
+      .toMatch(/set\s+default\s+true/i)
+  })
+})
 
 describe('every path that mints a first session starts the trial', () => {
   const authSrc = () => read('app/src/app/actions/auth.ts')
