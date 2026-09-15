@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "e2e:preflight": "node scripts/e2e-preflight.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "e2e:seed-admin": "node scripts/seed-e2e-admin.mjs"
   },
   "keywords": [],
   "author": "",

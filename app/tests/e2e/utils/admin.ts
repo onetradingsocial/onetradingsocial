@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 import { SEEDED_PASSWORD } from './creds'
+import { e2eEnv } from './env'
 
 /**
  * Sign in as the e2e admin. Audit item 18, F1.
@@ -24,9 +25,13 @@ import { SEEDED_PASSWORD } from './creds'
  * is red for setup reasons stops being read.
  */
 export function adminCreds(): { email: string; password: string } | null {
-  const email = process.env.E2E_ADMIN_EMAIL
+  // e2eEnv(), not process.env: Playwright does not load .env.local, so reading
+  // process.env directly made these specs skip no matter how the variable was
+  // set — and a skip is silent. See utils/env.ts.
+  const env = e2eEnv()
+  const email = env.E2E_ADMIN_EMAIL
   if (!email) return null
-  return { email, password: process.env.E2E_ADMIN_PASSWORD ?? SEEDED_PASSWORD }
+  return { email, password: env.E2E_ADMIN_PASSWORD ?? SEEDED_PASSWORD }
 }
 
 export async function signInAsAdmin(page: Page, creds: { email: string; password: string }): Promise<void> {

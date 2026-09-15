@@ -55,8 +55,22 @@ async function signUpAndOnboard(page: Page, prefix: string, domain = 'tradingsoc
 
 test('non-admin cannot reach the admin area', async ({ page }) => {
   await signUpAndOnboard(page, 'na')
-  const res = await page.goto('/admin')
-  expect(res?.status()).toBe(404)
+  await page.goto('/admin')
+
+  // Asserted on what RENDERED, not on the HTTP status.
+  //
+  // `requireAdmin()` calls notFound() from inside the page, which Next resolves
+  // during a streaming render — and once the response has begun streaming the
+  // status line is already sent, so the body becomes the not-found page while
+  // the status stays 200. The old `expect(res.status()).toBe(404)` therefore
+  // failed while the route was perfectly well protected, which is the worst
+  // kind of failing security test: it cries wolf, and the next person to see it
+  // red assumes it always is.
+  //
+  // Verified when this was changed: the response body is the 404 page, and no
+  // admin surface is present.
+  await expect(page.getByText('404')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Admin/i })).toHaveCount(0)
 })
 
 test('admin can publish a new course and it appears in Learn', async ({ page }) => {
@@ -72,8 +86,15 @@ test('admin can publish a new course and it appears in Learn', async ({ page }) 
   await page.click('button:has-text("Create")')
   await expect(page).toHaveURL(/\/admin\/courses\/[0-9a-f-]+/)
 
-  // Publish the course
-  await page.click('button:has-text("Draft — click to publish")')
+  // Publish the course.
+  //
+  // Selected by title, not by label. PublishToggle was refactored so the LABEL
+  // states what is ("Publish" / "Published") and the TITLE states what clicking
+  // does — the old "Draft — click to publish" text has not existed for some
+  // time, so this had been failing on a stale selector rather than on anything
+  // real. A label match is also ambiguous here, since "Publish" is a prefix of
+  // "Published"; the title is not.
+  await page.click('button[title="Click to publish"]')
   await expect(page.locator('button:has-text("Published")')).toBeVisible()
 
   // Add + publish a lesson
@@ -83,7 +104,7 @@ test('admin can publish a new course and it appears in Learn', async ({ page }) 
   await page.fill('textarea[name="body"]', '<p>hello</p>')
   await page.click('button:has-text("Create lesson")')
   await expect(page).toHaveURL(/\/lessons\/[0-9a-f-]+/)
-  await page.click('button:has-text("Draft — click to publish")')
+  await page.click('button[title="Click to publish"]')
   await expect(page.locator('button:has-text("Published")')).toBeVisible()
 
   // It now shows in Learn
