@@ -116,12 +116,35 @@ export async function markReferralActivated(svc: SupabaseClient, referredUserId:
   return data?.referrer_id ?? null
 }
 
-/** Promote to 'paid' when the referred user's subscription goes active. */
+/**
+ * Promote to 'paid' when the referred user's subscription goes active.
+ *
+ * ── ONLY FROM 'activated', AND WHY THAT MATTERS ──────────────────────────────
+ *
+ * This used to accept `signed_up` as well, so a referred user could go straight
+ * to `paid` without ever logging a trade. That was harmless while the only way
+ * to reach this function was buying a plan: someone who paid us had plainly
+ * arrived, trade or no trade.
+ *
+ * It stops being harmless the moment every signup opens a subscription. The
+ * reward is counted on `activated` OR `paid` (see getReferralStats), so a
+ * promotion straight from `signed_up` to `paid` does not merely skip a status —
+ * it PAYS THE REFERRER, A$50 a time and up to six per referrer, for someone who
+ * signed up and did nothing.
+ *
+ * Owner decision, 2026-09-15: the reward is earned by activation. `paid` is now
+ * strictly a further promotion of an already-activated referral, so the
+ * activation gate cannot be bypassed by any route. A referred user who
+ * subscribes without ever logging a trade simply stays `signed_up` and earns
+ * their referrer nothing — until they trade, at which point
+ * `markReferralActivated` promotes them normally and the reward is genuinely
+ * earned.
+ */
 export async function markReferralPaid(svc: SupabaseClient, referredUserId: string): Promise<string | null> {
   const { data } = await svc
     .from('referrals')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
-    .eq('referred_user_id', referredUserId).in('status', ['signed_up', 'activated'])
+    .eq('referred_user_id', referredUserId).eq('status', 'activated')
     .select('referrer_id').maybeSingle()
   return data?.referrer_id ?? null
 }

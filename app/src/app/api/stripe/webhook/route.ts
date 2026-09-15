@@ -77,11 +77,22 @@ async function upsertFromSubscription(
     logInfo('stripe webhook', { note: 'mirror already current', id: sub.id, status: row.status })
   }
 
-  // Referral funnel (row 39): a live subscription promotes the referral to
-  // 'paid'. Best-effort — never fail the webhook over bookkeeping.
   const status = (row as { status?: string }).status
-  if (status === 'active' || status === 'trialing') {
+
+  // Referral funnel (row 39): a PAYING subscription promotes the referral to
+  // 'paid'. Best-effort — never fail the webhook over bookkeeping.
+  //
+  // `active` only, no longer `active || trialing`. A trial has taken no money,
+  // so calling it 'paid' was wrong on its face; it became expensive once every
+  // signup opened one, because the reward is counted on activated-or-paid and
+  // this fired the instant a card was entered. markReferralPaid now also
+  // refuses to promote anything that has not already activated, so the trade
+  // gate holds even if this condition is ever widened again.
+  if (status === 'active') {
     try { await markReferralPaid(svc, userId) } catch { /* ignore */ }
+  }
+
+  if (status === 'active' || status === 'trialing') {
 
     // A paid subscription is itself an answer to the end-of-trial modal, so the
     // user is never re-walled if they later churn — but ONLY once the trial has
