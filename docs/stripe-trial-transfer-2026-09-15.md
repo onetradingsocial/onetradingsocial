@@ -17,7 +17,7 @@ what is actually live. Update it whenever one moves.
 | Migration | dev `sixixwutvrguqemqzvvw` | prod `jmpanzrjxflovdfwcbye` | Notes |
 |---|---|---|---|
 | 0076 subscriptions trial window | ✅ 2026-09-15 | ✅ 2026-09-15 | Must precede the code merge — the columns are written, not read |
-| 0077 `trial_eligible` DEFAULT false | ⛔ held | ⛔ held | Launch day only, **with** step 6. Applying it alone withdraws the advertised trial |
+| 0077 `trial_eligible` DEFAULT false | ✅ 2026-09-15 | ✅ 2026-09-15 | **LAUNCHED.** Applied after the deploy confirmed Ready, so the env switch covered the window |
 | 0078 `admin_search_users` tiebreak | ✅ 2026-09-15 | ✅ 2026-09-15 | Read-only function, safe in any order |
 | 0079 `first_paid_at` + latch | ✅ 2026-09-15 | ✅ 2026-09-15 | Must precede the code merge — the column is written. Latch behaviour tested on dev only; no probe rows were inserted into production |
 
@@ -25,7 +25,7 @@ Env, both unset — the code ships inert until these move:
 
 | Variable | State | Flip when |
 |---|---|---|
-| `LOCAL_TRIAL_DISABLED` | unset (local trial armed) | Launch day, with 0077 and step 6 |
+| `LOCAL_TRIAL_DISABLED` | ✅ `true` in Vercel Production, live since the 2026-09-15 deploy | — |
 | `TRIAL_WALL_ENABLED` | unset | Becomes a no-op for new accounts anyway — see 5.7 |
 
 Branch `feat/trial-to-stripe` holds steps 0–7. **Nothing user-visible has changed
@@ -52,7 +52,29 @@ defaults, so live is very likely identical.
 | `business_profile.terms_of_service_url` | **not set** | Stripe's consent checkbox cannot be enabled until this is set |
 | `STRIPE_COUPON_BETA_ANNUAL` duration | `once`, 76% off | Hazard real, but no path now combines a coupon with a trial |
 
-### Launch day — these flip together or not at all
+### Launch day — DONE 2026-09-15
+
+Shipped in this order, which is **not** the order first written here. The
+original put the merge second; that was wrong, because merging deploys at once
+and a still-armed local trial would have given every new signup both trials and
+the "you will not be charged" email. Setting the env var first works because
+Vercel captures env vars per deployment, so it activates at the instant the
+merge goes live — no window in either direction.
+
+1. Portal plan switching enabled (Live) — and **"End trials on subscription
+   updates" turned OFF**, found during setup: it would have ended a trial and
+   charged immediately when someone switched plans, contradicting terms §8.
+2. `LOCAL_TRIAL_DISABLED=true` saved in Vercel (inert until deploy).
+3. Merged `feat/trial-to-stripe` → `main` (`2c6b5cb..61822e7`, 85 files).
+4. 0077 applied to both projects, **after** the app deploy confirmed Ready.
+5. Browser suite — outstanding.
+
+**Residue worth knowing:** 16 production rows still carry `trial_eligible =
+true` (3 on dev). They are held back by `LOCAL_TRIAL_DISABLED`, not by the
+migration — the switch short-circuits before the column is read. If that env var
+were ever removed, those accounts could still arm a local trial on next sign-in.
+
+### The original ordering note — these flip together or not at all
 
 Each one alone is wrong in some direction, so treat this as one atomic change.
 
