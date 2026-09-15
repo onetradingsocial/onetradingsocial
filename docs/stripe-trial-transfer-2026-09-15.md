@@ -67,7 +67,43 @@ merge goes live — no window in either direction.
 2. `LOCAL_TRIAL_DISABLED=true` saved in Vercel (inert until deploy).
 3. Merged `feat/trial-to-stripe` → `main` (`2c6b5cb..61822e7`, 85 files).
 4. 0077 applied to both projects, **after** the app deploy confirmed Ready.
-5. Browser suite — outstanding.
+5. Browser suite — partially done, see below.
+
+### What the browser suite actually says, 2026-09-15
+
+Run against a **production build** (`next start`), one spec per freshly started
+server. Verified green: **trial 2/0, welcome-popup 7/0, auth 3/0, billing 1/0.**
+
+The wider suite does not complete on this machine, for four reasons — none of
+them the trial change, and all worth knowing before anyone trusts a red run:
+
+1. **Signup throttle.** `SIGNUP_BUDGET` is 30 per IP per hour and the suite does
+   ~57 signups, all from `127.0.0.1`. The store migration (0056) was never
+   applied, so the counter is in-memory and a server restart clears it — which
+   is why batching with restarts moved it from 13 passing to 28.
+2. **The welcome-popup race.** `close()` fires `ackWelcome` fire-and-forget and
+   drops the backdrop on a 300ms timer, so a navigation beats the write, the
+   popup returns, and — living in the root layout — its backdrop then intercepts
+   clicks on every later page. **Measured, not assumed:** a probe reproduced it
+   for a Pro user as well as a Free one and it vanished when the write was
+   awaited, so it is the race and not the tier. Fixed in `dismissWelcome`.
+3. **Node 22.** `controller[kState].transformAlgorithm is not a function`
+   appeared during a run. The existing note records this as a `next dev`
+   problem; it is **broader than that** — this was `next start`, a production
+   build. Only Node 22 is installed here and there is no nvm.
+4. **Stale selectors that predate all of this.** `billing.spec.ts` looked for
+   `Current plan:` with a colon, which the page has never rendered.
+
+**Tier dependency — the hypothesis was wrong.** The expectation was that many
+specs would fail because signup no longer hands out a Pro trial. Only
+`leaderboard` genuinely does (`leaderboard_ranking` is Trader+ and
+`boardEligibleIds` drops Free accounts from the board). `journal` looked
+identical and is not: "Detailed" is not tier-gated, and a query confirmed the
+trades reach the database. Its failure is still unexplained.
+
+**Also outstanding, and not caused by anything here:** `E2E_ADMIN_EMAIL` is
+unset, so `admin.spec.ts` and `analytics.spec.ts` **self-skip rather than
+fail** — 9 of 58 tests and the whole `/admin` surface, silently unverified.
 
 **Residue worth knowing:** 16 production rows still carry `trial_eligible =
 true` (3 on dev). They are held back by `LOCAL_TRIAL_DISABLED`, not by the
