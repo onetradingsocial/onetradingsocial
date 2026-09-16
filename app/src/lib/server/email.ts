@@ -397,3 +397,63 @@ export function accountDeletedHtml(x: {
     email or write to onetradingsocial@gmail.com.</p>
   `, 'This is the last email we will send to this address. There is no longer a TradingSocial account attached to it.')
 }
+
+/* ── Milestones ───────────────────────────────────────────────────────────── */
+
+/** Interpolated values in this file are mostly ours. `firstTradeHtml`'s are
+ *  not: `instrument` is free text off the log-trade form and `name` is a
+ *  display name, so both get escaped before they land in markup. */
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+/** The first logged trade. Sent once, by lib/server/first-trade-email.ts.
+ *
+ *  This one is deliberately a joke, because it is the only lifecycle email we
+ *  send that is not asking for anything. Everything else in here is a bill, a
+ *  warning, a nudge or a digest; this is the single moment where the product
+ *  can just be pleased with someone. Activation is the metric this email
+ *  exists to move (`first_trade_logged`, lib/server/funnel.ts) and the thing
+ *  that moves it is trade number two, so the reward has to arrive fast and
+ *  feel disproportionate to what they did.
+ *
+ *  ── THE ONE RULE THE HUMOUR ANSWERS TO ──────────────────────────────────────
+ *
+ *  It branches on `outcome`, and the loss branch is the whole reason it does.
+ *  A generic "🎉 Congratulations!" landing on someone who just logged a losing
+ *  first trade reads as a product that did not look at the data it was given,
+ *  and this product's entire pitch is that it looks at the data. So the joke
+ *  is never at the expense of the result: the win branch teases the 100% win
+ *  rate, the loss branch is warm and says the useful true thing, and neither
+ *  ever congratulates anyone on losing money.
+ *
+ *  No P/L figure, no R, no win rate as a number. One trade cannot support a
+ *  statistic, and printing one would be the weekly digest's sin (`netR == null`)
+ *  committed for a laugh. */
+export function firstTradeHtml(x: {
+  name: string
+  instrument: string
+  direction: 'long' | 'short'
+  /** The row's own `outcome` column. 'open' when they logged an entry with no
+   *  exit yet — a first trade that is still running is a real and common case,
+   *  and celebrating a result it does not have would be a lie. */
+  outcome: 'win' | 'loss' | 'breakeven' | 'open'
+}): string {
+  const ticket = `${x.direction === 'long' ? 'Long' : 'Short'} ${esc(x.instrument)}`
+
+  const reaction = {
+    win: `<p style="font-size:14px;line-height:1.6">It's a win, so your all-time win rate is currently <b>100%</b>. Enjoy that number. It is never going to be that high again, and we will not be bringing it up.</p>`,
+    loss: `<p style="font-size:14px;line-height:1.6">It's a loss — which is, annoyingly, the more useful first entry. Anyone can log the good ones. The traders who get somewhere are the ones whose journals still have the red trades in them six months later, and yours starts with one.</p>`,
+    breakeven: `<p style="font-size:14px;line-height:1.6">Breakeven. The most anticlimactic possible way to open a trading journal, and honestly a bit rude of the market. The chart has to start somewhere.</p>`,
+    open: `<p style="font-size:14px;line-height:1.6">It's still open, so this is less a celebration and more a cliffhanger. Close it out when it's done and the stats will catch up.</p>`,
+  }[x.outcome]
+
+  return shell(`${esc(x.name)}, that's one.`, `
+    <p style="font-size:14px;line-height:1.6">You logged your first trade. <b>${ticket}</b> is now in the journal forever, or until you delete it, which we would notice.</p>
+    ${reaction}
+    <p style="font-size:14px;line-height:1.6">Here is the unfunny part. Your win rate, your average R, which setups actually carry you, the weekly review, the patterns you have not spotted yet — all of it is arithmetic over the trades in your journal. There is currently one. That is not a sample, it's an anecdote.</p>
+    <p style="font-size:14px;line-height:1.6">Two makes it a line. Twenty makes it an argument.</p>
+    ${button(`${APP}/journal`, 'Log trade number two')}
+    <p style="font-size:13px;line-height:1.6;color:#56536b;margin-top:20px">Yes, we sent an email about one trade. This is the only one — we will not be doing this at number seven.</p>
+  `)
+}

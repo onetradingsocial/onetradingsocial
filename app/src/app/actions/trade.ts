@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
@@ -11,6 +12,7 @@ import { trackServer } from '@/lib/server/track'
 import { insertSystemNotification } from '@/lib/notifications'
 import { analyzeCompliance, hasAnyRule } from '@/lib/rules'
 import { markReferralActivated } from '@/lib/server/referral'
+import { sendFirstTradeEmail } from '@/lib/server/first-trade-email'
 import { createServiceClient } from '@/lib/supabase/service'
 import { tradeChartPrefix } from '@/lib/storage'
 import {
@@ -361,6 +363,24 @@ export async function createTrade(_prev: TradeState, formData: FormData): Promis
         await insertSystemNotification({ supabase: svc, userId: referrerId, type: 'goal_completed' })
       }
     } catch { /* referral bookkeeping never blocks logging a trade */ }
+
+    // The reward for the activation moment. `count === 1` is the same trigger
+    // the funnel event uses, so the email cannot disagree with the metric about
+    // who activated; it is not a one-way door (delete the only trade, log
+    // another, and you are back at one), so sendFirstTradeEmail carries the
+    // send-once latch rather than trusting this condition.
+    //
+    // Inside after() so it adds no latency to logging a trade, and best-effort
+    // for the reason the referral block above is: sendFirstTradeEmail never
+    // throws, and a joke must never be the reason a trade fails to save.
+    const email = user.email ?? null
+    after(async () => {
+      await sendFirstTradeEmail(createServiceClient(), user.id, email, {
+        instrument: parsed.instrument,
+        direction: parsed.direction,
+        outcome: derived.outcome,
+      })
+    })
   }
 
   revalidatePath('/journal')
