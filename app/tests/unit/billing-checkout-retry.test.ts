@@ -21,6 +21,12 @@ const storedCustomerId = vi.fn<() => string | null>(() => STALE)
 const updated = vi.fn<(p: Record<string, unknown>) => void>()
 const customersCreate = vi.fn(async () => ({ id: FRESH }))
 const sessionsCreate = vi.fn<(args: { customer: string }) => Promise<{ url: string }>>()
+/** Stripe's subscription history for the customer. A dead id raises the same
+ *  `resource_missing` the session does, which the guard must tolerate. */
+const subscriptionsList = vi.fn(async ({ customer }: { customer: string }) => {
+  if (customer === STALE) throw stripeError()
+  return { data: [] }
+})
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => ({
@@ -33,11 +39,11 @@ vi.mock('@/lib/supabase/service', () => ({
     from: () => ({
       select: () => ({
         eq: () => ({
-          // The duplicate-subscription guard reads `.eq().eq().limit()`. No
-          // trial is running in these fixtures, so it returns nothing and
-          // checkout proceeds to the part this file is actually about.
-          eq: () => ({ limit: async () => ({ data: [] }) }),
-          single: async () => ({ data: { stripe_customer_id: storedCustomerId() } }),
+          // The subscription-history guard awaits `.select().eq()` directly.
+          // These fixtures have no history, so checkout proceeds to the part
+          // this file is actually about.
+          then: (resolve: (v: unknown) => void) => resolve({ data: [] }),
+          single: async () => ({ data: { stripe_customer_id: storedCustomerId(), trial_started_at: null } }),
           maybeSingle: async () => ({ data: null }),
         }),
       }),
@@ -52,6 +58,7 @@ vi.mock('@/lib/supabase/service', () => ({
 vi.mock('@/lib/stripe', () => ({
   getStripe: () => ({
     customers: { create: customersCreate },
+    subscriptions: { list: subscriptionsList },
     checkout: { sessions: { create: sessionsCreate } },
   }),
 }))
@@ -154,6 +161,19 @@ describe('checkout failures that are not a stale customer', () => {
 
     await expect(post(request())).rejects.toThrow()
     expect(customersCreate).not.toHaveBeenCalled()
+  })
+})
+
+describe('subscription history lookup', () => {
+  it('fails CLOSED when Stripe cannot say what the customer already holds', async () => {
+    // Opening a checkout we could not vet is how a second subscription or a
+    // replayed trial gets through; a 503 costs one retry.
+    storedCustomerId.mockReturnValue('cus_healthy')
+    subscriptionsList.mockRejectedValueOnce(stripeError({ code: 'api_error', param: undefined, message: 'upstream' }))
+
+    const res = await post(request())
+    expect(res.status).toBe(503)
+    expect(sessionsCreate).not.toHaveBeenCalled()
   })
 })
 
