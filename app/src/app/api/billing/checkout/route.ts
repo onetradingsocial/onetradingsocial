@@ -10,6 +10,9 @@ import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
 import { stripeTermsConsent } from '@/lib/terms-acceptance'
 import { trackServer } from '@/lib/server/track'
 import { createAndStoreCustomer, isMissingCustomer } from '@/lib/server/billing'
+import {
+  checkoutRefusal, referralMonthsAvailable, type PriorSubscription,
+} from '@/lib/checkout-eligibility'
 import { logError, logInfo } from '@/lib/server/log'
 
 export const runtime = 'nodejs'
@@ -34,43 +37,81 @@ export async function POST(request: NextRequest) {
   }
 
   /**
-   * A user who already holds a TRIALING subscription must not open a second one.
+   * Refuse any checkout that would sit beside an existing subscription, reopen a
+   * spent free trial, or replay spent referral months. See
+   * lib/checkout-eligibility.ts for the three holes this closes.
    *
    * Checkout always CREATES a subscription; it never modifies an existing one.
-   * That was safe while a trial was two timestamps on `profiles`, because a
-   * trialist had no Stripe subscription and buying a plan was the only way to
-   * get one. It stopped being safe the moment the signup trial became a real
-   * subscription — and the in-app upsell is reachable from the nav countdown
-   * chip, which now renders for exactly those users.
-   *
-   * Left open, the sequence is: sign up (Pro trial, converts to A$50 on day 14),
-   * click the chip on day 2, buy Trader, and now hold BOTH. Nothing cancels the
-   * first, so the customer pays A$80 a month having chosen one plan.
-   *
-   * Every flow is refused, not just the upsell. A second trial is equally wrong,
-   * and a referral claim mid-trial would duplicate in the same way. Changing
-   * plan during a trial belongs in the billing portal, which modifies the
+   * Changing plan belongs in the billing portal, which modifies the
    * subscription in place instead of adding one.
+   *
+   * History is read from BOTH the mirror (keyed by user, so it survives a
+   * re-minted customer and a webhook that has not been processed yet is the
+   * only gap) and Stripe's own list for the customer (authoritative, and the
+   * only record of `flow` and `referral_months`). A Stripe failure other than a
+   * stale customer id fails CLOSED: opening a checkout we could not vet is the
+   * expensive direction.
    *
    * 409 rather than 400: nothing is malformed, the account is simply in a state
    * where this is not the right operation.
    */
-  const { data: liveTrial } = await createServiceClient()
+  const { data: mirrorRows } = await createServiceClient()
     .from('subscriptions')
-    .select('id').eq('user_id', user.id).eq('status', 'trialing').limit(1)
-  if (liveTrial && liveTrial.length > 0) {
-    logInfo('billing checkout', { note: 'refused: trial already in progress', flow: flow ?? 'direct' })
-    return NextResponse.json({
-      error: 'A trial is already running on this account. Manage your plan in Settings → Billing.',
-    }, { status: 409 })
+    .select('status, trial_start, trial_end').eq('user_id', user.id)
+  // Service client for the READ as well as the write: 0047 revokes SELECT on
+  // stripe_customer_id from anon and authenticated (0042 had already revoked
+  // UPDATE). Scoped to user.id from getUser(), so it reads only the caller's row.
+  const { data: prof } = await createServiceClient()
+    .from('profiles').select('stripe_customer_id, trial_started_at').eq('id', user.id).single()
+  let customerId = prof?.stripe_customer_id as string | null
+
+  const stripe = getStripe()
+  const history: PriorSubscription[] = (mirrorRows ?? []).map((r) => ({
+    status: r.status as string,
+    trialStart: (r.trial_start as string | null) ?? null,
+    trialEnd: (r.trial_end as string | null) ?? null,
+    flow: null,
+    referralMonths: null,
+  }))
+  if (customerId) {
+    try {
+      const listed = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
+      for (const s of listed.data) {
+        history.push({
+          status: s.status,
+          trialStart: s.trial_start ?? null,
+          trialEnd: s.trial_end ?? null,
+          flow: s.metadata?.flow ?? null,
+          referralMonths: s.metadata?.referral_months ?? null,
+        })
+      }
+    } catch (err) {
+      // A stale id from the sandbox namespace has no live history to find; the
+      // re-mint path below handles it. Anything else is not safe to ignore.
+      if (!isMissingCustomer(err, customerId)) {
+        logError('billing checkout', err, { note: 'subscription history unavailable; refusing' })
+        return NextResponse.json({ error: 'Billing is temporarily unavailable. Please try again.' }, { status: 503 })
+      }
+    }
+  }
+
+  const refusal = checkoutRefusal({
+    flow,
+    subs: history,
+    localTrialStarted: Boolean(prof?.trial_started_at),
+  })
+  if (refusal) {
+    logInfo('billing checkout', { note: `refused: ${refusal.reason}`, flow: flow ?? 'direct' })
+    return NextResponse.json({ error: refusal.error }, { status: refusal.status })
   }
 
   const env = process.env as Record<string, string | undefined>
 
   // Referral redemption: the referrer claims their earned free Pro. We ignore
   // any client-supplied tier/interval and force Pro monthly, then hand them the
-  // free months they've actually earned as a Stripe trial. The count is
-  // re-derived server-side so the free period can never be forged by the client.
+  // free months they've earned AND NOT ALREADY CLAIMED as a Stripe trial. Both
+  // counts are derived server-side so the free period can never be forged or
+  // replayed by the client.
   let referralMonths = 0
   if (flow === 'referral') {
     const svc = createServiceClient()
@@ -78,10 +119,10 @@ export async function POST(request: NextRequest) {
       .from('referral_codes').select('code').eq('user_id', user.id).maybeSingle()
     if (codeRow?.code) {
       const stats = await getReferralStats(svc, user.id, codeRow.code)
-      referralMonths = earnedMonths(stats.activated)
+      referralMonths = referralMonthsAvailable(earnedMonths(stats.activated), history)
     }
     if (referralMonths < 1) {
-      return NextResponse.json({ error: 'no referral reward earned yet' }, { status: 400 })
+      return NextResponse.json({ error: 'No unclaimed referral months to redeem yet.' }, { status: 400 })
     }
   } else if (flow !== 'trial' && ((tier !== 'trader' && tier !== 'pro') || (interval !== 'monthly' && interval !== 'annual'))) {
     return NextResponse.json({ error: 'bad request' }, { status: 400 })
@@ -102,15 +143,7 @@ export async function POST(request: NextRequest) {
   const price = priceForPlan(soldTier, soldInterval, env)
   if (!price) return NextResponse.json({ error: 'price not configured' }, { status: 500 })
 
-  const stripe = getStripe()
-
   // Ensure a Stripe customer, store its id on the profile.
-  // Service client for the READ as well as the write: 0047 revokes SELECT on
-  // stripe_customer_id from anon and authenticated (0042 had already revoked
-  // UPDATE). Scoped to user.id from getUser(), so it reads only the caller's row.
-  const { data: prof } = await createServiceClient()
-    .from('profiles').select('stripe_customer_id').eq('id', user.id).single()
-  let customerId = prof?.stripe_customer_id as string | null
   if (!customerId) {
     const minted = await createAndStoreCustomer(createServiceClient(), stripe, user)
     if ('error' in minted) return NextResponse.json({ error: minted.error }, { status: 500 })
@@ -227,7 +260,12 @@ export async function POST(request: NextRequest) {
       ? {
           trial_period_days: flow === 'referral' ? referralMonths * 30 : TRIAL_DAYS,
           trial_settings: { end_behavior: { missing_payment_method: 'cancel' } },
-          metadata: { flow: flow as string, tier: soldTier, interval: soldInterval },
+          // referral_months is the ledger checkout-eligibility reads to stop
+          // the same earned months being claimed twice.
+          metadata: {
+            flow: flow as string, tier: soldTier, interval: soldInterval,
+            ...(flow === 'referral' ? { referral_months: String(referralMonths) } : {}),
+          },
         }
       : undefined,
     // A trial that collects no card is not the product described in terms §8 —

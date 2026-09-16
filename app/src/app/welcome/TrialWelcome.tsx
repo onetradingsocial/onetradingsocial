@@ -58,11 +58,15 @@ export function TrialWelcome() {
         // be chosen from here. See api/billing/checkout.
         body: JSON.stringify({ flow: 'trial' }),
       })
-      const { url } = (await res.json().catch(() => ({}))) as { url?: string }
+      const { url, error: reason } = (await res.json().catch(() => ({}))) as { url?: string; error?: string }
       // Stay busy on success — we are navigating to Stripe, and re-enabling the
       // button would only invite a second session.
       if (res.ok && url) { window.location.href = url; return }
-      setError('Could not start your trial. Please try again, or continue on Free.')
+      // 409 is a refusal with a reason the user can act on (trial already used,
+      // plan already live); retrying will not change it, so say what it is.
+      setError(res.status === 409 && reason
+        ? `${reason} Or continue on Free.`
+        : 'Could not start your trial. Please try again, or continue on Free.')
     } catch {
       setError('Could not start your trial. Please try again, or continue on Free.')
     }

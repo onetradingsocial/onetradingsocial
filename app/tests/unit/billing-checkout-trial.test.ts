@@ -33,19 +33,31 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }))
 
-/** Rows the guard's `subscriptions` lookup should return. Empty by default: no
- *  trial in progress, so checkout proceeds. */
-let trialingRows: Array<{ id: string }> = []
+type Row = { status: string; trial_start?: string | null; trial_end?: string | null }
+type StripeSub = {
+  status: string; trial_start?: number | null; trial_end?: number | null
+  metadata?: Record<string, string>
+}
+
+/** The `subscriptions` mirror rows for this user. Empty by default. */
+let mirrorRows: Row[] = []
+/** Stripe's own subscription list for the customer. Empty by default. */
+let stripeSubs: StripeSub[] = []
+/** profiles.trial_started_at — the legacy card-free trial. */
+let localTrial: string | null = null
+/** Activated referrals, for the referral flow. */
+let activated = 0
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: () => ({
     from: (table: string) => ({
       select: () => ({
         eq: () => ({
-          // The duplicate-subscription guard: .eq().eq().limit()
-          eq: () => ({ limit: async () => ({ data: table === 'subscriptions' ? trialingRows : [] }) }),
-          single: async () => ({ data: { stripe_customer_id: CUS } }),
-          maybeSingle: async () => ({ data: null }),
+          // The history guard awaits `.from('subscriptions').select().eq()`.
+          then: (resolve: (v: unknown) => void) =>
+            resolve({ data: table === 'subscriptions' ? mirrorRows : [] }),
+          single: async () => ({ data: { stripe_customer_id: CUS, trial_started_at: localTrial } }),
+          maybeSingle: async () => ({ data: table === 'referral_codes' ? { code: 'alex-ab12' } : null }),
         }),
       }),
       update: () => ({ eq: async () => ({ error: null }) }),
@@ -53,9 +65,14 @@ vi.mock('@/lib/supabase/service', () => ({
   }),
 }))
 
+vi.mock('@/lib/server/referral', () => ({
+  getReferralStats: async () => ({ clicks: 0, signups: activated, activated }),
+}))
+
 vi.mock('@/lib/stripe', () => ({
   getStripe: () => ({
     customers: { create: vi.fn(async () => ({ id: CUS })) },
+    subscriptions: { list: async () => ({ data: stripeSubs }) },
     checkout: { sessions: { create: sessionsCreate } },
   }),
 }))
@@ -85,7 +102,10 @@ const subData = () => sent().subscription_data as Record<string, unknown>
 
 beforeEach(() => {
   vi.clearAllMocks()
-  trialingRows = []
+  mirrorRows = []
+  stripeSubs = []
+  localTrial = null
+  activated = 0
   sessionsCreate.mockResolvedValue({ url: 'https://checkout.stripe.com/c/pay/cs_x' })
   process.env.STRIPE_PRICE_TRADER_MONTHLY = 'price_tm'
   process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_pm'
@@ -181,7 +201,7 @@ describe('a trial already in progress blocks every new subscription', () => {
   // Checkout CREATES a subscription; it never modifies one. Someone mid-trial
   // on Pro who buys Trader from the in-app upsell would hold both and pay A$80
   // a month having chosen one plan. Nothing cancels the first.
-  beforeEach(() => { trialingRows = [{ id: 'sub_trialing' }] })
+  beforeEach(() => { mirrorRows = [{ status: 'trialing' }] })
 
   it('refuses the in-app upsell — the path that would double-bill', async () => {
     const res = await post(request({ tier: 'trader', interval: 'monthly', flow: 'trial_end' }))
@@ -207,5 +227,83 @@ describe('a trial already in progress blocks every new subscription', () => {
   it('points the customer at the billing portal rather than just failing', async () => {
     const res = await post(request({ tier: 'trader', interval: 'monthly', flow: 'trial_end' }))
     expect((await res.json()).error).toMatch(/Settings/)
+  })
+})
+
+describe('the signup trial is one per person (terms §8)', () => {
+  it('refuses a second trial after the first was cancelled and lapsed', async () => {
+    // The replay: start, cancel in the portal, let it end, start again. Only
+    // Stripe knows about it if the webhook has not mirrored it, so this fixture
+    // lives in Stripe's list alone.
+    stripeSubs = [{ status: 'canceled', trial_start: 1_700_000_000, trial_end: 1_701_209_600, metadata: { flow: 'trial' } }]
+    const res = await post(request({ flow: 'trial' }))
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toMatch(/already had its free trial/)
+    expect(sessionsCreate).not.toHaveBeenCalled()
+  })
+
+  it('refuses it when only the mirror remembers the earlier subscription', async () => {
+    // A re-minted customer has an empty Stripe list; the mirror is keyed by user.
+    mirrorRows = [{ status: 'canceled', trial_start: '2026-08-01T00:00:00Z', trial_end: '2026-08-15T00:00:00Z' }]
+    expect((await post(request({ flow: 'trial' }))).status).toBe(409)
+  })
+
+  it('counts the legacy card-free trial as the one trial', async () => {
+    localTrial = '2026-09-01T00:00:00Z'
+    expect((await post(request({ flow: 'trial' }))).status).toBe(409)
+    expect(sessionsCreate).not.toHaveBeenCalled()
+  })
+
+  it('still lets a lapsed trialist SUBSCRIBE — only the free period is spent', async () => {
+    stripeSubs = [{ status: 'canceled', trial_start: 1_700_000_000, trial_end: 1_701_209_600, metadata: { flow: 'trial' } }]
+    localTrial = '2026-09-01T00:00:00Z'
+    expect((await post(request({ tier: 'trader', interval: 'monthly' }))).status).toBe(200)
+  })
+})
+
+describe('a live paid subscription blocks a second one', () => {
+  for (const status of ['active', 'past_due', 'unpaid', 'paused', 'incomplete']) {
+    it(`refuses a purchase beside a ${status} subscription`, async () => {
+      stripeSubs = [{ status }]
+      const res = await post(request({ tier: 'pro', interval: 'monthly' }))
+      expect(res.status).toBe(409)
+      expect((await res.json()).error).toMatch(/Settings → Billing/)
+      expect(sessionsCreate).not.toHaveBeenCalled()
+    })
+  }
+
+  it('allows a purchase once the earlier subscription has ended', async () => {
+    stripeSubs = [{ status: 'canceled' }, { status: 'incomplete_expired' }]
+    expect((await post(request({ tier: 'pro', interval: 'monthly' }))).status).toBe(200)
+  })
+})
+
+describe('referral months cannot be claimed twice', () => {
+  const DAY = 86_400
+
+  it('grants only the months not already claimed, and stamps the claim', async () => {
+    activated = 3
+    stripeSubs = [{ status: 'canceled', metadata: { flow: 'referral', referral_months: '2' } }]
+    expect((await post(request({ flow: 'referral' }))).status).toBe(200)
+    expect(subData().trial_period_days).toBe(30)
+    expect((subData().metadata as Record<string, string>).referral_months).toBe('1')
+  })
+
+  it('refuses the claim → cancel → claim replay', async () => {
+    activated = 2
+    stripeSubs = [{ status: 'canceled', metadata: { flow: 'referral', referral_months: '2' } }]
+    const res = await post(request({ flow: 'referral' }))
+    expect(res.status).toBe(400)
+    expect(sessionsCreate).not.toHaveBeenCalled()
+  })
+
+  it('counts a claim made before the stamp existed from its trial length', async () => {
+    activated = 3
+    stripeSubs = [{
+      status: 'canceled', trial_start: 1_700_000_000, trial_end: 1_700_000_000 + 60 * DAY,
+      metadata: { flow: 'referral' },
+    }]
+    expect((await post(request({ flow: 'referral' }))).status).toBe(200)
+    expect(subData().trial_period_days).toBe(30)
   })
 })

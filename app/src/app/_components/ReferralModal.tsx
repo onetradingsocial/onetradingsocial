@@ -85,9 +85,11 @@ export function ReferralModal({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ flow: 'referral' }),
       })
-      const { url } = (await res.json().catch(() => ({}))) as { url?: string }
+      const { url, error } = (await res.json().catch(() => ({}))) as { url?: string; error?: string }
       if (res.ok && url) { window.location.href = url; return }
-      alert('Could not start checkout. Please try again.')
+      // 400/409 carry a reason (months already claimed, plan already live) that
+      // a retry cannot change; anything else is worth retrying.
+      alert((res.status === 400 || res.status === 409) && error ? error : 'Could not start checkout. Please try again.')
     } catch {
       alert('Could not start checkout. Please try again.')
     }
