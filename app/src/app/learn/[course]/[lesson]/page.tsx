@@ -28,8 +28,10 @@ export default async function LessonPage({ params }: { params: Promise<{ course:
     <main className="ts-page" style={{ maxWidth: 720 }}>
       <Link href={`/learn/${course}`} className="ts-link-sm">← {view.courseTitle}</Link>
       <h1 className="ts-h1 mt-3">{view.title}</h1>
-      {/* Trusted HTML: lesson body is seed-only (migration-authored, no user write path).
-          If a Phase 7 admin authoring UI is added, this must be sanitized (e.g. DOMPurify). */}
+      {/* Admin-authored HTML. createLesson/updateLesson in actions/admin.ts run it
+          through sanitizeLessonHtml (lib/sanitizeHtml.ts, a tight tag allowlist)
+          on SAVE, so what is stored is already clean. Any new write path to
+          lessons.body must sanitize the same way. */}
       <article className="ts-card learn-body mt-5" dangerouslySetInnerHTML={{ __html: view.body }} />
       <div className="mt-6">
         <Quiz lessonId={view.id} questions={view.questions} alreadyDone={view.completed} />

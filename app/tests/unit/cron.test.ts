@@ -14,6 +14,12 @@ describe('authorizedCron', () => {
     expect(authorizedCron(null)).toBe(false)
     expect(authorizedCron('s3cret')).toBe(false)
   })
+  it('rejects near misses of a different length without throwing', () => {
+    // timingSafeEqual throws on unequal lengths; hashing first must prevent that.
+    expect(authorizedCron('Bearer s3cre')).toBe(false)
+    expect(authorizedCron('Bearer s3cret ')).toBe(false)
+    expect(authorizedCron('')).toBe(false)
+  })
   it('rejects everything when CRON_SECRET unset', () => {
     delete process.env.CRON_SECRET
     expect(authorizedCron('Bearer ')).toBe(false)
