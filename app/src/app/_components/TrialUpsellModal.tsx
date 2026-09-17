@@ -32,10 +32,13 @@ const CLOSE: ReactNode = (
 export function TrialUpsellModal({
   daysLeft,
   cardOnFile = false,
+  cancelling = false,
   onClose,
 }: {
   daysLeft: number
   cardOnFile?: boolean
+  /** Card on file but the customer has cancelled — no charge follows. */
+  cancelling?: boolean
   onClose: () => void
 }) {
   const [mounted, setMounted] = useState(false)
@@ -97,7 +100,9 @@ export function TrialUpsellModal({
             You are on Pro until your trial ends. Subscribe now and nothing changes when it does —
             unlimited journal, advanced analytics and MT5 sync stay exactly where
             they are.
-            {cardOnFile
+            {cardOnFile && cancelling
+              ? ' You have cancelled, so nothing will be charged and your account moves to Free when the trial ends. You can change your mind in Settings → Billing.'
+              : cardOnFile
               ? ' Your card is already on file, so your plan continues automatically unless you cancel in Settings → Billing.'
               : ' No charge until you subscribe.'}
           </p>

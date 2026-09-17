@@ -227,6 +227,15 @@ describe('trialSequenceHtml never promises a card-on-file user they cannot be ch
     })
   }
 
+  for (const stage of [1, 7, 12] as const) {
+    it(`stage ${stage}: a cancelled card-on-file trial is told it will NOT be charged`, () => {
+      const html = trialSequenceHtml({ ...base, stage, cardOnFile: true, cancelling: true, endsOn: '30 September 2026' })
+      expect(html).toMatch(/nothing will be charged|You will not be charged/i)
+      expect(html).not.toMatch(/card you saved will be charged|continues automatically|Your plan starts/i)
+      expect(html).toMatch(/Free/)
+    })
+  }
+
   it('degrades to a phrase rather than printing a missing date', () => {
     const html = trialSequenceHtml({ ...base, stage: 1, cardOnFile: true, endsOn: null })
     expect(html).toContain('when your trial ends')

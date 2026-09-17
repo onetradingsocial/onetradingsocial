@@ -11,6 +11,11 @@ type StripeSubLike = {
   id: string
   status: string
   cancel_at_period_end: boolean
+  /** A scheduled cancellation as a timestamp. Stripe records a cancellation
+   *  this way as well as through `cancel_at_period_end`, and the dashboard and
+   *  billing portal can use it with the boolean left `false`. See
+   *  `scheduledToCancel`. */
+  cancel_at?: number | null
   trial_start?: number | null
   trial_end?: number | null
   metadata?: Record<string, string> | null
@@ -56,6 +61,29 @@ function epochToIso(s: number | null | undefined): string | null {
   return new Date(s * 1000).toISOString()
 }
 
+/** Whether the subscription ends instead of renewing at its current boundary.
+ *
+ *  Stripe has two ways to say "this will not renew": the boolean
+ *  `cancel_at_period_end`, and a `cancel_at` timestamp. Reading only the boolean
+ *  was a live bug — a trialist cancelled, Stripe showed "Cancels 30 Sept", sent
+ *  `customer.subscription.updated` with `cancel_at` set and the boolean still
+ *  false, and our mirror kept saying the plan renews. Every in-app and email
+ *  line that promises a charge reads the mirrored flag, so the customer who had
+ *  cancelled was told their card would be charged.
+ *
+ *  A `cancel_at` on or before the current boundary (period end, or trial end
+ *  while trialing) means no renewal follows. One LATER than the boundary does
+ *  not: the subscription renews at least once before it ends, so "renews" is
+ *  still the truth. A minute of slack absorbs Stripe setting the two from
+ *  separate clocks. */
+export function scheduledToCancel(sub: StripeSubLike): boolean {
+  if (sub.cancel_at_period_end) return true
+  if (sub.cancel_at == null || !Number.isFinite(sub.cancel_at)) return false
+  const boundary = sub.items?.data?.[0]?.current_period_end ?? sub.trial_end ?? null
+  if (boundary == null) return true
+  return sub.cancel_at <= boundary + 60
+}
+
 /** Pure map from a Stripe subscription to a mirror row. Null when the price is
  *  not one of ours (caller should ack 200 and skip, not error). */
 export function subscriptionRow(sub: StripeSubLike, env: PlanEnv): SubscriptionRow | null {
@@ -72,7 +100,9 @@ export function subscriptionRow(sub: StripeSubLike, env: PlanEnv): SubscriptionR
     current_period_end: item?.current_period_end
       ? new Date(item.current_period_end * 1000).toISOString()
       : null,
-    cancel_at_period_end: sub.cancel_at_period_end,
+    // Not `sub.cancel_at_period_end` alone — see scheduledToCancel. The column
+    // keeps its name; it means "will not renew", whichever way Stripe said so.
+    cancel_at_period_end: scheduledToCancel(sub),
     trial_start: epochToIso(sub.trial_start),
     trial_end: epochToIso(sub.trial_end),
   }
@@ -246,7 +276,7 @@ export function trialEnding(sub: StripeSubLike): TrialEnding | null {
     subscriptionId: sub.id,
     trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
     paymentMethodOnSubscription: !!(sub.default_payment_method || sub.default_source),
-    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    cancelAtPeriodEnd: scheduledToCancel(sub),
     amount: formatStripeAmount(price?.unit_amount, price?.currency),
     interval: price?.recurring?.interval ?? null,
     kind,

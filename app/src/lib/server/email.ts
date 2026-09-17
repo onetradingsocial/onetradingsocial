@@ -280,6 +280,9 @@ export function trialSequenceHtml(x: {
   kept: number
   /** A card is on file and a charge follows this trial. See the note above. */
   cardOnFile?: boolean
+  /** Card on file, but the customer has cancelled: no charge follows. Checked
+   *  before `cardOnFile` on every payment line. */
+  cancelling?: boolean
   /** The date the trial converts or lapses, already formatted for display
    *  (en-AU, Australia/Sydney) by the caller. Only read when `cardOnFile`. */
   endsOn?: string | null
@@ -302,7 +305,9 @@ export function trialSequenceHtml(x: {
     return shell(`${x.name}, one thing to do today`, `
       <p style="font-size:14px;line-height:1.6">You have Pro for the next ${x.daysLeft} days. Rather than list everything it unlocks, here is the single thing that makes the rest of it work.</p>
       ${action}
-      <p style="font-size:13px;line-height:1.6;color:#56536b">${x.cardOnFile
+      <p style="font-size:13px;line-height:1.6;color:#56536b">${x.cardOnFile && x.cancelling
+        ? `You have cancelled, so nothing will be charged. Your account moves to the Free plan ${when}.`
+        : x.cardOnFile
         ? `Your card is on file and nothing has been charged yet. Your plan starts ${when} — cancel before then in Settings &rarr; Billing and you will not be charged.`
         : 'No card was taken and none is needed. Nothing will be charged at any point in the trial.'}</p>
     `)
@@ -316,7 +321,9 @@ export function trialSequenceHtml(x: {
       <p style="font-size:14px;line-height:1.6">A week in, ${x.daysLeft} days of Pro left.</p>
       ${progress}
       ${x.trades === 0 ? action : `${button(`${APP}/journal`, 'See what your trades say')}`}
-      <p style="font-size:13px;line-height:1.6;color:#56536b">${x.cardOnFile
+      <p style="font-size:13px;line-height:1.6;color:#56536b">${x.cardOnFile && x.cancelling
+        ? `You have cancelled, so nothing will be charged. Your account moves to the Free plan ${when}.`
+        : x.cardOnFile
         ? `Your card is on file. Nothing is charged until your plan starts ${when}; cancel before then in Settings &rarr; Billing and you will not be charged.`
         : 'Still no card on file. Nothing will be charged.'}</p>
     `)
@@ -330,6 +337,15 @@ export function trialSequenceHtml(x: {
   // suppresses this stage for card-on-file trials — but correct here regardless,
   // because a template that depends on its caller to stay honest about money is
   // one refactor away from lying.
+  if (x.cardOnFile && x.cancelling) {
+    return shell(`${x.name}, your Pro trial ends in ${x.daysLeft} ${x.daysLeft === 1 ? 'day' : 'days'}`, `
+      <p style="font-size:14px;line-height:1.6">Your ${x.daysLeft === 1 ? 'last day' : 'final days'} of the free trial.</p>
+      <p style="font-size:14px;line-height:1.6"><b>You will not be charged.</b> You cancelled, so your account moves to the <b>Free</b> plan ${when}.</p>
+      <p style="font-size:14px;line-height:1.6"><b>Nothing you have logged is deleted.</b> Every trade, note and screenshot stays exactly where it is.</p>
+      ${button(`${APP}/settings/billing`, 'Review your plan')}
+    `)
+  }
+
   if (x.cardOnFile) {
     return shell(`${x.name}, your Pro trial ends in ${x.daysLeft} ${x.daysLeft === 1 ? 'day' : 'days'}`, `
       <p style="font-size:14px;line-height:1.6">Your ${x.daysLeft === 1 ? 'last day' : 'final days'} of the free trial. Here is exactly what happens next, so none of it is a surprise.</p>

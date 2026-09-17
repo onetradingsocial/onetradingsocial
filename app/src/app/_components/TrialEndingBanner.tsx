@@ -28,10 +28,10 @@ import { TrialUpsellModal } from './TrialUpsellModal'
  *  The dismissal is `localStorage` and survives, which is defensible for an
  *  upsell and thinner for a pre-charge reminder — the email is the notice of
  *  record, and it cannot be dismissed. */
-export function TrialEndingBanner({ daysLeft, cardOnFile }: { daysLeft: number; cardOnFile: boolean }) {
+export function TrialEndingBanner({ daysLeft, cardOnFile, cancelling = false }: { daysLeft: number; cardOnFile: boolean; cancelling?: boolean }) {
   const [hidden, setHidden] = useState(true)
   const [open, setOpen] = useState(false)
-  const key = `ts_trial_nudge_${cardOnFile ? 'c' : 'f'}_${daysLeft}`
+  const key = `ts_trial_nudge_${cardOnFile ? (cancelling ? 'x' : 'c') : 'f'}_${daysLeft}`
 
   useEffect(() => {
     setHidden(localStorage.getItem(key) === '1')
@@ -46,7 +46,9 @@ export function TrialEndingBanner({ daysLeft, cardOnFile }: { daysLeft: number; 
       <span>
         {/* Only rendered while the trial is active, which means daysLeft >= 1. */}
         Your Pro trial ends in {daysLeft} {daysLeft === 1 ? 'day' : 'days'}.
-        {cardOnFile
+        {cardOnFile && cancelling
+          ? ' You have cancelled, so nothing will be charged and your account moves to Free.'
+          : cardOnFile
           ? ' Your plan then continues on the card you saved — cancel before then and you are not charged.'
           : ' Add a card to keep unlimited journaling, advanced analytics and MT5 sync. Nothing is charged for this trial.'}
       </span>
@@ -54,7 +56,7 @@ export function TrialEndingBanner({ daysLeft, cardOnFile }: { daysLeft: number; 
         {cardOnFile ? 'Review plan' : 'Add a card'}
       </button>
       <button type="button" className="ts-banner-x" onClick={dismiss} aria-label="Dismiss">✕</button>
-      {open && <TrialUpsellModal daysLeft={daysLeft} cardOnFile={cardOnFile} onClose={() => setOpen(false)} />}
+      {open && <TrialUpsellModal daysLeft={daysLeft} cardOnFile={cardOnFile} cancelling={cancelling} onClose={() => setOpen(false)} />}
     </div>
   )
 }

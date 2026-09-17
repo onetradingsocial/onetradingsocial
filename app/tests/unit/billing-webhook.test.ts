@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   subscriptionRow, formatStripeAmount, invoiceSubscriptionId, paymentFailure,
-  trialEnding, mirrorNeedsRepair, staleMirrorRows,
+  trialEnding, mirrorNeedsRepair, staleMirrorRows, scheduledToCancel,
 } from '@/lib/billing-webhook'
 import type { PlanEnv } from '@/lib/entitlements'
 
@@ -68,11 +68,45 @@ describe('subscriptionRow', () => {
     expect(row?.status).toBe('past_due')
     expect(row?.cancel_at_period_end).toBe(true)
   })
+  it('treats a cancel_at on the period boundary as a cancellation', () => {
+    // The live case, 2026-09-16: a trialist cancelled, Stripe showed "Cancels
+    // 30 Sept", and the event carried cancel_at with cancel_at_period_end still
+    // false. The mirror said "renews" and the app told them they would be charged.
+    const row = subscriptionRow(sub('price_pa', { status: 'trialing', cancel_at: 1_700_000_000 }), ENV)
+    expect(row?.cancel_at_period_end).toBe(true)
+  })
+  it('does not treat a cancel_at AFTER the period boundary as a cancellation — one more renewal follows', () => {
+    const row = subscriptionRow(sub('price_pa', { cancel_at: 1_700_000_000 + 30 * 86_400 }), ENV)
+    expect(row?.cancel_at_period_end).toBe(false)
+  })
   it('returns null for an unknown price (do not 500 the webhook)', () => {
     expect(subscriptionRow(sub('price_unknown'), ENV)).toBeNull()
   })
   it('handles a null current_period_end', () => {
     expect(subscriptionRow(sub('price_tm', {}, { current_period_end: null }), ENV)?.current_period_end).toBeNull()
+  })
+})
+
+describe('scheduledToCancel', () => {
+  it('reads the boolean', () => {
+    expect(scheduledToCancel(sub('price_tm', { cancel_at_period_end: true }))).toBe(true)
+  })
+  it('is false with neither field set', () => {
+    expect(scheduledToCancel(sub('price_tm', { cancel_at: null }))).toBe(false)
+  })
+  it('accepts a cancel_at a few seconds past the boundary (separate clocks)', () => {
+    expect(scheduledToCancel(sub('price_tm', { cancel_at: 1_700_000_030 }))).toBe(true)
+  })
+  it('treats a cancel_at before the boundary as a cancellation', () => {
+    expect(scheduledToCancel(sub('price_tm', { cancel_at: 1_699_000_000 }))).toBe(true)
+  })
+  it('falls back to trial_end when the item carries no period end', () => {
+    const s = sub('price_tm', { trial_end: 1_700_000_000, cancel_at: 1_700_000_000 }, { current_period_end: null })
+    expect(scheduledToCancel(s)).toBe(true)
+  })
+  it('flows into the trial_will_end notice, which decides whether a charge is announced', () => {
+    const s = sub('price_pa', { status: 'trialing', trial_start: 1_698_790_400, trial_end: 1_700_000_000, cancel_at: 1_700_000_000 })
+    expect(trialEnding(s as never)?.cancelAtPeriodEnd).toBe(true)
   })
 })
 

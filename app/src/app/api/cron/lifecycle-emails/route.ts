@@ -488,6 +488,7 @@ export async function GET(req: Request) {
           // Drives every payment line in the template. A wrong value here is
           // the difference between "nothing will be charged" and the truth.
           cardOnFile: win.cardOnFile,
+          cancelling: win.cancelAtPeriodEnd,
           endsOn: win.cardOnFile
             ? new Date(win.endsAt).toLocaleDateString('en-AU', {
                 day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney',

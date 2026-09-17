@@ -70,7 +70,7 @@ export async function AppNav({ tier, gate }: { tier: Tier | null; gate: TrialGat
               <ReferralLauncher />
               <NewTradeButton className="btn btn-primary btn-sm" />
               {onTrial
-                ? <TrialChip daysLeft={trialDaysLeft} cardOnFile={gate?.trial?.cardOnFile ?? false} />
+                ? <TrialChip daysLeft={trialDaysLeft} cardOnFile={gate?.trial?.cardOnFile ?? false} cancelling={gate?.trial?.cancelling ?? false} />
                 : isPro
                   ? <span className="ts-pro-badge">PRO</span>
                   : <Link href="/settings/billing" className="btn btn-sm" style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px' }}>Upgrade</Link>}

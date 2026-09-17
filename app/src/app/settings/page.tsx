@@ -213,12 +213,32 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
           <section id="billing" className="ts-card settings-section">
             <h2 className="ts-h2"><Icon name="scale" size={18} /> Billing &amp; plan</h2>
+            {/* A Stripe trial is a subscription in `trialing`, and this card used
+                to print it like a paid plan: "Pro Trader plan · trialing.
+                Renews 30/09/2026" — to someone who has paid nothing and, in the
+                case that surfaced it, had already cancelled. Same distinction
+                /settings/billing draws, from the same subscription row. */}
             <p className="ts-sub mb-4">
-              You&apos;re on the <b>{PLAN_LABEL[tier]}</b> plan
-              {sub?.status && sub.status !== 'active' ? ` · ${sub.status}` : ''}.
-              {sub?.cancelAtPeriodEnd && renews
-                ? ` Cancels on ${renews} — access continues until then.`
-                : renews ? ` Renews ${renews}.` : ''}
+              {sub?.status === 'trialing' ? (
+                <>
+                  You&apos;re on the <b>Pro trial</b>.
+                  {sub.cancelAtPeriodEnd
+                    ? renews
+                      ? ` You've cancelled, so it ends on ${renews} and you won't be charged.`
+                      : ` You've cancelled, so it ends without a charge.`
+                    : renews
+                      ? ` Your plan starts on ${renews} and the card you saved will be charged.`
+                      : ' Your plan starts when the trial ends and the card you saved will be charged.'}
+                </>
+              ) : (
+                <>
+                  You&apos;re on the <b>{PLAN_LABEL[tier]}</b> plan
+                  {sub?.status && sub.status !== 'active' ? ` · ${sub.status}` : ''}.
+                  {sub?.cancelAtPeriodEnd && renews
+                    ? ` Cancels on ${renews} — access continues until then.`
+                    : renews ? ` Renews ${renews}.` : ''}
+                </>
+              )}
             </p>
             <Link className="btn btn-ghost" href="/settings/billing">Manage plan</Link>
           </section>

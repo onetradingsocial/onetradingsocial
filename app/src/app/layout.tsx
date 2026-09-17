@@ -114,7 +114,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               cohort by count (19 of 26 on 2026-09-15) and none of them is going
               to buy anything. */}
           {gate?.trial && shouldShowTrialBanner(gate.trial, gate.isInternal) && (
-            <TrialEndingBanner daysLeft={gate.trial.daysLeft} cardOnFile={gate.trial.cardOnFile} />
+            <TrialEndingBanner daysLeft={gate.trial.daysLeft} cardOnFile={gate.trial.cardOnFile} cancelling={gate.trial.cancelling} />
           )}
           {children}
           {/* APP 5: the app had no footer and no link to the privacy policy on

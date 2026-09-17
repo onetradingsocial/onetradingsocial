@@ -30,6 +30,10 @@ export type TrialBadge = {
   daysLeft: number
   /** A card is on file and a charge follows. Drives the copy, not the count. */
   cardOnFile: boolean
+  /** The customer has cancelled, so the trial ends without a charge even though
+   *  a card is on file. Every "your card will be charged" line must check this
+   *  as well as `cardOnFile`. */
+  cancelling: boolean
 }
 export type TrialGate = {
   state: TrialState
@@ -163,7 +167,9 @@ export async function getEntitlements(
       state,
       daysLeft: trialDaysLeft(trialStartedAt, now),
       showWall,
-      trial: win ? { daysLeft: windowDaysLeft(win, now), cardOnFile: win.cardOnFile } : null,
+      trial: win
+        ? { daysLeft: windowDaysLeft(win, now), cardOnFile: win.cardOnFile, cancelling: win.cancelAtPeriodEnd }
+        : null,
       isInternal: prof.is_internal === true,
     },
     welcome: {

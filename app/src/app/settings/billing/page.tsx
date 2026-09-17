@@ -48,7 +48,11 @@ export default async function BillingPage({
   // follows.
   const onTrial = !!gate.trial
   const trialDaysLeft = gate.trial?.daysLeft ?? 0
-  const trialWillCharge = gate.trial?.cardOnFile === true
+  const trialCardOnFile = gate.trial?.cardOnFile === true
+  // A card on file is not the same as a charge coming: a trialist who cancelled
+  // still has one. Telling them "the card you saved will be charged" was the
+  // exact complaint that surfaced the missing `cancel_at` handling.
+  const trialCancelling = trialCardOnFile && gate.trial?.cancelling === true
 
   return (
     <main className="ts-page" style={{ maxWidth: 1040 }}>
@@ -70,7 +74,14 @@ export default async function BillingPage({
           <>
             You&apos;re on the <b>Pro trial</b> — {trialDaysLeft}{' '}
             {trialDaysLeft === 1 ? 'day' : 'days'} left.{' '}
-            {trialWillCharge ? (
+            {trialCancelling ? (
+              <>
+                {renews
+                  ? <>You&apos;ve cancelled, so your trial ends on {renews} and you won&apos;t be charged.</>
+                  : <>You&apos;ve cancelled, so your trial ends without a charge.</>}
+                {' '}Your account moves to Free after that.
+              </>
+            ) : trialCardOnFile ? (
               <>
                 {renews
                   ? <>Your plan starts on {renews} and the card you saved will be charged.</>
