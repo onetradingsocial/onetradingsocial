@@ -9,8 +9,13 @@ export type ReferralSummary = {
   code: string
   signups: number
   activated: number
+  /** Months EARNED — progress toward the cap, not what can be claimed now. */
   months: number
   cap: number
+  /** Months already redeemed through checkout; null when Stripe could not be
+   *  read, in which case the modal offers the earned figure and checkout
+   *  (which always re-derives it) has the final word. */
+  claimed?: number | null
 }
 
 /* ── icons ── */
@@ -69,6 +74,8 @@ export function ReferralModal({
   // track and a "12 months free" caption for a programme that stops at 6.
   const cap = summary?.cap ?? REFERRAL_MONTH_CAP
   const remaining = Math.max(0, cap - months)
+  const claimable = summary?.claimed == null ? months : Math.max(0, months - summary.claimed)
+  const allClaimed = months >= 1 && claimable === 0
 
   const copyLink = () => {
     inputRef.current?.select()
@@ -155,9 +162,13 @@ export function ReferralModal({
               <a href={`https://wa.me/?text=${shareText}%20${shareUrl}`} target="_blank" rel="noopener noreferrer" aria-label="Share to WhatsApp" title="Share to WhatsApp">{WHATSAPP}</a>
             </div>
 
-            {months >= 1 ? (
+            {claimable >= 1 ? (
               <button className="btn btn-primary ref-cta" onClick={claim} disabled={claiming}>
-                {claiming ? 'Starting checkout…' : `Claim ${months} ${months === 1 ? 'month' : 'months'} of Pro free`}
+                {claiming ? 'Starting checkout…' : `Claim ${claimable} ${claimable === 1 ? 'month' : 'months'} of Pro free`}
+              </button>
+            ) : allClaimed ? (
+              <button className="btn btn-primary ref-cta" onClick={copyLink}>
+                All earned months claimed — copy your link to earn more
               </button>
             ) : (
               <button className="btn btn-primary ref-cta" onClick={copyLink}>
@@ -166,9 +177,11 @@ export function ReferralModal({
             )}
 
             <p className="ref-fine">
-              {months >= 1
+              {claimable >= 1
                 ? 'A card is required to claim — A$0 due today. After your free months end, Pro renews automatically at A$50/month (Australian dollars) until you cancel, which you can do any time in Settings → Billing.'
-                : 'Rewards unlock when a referred trader logs their first trade. Self-referrals don’t count and each trader can only be referred once.'}
+                : allClaimed
+                  ? `You’ve redeemed all ${months} ${months === 1 ? 'month' : 'months'} you’ve earned so far. Each new trader who logs a first trade adds another, up to ${cap}.`
+                  : 'Rewards unlock when a referred trader logs their first trade. Self-referrals don’t count and each trader can only be referred once.'}
             </p>
           </div>
         )}

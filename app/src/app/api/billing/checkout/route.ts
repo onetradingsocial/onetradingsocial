@@ -9,7 +9,7 @@ import { rateLimit, clientKey, tooMany } from '@/lib/server/rate-limit'
 import { ADS_DEFAULT, CONSENT_COOKIE, parseConsent } from '@/lib/consent'
 import { stripeTermsConsent } from '@/lib/terms-acceptance'
 import { trackServer } from '@/lib/server/track'
-import { createAndStoreCustomer, isMissingCustomer } from '@/lib/server/billing'
+import { createAndStoreCustomer, isMissingCustomer, listSubscriptionHistory } from '@/lib/server/billing'
 import {
   checkoutRefusal, referralMonthsAvailable, type PriorSubscription,
 } from '@/lib/checkout-eligibility'
@@ -75,16 +75,7 @@ export async function POST(request: NextRequest) {
   }))
   if (customerId) {
     try {
-      const listed = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
-      for (const s of listed.data) {
-        history.push({
-          status: s.status,
-          trialStart: s.trial_start ?? null,
-          trialEnd: s.trial_end ?? null,
-          flow: s.metadata?.flow ?? null,
-          referralMonths: s.metadata?.referral_months ?? null,
-        })
-      }
+      history.push(...await listSubscriptionHistory(stripe, customerId))
     } catch (err) {
       // A stale id from the sandbox namespace has no live history to find; the
       // re-mint path below handles it. Anything else is not safe to ignore.
