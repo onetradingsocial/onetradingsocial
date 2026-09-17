@@ -1,3 +1,5 @@
+import { APP_LOCALE } from '@/lib/locale-format'
+
 export const DIRECTIONS = ['long', 'short'] as const
 export type Direction = (typeof DIRECTIONS)[number]
 
@@ -91,7 +93,7 @@ export function parseAccountBalance(value: unknown): { balance: number } | { err
   if (!Number.isFinite(n)) return { error: 'Enter your account balance as a number.' }
   if (n < 0) return { error: 'Account balance cannot be negative.' }
   if (n > MAX_ACCOUNT_BALANCE) {
-    return { error: `Account balance cannot exceed ${MAX_ACCOUNT_BALANCE.toLocaleString()}.` }
+    return { error: `Account balance cannot exceed ${MAX_ACCOUNT_BALANCE.toLocaleString(APP_LOCALE)}.` }
   }
   // Money, so two decimals. Stops a 15-decimal float from reaching the column
   // and re-emerging as a rounding difference in every derived risk_amount.

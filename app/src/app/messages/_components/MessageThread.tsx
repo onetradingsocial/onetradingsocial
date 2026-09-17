@@ -16,6 +16,7 @@ import { MessageBubble } from './MessageBubble'
 import { MessageComposer } from './MessageComposer'
 import { TypingIndicator } from './TypingIndicator'
 import { dayLabel, isNewDay } from './format'
+import { useIsClient } from '@/app/_components/LocalTime'
 
 type PeerLite = { id: string; username: string; displayName: string | null; avatarUrl: string | null }
 
@@ -37,6 +38,7 @@ export function MessageThread({
   })
   const { peerTyping, notifyTyping } = useTyping(conversationId ?? '', currentUserId)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const local = useIsClient()
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages.length, peerTyping])
 
   const lastMineIdx = messages.reduceRight<number>((found, m, i) => (found !== -1 ? found : (m.senderId === currentUserId ? i : -1)), -1)
@@ -73,11 +75,11 @@ export function MessageThread({
           const mine = m.senderId === currentUserId
           const isLastMine = mine && i === lastMineIdx
           const prev = i > 0 ? messages[i - 1] : null
-          const newDay = isNewDay(prev?.createdAt ?? null, m.createdAt)
+          const newDay = isNewDay(prev?.createdAt ?? null, m.createdAt, local)
           return (
             <Fragment key={m.id}>
               {newDay && (
-                <div className="ts-msg-day-divider"><span>{dayLabel(m.createdAt)}</span></div>
+                <div className="ts-msg-day-divider"><span>{dayLabel(m.createdAt, local)}</span></div>
               )}
               <MessageBubble message={m} mine={mine} showSeen={isLastMine && !!m.readAt} />
             </Fragment>

@@ -1,6 +1,7 @@
 // Shared presentational primitives for the admin console. Server-safe (no
 // hooks) so every admin page can compose them without a client boundary.
 import type { ReactNode } from 'react'
+import { LocalTime } from '@/app/_components/LocalTime'
 
 /** Page title block. One per admin route, directly under the shell. */
 export function PageHead({ title, sub, right }: { title: string; sub?: string; right?: ReactNode }) {
@@ -119,14 +120,19 @@ export function Meter({ label, note, pct, hint }: { label: ReactNode; note?: Rea
   )
 }
 
-/** Compact absolute timestamp — admins compare rows, so no "3h ago". */
+/** Compact absolute timestamp — admins compare rows, so no "3h ago".
+ *  LocalTime is a client component: rendering it here keeps this module
+ *  hook-free while the timestamp itself shows in the admin's own timezone
+ *  without a hydration mismatch (see lib/locale-format.ts). */
 export function When({ iso, short }: { iso: string; short?: boolean }) {
-  const d = new Date(iso)
   return (
-    <time className="faint" dateTime={iso} style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-      {short
-        ? d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-        : d.toLocaleString()}
-    </time>
+    <LocalTime
+      iso={iso}
+      className="faint"
+      style={{ fontSize: 12, whiteSpace: 'nowrap' }}
+      options={short
+        ? { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+        : { dateStyle: 'medium', timeStyle: 'short' }}
+    />
   )
 }

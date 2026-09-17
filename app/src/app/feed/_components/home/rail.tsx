@@ -7,8 +7,9 @@ import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import { follow, unfollow } from '@/app/actions/social'
 import { SuggestedTraders } from '@/app/_components/SuggestedTraders'
 import type { HomeData, HomeLeader, HomeRecentTrade, HomeQuest } from './types'
+import { APP_LOCALE } from '@/lib/locale-format'
 
-const money = (n: number | null) => n == null ? '—' : `${n >= 0 ? '+' : '−'}$${Math.abs(Math.round(n)).toLocaleString()}`
+const money = (n: number | null) => n == null ? '—' : `${n >= 0 ? '+' : '−'}$${Math.abs(Math.round(n)).toLocaleString(APP_LOCALE)}`
 
 function RailFollow({ targetId, initial }: { targetId: string; initial: boolean }) {
   const [following, setFollowing] = useState(initial)

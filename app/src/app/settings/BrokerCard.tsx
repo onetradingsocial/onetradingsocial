@@ -6,6 +6,8 @@ import { Icon } from '@/app/[username]/_components/Icon'
 import { PrivacyNote } from '@/app/_components/LegalNotice'
 import { track } from '@/lib/track'
 import Link from 'next/link'
+import { useIsClient } from '@/app/_components/LocalTime'
+import { formatDate } from '@/lib/locale-format'
 
 export type BrokerRow = {
   login: string; server: string; status: string
@@ -67,6 +69,7 @@ export function BrokerCard({ row, canAutosync, tier, from }: {
   row: BrokerRow | null; canAutosync: boolean; tier: string; from: string
 }) {
   const seenRef = useBrokerCardSeen(!canAutosync, !!row, tier, from)
+  const local = useIsClient()
   const [state, formAction, pending] = useActionState<BrokerState, FormData>(connectBroker, {})
   const [confirming, setConfirming] = useState(false)
   const [discErr, setDiscErr] = useState('')
@@ -83,7 +86,7 @@ export function BrokerCard({ row, canAutosync, tier, from }: {
   }
 
   if (row) {
-    const synced = row.last_sync_at ? new Date(row.last_sync_at).toLocaleString() : 'not yet — first sync within the hour'
+    const synced = row.last_sync_at ? formatDate(row.last_sync_at, { dateStyle: 'medium', timeStyle: 'short' }, local) : 'not yet — first sync within the hour'
     return (
       <section id="broker" ref={seenRef} className="ts-card settings-section">
         <h2 className="ts-h2"><Icon name="bolt" size={18} /> MT5 auto-sync</h2>

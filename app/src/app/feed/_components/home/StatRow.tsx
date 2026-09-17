@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { Icon, Sparkline } from './atoms'
 import type { HomeData } from './types'
+import { APP_LOCALE } from '@/lib/locale-format'
 
 export function StatRow({ data }: { data: HomeData }) {
   const { metrics, viewerRank, totalRanked, tradeCount, series, advancedStats } = data
   const streak = metrics.currentStreak
   const stats = [
     { k: 'Overall Rank', v: viewerRank ? `#${viewerRank}` : '—', foot: viewerRank ? `of ${totalRanked} ranked` : 'log to rank', icon: 'trophy', accent: '#E0931E', values: series.equity, locked: false },
-    { k: 'Net P/L', v: `${metrics.netPnl >= 0 ? '+' : '−'}$${Math.abs(Math.round(metrics.netPnl)).toLocaleString()}`, foot: streak !== 0 ? `${Math.abs(streak)}-trade ${streak > 0 ? 'win' : 'loss'} streak` : 'flat', icon: 'trend', accent: metrics.netPnl >= 0 ? '#12A56B' : '#E5475D', values: series.equity, locked: false },
+    { k: 'Net P/L', v: `${metrics.netPnl >= 0 ? '+' : '−'}$${Math.abs(Math.round(metrics.netPnl)).toLocaleString(APP_LOCALE)}`, foot: streak !== 0 ? `${Math.abs(streak)}-trade ${streak > 0 ? 'win' : 'loss'} streak` : 'flat', icon: 'trend', accent: metrics.netPnl >= 0 ? '#12A56B' : '#E5475D', values: series.equity, locked: false },
     { k: 'Win Rate', v: `${Math.round(metrics.winRate * 100)}%`, foot: `${metrics.total} closed`, icon: 'target', accent: '#7C5CE6', values: series.winRate, locked: !advancedStats },
     { k: 'Avg R:R', v: metrics.avgRr ? metrics.avgRr.toFixed(1) : '—', foot: 'per closed trade', icon: 'scale', accent: '#3FB6E8', values: series.avgRr, locked: !advancedStats },
     { k: 'Total Trades', v: String(tradeCount), foot: `${metrics.open} open`, icon: 'journal', accent: '#C840BC', values: series.count, locked: false },

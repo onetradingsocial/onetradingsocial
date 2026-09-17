@@ -9,6 +9,8 @@ import { MARKETS } from '@/lib/profile'
 import { VerificationBadge } from '@/app/_components/VerificationBadge'
 import { tradeLevel } from '@/lib/verification'
 import { readTradeReflection, TRADE_REFLECTION_META } from '@/lib/reflection'
+import { useIsClient } from '@/app/_components/LocalTime'
+import { formatDate } from '@/lib/locale-format'
 
 // Labels for the market chips. Typed against MARKETS so adding a market to the
 // canonical list is a type error here until it is given a label — the previous
@@ -34,8 +36,8 @@ const FILTERS: readonly (readonly [string, string])[] = [
 
 // Year included: "Jan 1" made a 2031-dated trade indistinguishable from one
 // logged this week, which is how a fabricated future trade went unnoticed.
-function fmtDate(s: string) {
-  return new Date(s).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+function fmtDate(s: string, local: boolean) {
+  return formatDate(s, { year: 'numeric', month: 'short', day: 'numeric' }, local)
 }
 
 // The footer used to take a `monthNet` prop — the current calendar month's net,
@@ -85,6 +87,7 @@ export function RecentTrades({ trades, canMistakeTag = false, mistakeTags, editC
   editConfig?: EditTradeConfig
 }) {
   const [f, setF] = useState<string>('all')
+  const local = useIsClient()
   const shown = trades.filter((t) => matchesTradeFilter(t, f))
   const { net, counted, excluded } = netOfTrades(shown)
 
@@ -115,7 +118,7 @@ export function RecentTrades({ trades, canMistakeTag = false, mistakeTags, editC
                 const mistakes = mistakeTags?.[t.id] ?? []
                 return (
                   <tr key={t.id}>
-                    <td className="faint">{fmtDate(t.traded_at)}</td>
+                    <td className="faint">{fmtDate(t.traded_at, local)}</td>
                     <td>
                       <div className="ts-inst">
                         <span className="ts-inst-badge" style={{ background: marketColor(t.market) }}>{instrumentBadge(t.instrument)}</span>

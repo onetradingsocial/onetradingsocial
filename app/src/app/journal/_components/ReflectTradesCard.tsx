@@ -6,6 +6,8 @@ import {
   readTradeReflection, TRADE_REFLECTION_META,
   type ReflectionCounts, type ReflectableTrade,
 } from '@/lib/reflection'
+import { useIsClient } from '@/app/_components/LocalTime'
+import { formatDate } from '@/lib/locale-format'
 
 /**
  * "Trades waiting on a reflection" — where an IMPORTED trade meets the prompt.
@@ -48,11 +50,12 @@ export type ReflectRow = ReflectableTrade & {
  *  clears in one sitting; few enough that a large one does not become a wall. */
 const BATCH = 5
 
-const fmtDate = (s: string) =>
-  new Date(s).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+const fmtDate = (s: string, local: boolean) =>
+  formatDate(s, { year: 'numeric', month: 'short', day: 'numeric' }, local)
 
 export function ReflectTradesCard({ trades, counts }: { trades: ReflectRow[]; counts: ReflectionCounts }) {
   const [shown, setShown] = useState(BATCH)
+  const local = useIsClient()
 
   const pending = trades.filter((t) => readTradeReflection(t) == null)
   const batch = pending.slice(0, shown)
@@ -90,7 +93,7 @@ export function ReflectTradesCard({ trades, counts }: { trades: ReflectRow[]; co
               <div className="ts-reflect-head">
                 <b>{t.instrument}</b>
                 <span className="faint" style={{ textTransform: 'capitalize' }}>{t.direction}</span>
-                <span className="faint">{fmtDate(t.traded_at)}</span>
+                <span className="faint">{fmtDate(t.traded_at, local)}</span>
                 {(t.source ?? 'manual') !== 'manual' && (
                   <span className="ts-tag" title="Execution data came from your broker and is locked. The reflection is yours and is not.">
                     imported

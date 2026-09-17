@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { FollowButton } from '@/app/_components/FollowButton'
 import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import { Avatar } from './Avatar'
+import { APP_LOCALE } from '@/lib/locale-format'
 
 export type XpRow = {
   rank: number; userId: string; username: string; displayName: string | null; avatarUrl: string | null
@@ -68,7 +69,7 @@ export function XpTable({ rows, viewerId }: { rows: XpRow[]; viewerId: string })
                     </div>
                   </td>
                   <td className="num"><span className="lb-cellnum">Lvl {t.level}</span></td>
-                  <td className="num"><span className="lb-cellnum">{t.xp.toLocaleString()}</span></td>
+                  <td className="num"><span className="lb-cellnum">{t.xp.toLocaleString(APP_LOCALE)}</span></td>
                   <td className="num">{self ? <span className="lb-act self">You</span> : <FollowButton targetId={t.userId} initialFollowing={false} />}</td>
                 </tr>
               )
