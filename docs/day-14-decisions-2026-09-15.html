@@ -245,6 +245,10 @@
   .steps b { font-weight: 600; }
   .steps .why { display: block; color: var(--faint); font-size: 13.5px; margin-top: 3px; }
 
+  .steps li.done { color: var(--dim); }
+  .steps li.done::before { content: "\2713"; background: var(--sunken); color: var(--dim); }
+  .next-h { margin: 34px 0 0; font-size: 17px; }
+
   .closer {
     margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--line);
     font-size: 14px; color: var(--dim); max-width: 64ch;
@@ -263,27 +267,129 @@
     <span class="eyebrow">TradingSocial · Internal</span>
     <h1>Day 14 Decisions</h1>
     <p class="standfirst">
-      The 14-day trial is moving onto Stripe: a card at signup, and an automatic
-      charge on day 14 unless the customer cancels. The engineering is built and
-      sitting on a branch. <b>Ten things are not engineering decisions</b> —
-      three were money leaking and are now closed, four are still yours to call,
-      and three were Stripe dashboard settings I have since read off the API.
-      <b>One of those three is a launch blocker.</b>
+      The 14-day trial is now on Stripe: a card at signup, and an automatic
+      charge on day 14 unless the customer cancels. <b>It is live.</b> The
+      original launch blocker, plan switching, is fixed. Launch turned up
+      <b>three new findings</b>, and all three are now fixed. The last was
+      Stripe not sending us the payment events that the grace decision and the
+      pre-charge email depend on; those were turned on 17 September. Four
+      decisions are still yours to make.
     </p>
     <div class="byline">
       <span><b>For</b> Nathan</span>
       <span><b>Date</b> 15 September 2026</span>
-      <span><b>Branch</b> feat/trial-to-stripe</span>
+      <span><b>Updated</b> 17 September 2026, after launch</span>
       <span><b>Ordered by</b> money at risk</span>
     </div>
   </header>
 
   <div class="figs">
-    <div class="fig"><span class="n bad">1</span><span class="l">Launch blocker — plan switching is off in the billing portal</span></div>
+    <div class="fig"><span class="n">4&nbsp;→&nbsp;8</span><span class="l">Stripe event types sent to us, now including the ones grace and the pre-charge email rely on</span></div>
     <div class="fig"><span class="n">28&nbsp;→&nbsp;0</span><span class="l">Days of free Pro on a card that declines, after your grace decision</span></div>
     <div class="fig"><span class="n">A$80</span><span class="l">Monthly charge a plan switch would have produced, before it was caught</span></div>
-    <div class="fig"><span class="n">A$0</span><span class="l">Live recurring revenue at risk. One subscription exists and it is cancelled</span></div>
+    <div class="fig"><span class="n">A$0</span><span class="l">Charged so far. The only live trial is our own test signup, set to cancel</span></div>
   </div>
+
+  <section>
+    <div class="sec-head"><h2>Found at launch</h2></div>
+    <p class="sec-sub">
+      These came up during go-live and the first real signup, so they are new
+      since the first version of this report. Numbering continues from it.
+    </p>
+
+    <div class="item sev-done">
+      <div class="item-top">
+        <span class="rank">11</span>
+        <span class="chip done">Found &amp; fixed</span>
+      </div>
+      <h3>Stripe only sends us 4 kinds of event, and the charge-related ones aren't among them</h3>
+      <p class="lede">
+        Stripe tells our app what happened by sending events to a webhook. The
+        live webhook only has <b>4 event types</b> turned on. Three that the
+        trial depends on are missing:
+      </p>
+      <div class="cost">
+        <b>customer.subscription.trial_will_end</b> — the pre-charge email never sends<br>
+        <b>invoice.paid</b> / <b>invoice.payment_succeeded</b> — we never record that a customer has paid<br>
+        <b>invoice.payment_failed</b> — no failed-payment email
+      </div>
+      <p>
+        The middle one matters most because of <b>your grace decision in
+        item 02</b>. Grace only applies to a customer who has paid us at least
+        once, and that event is how we find out they paid. Without it, every
+        customer looks like they have never paid. So <b>a long-standing
+        subscriber whose renewal fails loses access the same day</b> — exactly
+        the customer grace was kept for.
+      </p>
+      <p class="tight">
+        The first one breaks something else. The pre-charge email tells a
+        trialist the amount, the date and how to cancel, three days before we
+        charge them. The terms promise it. Right now it cannot send.
+      </p>
+      <div class="rec">
+        <span class="tag">Fixed 17 September</span>
+        A dashboard setting, not a build: those four event types were added to the
+        live webhook endpoint, which now sends 8. The code to handle each one was
+        already deployed. No customer had reached day 11 or a renewal, so nobody
+        was affected. The first trials reach day 11 on 27 September.
+      </div>
+      <p class="tight">
+        A related question, now closed: on our own test signup, the cancellation
+        showed in Stripe but not in our database. The event did arrive. Stripe
+        marked the cancellation with a <code>cancel_at</code> date and left the
+        flag we read set to false, so our copy looked unchanged and was never
+        updated. Fixed in <code>1a8473e</code>, merged 17 September. The nightly
+        job then corrected the record at 13:37 UTC the same day.
+      </p>
+    </div>
+
+    <div class="item sev-done">
+      <div class="item-top">
+        <span class="rank">12</span>
+        <span class="chip done">Found &amp; fixed · merged</span>
+      </div>
+      <h3>Checkout could restart the free trial, and bill a customer twice</h3>
+      <p class="lede">
+        Checkout only refused a customer who was <i>currently</i> on a trial.
+        Three things got past that:
+      </p>
+      <ul>
+        <li>Cancel, let the trial lapse, and start <b>another free trial</b>.
+          The terms say one per person.</li>
+        <li>Claim free referral months, cancel, and <b>claim them again</b>.
+          Nothing recorded that they had been used.</li>
+        <li>A paying subscriber could open <b>a second subscription</b> and be
+          charged for both.</li>
+      </ul>
+      <div class="resolved">
+        <span class="tag">Fixed 16 September</span>
+        Checkout now checks the customer's full history, in our records and in
+        Stripe's. If it can't reach Stripe to check, it refuses rather than
+        letting the purchase through. Referral months are recorded once used.
+        One narrow gap remains: two checkouts opened at the same moment, before
+        either finishes.
+      </div>
+    </div>
+
+    <div class="item sev-done">
+      <div class="item-top">
+        <span class="rank">13</span>
+        <span class="chip done">Found &amp; fixed</span>
+      </div>
+      <h3>The Stripe account couldn't take payments</h3>
+      <p class="lede">
+        The first live signup stalled on the Stripe checkout page. The button
+        did nothing. The account had not finished Stripe's activation, so it was
+        <b>not allowed to charge cards</b> (<code>charges_enabled: false</code>).
+      </p>
+      <div class="resolved">
+        <span class="tag">Fixed at launch</span>
+        Activation completed. The next signup went through and started a 14-day
+        trial. Worth knowing: until then, <b>every signup that tried the
+        trial would have been stuck</b>, and there was no error for us to see.
+      </div>
+    </div>
+  </section>
 
   <section>
     <div class="sec-head"><h2>Money that was leaking</h2></div>
@@ -346,8 +452,9 @@
         <span class="tag">Your call, 15 September</span>
         Grace drops to <b>7 days</b>, and only for a subscription that has
         actually paid us at least once. A card that declines at the end of a
-        trial now gets none at all. Built and tested; the database change is on
-        dev and waiting for production.
+        trial now gets none at all. Built, tested and live in production.
+        <b>But see item 11:</b> Stripe isn't sending the event that tells us a
+        customer has paid, so right now nobody qualifies for grace.
       </div>
       <p class="lede">
         When a renewal payment fails, we give the customer <b>14 days of grace</b>
@@ -372,10 +479,11 @@
         declines a first charge from an unfamiliar merchant — which is common —
         now loses access immediately rather than keeping it while they sort it
         out. The day-11 warning email and the payment-failed email both still go
-        out, so they are told twice, but the features stop the same day.
+        out, so they are told twice, but the features stop the same day. (Both
+        emails depend on the Stripe events in item 11, so neither sends until
+        that is fixed.)
       </p>
     </div>
-  </section>
 
     <div class="item sev-done">
       <div class="item-top">
@@ -408,10 +516,9 @@
         a purchase. Nobody wants to double-bill, so this did not need asking.
       </div>
       <p class="tight">
-        <b>It leaves a gap, and item 08 is why.</b> A trialist now has no route
-        to Trader at all: the in-app one would double-charge and is closed, and
-        the billing portal has plan switching switched off. Until that setting is
-        turned on, the trial is Pro at A$50 or cancel.
+        <b>This left a gap, which item 08 closed.</b> With the in-app route shut,
+        the billing portal is the only way for a trialist to switch to Trader.
+        Plan switching is now on there, so they can.
       </p>
     </div>
   </section>
@@ -566,20 +673,25 @@
   <section>
     <div class="sec-head"><h2>Three things I checked in Stripe</h2></div>
     <p class="sec-sub">
-      These live in the Stripe dashboard rather than in our code. I read all
-      three off the Stripe API. <b>One is a launch blocker.</b> A caveat on all
-      of them: the key available locally is the <b>test</b> key, and Stripe keeps
-      these settings separate per mode, so each needs a glance in Live mode to
-      confirm. In every case the setting is at its untouched default, so live is
-      very likely the same.
+      These are Stripe dashboard settings, not code. I read all three from the
+      Stripe API using the <b>test</b> key. Stripe stores settings separately
+      for test and live, so the live ones were set by hand at launch. The
+      launch blocker here is now fixed.
     </p>
 
-    <div class="item sev-bad">
+    <div class="item sev-done">
       <div class="item-top">
         <span class="rank">08</span>
-        <span class="chip bad">Launch blocker</span>
+        <span class="chip done">Was a launch blocker · fixed</span>
       </div>
       <h3>A trialist cannot switch from Pro to Trader — plan switching is off</h3>
+      <div class="resolved">
+        <span class="tag">Fixed before launch</span>
+        Plan switching is on in the live billing portal. Two related settings
+        were changed at the same time. <b>"End trials on subscription updates"
+        is off</b>, so switching plans during the trial doesn't end the trial
+        and charge straight away. <b>Promotion codes stay off</b> in the portal.
+      </div>
       <p class="lede">
         The whole decision — everyone trials Pro and picks their real plan later
         — rests on the billing portal letting them switch. <b>It does not.</b>
@@ -602,7 +714,7 @@
       </ul>
       <div class="rec">
         <span class="tag">Recommendation</span>
-        <b>Option A, before launch.</b> It is a dashboard setting rather than a
+        <b>Option A, before launch</b> (done). It is a dashboard setting rather than a
         build, and without it two other things on this page have nowhere to
         happen — item 05's annual offer and the "then picks" half of the plan
         decision. Worth setting proration to "none" at the same time, so a switch
@@ -679,34 +791,37 @@
   </section>
 
   <section>
-    <div class="sec-head"><h2>Launch day</h2></div>
+    <div class="sec-head"><h2>Launch status</h2></div>
     <p class="sec-sub">
-      Six things that have to happen together. Each one alone is wrong in some
-      direction, so this is one release, not six.
+      The original six launch steps are done. What's left is below them.
     </p>
     <ol class="steps">
-      <li><span><b>Turn on plan switching in the Stripe portal (Live mode).</b><span class="why">Item 08. Without it the trial is Pro at A$50 or cancel, and two other decisions on this page have nowhere to happen.</span></span></li>
-      <li><span><b>Merge the branch.</b><span class="why">Ships the checkout, the new terms and the rewritten marketing copy at once.</span></span></li>
-      <li><span><b>Turn off the old trial in Vercel.</b><span class="why">Without this, new signups get both trials and receive an email saying they will not be charged, two days before they are.</span></span></li>
-      <li><span><b>Apply the held database change to both projects.</b><span class="why">Makes the switch-off permanent rather than a setting someone can undo.</span></span></li>
-      <li><span><b>Re-date the terms.</b><span class="why">They are drafted with today's date as a placeholder. A contract dated to a day nobody could read it is worse than no date.</span></span></li>
-      <li><span><b>Re-run the browser test suite.</b><span class="why">Signup now goes through Stripe. The tests have been pointed at the "Continue on Free" route, but their assumptions change the moment step 2 happens.</span></span></li>
+      <li class="done"><span><b>Turn on plan switching in the Stripe portal (Live mode).</b><span class="why">Done. Item 08.</span></span></li>
+      <li class="done"><span><b>Merge the branch.</b><span class="why">Done. Checkout, the new terms and the marketing copy are live.</span></span></li>
+      <li class="done"><span><b>Turn off the old trial in Vercel.</b><span class="why">Done, before the merge, so no new signup ever got both trials.</span></span></li>
+      <li class="done"><span><b>Apply the held database change to both projects.</b><span class="why">Done.</span></span></li>
+      <li class="done"><span><b>Re-date the terms.</b><span class="why">Done. Dated 15 September 2026.</span></span></li>
+      <li class="done"><span><b>Re-run the browser test suite.</b><span class="why">Done, with fixes. Admin and leaderboard tests pass. One journal test still fails and hasn't been explained. It doesn't involve billing.</span></span></li>
+    </ol>
+    <h3 class="next-h">Still to do</h3>
+    <ol class="steps">
+      <li><span><b>Turn on the missing Stripe webhook events.</b><span class="why">Item 11. Before 27 September, when the first trials reach day 11.</span></span></li>
+      <li><span><b>Add the terms URL in Stripe, then turn on its terms checkbox.</b><span class="why">Item 10. In that order, or every checkout breaks.</span></span></li>
+      <li><span><b>Answer decisions 04 to 07.</b><span class="why">None blocks anything today. 04 is the likeliest to turn up as a surprise, in the form of a chargeback.</span></span></li>
+      <li><span><b>Remove the old card-free trial code, about 21 days after launch.</b><span class="why">Once the 7 grandfathered trials have run out.</span></span></li>
     </ol>
   </section>
 
   <p class="closer">
-    Nothing in this document is live yet. The branch is complete through the
-    grandfathering banner, the database changes that were safe to apply early are
-    applied, and no customer-facing behaviour has changed. All three money leaks
-    are closed. Nothing in 04 to 07 blocks the build, so they can be answered in
-    the week after launch — though 04 is the one most likely to arrive as a
-    surprise, in the form of a chargeback, and 05 quietly decides whether the
-    founding annual offer survives at all.
+    The Stripe trial is live, and nobody has been charged yet. All the money
+    leaks from the first version are closed, and checkout can no longer
+    restart a trial or bill someone twice (item 12).
 
-    <br><br>The one thing that does block launch is <b>08</b>: plan switching is
-    switched off in the billing portal, so the decision to let everyone trial Pro
-    and pick their plan afterwards currently has nowhere to happen. It is a
-    dashboard setting, not a build.
+    <br><br>One issue needs fixing before <b>27 September</b>: <b>item 11</b>.
+    Stripe isn't sending the events for payments and upcoming charges. Until
+    it does, the pre-charge email can't send, and your grace rule treats every
+    paying customer as if they've never paid. It's a dashboard setting, and the
+    code for it is already live.
   </p>
 
 </div>
