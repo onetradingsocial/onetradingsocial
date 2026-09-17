@@ -47,6 +47,9 @@ let stripeSubs: StripeSub[] = []
 let localTrial: string | null = null
 /** Activated referrals, for the referral flow. */
 let activated = 0
+/** Checkout Sessions still open for the customer, and what expiring them does. */
+let openSessions: Array<{ id: string }> = []
+const sessionsExpire = vi.fn<(id: string) => Promise<unknown>>(async () => ({}))
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: () => ({
@@ -73,7 +76,11 @@ vi.mock('@/lib/stripe', () => ({
   getStripe: () => ({
     customers: { create: vi.fn(async () => ({ id: CUS })) },
     subscriptions: { list: async () => ({ data: stripeSubs }) },
-    checkout: { sessions: { create: sessionsCreate } },
+    checkout: { sessions: {
+      create: sessionsCreate,
+      list: async () => ({ data: openSessions }),
+      expire: (id: string) => sessionsExpire(id),
+    } },
   }),
 }))
 
@@ -106,6 +113,7 @@ beforeEach(() => {
   stripeSubs = []
   localTrial = null
   activated = 0
+  openSessions = []
   sessionsCreate.mockResolvedValue({ url: 'https://checkout.stripe.com/c/pay/cs_x' })
   process.env.STRIPE_PRICE_TRADER_MONTHLY = 'price_tm'
   process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_pm'
@@ -305,5 +313,27 @@ describe('referral months cannot be claimed twice', () => {
     }]
     expect((await post(request({ flow: 'referral' }))).status).toBe(200)
     expect(subData().trial_period_days).toBe(30)
+  })
+})
+
+describe('only the newest checkout for a customer can be completed', () => {
+  it('expires still-open sessions before opening a new one', async () => {
+    // Two tabs: the trial on /welcome and a plan on /settings/billing. Neither
+    // is a subscription yet, so the history check passes both.
+    openSessions = [{ id: 'cs_old_1' }, { id: 'cs_old_2' }]
+    const order: string[] = []
+    sessionsExpire.mockImplementation(async (id) => { order.push(`expire:${id}`); return {} })
+    sessionsCreate.mockImplementation(async () => { order.push('create'); return { url: 'https://checkout.stripe.com/c/pay/cs_new' } })
+
+    expect((await post(request({ tier: 'pro', interval: 'monthly' }))).status).toBe(200)
+    expect(order).toEqual(['expire:cs_old_1', 'expire:cs_old_2', 'create'])
+  })
+
+  it('refuses when an open session completed between list and expire', async () => {
+    openSessions = [{ id: 'cs_paying_now' }]
+    sessionsExpire.mockRejectedValueOnce(Object.assign(new Error('Only Checkout Sessions with a status of open can be expired.'), { code: 'resource_missing' }))
+    const res = await post(request({ flow: 'trial' }))
+    expect(res.status).toBe(409)
+    expect(sessionsCreate).not.toHaveBeenCalled()
   })
 })
