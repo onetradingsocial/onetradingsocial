@@ -5,6 +5,7 @@ import { planForPrice } from '@/lib/entitlements'
 import { PlanCards } from './BillingActions'
 import { MetaPixel } from '@/app/_components/MetaPixel'
 import { subscribeParams } from '@/lib/meta'
+import { formatBillingDate } from '@/lib/locale-format'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
 
@@ -23,7 +24,7 @@ export default async function BillingPage({
     getSubscription(supabase, user.id),
   ])
   const renews = sub?.currentPeriodEnd
-    ? new Date(sub.currentPeriodEnd).toLocaleDateString()
+    ? formatBillingDate(sub.currentPeriodEnd)
     : null
 
   // Which interval they actually pay on. Without this the plan cards compare on

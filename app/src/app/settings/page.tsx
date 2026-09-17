@@ -20,6 +20,7 @@ import { throttleMessage } from '@/lib/server/action-throttle'
 import { trackServer } from '@/lib/server/track'
 import Link from 'next/link'
 import './settings.css'
+import { formatBillingDate } from '@/lib/locale-format'
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
 
@@ -83,7 +84,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const canGoPrivate = tier !== 'free'
   const canCreatorProfile = canFlag(flags, tier, 'creator_profile')
   const renews = sub?.currentPeriodEnd
-    ? new Date(sub.currentPeriodEnd).toLocaleDateString()
+    ? formatBillingDate(sub.currentPeriodEnd)
     : null
 
   // Deleting a paid account cancels it immediately and forfeits the rest of the

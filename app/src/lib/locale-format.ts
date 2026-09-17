@@ -50,3 +50,21 @@ export function formatDate(
     ? d.toLocaleString(undefined, options)
     : d.toLocaleString(APP_LOCALE, { ...options, timeZone: 'UTC' })
 }
+
+/**
+ * The one way a billing date is written — "17 October 2026" — everywhere the
+ * customer reads it: the pre-charge and trial emails, and the settings and
+ * billing pages.
+ *
+ * Fixed to Australia/Sydney rather than the viewer's timezone because prices,
+ * terms and every billing email are Australian, and because the page and the
+ * email must name the SAME day. The settings pages used to call
+ * `toLocaleDateString()` with no locale on the server, which on Vercel printed
+ * US month-first dates ("10/5/2026") to Australian customers — read as 10 May —
+ * in UTC, a day early for anything after 14:00 UTC.
+ */
+export function formatBillingDate(input: string | number | Date): string {
+  const d = input instanceof Date ? input : new Date(input)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(APP_LOCALE, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney' })
+}
