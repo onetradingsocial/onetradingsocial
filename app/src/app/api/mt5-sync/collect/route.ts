@@ -67,6 +67,20 @@ async function notifiedWithin(svc: SupabaseClient, userId: string, windowMs: num
   return error ? true : (data?.length ?? 0) > 0
 }
 
+// True if a notification of `type` reached this user after `sinceIso` (or ever,
+// when the account has never synced). Fails safe like notifiedWithin: a query
+// error reports "already notified" so a blip cannot become an hourly notice.
+async function notifiedSince(svc: SupabaseClient, userId: string, type: string, sinceIso: string | null) {
+  let q = svc
+    .from('notifications')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('type', type)
+  if (sinceIso) q = q.gte('created_at', sinceIso)
+  const { data, error } = await q.limit(1)
+  return error ? true : (data?.length ?? 0) > 0
+}
+
 export async function GET(req: Request) {
   if (!authorizedCron(req.headers.get('authorization'))) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
@@ -82,7 +96,7 @@ export async function GET(req: Request) {
   const flags = await getFeatureFlags()
   const { data: rows, error } = await svc
     .from('broker_accounts')
-    .select('id, user_id, metaapi_account_id, region, last_deal_time, created_at, status, sync_error_phase, sync_error_at')
+    .select('id, user_id, metaapi_account_id, region, last_deal_time, created_at, status, sync_error_phase, sync_error_at, last_sync_at')
     .in('status', ['pending', 'active', 'error'])
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -129,9 +143,21 @@ export async function GET(req: Request) {
       // stays broken goes silent forever, which is how a dead sync sat
       // unnoticed from 2026-08-11 to 2026-08-24. Re-notify on the transition,
       // or at most once a day while it stays broken.
-      const stale = row.status === 'error' && !(await notifiedWithin(svc, row.user_id, RENOTIFY_MS))
-      if (row.status !== 'error' || stale) {
-        await insertSystemNotification({ supabase: svc, userId: row.user_id, type: 'sync_failed' })
+      //
+      // A lapsed plan is not a failure and gets neither: nothing broke and there
+      // is nothing to reconnect. It gets ONE 'sync_paused' notice per lapse —
+      // none already sent since the account's last successful sync — so a user
+      // who upgrades and later lapses again is told again. This replaced a daily
+      // "Broker sync failed — reconnect" to a downgraded user from 2026-09-14.
+      if (opts.entitlement) {
+        if (!(await notifiedSince(svc, row.user_id, 'sync_paused', row.last_sync_at))) {
+          await insertSystemNotification({ supabase: svc, userId: row.user_id, type: 'sync_paused' })
+        }
+      } else {
+        const stale = row.status === 'error' && !(await notifiedWithin(svc, row.user_id, RENOTIFY_MS))
+        if (row.status !== 'error' || stale) {
+          await insertSystemNotification({ supabase: svc, userId: row.user_id, type: 'sync_failed' })
+        }
       }
 
       // The reason is redacted, not trimmed: a fetch failure puts the upstream
