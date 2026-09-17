@@ -13,17 +13,53 @@ export async function sendEmail(args: {
   const key = process.env.RESEND_API_KEY
   const from = process.env.EMAIL_FROM || 'TradingSocial <updates@tradingsocial.io>'
   if (!key) return { sent: false, error: 'no_provider' }
+  const post = () => fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ from, to: args.to, subject: args.subject, html: args.html }),
+  })
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ from, to: args.to, subject: args.subject, html: args.html }),
-    })
+    let res = await post()
+    // Resend's per-second limit answers 429 with a Retry-After of a second or
+    // two; one short wait clears it. A long Retry-After is the DAILY quota,
+    // which no wait inside a 60s function can outlast, so that is returned as
+    // a transient failure for the caller to retry on the next run.
+    if (res.status === 429) {
+      const wait = Number(res.headers.get('retry-after'))
+      if (Number.isFinite(wait) && wait > 0 && wait <= MAX_INLINE_RETRY_S) {
+        await new Promise((r) => setTimeout(r, wait * 1000))
+        res = await post()
+      }
+    }
     if (!res.ok) return { sent: false, error: `resend_${res.status}` }
     return { sent: true }
   } catch (e) {
     return { sent: false, error: e instanceof Error ? e.message : 'send_failed' }
   }
+}
+
+const MAX_INLINE_RETRY_S = 2
+
+/**
+ * Whether a `sendEmail` failure is worth retrying on a later run.
+ *
+ * Transient: rate limiting and quota (429), Resend server errors (5xx), and
+ * network failures (anything that is not a `resend_<status>` code or one of the
+ * two configuration outcomes). Permanent: no provider configured, no address,
+ * and every other 4xx — a malformed request will fail the same way tomorrow.
+ *
+ * The distinction exists because the lifecycle cron stamps an email as handled
+ * whether or not it went out, so that a missing provider cannot turn into a
+ * flood the day one is configured. That rule is right for configuration and
+ * wrong for a 429: on 2026-09-15 a spent daily quota turned five trial emails
+ * into five stamped, never-delivered ones.
+ */
+export function isTransientEmailError(error: string | undefined): boolean {
+  if (!error || error === 'no_provider' || error === 'no_address') return false
+  const m = /^resend_(\d{3})$/.exec(error)
+  if (!m) return true
+  const status = Number(m[1])
+  return status === 429 || status >= 500
 }
 
 const APP = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.tradingsocial.io'
