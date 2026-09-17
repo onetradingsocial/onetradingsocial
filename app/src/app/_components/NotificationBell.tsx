@@ -42,12 +42,13 @@ const SYSTEM_TEXT: Record<string, string> = {
   trial_ending: 'Your free period ends soon — review your plan',
   trial_expired: 'Your Pro trial has ended — you\'re on Free',
   feedback_reply: 'We replied to your message',
+  sync_paused: 'MT5 auto-sync paused — your plan no longer includes it. Your imported trades are safe.',
 }
 
 const SYSTEM_ICON: Record<string, string> = {
   weekly_report: '📊', import_done: '📥', sync_failed: '⚠️', goal_completed: '🎯', rule_breach: '🚩', new_learning: '📚',
   payment_failed: '💳', trial_ending: '⏳', trial_expired: '⏳',
-  feedback_reply: '💬',
+  feedback_reply: '💬', sync_paused: '⏸️',
 }
 
 function isSystem(n: Notification): boolean {
@@ -70,6 +71,7 @@ function notifText(n: Notification): string {
 function notifHref(n: Notification): string {
   if (n.type === 'weekly_report' || n.type === 'rule_breach' || n.type === 'import_done') return '/journal'
   if (n.type === 'sync_failed') return '/settings#broker'
+  if (n.type === 'sync_paused') return '/settings/billing'
   if (n.type === 'goal_completed') return '/journal'
   // Every billing notice has exactly one useful destination.
   if (n.type === 'payment_failed' || n.type === 'trial_ending' || n.type === 'trial_expired') return '/settings/billing'

@@ -9,6 +9,9 @@ export type NotificationType =
   // actions/notifications.ts, so they cannot be switched off — a customer must
   // always be told their payment failed or their trial ended.
   | 'payment_failed' | 'trial_ending' | 'trial_expired'
+  // Auto-sync switched off because the plan no longer includes it (0082). Sent
+  // once per lapse; transactional, so absent from PREF_KEYS.
+  | 'sync_paused'
   // An admin answered a feedback submission (0066). System-typed on purpose:
   // the reply comes from "the team", never from a named admin, so the actor is
   // null and the bell renders no avatar. Transactional like the billing
@@ -23,6 +26,7 @@ export const SYSTEM_NOTIF_TYPES = [
   'weekly_report', 'import_done', 'sync_failed', 'goal_completed', 'rule_breach', 'new_learning',
   'payment_failed', 'trial_ending', 'trial_expired',
   'feedback_reply',
+  'sync_paused',
 ] as const
 
 export interface InsertNotificationArgs {
