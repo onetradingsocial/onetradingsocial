@@ -31,6 +31,15 @@ export async function GET(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   let deployed = 0
+  /**
+   * Accounts whose owner has no auto-sync entitlement. Not attempted, so not in
+   * `total`: the workflow fails the run when deployed < total, and counting a
+   * lapsed plan as a failed deploy kept mt5-sync.yml red every hour from
+   * 2026-09-14 for one downgraded user — burying the one real failure beside it
+   * (a MetaApi account out of credit). Collect reports skips the same way, and
+   * already tracks them as `broker_sync_skipped`, not as failures.
+   */
+  let notEntitled = 0
   for (const row of rows ?? []) {
     // Stamp the phase and time alongside every error this route writes. collect
     // runs ten minutes later and used to overwrite whatever we put here with its
@@ -47,6 +56,7 @@ export async function GET(req: Request) {
     const tier = await getTier(svc, row.user_id)
     if (!canFlag(flags, tier, 'mt5_autosync')) {
       await failed('Pro plan required for auto-sync.')
+      notEntitled++
       continue
     }
 
@@ -68,5 +78,5 @@ export async function GET(req: Request) {
       deployed++
     }
   }
-  return NextResponse.json({ deployed, total: rows?.length ?? 0 })
+  return NextResponse.json({ deployed, total: (rows?.length ?? 0) - notEntitled, notEntitled })
 }

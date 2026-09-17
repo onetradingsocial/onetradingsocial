@@ -87,6 +87,9 @@ export async function GET(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   let synced = 0
+  /** Not attempted for lack of entitlement; excluded from `total` like the
+   *  deploy route, so the workflow's synced < total assert means a real fault. */
+  let notEntitled = 0
   for (const row of rows ?? []) {
     // Accounts stay deployed between cycles (see lib/market-hours.ts for why
     // the old deploy/undeploy-every-hour pattern cost about six times what it
@@ -145,7 +148,7 @@ export async function GET(req: Request) {
     try {
       // Same gate as connectBroker (incl. admin override) — see deploy route.
       const tier = await getTier(svc, row.user_id)
-      if (!canFlag(flags, tier, 'mt5_autosync')) { await fail('Pro plan required for auto-sync.', { stop: true, entitlement: true }); continue }
+      if (!canFlag(flags, tier, 'mt5_autosync')) { await fail('Pro plan required for auto-sync.', { stop: true, entitlement: true }); notEntitled++; continue }
 
       const since = row.last_deal_time ?? row.created_at
       const fetched = await fetchDealsSince(row.metaapi_account_id, row.region, since)
@@ -183,5 +186,5 @@ export async function GET(req: Request) {
       await fail(e instanceof Error ? e.message : 'sync failed')
     }
   }
-  return NextResponse.json({ synced, total: rows?.length ?? 0 })
+  return NextResponse.json({ synced, total: (rows?.length ?? 0) - notEntitled, notEntitled })
 }
