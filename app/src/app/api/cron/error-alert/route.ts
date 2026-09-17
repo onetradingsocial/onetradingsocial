@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
+import { recentCronRuns, toCounters } from '@/lib/server/cron-runs'
+import { cronWatchdog } from '@/lib/cron-health'
 
 /**
  * Daily error watchdog (Sprint 1, row 49) — Vercel Hobby allows only daily
@@ -65,6 +67,29 @@ export async function GET(req: NextRequest) {
       const message = `${syncErrors} broker connection(s) in error state`
       await svc.from('system_alerts').insert({ kind: 'sync_error', message, count: syncErrors ?? 0 })
       raised.push(message)
+    }
+  }
+
+  // Scheduled job health: did the nightly lifecycle run happen, and was it
+  // healthy? See cronWatchdog for the thresholds. One open (unacked) alert per
+  // kind, like sync_error, so a job that stays broken does not re-alert daily
+  // until someone acknowledges it.
+  const [latest] = await recentCronRuns(svc, 'lifecycle-emails', 1)
+  const finding = cronWatchdog(
+    'lifecycle-emails',
+    latest ? { ran_at: latest.ran_at, counters: toCounters(latest) } : null,
+    new Date(),
+  )
+  if (finding) {
+    const { data: existing } = await svc
+      .from('system_alerts')
+      .select('id')
+      .eq('kind', finding.kind)
+      .eq('acked', false)
+      .limit(1)
+    if (!existing || existing.length === 0) {
+      await svc.from('system_alerts').insert({ kind: finding.kind, message: finding.message, count: 1 })
+      raised.push(finding.message)
     }
   }
 

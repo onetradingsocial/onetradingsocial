@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { runHealth, totalProcessed, topFailure, needsAttention } from '@/lib/cron-health'
+import { runHealth, totalProcessed, topFailure, needsAttention, cronWatchdog, CRON_STALE_HOURS } from '@/lib/cron-health'
 
 const run = (o: Partial<Parameters<typeof runHealth>[0]> = {}) => ({
   processed: {}, delivered: 0, undelivered: 0, failures: {}, ...o,
@@ -69,5 +69,46 @@ describe('topFailure', () => {
   })
   it('breaks ties by name so the panel does not reshuffle between renders', () => {
     expect(topFailure({ zeta: 2, alpha: 2 })).toEqual({ reason: 'alpha', count: 2 })
+  })
+})
+
+describe('cronWatchdog', () => {
+  // The watchdog runs 00:00-00:59 UTC; lifecycle-emails 13:00-13:59 UTC.
+  const at = (iso: string) => new Date(iso)
+  const latest = (ran_at: string, o: Partial<Parameters<typeof runHealth>[0]> = {}) =>
+    ({ ran_at, counters: run({ delivered: 3, ...o }) })
+
+  it('is quiet after a normal night, at the widest scheduling spread', () => {
+    expect(cronWatchdog('lifecycle-emails', latest('2026-09-16T13:00:00Z'), at('2026-09-17T00:59:00Z'))).toBeNull()
+  })
+
+  it('flags a missed night, at the narrowest scheduling spread', () => {
+    // Last run 13:59 on the 15th, nothing on the 16th, watchdog 00:00 on the 17th: 34h.
+    const f = cronWatchdog('lifecycle-emails', latest('2026-09-15T13:59:00Z'), at('2026-09-17T00:00:00Z'))
+    expect(f?.kind).toBe('cron_missed')
+    expect(CRON_STALE_HOURS).toBeGreaterThan(12)
+    expect(CRON_STALE_HOURS).toBeLessThan(34)
+  })
+
+  it('flags a route that has never recorded a run', () => {
+    expect(cronWatchdog('lifecycle-emails', null, at('2026-09-17T00:10:00Z'))?.kind).toBe('cron_missed')
+  })
+
+  it('flags an unhealthy run with its dominant failure', () => {
+    const f = cronWatchdog('lifecycle-emails',
+      latest('2026-09-16T13:38:00Z', { delivered: 0, undelivered: 12, failures: { resend_429: 12 } }),
+      at('2026-09-17T00:10:00Z'))
+    expect(f).toEqual({ kind: 'cron_unhealthy', message: 'lifecycle-emails last run failed: 12× resend_429' })
+  })
+
+  it('flags a run that deferred work to its time budget', () => {
+    const f = cronWatchdog('lifecycle-emails',
+      latest('2026-09-16T13:38:00Z', { processed: { deferred: 4 } }), at('2026-09-17T00:10:00Z'))
+    expect(f?.kind).toBe('cron_unhealthy')
+    expect(f?.message).toMatch(/deferred 4/)
+  })
+
+  it('is quiet on an idle night — nothing due is not a fault', () => {
+    expect(cronWatchdog('lifecycle-emails', latest('2026-09-16T13:38:00Z', { delivered: 0 }), at('2026-09-17T00:10:00Z'))).toBeNull()
   })
 })

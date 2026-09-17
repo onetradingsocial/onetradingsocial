@@ -76,3 +76,56 @@ export function topFailure(failures: Record<string, number>): { reason: string; 
 export function needsAttention(health: RunHealth): boolean {
   return health === 'failed' || health === 'no_provider' || health === 'degraded'
 }
+
+/**
+ * How old the latest recorded run may be before the watchdog calls it missed.
+ *
+ * Vercel Hobby fires a cron anywhere inside its scheduled hour. lifecycle-emails
+ * is `0 13 * * *` and the watchdog `0 0 * * *`, so when the watchdog runs a
+ * healthy latest run is at most ~12h old (13:00 -> 00:59), and a missed night
+ * leaves it at least ~34h old (13:59 -> 00:00 a day later). 30h sits between.
+ */
+export const CRON_STALE_HOURS = 30
+
+export type WatchdogFinding = { kind: 'cron_missed' | 'cron_unhealthy'; message: string }
+
+/**
+ * The watchdog's verdict on a cron from its latest recorded run.
+ *
+ * Exists because the nightly lifecycle run missed its record four times in six
+ * days (2026-09-09..11 timed out before the summary, 09-14 left no trace) and
+ * nothing noticed: the watchdog counted client errors and 404s but never asked
+ * whether the job had run.
+ */
+export function cronWatchdog(
+  route: string,
+  latest: { ran_at: string; counters: RunCounters } | null,
+  now: Date,
+): WatchdogFinding | null {
+  if (!latest) {
+    return { kind: 'cron_missed', message: `${route} has no recorded run at all` }
+  }
+  const ageH = (now.getTime() - Date.parse(latest.ran_at)) / 36e5
+  if (!Number.isFinite(ageH) || ageH > CRON_STALE_HOURS) {
+    return {
+      kind: 'cron_missed',
+      message: `${route} has not recorded a run since ${latest.ran_at} (${Math.round(ageH)}h ago) — it timed out, failed early, or did not fire`,
+    }
+  }
+  const health = runHealth(latest.counters)
+  if (needsAttention(health)) {
+    const top = topFailure(latest.counters.failures)
+    return {
+      kind: 'cron_unhealthy',
+      message: `${route} last run ${health}${top ? `: ${top.count}× ${top.reason}` : ''}`,
+    }
+  }
+  const deferred = Number(latest.counters.processed.deferred ?? 0)
+  if (deferred > 0) {
+    return {
+      kind: 'cron_unhealthy',
+      message: `${route} last run hit its time budget and deferred ${deferred} item(s) to the next night`,
+    }
+  }
+  return null
+}
