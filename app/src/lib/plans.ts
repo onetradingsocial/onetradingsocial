@@ -40,6 +40,27 @@ export const CURRENCY_NOTE = 'All prices are in Australian dollars (AUD).'
  *  without the tax line, and so a future registration changes one constant. */
 export const GST_NOTE = 'No GST is charged — the price shown is the total amount payable.'
 
+/** What a trialist must be told before buying Trader (day-14 decision 07).
+ *
+ *  Everyone trials PRO, and automatic MT5 sync is Pro-only
+ *  (FEATURE_MIN_TIER.mt5_autosync). Buying Trader mid-trial therefore ends the
+ *  broker feed — the product appearing to break the day after they paid us —
+ *  and until now nothing said so at the point of purchase.
+ *
+ *  WHEN it stops differs by which trial they are on, so the two are separate
+ *  strings rather than one hedged sentence:
+ *
+ *   * a grandfathered card-free trial grants 'pro' locally until day 14, and
+ *     shouldAckTrialOnSubscription deliberately keeps that grant, so sync runs
+ *     until the trial expires;
+ *   * a Stripe trial has no local grant at all (trial_started_at is null), so
+ *     the tier comes from the subscription and a portal switch takes effect as
+ *     soon as the mirror row updates. */
+export const TRADER_SYNC_WARNING_TRIAL =
+  'Automatic MT5 sync is Pro only. On Trader it stops when your trial ends, and closed trades no longer import on their own.'
+export const TRADER_SYNC_WARNING_NOW =
+  'Automatic MT5 sync is Pro only. Switching to Trader turns it off right away, and closed trades no longer import on their own.'
+
 /** Paid plan copy shared by the signup welcome screen and the end-of-trial
  *  modal. Prices mirror settings/billing; `pip` is a bare tier name so each
  *  surface can compose its own CSS class. */

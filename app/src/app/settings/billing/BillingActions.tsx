@@ -1,7 +1,9 @@
 'use client'
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { trackMeta } from '@/app/_components/MetaPixel'
-import { CUR, CURRENCY_NOTE, GST_NOTE } from '@/lib/plans'
+import {
+  CUR, CURRENCY_NOTE, GST_NOTE, TRADER_SYNC_WARNING_NOW, TRADER_SYNC_WARNING_TRIAL,
+} from '@/lib/plans'
 import { FREE_ACTIVE_GOAL_LIMIT, requiredPlanLabel } from '@/lib/entitlements'
 
 const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
@@ -273,21 +275,36 @@ function PlanCta({ plan, isCurrent, interval, hasSubscription, onTrial, busy, ac
   // and bill them twice, rather than moving them onto the new plan.
   if (hasSubscription) {
     return (
-      <button className="btn btn-ghost pcard-cta" disabled={busy}
-        onClick={() => act(() => post('/api/billing/portal'))}>
-        Switch to {plan.name} {interval === 'annual' ? 'annual' : 'monthly'}
-      </button>
+      <>
+        <button className="btn btn-ghost pcard-cta" disabled={busy}
+          onClick={() => act(() => post('/api/billing/portal'))}>
+          Switch to {plan.name} {interval === 'annual' ? 'annual' : 'monthly'}
+        </button>
+        {onTrial && plan.tier === 'trader' && (
+          <p className="pcard-warn">{TRADER_SYNC_WARNING_NOW}</p>
+        )}
+      </>
     )
   }
 
   // No subscription (free or on trial) — a real first purchase, so Checkout.
+  //
+  // The warning under Trader is the same decision as the portal branch above,
+  // but a different sentence: this trialist holds the LOCAL 'pro' grant, which
+  // survives the purchase until day 14 (shouldAckTrialOnSubscription), so their
+  // sync stops when the trial ends rather than now.
   return (
-    <button className={`btn pcard-cta ${plan.tier === 'trader' ? 'btn-primary' : 'btn-ghost'}`} disabled={busy}
-      onClick={() => {
-        trackMeta('InitiateCheckout', { content_name: `${plan.tier}_${interval}` })
-        return act(() => post('/api/billing/checkout', { tier: plan.tier, interval }))
-      }}>
-      {onTrial ? `Continue with ${plan.name}` : `Upgrade to ${plan.name}`}
-    </button>
+    <>
+      <button className={`btn pcard-cta ${plan.tier === 'trader' ? 'btn-primary' : 'btn-ghost'}`} disabled={busy}
+        onClick={() => {
+          trackMeta('InitiateCheckout', { content_name: `${plan.tier}_${interval}` })
+          return act(() => post('/api/billing/checkout', { tier: plan.tier, interval }))
+        }}>
+        {onTrial ? `Continue with ${plan.name}` : `Upgrade to ${plan.name}`}
+      </button>
+      {onTrial && plan.tier === 'trader' && (
+        <p className="pcard-warn">{TRADER_SYNC_WARNING_TRIAL}</p>
+      )}
+    </>
   )
 }
