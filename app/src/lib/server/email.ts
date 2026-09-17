@@ -10,6 +10,8 @@ export async function sendEmail(args: {
   subject: string
   html: string
 }): Promise<{ sent: boolean; error?: string }> {
+  const suppressed = emailSuppression(args.to, process.env)
+  if (suppressed) return { sent: false, error: suppressed }
   const key = process.env.RESEND_API_KEY
   const from = process.env.EMAIL_FROM || 'TradingSocial <updates@tradingsocial.io>'
   if (!key) return { sent: false, error: 'no_provider' }
@@ -41,6 +43,74 @@ export async function sendEmail(args: {
 const MAX_INLINE_RETRY_S = 2
 
 /**
+ * RFC 2606 / 6761 reserved names. Nobody can receive mail there, so a send can
+ * only bounce, and bounces count against the sending domain's reputation.
+ */
+const RESERVED_TLDS = ['.test', '.example', '.invalid', '.localhost']
+const RESERVED_DOMAINS = ['example.com', 'example.net', 'example.org']
+
+/**
+ * Why a send must not happen, or null when it may.
+ *
+ * ── The incident ─────────────────────────────────────────────────────────────
+ *
+ * On 2026-09-15 the end-to-end suite ran on a local server against the dev
+ * database. app/.env.local carries the real RESEND_API_KEY, so every test
+ * account that finished onboarding was sent a real welcome email: ~90 of them,
+ * to `e2e_…@tradingsocial.io` and `…@search.tradingsocial.test`, every one a
+ * bounce. That spent Resend's daily quota before the production lifecycle cron
+ * ran (all 12 of its sends came back 429) and put ~90 bounces on the domain's
+ * record. The next suite run would have done it again.
+ *
+ * ── The rule ─────────────────────────────────────────────────────────────────
+ *
+ * - `reserved_address`: never, in any environment.
+ * - `not_production`: only a production Vercel deployment sends
+ *   (`VERCEL_ENV === 'production'`). Local servers (dev or `next start`), the
+ *   e2e suite and preview deployments all share the one real key and the one
+ *   quota, and none has a reason to mail anyone. The test accounts use the real
+ *   `@tradingsocial.io` domain, so they cannot be recognised by pattern; the
+ *   environment is the only reliable line.
+ *
+ * `EMAIL_SEND_OUTSIDE_PRODUCTION=1` opts a non-production environment back in,
+ * for deliberately testing a template against your own inbox. Reserved
+ * addresses stay blocked even then.
+ *
+ * Both are permanent failures (see isTransientEmailError): retrying cannot
+ * change them, so callers stamp and move on as they do for `no_provider`.
+ */
+export function emailSuppression(
+  to: string,
+  env: Record<string, string | undefined>,
+): 'reserved_address' | 'not_production' | null {
+  const domain = to.trim().toLowerCase().split('@').pop() ?? ''
+  if (RESERVED_DOMAINS.includes(domain) || RESERVED_TLDS.some((t) => domain.endsWith(t))) {
+    return 'reserved_address'
+  }
+  if (!isProductionDeployment(env) && env.EMAIL_SEND_OUTSIDE_PRODUCTION !== '1') {
+    return 'not_production'
+  }
+  return null
+}
+
+/**
+ * VERCEL_ENV is authoritative when present. It is a Vercel system variable,
+ * which a project can choose not to expose; if that ever happens, falling back
+ * to "not production" would silently stop every production email, trial
+ * notices included. So when it is ABSENT, a deployment whose public site URL
+ * is a real https origin counts as production. Local servers (and so the e2e
+ * suite) point NEXT_PUBLIC_SITE_URL at localhost and stay blocked either way;
+ * previews carry VERCEL_ENV=preview and are blocked by the first branch.
+ */
+function isProductionDeployment(env: Record<string, string | undefined>): boolean {
+  if (env.VERCEL_ENV) return env.VERCEL_ENV === 'production'
+  const site = env.NEXT_PUBLIC_SITE_URL ?? ''
+  return site.startsWith('https://') && !/\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(site)
+}
+
+const PERMANENT_ERRORS = new Set(['no_provider', 'no_address', 'not_production', 'reserved_address'])
+
+/**
  * Whether a `sendEmail` failure is worth retrying on a later run.
  *
  * Transient: rate limiting and quota (429), Resend server errors (5xx), and
@@ -55,7 +125,7 @@ const MAX_INLINE_RETRY_S = 2
  * into five stamped, never-delivered ones.
  */
 export function isTransientEmailError(error: string | undefined): boolean {
-  if (!error || error === 'no_provider' || error === 'no_address') return false
+  if (!error || PERMANENT_ERRORS.has(error)) return false
   const m = /^resend_(\d{3})$/.exec(error)
   if (!m) return true
   const status = Number(m[1])
