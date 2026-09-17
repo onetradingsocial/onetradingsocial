@@ -3,6 +3,8 @@ import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { ensureReferralCode, getReferralStats } from '@/lib/server/referral'
 import { earnedMonths, REFERRAL_MONTH_CAP } from '@/lib/referral'
+import { referralMonthsClaimedFor } from '@/lib/server/billing'
+import { getStripe } from '@/lib/stripe'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,12 +22,16 @@ export async function GET() {
   const code = await ensureReferralCode(svc, user.id)
   if (!code) return NextResponse.json({ error: 'no code' }, { status: 500 })
 
-  const stats = await getReferralStats(svc, user.id, code)
+  const [stats, claimed] = await Promise.all([
+    getReferralStats(svc, user.id, code),
+    referralMonthsClaimedFor(svc, getStripe(), user.id),
+  ])
   return NextResponse.json({
     code,
     signups: stats.signups,
     activated: stats.activated,
     months: earnedMonths(stats.activated),
     cap: REFERRAL_MONTH_CAP,
+    claimed,
   })
 }

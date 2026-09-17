@@ -6,6 +6,7 @@ import type { PaymentFailure, TrialEnding } from '@/lib/billing-webhook'
 import { insertSystemNotification } from '@/lib/notifications'
 import { sendEmail, paymentFailedHtml, trialEndingHtml } from '@/lib/server/email'
 import { logError } from '@/lib/server/log'
+import { referralMonthsClaimed, type PriorSubscription } from '@/lib/checkout-eligibility'
 
 /**
  * Shared billing-side server helpers: mapping a Stripe customer back to one of
@@ -232,4 +233,44 @@ export async function createAndStoreCustomer(
     return { error: 'could not save customer' }
   }
   return { customerId: customer.id }
+}
+
+/**
+ * Every subscription Stripe holds for a customer, as checkout-eligibility reads
+ * them. Throws on any Stripe error — callers decide whether a failure closes
+ * (checkout) or degrades (the referral summary).
+ */
+export async function listSubscriptionHistory(stripe: Stripe, customerId: string): Promise<PriorSubscription[]> {
+  const listed = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 100 })
+  return listed.data.map((s) => ({
+    status: s.status,
+    trialStart: s.trial_start ?? null,
+    trialEnd: s.trial_end ?? null,
+    flow: s.metadata?.flow ?? null,
+    referralMonths: s.metadata?.referral_months ?? null,
+  }))
+}
+
+/**
+ * Referral months this user has already redeemed, or null when that cannot be
+ * determined (Stripe unreachable). Null lets the referral UI fall back to
+ * showing earned months; checkout re-derives the real figure and refuses a
+ * replay regardless, so a null here can never hand out months twice.
+ */
+export async function referralMonthsClaimedFor(
+  svc: SupabaseClient,
+  stripe: Stripe,
+  userId: string,
+): Promise<number | null> {
+  const { data } = await svc.from('profiles').select('stripe_customer_id').eq('id', userId).maybeSingle()
+  const customerId = (data?.stripe_customer_id as string | null) ?? null
+  if (!customerId) return 0
+  try {
+    return referralMonthsClaimed(await listSubscriptionHistory(stripe, customerId))
+  } catch (err) {
+    // A stored id from the old sandbox namespace has no live history: nothing claimed.
+    if (isMissingCustomer(err, customerId)) return 0
+    logError('billing', err, { note: 'referral claim history unavailable' })
+    return null
+  }
 }

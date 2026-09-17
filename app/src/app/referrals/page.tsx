@@ -4,6 +4,8 @@ import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { ensureReferralCode, getReferralStats } from '@/lib/server/referral'
 import { earnedMonths, REFERRAL_MONTH_CAP } from '@/lib/referral'
+import { referralMonthsClaimedFor } from '@/lib/server/billing'
+import { getStripe } from '@/lib/stripe'
 import { ReferralPageHost } from './ReferralPageHost'
 
 export const metadata: Metadata = { title: 'Refer a trader — TradingSocial' }
@@ -18,7 +20,10 @@ export default async function ReferralsPage() {
   const code = await ensureReferralCode(svc, user.id)
   if (!code) redirect('/')
 
-  const stats = await getReferralStats(svc, user.id, code)
+  const [stats, claimed] = await Promise.all([
+    getReferralStats(svc, user.id, code),
+    referralMonthsClaimedFor(svc, getStripe(), user.id),
+  ])
   return (
     <ReferralPageHost
       summary={{
@@ -27,6 +32,7 @@ export default async function ReferralsPage() {
         activated: stats.activated,
         months: earnedMonths(stats.activated),
         cap: REFERRAL_MONTH_CAP,
+        claimed,
       }}
     />
   )
