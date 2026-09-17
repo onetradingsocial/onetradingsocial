@@ -98,8 +98,12 @@ describe('mt5 sync per-cycle instrumentation', () => {
     expect(successBody()).toContain('trades: imported')
   })
 
-  it('leaves the response shape alone — the n8n asserts read it', () => {
-    expect(src).toContain('return NextResponse.json({ synced, total: rows?.length ?? 0 })')
+  it('keeps the keys the workflow asserts on — synced, total, skipped', () => {
+    // .github/workflows/mt5-sync.yml reads these by name (it replaced the n8n
+    // asserts this test was first written for) and fails when synced < total.
+    // `total` excludes accounts skipped for lack of entitlement, so a lapsed
+    // plan cannot turn every hourly run red; `notEntitled` is additive.
+    expect(src).toContain('return NextResponse.json({ synced, total: (rows?.length ?? 0) - notEntitled, notEntitled })')
     expect(src).toContain("skipped: 'market_closed'")
   })
 })
