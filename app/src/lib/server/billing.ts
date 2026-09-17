@@ -7,6 +7,7 @@ import { insertSystemNotification } from '@/lib/notifications'
 import { sendEmail, paymentFailedHtml, trialEndingHtml } from '@/lib/server/email'
 import { logError } from '@/lib/server/log'
 import { referralMonthsClaimed, type PriorSubscription } from '@/lib/checkout-eligibility'
+import { formatBillingDate } from '@/lib/locale-format'
 
 /**
  * Shared billing-side server helpers: mapping a Stripe customer back to one of
@@ -113,9 +114,7 @@ export async function notifyTrialWillEnd(
     const name = await displayName(svc, userId)
     const email = await emailForUser(svc, userId)
     const endsOn = notice.trialEndsAt
-      ? new Date(notice.trialEndsAt).toLocaleDateString('en-AU', {
-          day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney',
-        })
+      ? formatBillingDate(notice.trialEndsAt)
       : null
     if (email) {
       const res = await sendEmail({

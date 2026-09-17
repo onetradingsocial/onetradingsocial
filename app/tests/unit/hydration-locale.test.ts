@@ -120,3 +120,12 @@ describe('no runtime-default locale formatting in client code', () => {
     expect(offenders, `Runtime-default locale formatting in client code (React #418 on hydration). Use APP_LOCALE / formatDate + useIsClient from lib/locale-format.ts:\n${offenders.join('\n')}`).toEqual([])
   })
 })
+
+describe('formatBillingDate', () => {
+  it('writes day-first in Sydney time, the way the billing emails do', async () => {
+    const { formatBillingDate } = await import('@/lib/locale-format')
+    // 15:30 UTC on 4 October is already 5 October in Sydney.
+    expect(formatBillingDate('2026-10-04T15:30:00.000Z')).toBe('5 October 2026')
+    expect(formatBillingDate('not a date')).toBe('')
+  })
+})

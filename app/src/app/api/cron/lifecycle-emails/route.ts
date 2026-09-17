@@ -21,6 +21,7 @@ import { getStripe } from '@/lib/stripe'
 import { reconcileBilling } from '@/lib/server/billing-reconcile'
 import { logError, logWarn } from '@/lib/server/log'
 import { recordCronRun } from '@/lib/server/cron-runs'
+import { formatBillingDate } from '@/lib/locale-format'
 
 export const maxDuration = 60
 
@@ -389,9 +390,7 @@ export async function GET(req: Request) {
           cardOnFile: win.cardOnFile,
           cancelling: win.cancelAtPeriodEnd,
           endsOn: win.cardOnFile
-            ? new Date(win.endsAt).toLocaleDateString('en-AU', {
-                day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney',
-              })
+            ? formatBillingDate(win.endsAt)
             : null,
         }))
         trialStageEmails++
