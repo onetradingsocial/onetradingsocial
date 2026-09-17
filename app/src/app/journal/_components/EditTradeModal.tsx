@@ -9,6 +9,8 @@ import { pipInfo } from '@/lib/instruments'
 import { InstrumentCombobox } from '@/app/_components/InstrumentCombobox'
 import { VERIFICATION_LABELS, tradeLevel } from '@/lib/verification'
 import type { JTrade } from '@/lib/journal-stats'
+import { useIsClient } from '@/app/_components/LocalTime'
+import { formatDate } from '@/lib/locale-format'
 
 const MARKETS = ['forex', 'crypto', 'stocks', 'indices', 'commodities'] as const
 const CONFIDENCE = [['low', 'Low'], ['medium', 'Medium'], ['high', 'High']] as const
@@ -42,6 +44,7 @@ export function EditTradeModal({ trade, config }: { trade: JTrade; config: EditT
 }
 
 function EditModal({ trade, config, onClose }: { trade: JTrade; config: EditTradeConfig; onClose: () => void }) {
+  const local = useIsClient()
   const router = useRouter()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
@@ -107,7 +110,7 @@ function EditModal({ trade, config, onClose }: { trade: JTrade; config: EditTrad
             <span className="ts-modal-icon">✎</span>
             <div>
               <h2 className="ts-h2">Edit trade</h2>
-              <p className="ts-sub">{trade.instrument} · {new Date(trade.traded_at).toLocaleDateString()}</p>
+              <p className="ts-sub">{trade.instrument} · {formatDate(trade.traded_at, { dateStyle: 'medium' }, local)}</p>
             </div>
           </div>
           <button type="button" className="ts-modal-close" onClick={onClose}>✕</button>

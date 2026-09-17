@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { Icon, Avatar, StreakChain, Delta } from './atoms'
 import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import type { HomeData } from './types'
+import { APP_LOCALE } from '@/lib/locale-format'
 
-const money = (n: number) => `${n >= 0 ? '+' : '−'}$${Math.abs(Math.round(n)).toLocaleString()}`
+const money = (n: number) => `${n >= 0 ? '+' : '−'}$${Math.abs(Math.round(n)).toLocaleString(APP_LOCALE)}`
 
 function leagueFor(rank: number | null, total: number) {
   if (rank == null || total === 0) return 'Unranked'

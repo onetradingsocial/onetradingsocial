@@ -10,10 +10,11 @@
 
 import type { Message } from '@/lib/messaging'
 import { clock } from './format'
+import { useIsClient } from '@/app/_components/LocalTime'
 
 export function MessageBubble({ message, mine, showSeen }: { message: Message; mine: boolean; showSeen: boolean }) {
   const images = message.attachments.filter((a) => a.type === 'image')
-  const time = clock(message.createdAt)
+  const time = clock(message.createdAt, useIsClient())
   return (
     <div className={`ts-msg-bubble-row${mine ? ' ts-msg-bubble-mine' : ''}`}>
       <div className={`ts-msg-bubble${mine ? ' ts-msg-bubble-out' : ' ts-msg-bubble-in'}`}>

@@ -3,9 +3,10 @@
 import { useState, useActionState } from 'react'
 import { saveTradingRules, type RulesState } from '@/app/actions/rules'
 import { SESSION_LABELS, VIOLATION_LABELS, type TradingRules, type ComplianceResult, type Violation } from '@/lib/rules'
+import { APP_LOCALE } from '@/lib/locale-format'
 
 function money(n: number) {
-  const a = `$${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+  const a = `$${Math.abs(n).toLocaleString(APP_LOCALE, { maximumFractionDigits: 0 })}`
   return n < 0 ? `−${a}` : a
 }
 

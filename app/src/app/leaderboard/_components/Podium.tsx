@@ -4,6 +4,7 @@ import { fmtPL } from './format'
 import { FollowButton } from '@/app/_components/FollowButton'
 import { TraderHoverCard } from '@/app/_components/TraderHoverCard'
 import type { BoardRow } from './LeaderboardTable'
+import { APP_LOCALE } from '@/lib/locale-format'
 
 // Visual order: #2 left, #1 center (elevated), #3 right.
 const SLOTS = [
@@ -46,7 +47,7 @@ export function Podium({ top, viewerId, kind = 'performance' }: { top: BoardRow[
               ? idBlock
               : <TraderHoverCard userId={t.userId} username={t.username} displayName={t.displayName} avatarUrl={t.avatarUrl} wrapClassName="thc-stack">{idBlock}</TraderHoverCard>}
             {kind === 'xp'
-              ? <div className="pl up">{t.pnl.toLocaleString()} XP</div>
+              ? <div className="pl up">{t.pnl.toLocaleString(APP_LOCALE)} XP</div>
               : <div className={`pl ${t.pnl >= 0 ? 'up' : 'down'}`}>{fmtPL(t.pnl)}</div>}
             {kind === 'xp'
               ? <div className="pod-stats"><div className="m"><div className="k">Level</div><div className="v">{t.trades}</div></div></div>

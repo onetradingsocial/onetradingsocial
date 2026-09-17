@@ -10,6 +10,7 @@
 
 import type { ConversationListItem } from '@/lib/messaging'
 import { shortWhen } from './format'
+import { useIsClient } from '@/app/_components/LocalTime'
 
 export function ConversationRow({
   item, active, onClick,
@@ -20,6 +21,7 @@ export function ConversationRow({
 }) {
   const name = item.other.displayName || item.other.username
   const unread = item.unreadCount > 0
+  const local = useIsClient()
   return (
     <button
       type="button"
@@ -34,7 +36,7 @@ export function ConversationRow({
       <span className="ts-msg-row-body">
         <span className="ts-msg-row-top">
           <span className="ts-msg-row-name">{name}</span>
-          <span className="ts-msg-row-time">{shortWhen(item.lastMessageAt)}</span>
+          <span className="ts-msg-row-time">{shortWhen(item.lastMessageAt, local)}</span>
         </span>
         <span className="ts-msg-row-bottom">
           <span className="ts-msg-row-preview">{item.preview || 'No messages yet'}</span>

@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteTrade } from '@/app/actions/trade'
 import type { JTrade } from '@/lib/journal-stats'
+import { useIsClient } from '@/app/_components/LocalTime'
+import { formatDate } from '@/lib/locale-format'
 
-function fmt(t: JTrade) {
-  const d = new Date(t.traded_at).toLocaleDateString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric',
-  })
+function fmt(t: JTrade, local: boolean) {
+  const d = formatDate(t.traded_at, { year: 'numeric', month: 'short', day: 'numeric' }, local)
   const pnl = t.pnl_amount
   const result = pnl == null
     ? 'still open'
@@ -28,6 +28,7 @@ function fmt(t: JTrade) {
 export function DeleteTradeButton({ trade }: { trade: JTrade }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const local = useIsClient()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
 
@@ -45,7 +46,7 @@ export function DeleteTradeButton({ trade }: { trade: JTrade }) {
         className="btn btn-ghost btn-sm"
         style={{ color: 'var(--down)' }}
         onClick={() => setOpen(true)}
-        aria-label={`Delete trade: ${fmt(trade)}`}
+        aria-label={`Delete trade: ${fmt(trade, local)}`}
       >
         Delete
       </button>
@@ -61,7 +62,7 @@ export function DeleteTradeButton({ trade }: { trade: JTrade }) {
             {/* Rows in the table look alike. Naming the trade is what makes
                 this a confirmation rather than a second click in the dark. */}
             <div className="ts-callout mt-3" style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-              <b>{fmt(trade)}</b>
+              <b>{fmt(trade, local)}</b>
             </div>
 
             <p className="mt-3" style={{ fontSize: 13.5, lineHeight: 1.6, margin: '12px 0 0' }}>

@@ -1,11 +1,12 @@
 import type { PerfSort } from '@/lib/leaderboard'
+import { APP_LOCALE } from '@/lib/locale-format'
 
 // Money formatting for the leaderboard surfaces (e.g. +$1,972 / −$40 / $0).
 export const fmtPL = (n: number) =>
-  (n > 0 ? '+$' : n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString()
+  (n > 0 ? '+$' : n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString(APP_LOCALE)
 
 // Plain USD magnitude, no sign (e.g. $1,302).
-export const fmtUSD = (n: number) => '$' + Math.round(Math.abs(n)).toLocaleString()
+export const fmtUSD = (n: number) => '$' + Math.round(Math.abs(n)).toLocaleString(APP_LOCALE)
 
 // One ranked metric in its own units, for the surfaces that have to show the
 // number the board was actually ordered by. Only the money branch formats a

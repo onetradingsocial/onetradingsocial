@@ -5,6 +5,8 @@ import { connectExchange, disconnectExchange, syncNow, type ExchangeState } from
 import { Icon } from '@/app/[username]/_components/Icon'
 import { PrivacyNote } from '@/app/_components/LegalNotice'
 import Link from 'next/link'
+import { useIsClient } from '@/app/_components/LocalTime'
+import { formatDate } from '@/lib/locale-format'
 
 export type ExchangeRowView = {
   status: string; symbols: string[]
@@ -15,6 +17,7 @@ const MAJORS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT', 'BNB/USDT', 'DOG
 
 export function ExchangeCard({ row, canImport }: { row: ExchangeRowView | null; canImport: boolean }) {
   const [state, formAction, pending] = useActionState<ExchangeState, FormData>(connectExchange, {})
+  const local = useIsClient()
   const [picked, setPicked] = useState<Set<string>>(new Set(MAJORS.slice(0, 3)))
   const [extra, setExtra] = useState('')
   const [confirming, setConfirming] = useState(false)
@@ -34,7 +37,7 @@ export function ExchangeCard({ row, canImport }: { row: ExchangeRowView | null; 
   }
 
   if (row) {
-    const synced = row.last_sync_at ? new Date(row.last_sync_at).toLocaleString() : 'not yet'
+    const synced = row.last_sync_at ? formatDate(row.last_sync_at, { dateStyle: 'medium', timeStyle: 'short' }, local) : 'not yet'
     return (
       <section id="exchange" className="ts-card settings-section">
         <h2 className="ts-h2"><Icon name="bolt" size={18} /> Crypto exchange sync</h2>
