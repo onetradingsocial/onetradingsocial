@@ -16,14 +16,17 @@ beforeEach(() => {
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
   process.env.RESEND_API_KEY = 'test'
+  // Only production sends (see emailSuppression).
+  process.env.VERCEL_ENV = 'production'
 })
 afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
   delete process.env.RESEND_API_KEY
+  delete process.env.VERCEL_ENV
 })
 
-const send = () => sendEmail({ to: 'a@example.com', subject: 's', html: '<p>h</p>' })
+const send = () => sendEmail({ to: 'trader@gmail.com', subject: 's', html: '<p>h</p>' })
 
 describe('sendEmail and Resend rate limits', () => {
   it('retries once after a short Retry-After and succeeds', async () => {
