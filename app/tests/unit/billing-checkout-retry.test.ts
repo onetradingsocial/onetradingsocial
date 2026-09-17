@@ -21,6 +21,12 @@ const storedCustomerId = vi.fn<() => string | null>(() => STALE)
 const updated = vi.fn<(p: Record<string, unknown>) => void>()
 const customersCreate = vi.fn(async () => ({ id: FRESH }))
 const sessionsCreate = vi.fn<(args: { customer: string }) => Promise<{ url: string }>>()
+/** Open Checkout Sessions for the customer: none, but a dead id raises the
+ *  same `resource_missing` as everything else keyed on it. */
+const sessionsList = vi.fn(async ({ customer }: { customer: string }) => {
+  if (customer === STALE) throw stripeError()
+  return { data: [] }
+})
 /** Stripe's subscription history for the customer. A dead id raises the same
  *  `resource_missing` the session does, which the guard must tolerate. */
 const subscriptionsList = vi.fn(async ({ customer }: { customer: string }) => {
@@ -59,7 +65,7 @@ vi.mock('@/lib/stripe', () => ({
   getStripe: () => ({
     customers: { create: customersCreate },
     subscriptions: { list: subscriptionsList },
-    checkout: { sessions: { create: sessionsCreate } },
+    checkout: { sessions: { create: sessionsCreate, list: sessionsList, expire: vi.fn(async () => ({})) } },
   }),
 }))
 
@@ -170,6 +176,17 @@ describe('subscription history lookup', () => {
     // replayed trial gets through; a 503 costs one retry.
     storedCustomerId.mockReturnValue('cus_healthy')
     subscriptionsList.mockRejectedValueOnce(stripeError({ code: 'api_error', param: undefined, message: 'upstream' }))
+
+    const res = await post(request())
+    expect(res.status).toBe(503)
+    expect(sessionsCreate).not.toHaveBeenCalled()
+  })
+})
+
+describe('open-session expiry', () => {
+  it('fails CLOSED when open sessions cannot be listed', async () => {
+    storedCustomerId.mockReturnValue('cus_healthy')
+    sessionsList.mockRejectedValueOnce(stripeError({ code: 'api_error', param: undefined, message: 'upstream' }))
 
     const res = await post(request())
     expect(res.status).toBe(503)

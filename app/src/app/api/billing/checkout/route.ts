@@ -307,6 +307,45 @@ export async function POST(request: NextRequest) {
    * Only for THIS error. A network wobble or a card-side failure must not
    * silently create a duplicate customer for a user who already has a good one.
    */
+  /**
+   * Only the newest checkout for a customer may be completed.
+   *
+   * The history check above sees subscriptions, and a Checkout Session is not a
+   * subscription until it is paid. Two sessions opened before either completes
+   * — two tabs, a double click that beat the button's disabled state, a trial
+   * started on the welcome screen and a plan picked from billing — both pass
+   * that check, and both can be completed into two subscriptions.
+   *
+   * Expiring every still-open session for this customer first closes that: the
+   * older tab's page stops accepting payment, so at most one session can turn
+   * into a subscription. The residual window is two requests listing sessions
+   * within the same few hundred milliseconds, which no user produces by hand.
+   *
+   * Failure handling mirrors the history read: a stale customer id has no
+   * sessions to expire (the re-mint below handles it); a session that finished
+   * between list and expire means a subscription is being created right now, so
+   * refuse rather than open another; anything else fails closed.
+   */
+  try {
+    const open = await stripe.checkout.sessions.list({ customer: customerId, status: 'open', limit: 10 })
+    for (const s of open.data) {
+      try {
+        await stripe.checkout.sessions.expire(s.id)
+      } catch (err) {
+        logInfo('billing checkout', { note: 'refused: an open session completed during expiry', flow: flow ?? 'direct' })
+        logError('billing checkout', err, { note: 'could not expire open session', session: s.id })
+        return NextResponse.json({
+          error: 'A checkout on this account was just completed. Check Settings → Billing before starting another.',
+        }, { status: 409 })
+      }
+    }
+  } catch (err) {
+    if (!isMissingCustomer(err, customerId)) {
+      logError('billing checkout', err, { note: 'could not list open sessions; refusing' })
+      return NextResponse.json({ error: 'Billing is temporarily unavailable. Please try again.' }, { status: 503 })
+    }
+  }
+
   let session
   try {
     session = await createSession(customerId)
