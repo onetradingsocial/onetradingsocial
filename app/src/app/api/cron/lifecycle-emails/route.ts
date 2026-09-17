@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendEmail, weeklyDigestHtml, recoveryHtml, trialExpiredHtml, trialSequenceHtml } from '@/lib/server/email'
+import { sendEmail, isTransientEmailError, weeklyDigestHtml, recoveryHtml, trialExpiredHtml, trialSequenceHtml } from '@/lib/server/email'
 import { sendWelcomeEmail } from '@/lib/server/welcome-email'
 import { insertSystemNotification } from '@/lib/notifications'
 import { computeMetrics, isClosed, rValues, type TradeForMetrics } from '@/lib/trade'
@@ -44,6 +44,10 @@ const TRIAL_EXPIRY_NOTICE_WINDOW_DAYS = 7
  *  reputation, and a burst is how a new domain earns a complaint rate it cannot
  *  undo. Raise it once a few nights have gone out clean. */
 const WELCOME_BACKFILL_PER_RUN = 10
+
+/** Stop starting new work after this long, leaving headroom inside the 60s
+ *  maxDuration for the retention RPCs and the cron_runs record. */
+const BUDGET_MS = 45_000
 
 /**
  * Daily lifecycle emails (Sprint 4, rows 32 + 33) — one route because Vercel
@@ -131,24 +135,341 @@ export async function GET(req: Request) {
   let delivered = 0, undelivered = 0
   const failures = new Map<string, number>()
 
-  const deliver = async (to: string | null, subject: string, html: string): Promise<boolean> => {
+  /** 'sent', a permanent failure, or a transient one worth retrying on the
+   *  next run (429 / 5xx / network — see isTransientEmailError). */
+  type Outcome = 'sent' | 'failed' | 'transient'
+  const deliver = async (to: string | null, subject: string, html: string): Promise<Outcome> => {
     if (!to) {
       undelivered++
       failures.set('no_address', (failures.get('no_address') ?? 0) + 1)
-      return false
+      return 'failed'
     }
     const res = await sendEmail({ to, subject, html })
     if (res.sent) {
       delivered++
-      return true
+      return 'sent'
     }
     undelivered++
     const reason = res.error ?? 'unknown'
     failures.set(reason, (failures.get(reason) ?? 0) + 1)
-    return false
+    return isTransientEmailError(res.error) ? 'transient' : 'failed'
   }
 
+  /**
+   * Time budget.
+   *
+   * The route has 60s (maxDuration) and on 2026-09-09, -10 and -11 it used all
+   * of it: send stamps run from 13:37:30 to ~13:38:23 and then stop, and no
+   * cron_runs row was written, because Vercel kills the function before the
+   * summary. Everything scheduled late in the run — trial notices, the welcome
+   * backfill — silently slipped a day, and the run left no record.
+   *
+   * So no NEW unit of work starts after BUDGET_MS. Every section is idempotent
+   * on its own stamp, so whatever is skipped is simply picked up tomorrow, and
+   * `deferred` says how much that was. The run then always reaches the summary.
+   * The time-critical sections also run first (see the order below).
+   */
+  const overBudget = () => Date.now() - now > BUDGET_MS
+  let deferred = 0
+  /** Trial emails left unstamped after a transient failure, for tomorrow. */
+  let retryTomorrow = 0
+
+  // ---- Trial expiry notice ---------------------------------------------------
+  // The 14-day Pro trial used to lapse in complete silence: TRIAL_WALL_ENABLED
+  // ships false, shouldShowWelcome explicitly suppresses the pro->free popup for
+  // exactly this transition, and nothing here had a trial branch. In production
+  // 34 trials had expired with zero acknowledgements of any kind. This is the
+  // acknowledgement. It does NOT enable the wall — that is a product decision.
+  //
+  // Its own query, NOT folded into the select above, for the same reason
+  // getEntitlements keeps welcome_tier_seen separate: last_trial_email is the
+  // newest column here, and if the code deploys ahead of its migration
+  // PostgREST returns 42703 for an unknown column and fails the WHOLE select it
+  // belongs to. Isolated like this, a missing column can only ever disable the
+  // trial notice — it can never take the weekly digests and inactivity nudges
+  // down with it. It also means this branch is inert until the migration lands,
+  // which is exactly the deploy order we want.
+  let trialNotices = 0
+  const nowDate = new Date(now)
+
+  // Every trial Stripe is currently running, read ONCE and shared by both trial
+  // branches below. Since 0076 the mirror carries trial_start/trial_end, so this
+  // is the whole picture of the card-backed population — no Stripe API call.
+  //
+  // Its own try, and a tolerated failure: if this read breaks, both branches
+  // degrade to "nobody has a card", which is the PRE-Stripe behaviour and is
+  // wrong in the dangerous direction. So a failure here must stop the trial
+  // emails rather than send them on a stale assumption. `stripeTrialsKnown`
+  // carries that decision to both branches.
+  const { data: trialSubs, error: trialSubsError } = await svc
+    .from('subscriptions')
+    .select('user_id, status, trial_start, trial_end, cancel_at_period_end')
+    .eq('status', 'trialing')
+  const stripeTrialsKnown = !trialSubsError
+  if (trialSubsError) {
+    logError('lifecycle-emails', trialSubsError.message, {
+      note: 'could not read trialing subscriptions — trial emails skipped rather than sent with no-card copy',
+    })
+  }
+  const subsByUser = new Map<string, TrialSubRow[]>()
+  for (const s of trialSubs ?? []) {
+    const uid = s.user_id as string
+    subsByUser.set(uid, [...(subsByUser.get(uid) ?? []), s as TrialSubRow])
+  }
+
+  const { data: trials, error: trialError } = await svc
+    .from('profiles')
+    .select('id, username, display_name, trial_started_at, trial_ack_at, last_trial_email')
+    .eq('is_internal', false)
+    .not('trial_started_at', 'is', null)
+    .is('last_trial_email', null)
+
+  if (trialError) {
+    logError('lifecycle-emails', trialError.message, { note: 'trial notice skipped (migration not applied?)' })
+  } else if (!stripeTrialsKnown) {
+    logError('lifecycle-emails', undefined, { note: 'trial expiry notice skipped: cannot rule out a Stripe trial' })
+  } else {
+    for (const t of trials ?? []) {
+      if (overBudget()) { deferred++; continue }
+      if (trialState(t.trial_started_at, t.trial_ack_at, nowDate) !== 'expired') continue
+
+      // This notice is LOCAL-ONLY, and the guard is load-bearing rather than
+      // tidy. `trialExpiredHtml` says "You were never charged and there's
+      // nothing to cancel — the trial never asked for a card." A grandfathered
+      // user who takes the add-a-card invitation holds BOTH: a Stripe trial
+      // with a card, and a local trial that lapses a few days later. Without
+      // this, that lapse mails them a flat denial that a charge is coming,
+      // days before Stripe charges them.
+      //
+      // Why they are skipped rather than sent adapted copy: a Stripe trial does
+      // not "expire into Free" at all — it either converts (nothing ended, and
+      // an ending notice would be false) or Stripe cancels it for a missing
+      // card (a different message again). Writing either is a product decision
+      // about money, and the pre-charge notice is already owned by Stripe's own
+      // trial_will_end event. Nothing is silently dropped here: the user is on
+      // the Stripe path and gets the Stripe path's notices.
+      if (stripeTrialWindow(subsByUser.get(t.id))) continue
+      // Only recently lapsed trials — see TRIAL_EXPIRY_NOTICE_WINDOW_DAYS.
+      const expiredAt = Date.parse(t.trial_started_at) + 14 * DAY
+      if (now - expiredAt > TRIAL_EXPIRY_NOTICE_WINDOW_DAYS * DAY) continue
+
+      const email = await emailOf(t.id)
+      const outcome = await deliver(
+        email,
+        'Your TradingSocial Pro trial has ended',
+        trialExpiredHtml({ name: t.display_name || t.username, kept: JOURNAL_FREE_LIMIT }),
+      )
+      // A transient failure is NOT stamped and gets no in-app notification yet:
+      // tomorrow's run retries both together, inside the 7-day notice window.
+      // Configuration failures still stamp, per the comment below.
+      if (outcome === 'transient') { retryTomorrow++; continue }
+      await insertSystemNotification({ supabase: svc, userId: t.id, type: 'trial_expired' })
+      // Written whether or not the email went out, so a missing provider can
+      // never turn into the same user being mailed every day once one appears.
+      const { error: stampError } = await svc.from('profiles')
+        .update({ last_trial_email: new Date().toISOString() }).eq('id', t.id)
+      if (stampError) {
+        // Refuse to continue rather than re-notify this cohort tomorrow.
+        logError('lifecycle-emails', stampError.message, { note: 'could not stamp last_trial_email, stopping' })
+        break
+      }
+      trialNotices++
+    }
+  }
+
+  // ---- In-trial sequence (days 1, 7, 12) --------------------------------------
+  // The trial used to be silent end to end: welcome on day 0, nothing for
+  // fourteen days, then the expiry notice 0049 added. This is the middle.
+  //
+  // Its OWN query, for the reason the expiry branch below documents:
+  // trial_email_stage is the newest column here and an unapplied 0064 must be
+  // able to disable only this.
+  //
+  // Note the throttle is a SEPARATE column from last_trial_email. Reusing that
+  // one would have suppressed the expiry notice for everyone who got a day-1
+  // email — reintroducing the exact silence 0049 fixed, in a narrower form.
+  let trialStageEmails = 0
+  const SEQ_COLS = 'id, username, display_name, notification_prefs, trial_started_at, trial_ack_at, trial_email_stage'
+
+  // TWO cohorts, unioned. The local one is the original query. The Stripe one is
+  // new and cannot be expressed as a filter on `profiles` at all — the fact that
+  // makes a user eligible lives in another table — so it is a second read keyed
+  // on the trialing user ids gathered above.
+  //
+  // Without the second read this branch keeps returning 200 and sending nothing
+  // to anyone on the new trial, which is the failure this whole change exists to
+  // avoid: a green cron and a silent product.
+  const { data: localInTrial, error: seqError } = await svc
+    .from('profiles').select(SEQ_COLS)
+    .eq('is_internal', false)
+    .not('trial_started_at', 'is', null)
+    .is('trial_ack_at', null)
+
+  const stripeIds = [...subsByUser.keys()]
+  const { data: stripeInTrial, error: stripeSeqError } = stripeIds.length
+    ? await svc.from('profiles').select(SEQ_COLS).eq('is_internal', false).in('id', stripeIds)
+    : { data: [] as NonNullable<typeof localInTrial>, error: null }
+
+  if (stripeSeqError) {
+    logError('lifecycle-emails', stripeSeqError.message, { note: 'stripe trial cohort read failed' })
+  }
+
+  // De-duplicated by id: a grandfathered user who added a card appears in both.
+  const inTrial = [...new Map(
+    [...(localInTrial ?? []), ...(stripeInTrial ?? [])].map((p) => [p.id as string, p]),
+  ).values()]
+
+  if (seqError) {
+    logWarn('lifecycle-emails', seqError.message, { note: 'trial sequence skipped (migration 0064 not applied?)' })
+  } else if (!stripeTrialsKnown) {
+    logError('lifecycle-emails', undefined, { note: 'trial sequence skipped: cannot tell which trials have a card' })
+  } else {
+    for (const t of inTrial) {
+      if (overBudget()) { deferred++; continue }
+      // Which trial this user is actually on. Stripe wins when both are
+      // running, because it is the one that ends in a charge and therefore the
+      // one every line of the email has to describe. `trial_ack_at` still
+      // excludes anyone who upgraded, and an expired local trial yields no
+      // window — the notice branch owns that side of the line.
+      const win = activeTrialWindow(t, subsByUser.get(t.id as string), nowDate)
+      if (!win) continue
+
+      const stage = dueTrialStage({
+        daysSinceStart: windowDaysElapsed(win, nowDate),
+        lastStageSent: t.trial_email_stage ?? null,
+      })
+      if (stage == null) continue
+
+      // Stage 12 is the pre-charge notice for a card-on-file trial — and Stripe
+      // already sends one on day 11 via customer.subscription.trial_will_end.
+      // Sending both means two emails about the same charge a day apart, so
+      // this one yields. Still stamped, so the ratchet does not re-evaluate it
+      // every night forever.
+      if (stage === 12 && win.cardOnFile) {
+        const { error: skipStamp } = await svc.from('profiles')
+          .update({ trial_email_stage: stage }).eq('id', t.id)
+        if (skipStamp) {
+          logError('lifecycle-emails', skipStamp.message, { note: 'could not stamp trial_email_stage, stopping' })
+          break
+        }
+        continue
+      }
+
+      const prefs = (t.notification_prefs ?? {}) as Record<string, boolean>
+      // Days 1 and 7 are nudges and respect the preference. Day 12 is notice of
+      // an account-state change and does not — same rule 0049 set for the
+      // expiry notice, applied two days earlier.
+      const optedOut = trialStageIsOptional(stage) && prefs.getting_started === false
+
+      if (!optedOut) {
+        const { count } = await svc
+          .from('trades').select('id', { count: 'exact', head: true }).eq('user_id', t.id)
+        const tier = tiers.get(t.id)
+        const email = await emailOf(t.id)
+        // Days left comes from the window rather than being assumed, because a
+        // stage deferred by a transient failure or the time budget goes out a
+        // day late, and "ends in 2 days" would then be wrong on a pre-charge
+        // notice.
+        const left = windowDaysLeft(win, nowDate)
+        const subject = stage === 12
+          ? `Your TradingSocial Pro trial ends ${left <= 0 ? 'today' : left === 1 ? 'tomorrow' : `in ${left} days`}`
+          : stage === 7
+            ? 'Halfway through your Pro trial'
+            : 'One thing to do on day one'
+        const outcome = await deliver(email, subject, trialSequenceHtml({
+          name: t.display_name || t.username,
+          stage,
+          daysLeft: windowDaysLeft(win, nowDate),
+          trades: count ?? 0,
+          hasBroker: withBroker.has(t.id),
+          canAutosync: tier ? canFlag(flags, tier, 'mt5_autosync') : false,
+          kept: JOURNAL_FREE_LIMIT,
+          // Drives every payment line in the template. A wrong value here is
+          // the difference between "nothing will be charged" and the truth.
+          cardOnFile: win.cardOnFile,
+          cancelling: win.cancelAtPeriodEnd,
+          endsOn: win.cardOnFile
+            ? new Date(win.endsAt).toLocaleDateString('en-AU', {
+                day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney',
+              })
+            : null,
+        }))
+        trialStageEmails++
+        if (outcome === 'transient') { retryTomorrow++; continue }
+      }
+
+      // Stamped whether or not it was sent, and whether or not it was opted out
+      // of, so the ratchet advances exactly once per stage. Without this an
+      // opted-out user would be re-evaluated every night forever, and a missing
+      // provider would re-send the moment one appeared.
+      const { error: stampError } = await svc.from('profiles')
+        .update({ trial_email_stage: stage }).eq('id', t.id)
+      if (stampError) {
+        logError('lifecycle-emails', stampError.message, { note: 'could not stamp trial_email_stage, stopping' })
+        break
+      }
+    }
+  }
+
+  // ---- Welcome backfill --------------------------------------------------------
+  // The welcome email sends at onboarding completion (actions/profile.ts), so
+  // it reaches everyone who signs up from now on and nobody who already had.
+  // This drains the existing base once: every account that predates the email
+  // gets the one it never got.
+  //
+  // Its OWN query, for the reason the trial notice documents directly below:
+  // welcome_email_at is the newest column here, and an unapplied migration 0063
+  // must be able to disable this branch WITHOUT failing the select that the
+  // digests and nudges depend on.
+  //
+  // Capped per run. The trial notice learned this the hard way — 34 expired
+  // trials would have gone out in one burst — and the same reasoning applies
+  // harder here, on a domain whose DKIM/SPF was confirmed days ago and which
+  // has no sending reputation to spend. At 10/day a 40-account base drains in
+  // four nights, slowly enough that a bounce or complaint spike shows up while
+  // there is still something left to stop.
+  //
+  // Ordering is oldest-first: if this is stopped part-way, the accounts that
+  // have been waiting longest are the ones already served.
+  let welcomes = 0
+  const { data: unwelcomed, error: welcomeError } = await svc
+    .from('profiles')
+    .select('id, welcome_email_at')
+    .eq('is_internal', false)
+    .is('welcome_email_at', null)
+    .order('created_at', { ascending: true })
+    .limit(WELCOME_BACKFILL_PER_RUN)
+
+  if (welcomeError) {
+    logWarn('lifecycle-emails', welcomeError.message, { note: 'welcome backfill skipped (migration 0063 not applied?)' })
+  } else {
+    for (const row of unwelcomed ?? []) {
+      if (overBudget()) { deferred++; continue }
+      const email = await emailOf(row.id)
+      // sendWelcomeEmail owns the latch, the preference check and the
+      // entitlement lookup; it is the same call the signup path makes, so the
+      // backfilled mail cannot drift from the live one.
+      const res = await sendWelcomeEmail(svc, row.id, email)
+      if (res.sent) {
+        delivered++
+        welcomes++
+      } else if (res.reason === 'already_sent' || res.reason === 'opted_out') {
+        // Neither is a delivery failure: one is a race, the other is consent.
+        continue
+      } else {
+        undelivered++
+        failures.set(res.reason ?? 'unknown', (failures.get(res.reason ?? 'unknown') ?? 0) + 1)
+      }
+    }
+  }
+
+  // ---- Weekly digests and inactivity nudges ---------------------------------
+  // Last, deliberately. These are the least time-sensitive mail the route sends
+  // and the loop costs a query and a send per user, so as the base grows it is
+  // what eats the budget. Trial notices and welcomes above must never wait
+  // behind it — they used to, and they are what slipped when the run timed out.
   for (const u of users) {
+    if (overBudget()) { deferred++; continue }
     const name = u.display_name || u.username
     const prefs = (u.notification_prefs ?? {}) as Record<string, boolean>
 
@@ -286,282 +607,6 @@ export async function GET(req: Request) {
     }
   }
 
-  // ---- Trial expiry notice ---------------------------------------------------
-  // The 14-day Pro trial used to lapse in complete silence: TRIAL_WALL_ENABLED
-  // ships false, shouldShowWelcome explicitly suppresses the pro->free popup for
-  // exactly this transition, and nothing here had a trial branch. In production
-  // 34 trials had expired with zero acknowledgements of any kind. This is the
-  // acknowledgement. It does NOT enable the wall — that is a product decision.
-  //
-  // Its own query, NOT folded into the select above, for the same reason
-  // getEntitlements keeps welcome_tier_seen separate: last_trial_email is the
-  // newest column here, and if the code deploys ahead of its migration
-  // PostgREST returns 42703 for an unknown column and fails the WHOLE select it
-  // belongs to. Isolated like this, a missing column can only ever disable the
-  // trial notice — it can never take the weekly digests and inactivity nudges
-  // down with it. It also means this branch is inert until the migration lands,
-  // which is exactly the deploy order we want.
-  let trialNotices = 0
-  const nowDate = new Date(now)
-
-  // Every trial Stripe is currently running, read ONCE and shared by both trial
-  // branches below. Since 0076 the mirror carries trial_start/trial_end, so this
-  // is the whole picture of the card-backed population — no Stripe API call.
-  //
-  // Its own try, and a tolerated failure: if this read breaks, both branches
-  // degrade to "nobody has a card", which is the PRE-Stripe behaviour and is
-  // wrong in the dangerous direction. So a failure here must stop the trial
-  // emails rather than send them on a stale assumption. `stripeTrialsKnown`
-  // carries that decision to both branches.
-  const { data: trialSubs, error: trialSubsError } = await svc
-    .from('subscriptions')
-    .select('user_id, status, trial_start, trial_end, cancel_at_period_end')
-    .eq('status', 'trialing')
-  const stripeTrialsKnown = !trialSubsError
-  if (trialSubsError) {
-    logError('lifecycle-emails', trialSubsError.message, {
-      note: 'could not read trialing subscriptions — trial emails skipped rather than sent with no-card copy',
-    })
-  }
-  const subsByUser = new Map<string, TrialSubRow[]>()
-  for (const s of trialSubs ?? []) {
-    const uid = s.user_id as string
-    subsByUser.set(uid, [...(subsByUser.get(uid) ?? []), s as TrialSubRow])
-  }
-
-  const { data: trials, error: trialError } = await svc
-    .from('profiles')
-    .select('id, username, display_name, trial_started_at, trial_ack_at, last_trial_email')
-    .eq('is_internal', false)
-    .not('trial_started_at', 'is', null)
-    .is('last_trial_email', null)
-
-  if (trialError) {
-    logError('lifecycle-emails', trialError.message, { note: 'trial notice skipped (migration not applied?)' })
-  } else if (!stripeTrialsKnown) {
-    logError('lifecycle-emails', undefined, { note: 'trial expiry notice skipped: cannot rule out a Stripe trial' })
-  } else {
-    for (const t of trials ?? []) {
-      if (trialState(t.trial_started_at, t.trial_ack_at, nowDate) !== 'expired') continue
-
-      // This notice is LOCAL-ONLY, and the guard is load-bearing rather than
-      // tidy. `trialExpiredHtml` says "You were never charged and there's
-      // nothing to cancel — the trial never asked for a card." A grandfathered
-      // user who takes the add-a-card invitation holds BOTH: a Stripe trial
-      // with a card, and a local trial that lapses a few days later. Without
-      // this, that lapse mails them a flat denial that a charge is coming,
-      // days before Stripe charges them.
-      //
-      // Why they are skipped rather than sent adapted copy: a Stripe trial does
-      // not "expire into Free" at all — it either converts (nothing ended, and
-      // an ending notice would be false) or Stripe cancels it for a missing
-      // card (a different message again). Writing either is a product decision
-      // about money, and the pre-charge notice is already owned by Stripe's own
-      // trial_will_end event. Nothing is silently dropped here: the user is on
-      // the Stripe path and gets the Stripe path's notices.
-      if (stripeTrialWindow(subsByUser.get(t.id))) continue
-      // Only recently lapsed trials — see TRIAL_EXPIRY_NOTICE_WINDOW_DAYS.
-      const expiredAt = Date.parse(t.trial_started_at) + 14 * DAY
-      if (now - expiredAt > TRIAL_EXPIRY_NOTICE_WINDOW_DAYS * DAY) continue
-
-      const email = await emailOf(t.id)
-      await deliver(
-        email,
-        'Your TradingSocial Pro trial has ended',
-        trialExpiredHtml({ name: t.display_name || t.username, kept: JOURNAL_FREE_LIMIT }),
-      )
-      await insertSystemNotification({ supabase: svc, userId: t.id, type: 'trial_expired' })
-      // Written whether or not the email went out, so a missing provider can
-      // never turn into the same user being mailed every day once one appears.
-      const { error: stampError } = await svc.from('profiles')
-        .update({ last_trial_email: new Date().toISOString() }).eq('id', t.id)
-      if (stampError) {
-        // Refuse to continue rather than re-notify this cohort tomorrow.
-        logError('lifecycle-emails', stampError.message, { note: 'could not stamp last_trial_email, stopping' })
-        break
-      }
-      trialNotices++
-    }
-  }
-
-  // ---- In-trial sequence (days 1, 7, 12) --------------------------------------
-  // The trial used to be silent end to end: welcome on day 0, nothing for
-  // fourteen days, then the expiry notice 0049 added. This is the middle.
-  //
-  // Its OWN query, for the reason the expiry branch below documents:
-  // trial_email_stage is the newest column here and an unapplied 0064 must be
-  // able to disable only this.
-  //
-  // Note the throttle is a SEPARATE column from last_trial_email. Reusing that
-  // one would have suppressed the expiry notice for everyone who got a day-1
-  // email — reintroducing the exact silence 0049 fixed, in a narrower form.
-  let trialStageEmails = 0
-  const SEQ_COLS = 'id, username, display_name, notification_prefs, trial_started_at, trial_ack_at, trial_email_stage'
-
-  // TWO cohorts, unioned. The local one is the original query. The Stripe one is
-  // new and cannot be expressed as a filter on `profiles` at all — the fact that
-  // makes a user eligible lives in another table — so it is a second read keyed
-  // on the trialing user ids gathered above.
-  //
-  // Without the second read this branch keeps returning 200 and sending nothing
-  // to anyone on the new trial, which is the failure this whole change exists to
-  // avoid: a green cron and a silent product.
-  const { data: localInTrial, error: seqError } = await svc
-    .from('profiles').select(SEQ_COLS)
-    .eq('is_internal', false)
-    .not('trial_started_at', 'is', null)
-    .is('trial_ack_at', null)
-
-  const stripeIds = [...subsByUser.keys()]
-  const { data: stripeInTrial, error: stripeSeqError } = stripeIds.length
-    ? await svc.from('profiles').select(SEQ_COLS).eq('is_internal', false).in('id', stripeIds)
-    : { data: [] as NonNullable<typeof localInTrial>, error: null }
-
-  if (stripeSeqError) {
-    logError('lifecycle-emails', stripeSeqError.message, { note: 'stripe trial cohort read failed' })
-  }
-
-  // De-duplicated by id: a grandfathered user who added a card appears in both.
-  const inTrial = [...new Map(
-    [...(localInTrial ?? []), ...(stripeInTrial ?? [])].map((p) => [p.id as string, p]),
-  ).values()]
-
-  if (seqError) {
-    logWarn('lifecycle-emails', seqError.message, { note: 'trial sequence skipped (migration 0064 not applied?)' })
-  } else if (!stripeTrialsKnown) {
-    logError('lifecycle-emails', undefined, { note: 'trial sequence skipped: cannot tell which trials have a card' })
-  } else {
-    for (const t of inTrial) {
-      // Which trial this user is actually on. Stripe wins when both are
-      // running, because it is the one that ends in a charge and therefore the
-      // one every line of the email has to describe. `trial_ack_at` still
-      // excludes anyone who upgraded, and an expired local trial yields no
-      // window — the notice branch owns that side of the line.
-      const win = activeTrialWindow(t, subsByUser.get(t.id as string), nowDate)
-      if (!win) continue
-
-      const stage = dueTrialStage({
-        daysSinceStart: windowDaysElapsed(win, nowDate),
-        lastStageSent: t.trial_email_stage ?? null,
-      })
-      if (stage == null) continue
-
-      // Stage 12 is the pre-charge notice for a card-on-file trial — and Stripe
-      // already sends one on day 11 via customer.subscription.trial_will_end.
-      // Sending both means two emails about the same charge a day apart, so
-      // this one yields. Still stamped, so the ratchet does not re-evaluate it
-      // every night forever.
-      if (stage === 12 && win.cardOnFile) {
-        const { error: skipStamp } = await svc.from('profiles')
-          .update({ trial_email_stage: stage }).eq('id', t.id)
-        if (skipStamp) {
-          logError('lifecycle-emails', skipStamp.message, { note: 'could not stamp trial_email_stage, stopping' })
-          break
-        }
-        continue
-      }
-
-      const prefs = (t.notification_prefs ?? {}) as Record<string, boolean>
-      // Days 1 and 7 are nudges and respect the preference. Day 12 is notice of
-      // an account-state change and does not — same rule 0049 set for the
-      // expiry notice, applied two days earlier.
-      const optedOut = trialStageIsOptional(stage) && prefs.getting_started === false
-
-      if (!optedOut) {
-        const { count } = await svc
-          .from('trades').select('id', { count: 'exact', head: true }).eq('user_id', t.id)
-        const tier = tiers.get(t.id)
-        const email = await emailOf(t.id)
-        const subject = stage === 12
-          ? 'Your TradingSocial Pro trial ends in 2 days'
-          : stage === 7
-            ? 'Halfway through your Pro trial'
-            : 'One thing to do on day one'
-        await deliver(email, subject, trialSequenceHtml({
-          name: t.display_name || t.username,
-          stage,
-          daysLeft: windowDaysLeft(win, nowDate),
-          trades: count ?? 0,
-          hasBroker: withBroker.has(t.id),
-          canAutosync: tier ? canFlag(flags, tier, 'mt5_autosync') : false,
-          kept: JOURNAL_FREE_LIMIT,
-          // Drives every payment line in the template. A wrong value here is
-          // the difference between "nothing will be charged" and the truth.
-          cardOnFile: win.cardOnFile,
-          cancelling: win.cancelAtPeriodEnd,
-          endsOn: win.cardOnFile
-            ? new Date(win.endsAt).toLocaleDateString('en-AU', {
-                day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Sydney',
-              })
-            : null,
-        }))
-        trialStageEmails++
-      }
-
-      // Stamped whether or not it was sent, and whether or not it was opted out
-      // of, so the ratchet advances exactly once per stage. Without this an
-      // opted-out user would be re-evaluated every night forever, and a missing
-      // provider would re-send the moment one appeared.
-      const { error: stampError } = await svc.from('profiles')
-        .update({ trial_email_stage: stage }).eq('id', t.id)
-      if (stampError) {
-        logError('lifecycle-emails', stampError.message, { note: 'could not stamp trial_email_stage, stopping' })
-        break
-      }
-    }
-  }
-
-  // ---- Welcome backfill --------------------------------------------------------
-  // The welcome email sends at onboarding completion (actions/profile.ts), so
-  // it reaches everyone who signs up from now on and nobody who already had.
-  // This drains the existing base once: every account that predates the email
-  // gets the one it never got.
-  //
-  // Its OWN query, for the reason the trial notice documents directly below:
-  // welcome_email_at is the newest column here, and an unapplied migration 0063
-  // must be able to disable this branch WITHOUT failing the select that the
-  // digests and nudges depend on.
-  //
-  // Capped per run. The trial notice learned this the hard way — 34 expired
-  // trials would have gone out in one burst — and the same reasoning applies
-  // harder here, on a domain whose DKIM/SPF was confirmed days ago and which
-  // has no sending reputation to spend. At 10/day a 40-account base drains in
-  // four nights, slowly enough that a bounce or complaint spike shows up while
-  // there is still something left to stop.
-  //
-  // Ordering is oldest-first: if this is stopped part-way, the accounts that
-  // have been waiting longest are the ones already served.
-  let welcomes = 0
-  const { data: unwelcomed, error: welcomeError } = await svc
-    .from('profiles')
-    .select('id, welcome_email_at')
-    .eq('is_internal', false)
-    .is('welcome_email_at', null)
-    .order('created_at', { ascending: true })
-    .limit(WELCOME_BACKFILL_PER_RUN)
-
-  if (welcomeError) {
-    logWarn('lifecycle-emails', welcomeError.message, { note: 'welcome backfill skipped (migration 0063 not applied?)' })
-  } else {
-    for (const row of unwelcomed ?? []) {
-      const email = await emailOf(row.id)
-      // sendWelcomeEmail owns the latch, the preference check and the
-      // entitlement lookup; it is the same call the signup path makes, so the
-      // backfilled mail cannot drift from the live one.
-      const res = await sendWelcomeEmail(svc, row.id, email)
-      if (res.sent) {
-        delivered++
-        welcomes++
-      } else if (res.reason === 'already_sent' || res.reason === 'opted_out') {
-        // Neither is a delivery failure: one is a race, the other is consent.
-        continue
-      } else {
-        undelivered++
-        failures.set(res.reason ?? 'unknown', (failures.get(res.reason ?? 'unknown') ?? 0) + 1)
-      }
-    }
-  }
-
   // Analytics retention (audit item 17, F4 + F10). Bounds the lifetime of the
   // anonymous device identifier: deletes event rows for visitors who never
   // signed up after 12 months, and nulls anon_id on rows belonging to live
@@ -637,9 +682,12 @@ export async function GET(req: Request) {
   // (lib/server/log.ts), so by the next morning a run's delivery counters were
   // unrecoverable — which is exactly what happened to the first run after
   // migrations 0063 and 0064 landed. Never throws; see recordCronRun.
-  const processed = { digests, nudges, trialNotices, welcomes, trialStageEmails }
+  if (deferred > 0) {
+    logWarn('lifecycle-emails', `time budget reached; ${deferred} item(s) deferred to the next run`)
+  }
+  const processed = { digests, nudges, trialNotices, welcomes, trialStageEmails, deferred, retryTomorrow }
   await recordCronRun(svc, 'lifecycle-emails', {
-    ok: undelivered === 0,
+    ok: undelivered === 0 && deferred === 0,
     processed,
     delivered,
     undelivered,
@@ -649,7 +697,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     // Not ok if we processed users but delivered nothing — that is the silent
     // failure this endpoint existed to hide.
-    ok: undelivered === 0,
+    ok: undelivered === 0 && deferred === 0,
     emailConfigured: !failures.has('no_provider'),
     processed,
     delivery: { delivered, undelivered, failures: failureBreakdown },
