@@ -1186,7 +1186,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .foot-social a { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border:1px solid var(--border); border-radius:10px; color: var(--dim); transition: color .2s, border-color .2s, background .2s; }
 .foot-social a:hover { color: var(--text); border-color: var(--border-2); background: var(--bg-3); }
 .foot-social svg { width:18px; height:18px; display:block; }
-.foot-col h5 { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; }
+.foot-col .foot-title { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; font-weight: 700; }
+.foot-col .foot-title--sub { margin-top: 28px; }
 .foot-col a { display:block; font-size: 14px; color: var(--dim); padding: 6px 0; transition: color .2s; }
 .foot-col a:hover { color: var(--text); }
 .foot-disc { margin-top: 44px; padding-top: 28px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap; }
@@ -1424,8 +1425,8 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
   padding: 24px 26px; box-shadow: var(--shadow-sm);
 }
-.faq-item h4 { font-family: var(--display); font-size: 17px; font-weight: 600; display: flex; align-items: flex-start; gap: 11px; }
-.faq-item h4 .q { font-family: var(--mono); font-size: 13px; color: var(--violet-br); margin-top: 2px; }
+.faq-item h3 { font-family: var(--display); font-size: 17px; font-weight: 600; display: flex; align-items: flex-start; gap: 11px; line-height: inherit; letter-spacing: inherit; text-wrap: inherit; }
+.faq-item h3 .q { font-family: var(--mono); font-size: 13px; color: var(--violet-br); margin-top: 2px; }
 .faq-item p { font-size: 14px; color: var(--dim); line-height: 1.6; margin-top: 11px; padding-left: 25px; }
 </style>
   <!-- Analytics / advertising tags. Loaded by /consent.js only after the
@@ -1443,6 +1444,47 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   <meta name="twitter:description" content="Simple, transparent pricing in Australian dollars: Free forever, Trader at A$30/month, Pro Trader at A$50/month. Start with 14 days of Pro free — cancel before it ends and pay nothing.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
   <link rel="canonical" href="https://www.tradingsocial.io/pricing">
+  <!-- Offers mirror the monthly prices on the plan cards below (data-monthly)
+       and the SoftwareApplication block on index.html. A unit test fails if
+       either drifts, so change all three together. -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "TradingSocial",
+  "url": "https://www.tradingsocial.io",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Web",
+  "publisher": {
+    "@type": "Organization",
+    "name": "TradingSocial",
+    "url": "https://www.tradingsocial.io"
+  },
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "Free",
+      "price": "0",
+      "priceCurrency": "AUD",
+      "url": "https://www.tradingsocial.io/pricing"
+    },
+    {
+      "@type": "Offer",
+      "name": "Trader",
+      "price": "30",
+      "priceCurrency": "AUD",
+      "url": "https://www.tradingsocial.io/pricing"
+    },
+    {
+      "@type": "Offer",
+      "name": "Pro Trader",
+      "price": "50",
+      "priceCurrency": "AUD",
+      "url": "https://www.tradingsocial.io/pricing"
+    }
+  ]
+}
+  </script>
 </head>
 <body>
 <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
@@ -1786,35 +1828,35 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 
     <div class="faq-grid">
       <div class="faq-item reveal">
-        <h4><span class="q">Q.</span>Is there a free trial?</h4>
+        <h3><span class="q">Q.</span>Is there a free trial?</h3>
         <p>Yes. Every new account gets 14 days of Pro Trader free. A card is required to start it, and unless you cancel before day 14 the plan continues at A$50/month. Cancel any time before then in Settings → Billing and you are not charged; your account moves to the Free plan, which stays free forever.</p>
       </div>
       <div class="faq-item reveal">
-        <h4><span class="q">Q.</span>Can I change or cancel plans anytime?</h4>
+        <h3><span class="q">Q.</span>Can I change or cancel plans anytime?</h3>
         <p>Upgrade, downgrade or cancel whenever you like, from Settings → Billing. Cancelling takes effect at the end of the period you've already paid for — you keep your paid features until then and you aren't charged again. Your journal history and profile stay exactly where you left them.</p>
       </div>
       <div class="faq-item reveal">
-        <h4><span class="q">Q.</span>What currency are your prices in?</h4>
+        <h3><span class="q">Q.</span>What currency are your prices in?</h3>
         <!-- GST resolved 2026-09-15: not registered. See the note on the plan
              cards above. -->
         <p>Australian dollars (AUD). Every price on this page and inside the app is AUD, and that's the currency your card is charged in. We are not registered for GST, so no GST is added — the price shown is the total amount payable. Paid plans renew automatically at the price shown until you cancel.</p>
       </div>
       <div class="faq-item reveal">
-        <h4><span class="q">Q.</span>What happens to my data if I downgrade?</h4>
+        <h3><span class="q">Q.</span>What happens to my data if I downgrade?</h3>
         <p>Nothing is deleted. Trades beyond the Free limit are simply hidden until you upgrade again — your full history is always preserved.</p>
       </div>
       <div class="faq-item reveal">
-        <h4><span class="q">Q.</span>How does the founding annual discount work?</h4>
+        <h3><span class="q">Q.</span>How does the founding annual discount work?</h3>
         <p>Annual plans are 80% off the monthly rate for your first year — Trader is A$72 and Pro is A$120, paid once. After the first year they renew at the standard annual price (A$300 and A$500, which still saves you 2 months versus monthly).</p>
       </div>
       <div class="faq-item reveal">
-        <h4><span class="q">Q.</span>Do you reward bigger trades or leverage?</h4>
+        <h3><span class="q">Q.</span>Do you reward bigger trades or leverage?</h3>
         <!-- Lessons hidden for now — we are not financial advisors. This read
              "…journaling, reviewing losses and finishing lessons." Restore when compliant. -->
         <p>Never. XP and rank come from discipline — journaling, reviewing losses and completing your weekly review. No plan rewards gambling, more size or chasing profit.</p>
       </div>
       <div class="faq-item reveal">
-        <h4><span class="q">Q.</span>Is TradingSocial financial advice?</h4>
+        <h3><span class="q">Q.</span>Is TradingSocial financial advice?</h3>
         <p>No. It's an education and performance-tracking platform. We don't provide financial advice. Trading involves risk, and past performance never guarantees future results.</p>
       </div>
     </div>
@@ -1859,21 +1901,28 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         </div>
       </div>
       <div class="foot-col">
-        <h5>Product</h5>
+        <div class="foot-title">Product</div>
         <a href="/#features">Features</a>
         <a href="/#showcase">Journal</a>
         <a href="/#showcase">Leaderboards</a>
         <!-- Learning hub hidden for now — we are not financial advisors. Restore when compliant. -->
+        <div class="foot-title foot-title--sub">Compare</div>
+        <a href="/compare/tradezella-alternative">TradeZella alternative</a>
+        <a href="/compare/tradersync-alternative">TraderSync alternative</a>
+        <a href="/compare/edgewonk-alternative">Edgewonk alternative</a>
+        <a href="/compare/vs-trading-journal-spreadsheet">Trading journal vs spreadsheet</a>
+        <a href="/compare/best-prop-firm-trading-journal">Prop firm trading journal</a>
+        <a href="/compare/best-mt5-trading-journal">MT5 trading journal</a>
       </div>
       <div class="foot-col">
-        <h5>Company</h5>
+        <div class="foot-title">Company</div>
         <a href="/#about">About</a>
         <a href="/pricing">Pricing</a>
         <a href="/blog">Blog</a>
         <a href="https://app.tradingsocial.io/signup">Start Free Trial</a>
       </div>
       <div class="foot-col">
-        <h5>Solutions</h5>
+        <div class="foot-title">Solutions</div>
         <a href="/for/forex">Forex traders</a>
         <a href="/for/crypto">Crypto traders</a>
         <a href="/for/futures">Futures traders</a>
@@ -1883,7 +1932,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         <a href="/for/educators">Educators</a>
       </div>
       <div class="foot-col">
-        <h5>Legal</h5>
+        <div class="foot-title">Legal</div>
         <a href="/terms">Terms of service</a>
         <a href="/privacy">Privacy policy</a>
         <a href="/disclaimer">Financial disclaimer</a>
