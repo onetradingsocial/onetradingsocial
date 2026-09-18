@@ -1444,6 +1444,47 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   <meta name="twitter:description" content="Simple, transparent pricing in Australian dollars: Free forever, Trader at A$30/month, Pro Trader at A$50/month. Start with 14 days of Pro free — cancel before it ends and pay nothing.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
   <link rel="canonical" href="https://www.tradingsocial.io/pricing">
+  <!-- Offers mirror the monthly prices on the plan cards below (data-monthly)
+       and the SoftwareApplication block on index.html. A unit test fails if
+       either drifts, so change all three together. -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "TradingSocial",
+  "url": "https://www.tradingsocial.io",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Web",
+  "publisher": {
+    "@type": "Organization",
+    "name": "TradingSocial",
+    "url": "https://www.tradingsocial.io"
+  },
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "Free",
+      "price": "0",
+      "priceCurrency": "AUD",
+      "url": "https://www.tradingsocial.io/pricing"
+    },
+    {
+      "@type": "Offer",
+      "name": "Trader",
+      "price": "30",
+      "priceCurrency": "AUD",
+      "url": "https://www.tradingsocial.io/pricing"
+    },
+    {
+      "@type": "Offer",
+      "name": "Pro Trader",
+      "price": "50",
+      "priceCurrency": "AUD",
+      "url": "https://www.tradingsocial.io/pricing"
+    }
+  ]
+}
+  </script>
 </head>
 <body>
 <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>

@@ -7,6 +7,8 @@
 // - Headings: one <h1>, and no level skipped on the way down. Footer column
 //   titles were <h5>s straight after an <h2>, and FAQ questions were <h4>s
 //   under an <h2>. They are now styled non-headings and <h3>s.
+// - Structured data: every JSON-LD block parses, and the pricing page's
+//   offers are the prices on its own plan cards.
 // - Internal links: /compare/* pages were linked only from /for/* and each
 //   other. Every page's footer now links all of them.
 import { describe, it, expect } from 'vitest'
@@ -32,6 +34,9 @@ const markup = (html: string) =>
     .replace(/<script\b[\s\S]*?<\/script>/g, '')
     .replace(/<style\b[\s\S]*?<\/style>/g, '')
     .replace(/<!--[\s\S]*?-->/g, '')
+
+const jsonLd = (html: string) =>
+  [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1])
 
 it('finds the pages it is meant to check', () => {
   // A glob that silently matched nothing would pass every test below.
@@ -65,5 +70,58 @@ describe('footer', () => {
     const footer = read(page).match(/<footer\b[\s\S]*?<\/footer>/)![0]
     for (const href of COMPARE) expect(footer, `footer links ${href}`).toContain(`href="${href}"`)
     expect(markup(footer)).not.toMatch(/<h[1-6]\b/)
+  })
+})
+
+describe('structured data', () => {
+  const blocks = PAGES.flatMap((page) => jsonLd(read(page)).map((src, i) => [`${page} #${i + 1}`, src] as const))
+
+  it.each(blocks)('%s parses as schema.org JSON-LD', (_, src) => {
+    const data = JSON.parse(src)
+    expect(data['@context']).toBe('https://schema.org')
+    // One typed node, or a @graph of them.
+    const nodes = data['@graph'] ?? [data]
+    expect(nodes.length).toBeGreaterThan(0)
+    for (const n of nodes) expect(typeof n['@type']).toBe('string')
+  })
+
+  it('every page that should carry it does', () => {
+    const types = (page: string) =>
+      jsonLd(read(page)).flatMap((s) => {
+        const d = JSON.parse(s)
+        return (d['@graph'] ?? [d]).map((n: { '@type': string }) => n['@type'])
+      })
+    expect(types('index.html')).toEqual(expect.arrayContaining(['Organization', 'SoftwareApplication']))
+    expect(types('pricing.html')).toContain('SoftwareApplication')
+    expect(types('blog.html')).toEqual(expect.arrayContaining(['Blog', 'BreadcrumbList']))
+    for (const page of PAGES.filter((p) => p.startsWith('blog/'))) {
+      expect(types(page)).toEqual(expect.arrayContaining(['BlogPosting', 'BreadcrumbList']))
+    }
+  })
+
+  const app = (page: string) =>
+    jsonLd(read(page))
+      .map((s) => JSON.parse(s))
+      .find((d) => d['@type'] === 'SoftwareApplication')
+
+  it("pricing offers are the plan cards' monthly prices", () => {
+    // Plan name and the data-monthly amount the billing toggle shows, in card order.
+    const html = read('pricing.html')
+    const cards = [...html.matchAll(/<span class="pcard-name">(?:<span[^>]*><\/span>)?([^<]+)<\/span>[\s\S]*?data-monthly="([^"]+)"/g)].map(
+      (m) => ({ name: m[1].trim(), price: m[2] }),
+    )
+    expect(cards.length).toBeGreaterThan(0)
+    const offers = app('pricing.html').offers
+    expect(offers.map((o: { name: string; price: string }) => ({ name: o.name, price: o.price }))).toEqual(cards)
+    for (const o of offers) expect(o.priceCurrency).toBe('AUD') // "All prices are in Australian dollars"
+    expect(html).toMatch(/All prices are in <b>Australian dollars \(AUD\)<\/b>/)
+  })
+
+  it('pricing and the home page describe the same product and offers', () => {
+    const home = app('index.html')
+    const pricing = app('pricing.html')
+    for (const k of ['name', 'url', 'applicationCategory', 'operatingSystem', 'offers', 'publisher']) {
+      expect(pricing[k], k).toEqual(home[k])
+    }
   })
 })
