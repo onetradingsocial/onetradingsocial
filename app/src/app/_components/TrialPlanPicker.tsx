@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import type { Interval } from '@/lib/entitlements'
-import { PAID_PLANS, CUR, CURRENCY_NOTE, GST_NOTE } from '@/lib/plans'
+import { PAID_PLANS, CUR, CURRENCY_NOTE, GST_NOTE, TRADER_SYNC_WARNING_TRIAL } from '@/lib/plans'
 import { trackMeta } from '@/app/_components/MetaPixel'
 
 const MARKETING = process.env.NEXT_PUBLIC_MARKETING_URL ?? 'https://www.tradingsocial.io'
@@ -20,12 +20,19 @@ const CHK: ReactNode = (
  *  what keeps the wall non-escapable while the upsell is freely dismissible.
  *
  *  `onBusyChange` lets a parent disable its own actions while a checkout is
- *  starting; `disabled` lets it disable these while its own action runs. */
+ *  starting; `disabled` lets it disable these while its own action runs.
+ *
+ *  `midTrial` puts the Trader broker-sync warning under that card (day-14
+ *  decision 07). It is the UPSELL's business only: the wall renders after the
+ *  trial has expired, where sync has already stopped and "when your trial ends"
+ *  would be describing something that already happened. */
 export function TrialPlanPicker({
   disabled = false,
+  midTrial = false,
   onBusyChange,
 }: {
   disabled?: boolean
+  midTrial?: boolean
   onBusyChange?: (busy: boolean) => void
 }) {
   const [billing, setBilling] = useState<Interval>('monthly')
@@ -94,6 +101,9 @@ export function TrialPlanPicker({
             >
               {busy ? 'Starting…' : `Subscribe to ${p.name}`}
             </button>
+            {midTrial && p.tier === 'trader' && (
+              <p className="tg-warn">{TRADER_SYNC_WARNING_TRIAL}</p>
+            )}
           </div>
         ))}
       </div>

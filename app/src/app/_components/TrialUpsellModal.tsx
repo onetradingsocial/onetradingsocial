@@ -97,9 +97,12 @@ export function TrialUpsellModal({
             {/* Learn hidden for now — we are not financial advisors. This line read
                 '…MT5 sync and premium courses stay exactly where they are.'
                 Restore when compliant. */}
-            You are on Pro until your trial ends. Subscribe now and nothing changes when it does —
-            unlimited journal, advanced analytics and MT5 sync stay exactly where
-            they are.
+            {/* "Subscribe to Pro", not "Subscribe": the sentence promises MT5
+                sync keeps running, which is true of Pro and false of the Trader
+                card sitting right beneath it. See TRADER_SYNC_WARNING_TRIAL. */}
+            You are on Pro until your trial ends. Subscribe to Pro now and nothing changes when
+            it does — unlimited journal, advanced analytics and MT5 sync stay exactly
+            where they are.
             {cardOnFile && cancelling
               ? ' You have cancelled, so nothing will be charged and your account moves to Free when the trial ends. You can change your mind in Settings → Billing.'
               : cardOnFile
@@ -119,7 +122,7 @@ export function TrialUpsellModal({
             Manage my plan
           </Link>
         ) : (
-          <TrialPlanPicker />
+          <TrialPlanPicker midTrial />
         )}
       </div>
     </div>,

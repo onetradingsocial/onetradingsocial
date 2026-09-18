@@ -1195,6 +1195,10 @@ button.ts-burger-link {
 .pcard-feats li .lim { width: 18px; height: 18px; border-radius: 6px; flex-shrink: 0; margin-top: 1px; background: var(--surface-2); border: 1px solid var(--border-2); display: grid; place-items: center; }
 .pcard-feats li .lim svg { width: 11px; height: 11px; color: var(--faint); }
 .pcard-cta { width: 100%; margin-top: 18px; }
+/* Day-14 decision 07: the plan-limit warning under a CTA (Trader ends broker
+   auto-sync). Amber rather than faint grey — it is the one line on the card
+   that costs someone a feature they are using. */
+.pcard-warn, .tg-warn { margin-top: 10px; font-size: 12px; line-height: 1.5; color: var(--xp); }
 
 /* ---------- Billing gate ---------- */
 .ts-stat-locked { font-size: 13px; font-weight: 700; color: var(--violet-br); text-decoration: none; }
@@ -2528,6 +2532,7 @@ button.ts-burger-link {
 .tg-feats .chk svg { width: 14px; height: 14px; }
 .tg-cta { width: 100%; }
 .tg-error { margin-top: 14px; font-size: 13px; color: var(--down); text-align: center; }
+.tg-warn { text-align: left; }
 /* Currency + auto-renewal disclosure. Must stay adjacent to every price block:
    a bare '$' next to an Australian price is a representation we can't stand
    behind, and a recurring charge has to say it recurs. */
