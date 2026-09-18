@@ -44,7 +44,7 @@ const one = (html: string, re: RegExp, what: string) => {
 describe('pre-rendered blog posts', () => {
   it('blog/ matches data/posts.json and the template (run scripts/build-blog.mjs)', () => {
     // --check exits non-zero and names the stale files when the output drifts.
-    // It covers blog.html too.
+    // It covers blog.html, llms.txt and sitemap.xml too.
     expect(() =>
       execFileSync(process.execPath, [join(ROOT, 'scripts', 'build-blog.mjs'), '--check'], {
         stdio: 'pipe',

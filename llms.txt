@@ -1,0 +1,50 @@
+# TradingSocial
+
+> The social trading journal for serious traders. Journal trades, track real performance, follow other traders and compete on leaderboards that label every record's source.
+
+TradingSocial is an education and performance-tracking platform. It does not provide financial advice. All prices are in Australian dollars (AUD).
+
+## Product
+
+- [Home](https://www.tradingsocial.io/): The social trading journal for serious traders: public trading profiles, a trading journal, leaderboards and a trader newsfeed.
+- [Pricing](https://www.tradingsocial.io/pricing): Free forever, Trader at A$30/month, Pro Trader at A$50/month. Every new account gets 14 days of Pro Trader free; a card is required to start it.
+
+## Solutions
+
+- [Trading journals by trader](https://www.tradingsocial.io/for): Targeted trading journal and performance tracking for forex, crypto, futures and MT5 traders, prop-firm challengers and trading educators.
+- [Trading journal](https://www.tradingsocial.io/for/journal): The online trading journal that gives feedback, not just storage: log every trade, get a weekly review, and see insights with their sample size stated.
+- [Forex trading journal](https://www.tradingsocial.io/for/forex): Track pips and R multiples on every forex trade, compare performance across London, New York, Asia and Sydney sessions, and log spread and swap costs.
+- [Crypto trading journal](https://www.tradingsocial.io/for/crypto): A crypto trading journal for a market that never sleeps. Log spot and perpetual trades, tag FOMO and revenge trades, and track risk in R, not dollars.
+- [Futures trading journal](https://www.tradingsocial.io/for/futures): A futures trading journal for YM, RTY, micros (MES, MNQ) and commodities (CL, GC). Track contract size, tick value and R multiples, scored for consistency.
+- [MT5 trading journal](https://www.tradingsocial.io/for/mt5): Import your MT5 statement or connect your account on the Pro plan — closed trades sync hourly, verified and locked so imported prices and results can't be edited.
+- [Prop firm trading journal](https://www.tradingsocial.io/for/prop-firm): A prop firm trading journal for evaluation and funded accounts: cap risk per trade, set the rules that keep you off the drawdown line, and sync MT5.
+- [For trading educators](https://www.tradingsocial.io/for/educators): A trading educator platform where your broker-verified track record, public profile and follower base do the talking, not screenshots.
+
+## Compare
+
+- [TradeZella alternative](https://www.tradingsocial.io/compare/tradezella-alternative): A fair comparison of what each does well, where TradeZella is the stronger product, and the one difference that isn't a feature.
+- [TraderSync alternative](https://www.tradingsocial.io/compare/tradersync-alternative): A fair comparison of broker coverage, rule tracking and analytics — and the one difference that isn't a feature.
+- [Edgewonk alternative](https://www.tradingsocial.io/compare/edgewonk-alternative): A fair comparison of psychology tracking, broker coverage and reporting depth — and the one difference that isn't a feature.
+- [Trading journal vs spreadsheet](https://www.tradingsocial.io/compare/vs-trading-journal-spreadsheet): An honest comparison of a trading journal spreadsheet against a dedicated journal: what Excel genuinely does better, where it quietly costs you, and how to decide.
+- [Best prop firm trading journal](https://www.tradingsocial.io/compare/best-prop-firm-trading-journal): Seven things a prop firm trading journal has to do, why each one matters during an evaluation, and where TradingSocial meets them and where it doesn't.
+- [Best MT5 trading journal](https://www.tradingsocial.io/compare/best-mt5-trading-journal): Sync or statement import? What MetaTrader 5 actually exposes, the six questions worth asking before you pick an MT5 trading journal, and where TradingSocial lands.
+
+## Blog
+
+- [Blog](https://www.tradingsocial.io/blog): Practical, no-hype writing on trading journals, psychology, risk and performance from the TradingSocial team.
+- [Why a trading journal is the highest-ROI habit you're not building](https://www.tradingsocial.io/blog/why-a-trading-journal): Most traders track P&L and call it a day. The ones who actually compound do something quieter — they review. Here's the case for journaling, and a framework that takes ten minutes.
+- [Win rate is lying to you: a plain-English guide to R-multiples and expectancy](https://www.tradingsocial.io/blog/win-rate-is-lying-to-you): A 40% win rate can crush a 70% one. Here's the math that actually decides whether you make money.
+- [How to tag your trading mistakes — and actually stop repeating them](https://www.tradingsocial.io/blog/how-to-tag-your-trading-mistakes): A simple taxonomy of errors turns vague regret into a checklist you can fix, one tag at a time.
+- [Position sizing 101: the math that keeps you in the game](https://www.tradingsocial.io/blog/position-sizing-101): Entries are guesses. Position size is a decision. Here's the framework that separates the traders who survive long enough to get good.
+- [The psychology of revenge trading — and five ways to break the loop](https://www.tradingsocial.io/blog/the-psychology-of-revenge-trading): The trade after a loss is the most dangerous one you'll place. Here's why, and how to interrupt it.
+- [Backtesting vs. forward testing: what actually validates a strategy](https://www.tradingsocial.io/blog/backtesting-vs-forward-testing): A backtest is a hypothesis, not proof. Here's how to tell the difference — and when to trust your numbers.
+- [From demo to live: a calm framework for going real](https://www.tradingsocial.io/blog/from-demo-to-live): Demo teaches you about your strategy. Live teaches you about yourself. Here's how to cross the gap without blowing up.
+- [Reading the tape: order-flow basics every new trader skips](https://www.tradingsocial.io/blog/reading-the-tape): Price action shows you what happened. Order flow shows you how. The basics that give context to every candle.
+- [Building a pre-market routine that actually sticks](https://www.tradingsocial.io/blog/building-a-pre-market-routine): Discipline isn't willpower, it's a checklist. The ten-minute routine that frames every session.
+- [Patience as an edge: the quiet skill nobody sells you](https://www.tradingsocial.io/blog/patience-as-an-edge): The best setups are rare on purpose. Why doing nothing is often the highest-expectancy move.
+
+## Legal
+
+- [Terms of service](https://www.tradingsocial.io/terms): The terms governing your use of TradingSocial.
+- [Privacy policy](https://www.tradingsocial.io/privacy): How TradingSocial collects, uses and protects your personal information under the Australian Privacy Principles.
+- [Financial disclaimer](https://www.tradingsocial.io/disclaimer): General information only — not financial advice.

@@ -16,16 +16,20 @@
 // `<!-- build-blog:<name>:end -->` markers; everything else in that file is
 // hand-edited as before. The page's script filters the rendered cards.
 //
+// It also writes /llms.txt from templates/llms.txt (the blog section is
+// generated) and regenerates sitemap.xml via scripts/build-sitemap.mjs.
+//
 // Usage (from the repo root):
 //   node scripts/build-blog.mjs          write everything
 //   node scripts/build-blog.mjs --check  exit 1 if any output is out of date
 //
-// Run it after editing data/posts.json, templates/blog-post.html or
-// blog.html, and commit the output. There is no build
+// Run it after editing data/posts.json, templates/blog-post.html,
+// templates/llms.txt or blog.html, and commit the output. There is no build
 // step on Vercel for the marketing site.
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, unlinkSync, existsSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { renderSitemap, gitLastmod, currentLastmods } from './build-sitemap.mjs'
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 export const SITE = 'https://www.tradingsocial.io'
@@ -285,6 +289,20 @@ export function renderBlogIndex(html, posts) {
 }
 
 // ---------------------------------------------------------------------------
+// llms.txt
+// ---------------------------------------------------------------------------
+
+export function renderLlms(template, posts) {
+  const list = byDate(posts)
+    .map((p) => `- [${p.title}](${SITE}/blog/${p.slug}): ${p.excerpt}`)
+    .join('\n')
+  return template.replace(/\{\{\{(\w+)\}\}\}/g, (_, k) => {
+    if (k !== 'blog_posts') throw new Error(`llms.txt template: unknown placeholder {{{${k}}}}`)
+    return list
+  })
+}
+
+// ---------------------------------------------------------------------------
 
 export function loadPosts() {
   const posts = JSON.parse(readFileSync(join(ROOT, 'data', 'posts.json'), 'utf8'))
@@ -297,18 +315,31 @@ export function loadPosts() {
   return posts
 }
 
-/** Map of repo-relative path → expected file contents. */
-export function buildAll() {
+/**
+ * Map of repo-relative path → expected file contents.
+ * @param lastmodOf how sitemap.xml dates a static page (see build-sitemap.mjs)
+ */
+export function buildAll({ lastmodOf = gitLastmod } = {}) {
   const template = readText(join(ROOT, 'templates', 'blog-post.html'))
   const posts = loadPosts()
   const out = new Map(posts.map((p) => [`blog/${p.slug}.html`, renderPost(template, p, posts)]))
   out.set('blog.html', renderBlogIndex(readText(join(ROOT, 'blog.html')), posts))
+  out.set('llms.txt', renderLlms(readText(join(ROOT, 'templates', 'llms.txt')), posts))
+  out.set('sitemap.xml', renderSitemap(byDate(posts), lastmodOf))
   return out
 }
 
 function main() {
   const check = process.argv.includes('--check')
-  const expected = buildAll()
+  // --check leaves static-page dates as sitemap.xml states them (they come
+  // from git history, which a squash merge rewrites); everything else in the
+  // sitemap — which URLs, and each post's date — is still compared.
+  let lastmodOf = gitLastmod
+  if (check) {
+    const current = currentLastmods()
+    lastmodOf = (file, loc) => current.get(loc) ?? gitLastmod(file)
+  }
+  const expected = buildAll({ lastmodOf })
   const dir = join(ROOT, 'blog')
   const existing = existsSync(dir)
     ? readdirSync(dir).filter((f) => f.endsWith('.html')).map((f) => `blog/${f}`)
@@ -329,14 +360,19 @@ function main() {
       console.error('run: node scripts/build-blog.mjs')
       process.exit(1)
     }
-    console.log(`blog/ and blog.html are up to date (${expected.size - 1} posts)`)
+    console.log(`blog/, blog.html, llms.txt and sitemap.xml are up to date (${expected.size - 3} posts)`)
     return
   }
 
   mkdirSync(dir, { recursive: true })
-  for (const path of stale) writeFileSync(join(ROOT, path), expected.get(path))
+  const pages = stale.filter((p) => p !== 'sitemap.xml')
+  for (const path of pages) writeFileSync(join(ROOT, path), expected.get(path))
   for (const path of orphans) unlinkSync(join(ROOT, path))
-  console.log(`wrote ${stale.length}, removed ${orphans.length}, ${expected.size - 1} posts total`)
+  // The sitemap last: writing blog.html just now may have given it today's date.
+  const sitemap = renderSitemap(byDate(loadPosts()))
+  const sitemapChanged = readText(join(ROOT, 'sitemap.xml')) !== sitemap
+  if (sitemapChanged) writeFileSync(join(ROOT, 'sitemap.xml'), sitemap)
+  console.log(`wrote ${pages.length + (sitemapChanged ? 1 : 0)}, removed ${orphans.length}, ${expected.size - 3} posts total`)
 }
 
 if (process.argv[1] && resolve(fileURLToPath(import.meta.url)) === resolve(process.argv[1])) main()
