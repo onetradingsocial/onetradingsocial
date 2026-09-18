@@ -22,7 +22,13 @@ import { LeaderboardTable, type BoardRow } from './_components/LeaderboardTable'
 import { XpTable, type XpRow } from './_components/XpTable'
 import { YourStanding } from './_components/YourStanding'
 
-export const metadata: Metadata = { title: 'Leaderboard — TradingSocial' }
+// Login-gated. Logged out, this answers 200 with a meta-refresh to /login
+// (redirect() runs after streaming has started), so the page itself has to
+// say noindex. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Leaderboard — TradingSocial',
+  robots: { index: false, follow: false },
+}
 
 const PERIOD_LABEL: Record<Period, string> = { day: 'today', week: 'this week', month: 'this month', all: 'all time' }
 

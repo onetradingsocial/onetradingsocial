@@ -23,12 +23,16 @@ import { TrialGateModal } from './_components/TrialGateModal'
 import { TrialEndingBanner } from './_components/TrialEndingBanner'
 import { shouldShowTrialBanner } from '@/lib/trial-window'
 import { WelcomeModal } from './_components/WelcomeModal'
+import { APP_ORIGIN } from '@/lib/seo'
 
 const display = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-display' })
 const body = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-body' })
 const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-mono' })
 
 export const metadata: Metadata = {
+  // Resolves every relative canonical / OG / Twitter URL against production,
+  // whatever host rendered the page (SEO audit 2026-09-18, finding 2).
+  metadataBase: new URL(APP_ORIGIN),
   title: 'TradingSocial',
   description: 'Track. Prove. Improve your trading.',
   icons: { icon: '/favicon.png' },

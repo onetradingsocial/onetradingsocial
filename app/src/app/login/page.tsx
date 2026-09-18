@@ -5,7 +5,12 @@ import { LoginForm } from './LoginForm'
 import { RedditPixel } from '@/app/_components/RedditPixel'
 import { MetaPixel } from '@/app/_components/MetaPixel'
 
-export const metadata: Metadata = { title: 'Log in — TradingSocial' }
+// Auth page: never indexed, but its links may be followed.
+// SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Log in — TradingSocial',
+  robots: { index: false, follow: true },
+}
 
 export default async function LoginPage({
   searchParams,

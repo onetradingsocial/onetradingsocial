@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { getUserXp } from '@/lib/server/xp'
@@ -8,6 +9,14 @@ import { ProcessLogCard } from '@/app/_components/ProcessLogCard'
 import { XpHero } from './_components/XpHero'
 import { QuestList } from './_components/QuestList'
 import { BadgeGrid } from './_components/BadgeGrid'
+
+// Login-gated. Logged out, this answers 200 with a meta-refresh to /login
+// (redirect() runs after streaming has started), so the page itself has to
+// say noindex. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Achievements — TradingSocial',
+  robots: { index: false, follow: false },
+}
 
 export default async function AchievementsPage() {
   const supabase = await createClient()

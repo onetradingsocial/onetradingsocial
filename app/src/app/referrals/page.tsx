@@ -8,7 +8,13 @@ import { referralMonthsClaimedFor } from '@/lib/server/billing'
 import { getStripe } from '@/lib/stripe'
 import { ReferralPageHost } from './ReferralPageHost'
 
-export const metadata: Metadata = { title: 'Refer a trader — TradingSocial' }
+// Login-gated. Logged out, this answers 200 with a meta-refresh to /login
+// (redirect() runs after streaming has started), so the page itself has to
+// say noindex. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Refer a trader — TradingSocial',
+  robots: { index: false, follow: false },
+}
 export const dynamic = 'force-dynamic'
 
 export default async function ReferralsPage() {

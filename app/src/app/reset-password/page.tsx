@@ -1,6 +1,14 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ResetPasswordForm } from './ResetPasswordForm'
+
+// Auth page: never indexed, but its links may be followed.
+// SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Choose a new password — TradingSocial',
+  robots: { index: false, follow: true },
+}
 
 /**
  * Step 2 of password recovery (item 9 F1). Reached only via `/auth/reset`,

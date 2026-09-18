@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { assembleFeed, boostFavorites } from '@/lib/feed'
@@ -19,6 +20,13 @@ import { MicroSurvey } from './_components/MicroSurvey'
 import { getRecommendedTraders } from '@/lib/server/recommend'
 import { rankFeedByAffinity } from '@/lib/recommend'
 import { createServiceClient } from '@/lib/supabase/service'
+
+// Private. Middleware already 3xx-redirects logged-out visitors; noindex is
+// the backstop if that ever changes. No title: the signed-in home keeps the
+// bare brand from the root layout. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 const FEED_INITIAL_LIMIT = 30
 

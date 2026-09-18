@@ -46,7 +46,10 @@ export default async function LandingPage({ params }: { params: Promise<{ audien
       <section className="ts-grid3 mt-5">
         {l.points.map((p) => (
           <div key={p.title} className="ts-card">
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 17, marginBottom: 6 }}>{p.title}</h3>
+            {/* h2, not h3: it follows the page h1 directly (SEO audit
+                2026-09-18). Global h1-h3 rules are identical and the size is
+                inline, so the look is unchanged. */}
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 17, marginBottom: 6 }}>{p.title}</h2>
             <p className="faint" style={{ fontSize: 14, lineHeight: 1.55 }}>{p.body}</p>
           </div>
         ))}
