@@ -1,4 +1,37 @@
-unbundle.py
-docs/
-__pycache__/
-*.pyc
+# ALLOWLIST. Everything at the repo root is excluded from the www deployment,
+# then only the public marketing site is let back in. Anything not re-included
+# below is not uploaded and not served.
+#
+# This used to be a denylist, and every internal file nobody had thought to
+# list was public: CLAUDE.md, the whole app/ source tree (including
+# migrations), automation/n8n/, scripts/ and .github/ all returned 200 on
+# https://www.tradingsocial.io until 2026-09-18.
+#
+# Adding a new public file or folder at the root? Add a `!/<name>` line here,
+# or it will 404 in production. Syntax is .gitignore's; see
+# https://vercel.com/docs/deployments/vercel-ignore#allowlist
+#
+# app/ is its own Vercel project (app.tradingsocial.io, Root Directory `app`)
+# and has its own app/.vercelignore, so nothing in this file applies to it.
+/*
+
+# Pages. Covers index, pricing, blog, blog-post, terms, privacy, disclaimer, 404.
+!/*.html
+!/compare
+!/for
+
+# Static files the pages load.
+!/assets
+!/consent.js
+!/favicon.ico
+!/robots.txt
+!/sitemap.xml
+
+# Fetched at runtime by blog.html and blog-post.html.
+!/data
+
+# Deployment config. Read by Vercel, not served.
+!/vercel.json
+
+# Internal notes inside otherwise-public folders.
+/assets/**/*.md
