@@ -6,8 +6,8 @@
 <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/favicon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
-<title>Why a trading journal is the highest-ROI habit you're not building — TradingSocial</title>
-<meta name="description" content="Most traders track P&amp;L and stop there. The traders who compound review. The case for journaling, plus a ten-minute daily framework.">
+<title>Position sizing 101: the math that keeps you in the game — TradingSocial</title>
+<meta name="description" content="Entries are guesses. Position size is a decision. Here's the framework that separates the traders who survive long enough to get good.">
 <style>/* cyrillic-ext */
 @font-face {
   font-family: 'JetBrains Mono';
@@ -1484,16 +1484,18 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
        consent gate allows the relevant tier (audit item 17, WS7). Do not
        re-add inline gtag/fbq/rdt loaders here -- they cannot be declined. -->
   <script src="/consent.js"></script>
-  <meta property="og:title" content="Why a trading journal is the highest-ROI habit you're not building — TradingSocial">
-  <meta property="og:description" content="Most traders track P&amp;L and stop there. The traders who compound review. The case for journaling, plus a ten-minute daily framework.">
+  <meta property="og:title" content="Position sizing 101: the math that keeps you in the game">
+  <meta property="og:description" content="Entries are guesses. Position size is a decision. Here's the framework that separates the traders who survive long enough to get good.">
   <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <meta property="og:url" content="https://www.tradingsocial.io/blog-post">
-  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.tradingsocial.io/blog/position-sizing-101">
+  <meta property="og:type" content="article">
+  <meta property="article:published_time" content="2026-05-24">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Why a trading journal is the highest-ROI habit you're not building — TradingSocial">
-  <meta name="twitter:description" content="Most traders track P&amp;L and stop there. The traders who compound review. The case for journaling, plus a ten-minute daily framework.">
+  <meta name="twitter:title" content="Position sizing 101: the math that keeps you in the game">
+  <meta name="twitter:description" content="Entries are guesses. Position size is a decision. Here's the framework that separates the traders who survive long enough to get good.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <link rel="canonical" href="https://www.tradingsocial.io/blog-post">
+  <link rel="canonical" href="https://www.tradingsocial.io/blog/position-sizing-101">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Position sizing 101: the math that keeps you in the game","description":"Entries are guesses. Position size is a decision. Here's the framework that separates the traders who survive long enough to get good.","url":"https://www.tradingsocial.io/blog/position-sizing-101","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tradingsocial.io/blog/position-sizing-101"},"datePublished":"2026-05-24","dateModified":"2026-05-24","articleSection":"Risk & Sizing","inLanguage":"en","author":{"@type":"Person","name":"Priya Anand"},"publisher":{"@type":"Organization","name":"TradingSocial","url":"https://www.tradingsocial.io","logo":{"@type":"ImageObject","url":"https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png"}},"image":["https://www.tradingsocial.io/assets/images/og-image.png"],"keywords":"risk management, position sizing, drawdown, Kelly"}</script>
 </head>
 <body>
 <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
@@ -1581,14 +1583,14 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   <div class="wrap">
     <div class="article-head">
       <span class="crumbs">
-        <a href="/blog">Blog</a><span class="sep">/</span><span id="js-crumb-cat"></span>
+        <a href="/blog">Blog</a><span class="sep">/</span><span>Risk &amp; Sizing</span>
       </span>
-      <h1 id="js-title"></h1>
-      <p class="standfirst" id="js-standfirst"></p>
+      <h1>Position sizing 101: the math that keeps you in the game</h1>
+      <p class="standfirst">Entries are guesses. Position size is a decision. Here's the framework that separates the traders who survive long enough to get good.</p>
       <div class="article-byline">
         <div class="post-meta">
-          <span id="js-av" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;display:inline-block;border:1px solid var(--border)"></span>
-          <span class="pm-t"><b id="js-author"></b><span id="js-date-read"></span></span>
+          <span style="width:36px;height:36px;border-radius:50%;flex-shrink:0;display:inline-block;border:1px solid var(--border);background:linear-gradient(135deg,#00C9A7,#7C5CE6)"></span>
+          <span class="pm-t"><b>Priya Anand</b><span><time datetime="2026-05-24">May 24, 2026</time><span class="dotsep">·</span>8 min read</span></span>
         </div>
         <div class="article-share">
           <a href="#" aria-label="Share on X"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></a>
@@ -1602,23 +1604,40 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 
 <!-- ============================ COVER ============================ -->
 <div class="wrap">
-  <div class="article-cover reveal" id="js-cover"></div>
+  <div class="article-cover reveal"><div class="thumb t-green"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M12 3l7 3v5c0 5-3 7.5-7 9-4-1.5-7-4-7-9V6l7-3z' stroke='currentColor' stroke-width='2' stroke-linejoin='round'></path><path d='M9.5 12l1.8 1.8L15 10' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'></path></svg></span></div></div>
 </div>
 
 <!-- ============================ BODY ============================ -->
 <article class="article-body">
-  <div class="prose" id="js-prose"></div>
+  <div class="prose"><p class='dek'>You can have a positive-expectancy strategy and still blow up your account if you size wrong. Here is the math that keeps you in the game long enough to win.</p>
+
+<p>Position sizing is the most important decision in trading that almost nobody talks about. Traders obsess over entries, exits, indicators, and setups — but position size determines whether a losing streak ends your account or feels like the cost of doing business. It's the difference between a <a href="/compare/best-prop-firm-trading-journal">drawdown</a> you survive and one you don't.</p>
+
+<h2>Fixed fractional sizing</h2>
+<p>The simplest rule that works: risk no more than 1–2% of your account on any single trade. If your account is $10,000 and your rule is 1%, you risk $100 per trade. This means your stop loss placement and position size are linked: if your stop is $0.50 from your entry and you're risking $100, your position size is 200 shares.</p>
+
+<p>The formula: <em>Position Size = Risk Amount ÷ (Entry Price − Stop Price)</em></p>
+
+<p>Most traders get this backwards — they decide how many shares to buy and then set a stop wherever the chart "looks right." The correct order is: place the stop where it's technically valid, then size the position to match your risk rule.</p>
+
+<h2>Why the percentage matters</h2>
+<p>At 1% <a href="/for/prop-firm">risk per trade</a>, you can lose 20 trades in a row and still have 82% of your starting capital. At 10% risk per trade, 20 losing trades leaves you with 12%. The math of compounding losses is severe — a 50% drawdown requires a 100% gain just to break even. Keeping individual risk small keeps you in the game long enough for your edge to play out over hundreds of trades.</p>
+
+<blockquote>Survive first. Compound later. Position sizing is how you do both at once.</blockquote>
+
+<h2>Adapting size to volatility</h2>
+<p>A fixed stop distance in dollar terms means your position size varies with price — a $50 stock with a $1 stop gives you 100 shares at $100 risk, while a $500 stock with the same $1 stop gives the same. But volatility varies too: in a high-VIX environment, your technically-valid stop may need to be wider to avoid noise-out. When stops widen, size down so your dollar risk stays constant. Never widen the stop without cutting the shares.</p></div>
 
   <div class="article-foot">
-    <div class="article-tags" id="js-tags"></div>
+    <div class="article-tags"><span class="tag tag--neutral">risk management</span><span class="tag tag--neutral">position sizing</span><span class="tag tag--neutral">drawdown</span><span class="tag tag--neutral">Kelly</span></div>
   </div>
 
   <div class="author-box">
-    <span id="js-bio-av" style="width:56px;height:56px;border-radius:50%;flex-shrink:0;border:1px solid var(--border);display:inline-block"></span>
+    <span style="width:56px;height:56px;border-radius:50%;flex-shrink:0;border:1px solid var(--border);display:inline-block;background:linear-gradient(135deg,#00C9A7,#7C5CE6)"></span>
     <div>
-      <h5 id="js-bio-name"></h5>
-      <span class="role" id="js-bio-role"></span>
-      <p id="js-bio-text"></p>
+      <h5>Priya Anand</h5>
+      <span class="role">Risk Educator · TradingSocial</span>
+      <p>Priya specialises in risk education for retail traders, focused on position sizing, drawdown management, and the mathematics of survival in volatile markets.</p>
     </div>
   </div>
 </article>
@@ -1632,7 +1651,11 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       </a>
     </div>
-    <div class="postgrid" id="js-related"></div>
+    <div class="postgrid">
+      <article class="pcard-blog reveal"><a class="thumb t-violet" href="/blog/why-a-trading-journal"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M5 4h11l3 3v13H5z' stroke='currentColor' stroke-width='2' stroke-linejoin='round'></path><path d='M9 9h6M9 13h6M9 17h3' stroke='currentColor' stroke-width='2' stroke-linecap='round'></path></svg></span><span class="thumb-lbl">Journaling</span></a><div class="pcard-body"><span class="pcard-cat">Journaling</span><h4><a href="/blog/why-a-trading-journal">Why a trading journal is the highest-ROI habit you're not building</a></h4><p class="excerpt">Most traders track P&amp;L and call it a day. The ones who actually compound do something quieter — they review. Here's the case for journaling, and a framework that takes ten minutes.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Maya Okonkwo</b><span>Jun 3, 2026<span class="dotsep">·</span>9 min</span></span></div></div></article>
+      <article class="pcard-blog reveal"><a class="thumb t-cyan" href="/blog/win-rate-is-lying-to-you"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M4 19V9M10 19V5M16 19v-7M22 19H2' stroke='currentColor' stroke-width='2' stroke-linecap='round'></path></svg></span><span class="thumb-lbl">Analytics</span></a><div class="pcard-body"><span class="pcard-cat">Analytics</span><h4><a href="/blog/win-rate-is-lying-to-you">Win rate is lying to you: a plain-English guide to R-multiples and expectancy</a></h4><p class="excerpt">A 40% win rate can crush a 70% one. Here's the math that actually decides whether you make money.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#3FB6E8,#7C5CE6)"></span><span class="pm-t"><b>Daniel Reyes</b><span>Jun 1, 2026<span class="dotsep">·</span>7 min</span></span></div></div></article>
+      <article class="pcard-blog reveal"><a class="thumb t-violet" href="/blog/how-to-tag-your-trading-mistakes"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M4 7h16M4 12h16M4 17h10' stroke='currentColor' stroke-width='2' stroke-linecap='round'></path><circle cx='19' cy='17' r='2.5' stroke='currentColor' stroke-width='2'></circle></svg></span><span class="thumb-lbl">Journaling</span></a><div class="pcard-body"><span class="pcard-cat">Journaling</span><h4><a href="/blog/how-to-tag-your-trading-mistakes">How to tag your trading mistakes — and actually stop repeating them</a></h4><p class="excerpt">A simple taxonomy of errors turns vague regret into a checklist you can fix, one tag at a time.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Maya Okonkwo</b><span>May 28, 2026<span class="dotsep">·</span>6 min</span></span></div></div></article>
+    </div>
   </div>
 </section>
 
@@ -1713,176 +1736,6 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 
 <script src="/assets/js/66e7d2ba811bad6e323afd8b3e3e557c.js"></script>
 
-<script>
-(function () {
-  var slug = window.location.pathname.replace(/^\/blog\//, '').replace(/\/$/, '');
-  if (!slug) { window.location.href = '/blog'; return; }
-
-  fetch('/data/posts.json')
-    .then(function (r) { if (!r.ok) throw new Error('fetch failed'); return r.json(); })
-    .then(function (posts) {
-      var post = null;
-      for (var i = 0; i < posts.length; i++) {
-        if (posts[i].slug === slug) { post = posts[i]; break; }
-      }
-      if (!post) { window.location.href = '/blog'; return; }
-
-      // Page meta
-      document.title = post.title + ' — TradingSocial';
-      setMeta('og:title', post.title);
-      setMeta('og:description', post.excerpt);
-      setMeta('og:url', 'https://www.tradingsocial.io/blog/' + post.slug);
-      setMeta('og:type', 'article');
-      setMetaName('description', post.excerpt);
-      setMetaName('twitter:title', post.title);
-      setMetaName('twitter:description', post.excerpt);
-      var canon = document.querySelector('link[rel="canonical"]');
-      if (canon) canon.href = 'https://www.tradingsocial.io/blog/' + post.slug;
-      injectArticleJsonLd(post);
-
-      // Hero
-      document.getElementById('js-crumb-cat').textContent = post.category;
-      document.getElementById('js-title').textContent = post.title;
-      document.getElementById('js-standfirst').textContent = post.excerpt;
-
-      // Byline
-      var av = document.getElementById('js-av');
-      av.style.background = post.author_color;
-      document.getElementById('js-author').textContent = post.author_name;
-      document.getElementById('js-date-read').innerHTML =
-        esc(fmtDate(post.published_date)) +
-        '<span class="dotsep">·</span>' +
-        esc(post.readtime) + ' read';
-
-      // Cover
-      var cover = document.getElementById('js-cover');
-      if (post.image) {
-        cover.innerHTML = '<img src="' + esc(post.image) + '" alt="' + esc(post.title) +
-          '" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
-      } else {
-        cover.innerHTML = '<div class="thumb ' + esc(post.thumb_color) + '">' +
-          '<span class="glyph">' + post.thumb_icon + '</span></div>';
-      }
-
-      // Body
-      document.getElementById('js-prose').innerHTML = post.body;
-
-      // Tags
-      document.getElementById('js-tags').innerHTML = post.tags
-        .map(function (t) { return '<span class="tag tag--neutral">' + esc(t) + '</span>'; })
-        .join('');
-
-      // Author bio
-      var bioAv = document.getElementById('js-bio-av');
-      bioAv.style.background = post.author_color;
-      document.getElementById('js-bio-name').textContent = post.author_name;
-      document.getElementById('js-bio-role').textContent = post.author_role;
-      document.getElementById('js-bio-text').textContent = post.author_bio;
-
-      // Related posts (3 most recent, excluding current)
-      var related = posts
-        .filter(function (p) { return p.slug !== slug; })
-        .sort(function (a, b) { return new Date(b.published_date) - new Date(a.published_date); })
-        .slice(0, 3);
-      document.getElementById('js-related').innerHTML = related.map(renderCard).join('');
-
-      // Site-wide reveal observer ran before these cards existed; observe them here
-      var rio = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) {
-          if (en.isIntersecting) { en.target.classList.add('in'); rio.unobserve(en.target); }
-        });
-      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
-      document.querySelectorAll('#js-related .reveal').forEach(function (el) { rio.observe(el); });
-    })
-    .catch(function () {
-      var hero = document.querySelector('.article-hero .wrap');
-      if (hero) hero.innerHTML = '<p style="color:#9d8ec4;padding:4rem 0;text-align:center">Could not load post. Please refresh.</p>';
-    });
-
-  function fmtDate(iso) {
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-
-  function esc(s) {
-    return String(s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function setMeta(prop, val) {
-    var el = document.querySelector('meta[property="' + prop + '"]');
-    if (el) el.setAttribute('content', val);
-  }
-
-  function setMetaName(name, val) {
-    var el = document.querySelector('meta[name="' + name + '"]');
-    if (el) el.setAttribute('content', val);
-  }
-
-  // BlogPosting structured data — built from the fetched post, since this page
-  // is a client-rendered shell and has no post-specific markup at load time.
-  function injectArticleJsonLd(post) {
-    var url = 'https://www.tradingsocial.io/blog/' + post.slug;
-    var data = {
-      '@context': 'https://schema.org',
-      '@type': 'BlogPosting',
-      'headline': post.title,
-      'description': post.excerpt,
-      'url': url,
-      'mainEntityOfPage': { '@type': 'WebPage', '@id': url },
-      'datePublished': post.published_date,
-      'dateModified': post.published_date,
-      'articleSection': post.category,
-      'inLanguage': 'en',
-      'author': { '@type': 'Person', 'name': post.author_name },
-      'publisher': {
-        '@type': 'Organization',
-        'name': 'TradingSocial',
-        'url': 'https://www.tradingsocial.io',
-        'logo': {
-          '@type': 'ImageObject',
-          'url': 'https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png'
-        }
-      }
-    };
-    if (post.tags && post.tags.length) data.keywords = post.tags.join(', ');
-    if (post.image) {
-      data.image = [post.image.indexOf('http') === 0
-        ? post.image
-        : 'https://www.tradingsocial.io' + post.image];
-    }
-    var s = document.createElement('script');
-    s.type = 'application/ld+json';
-    s.textContent = JSON.stringify(data);
-    document.head.appendChild(s);
-  }
-
-  function renderCard(p) {
-    var href = '/blog/' + esc(p.slug);
-    var thumb = p.image
-      ? '<a class="thumb" href="' + href + '" style="overflow:hidden;background:#1a1330">' +
-          '<img src="' + esc(p.image) + '" alt="' + esc(p.title) +
-          '" style="width:100%;height:100%;object-fit:cover"></a>'
-      : '<a class="thumb ' + esc(p.thumb_color) + '" href="' + href + '">' +
-          '<span class="glyph">' + p.thumb_icon + '</span>' +
-          '<span class="thumb-lbl">' + esc(p.category) + '</span></a>';
-    return '<article class="pcard-blog reveal">' +
-      thumb +
-      '<div class="pcard-body">' +
-        '<span class="pcard-cat">' + esc(p.category) + '</span>' +
-        '<h4><a href="' + href + '">' + esc(p.title) + '</a></h4>' +
-        '<p class="excerpt">' + esc(p.excerpt) + '</p>' +
-        '<div class="post-meta">' +
-          '<span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:' + esc(p.author_color) + '"></span>' +
-          '<span class="pm-t"><b>' + esc(p.author_name) + '</b>' +
-            '<span>' + esc(fmtDate(p.published_date)) + '<span class="dotsep">·</span>' + esc(p.readtime) + '</span>' +
-          '</span>' +
-        '</div>' +
-      '</div>' +
-    '</article>';
-  }
-})();
-</script>
 <script>
   window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
 </script>

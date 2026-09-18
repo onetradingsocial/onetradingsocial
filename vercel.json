@@ -59,10 +59,11 @@
       ]
     }
   ],
-  "rewrites": [
+  "redirects": [
     {
-      "source": "/blog/:slug",
-      "destination": "/blog-post"
+      "source": "/blog-post",
+      "destination": "/blog",
+      "permanent": true
     }
   ]
 }
