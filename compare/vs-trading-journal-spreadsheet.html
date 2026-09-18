@@ -1185,7 +1185,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .foot-social a { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border:1px solid var(--border); border-radius:10px; color: var(--dim); transition: color .2s, border-color .2s, background .2s; }
 .foot-social a:hover { color: var(--text); border-color: var(--border-2); background: var(--bg-3); }
 .foot-social svg { width:18px; height:18px; display:block; }
-.foot-col h5 { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; }
+.foot-col .foot-title { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; font-weight: 700; }
+.foot-col .foot-title--sub { margin-top: 28px; }
 .foot-col a { display:block; font-size: 14px; color: var(--dim); padding: 6px 0; transition: color .2s; }
 .foot-col a:hover { color: var(--text); }
 .foot-disc { margin-top: 44px; padding-top: 28px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap; }
@@ -1460,8 +1461,8 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
   padding: 24px 26px; box-shadow: var(--shadow-sm);
 }
-.faq-item h4 { font-family: var(--display); font-size: 17px; font-weight: 600; display: flex; align-items: flex-start; gap: 11px; }
-.faq-item h4 .q { font-family: var(--mono); font-size: 13px; color: var(--violet-br); margin-top: 2px; }
+.faq-item h3 { font-family: var(--display); font-size: 17px; font-weight: 600; display: flex; align-items: flex-start; gap: 11px; line-height: inherit; letter-spacing: inherit; text-wrap: inherit; }
+.faq-item h3 .q { font-family: var(--mono); font-size: 13px; color: var(--violet-br); margin-top: 2px; }
 .faq-item p { font-size: 14px; color: var(--dim); line-height: 1.6; margin-top: 11px; padding-left: 25px; }
 /* ---------- vs-page specifics ---------- */
 .vs-note { font-family: var(--mono); font-size: 12px; color: var(--faint); margin-top: 14px; }
@@ -1808,27 +1809,27 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     </div>
     <div class="faq-grid reveal">
       <div class="faq-item">
-        <h4><span class="q">Q</span>Is a trading journal spreadsheet good enough?</h4>
+        <h3><span class="q">Q</span>Is a trading journal spreadsheet good enough?</h3>
         <p>For a while, yes. It&rsquo;s free, completely under your control, and flexible enough to model anything you can write a formula for. It stops being good enough at the point where filling it in becomes the thing you skip after a bad session &mdash; or where someone asks to see your record and you have nothing but a file you could have typed anything into.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>What can a spreadsheet do that a trading journal can&rsquo;t?</h4>
+        <h3><span class="q">Q</span>What can a spreadsheet do that a trading journal can&rsquo;t?</h3>
         <p>Three real things. It costs nothing. You own the file outright, with no account and no subscription. And it&rsquo;s arbitrarily flexible &mdash; any metric you can express as a formula, you can add today without asking anyone. A dedicated journal trades some of that flexibility for structure and automation.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>Why do trading journal spreadsheets get abandoned?</h4>
+        <h3><span class="q">Q</span>Why do trading journal spreadsheets get abandoned?</h3>
         <p>Because every row is manual, and the cost of a row falls at the worst possible moment &mdash; right after a losing trade, when the last thing you want to do is write it down. Missing rows are worse than no journal, because what&rsquo;s left is biased towards the trades you felt like recording.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>Can I prove my results from a spreadsheet?</h4>
+        <h3><span class="q">Q</span>Can I prove my results from a spreadsheet?</h3>
         <p>Not to anyone else. A cell has no origin &mdash; a number typed by hand and a number pulled from a broker look identical. Here, every trade carries a label saying how it arrived: typed manually, imported from a statement, or synced from a connected broker. That label is set by the system and can&rsquo;t be awarded to yourself.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>Can I move my spreadsheet history across?</h4>
+        <h3><span class="q">Q</span>Can I move my spreadsheet history across?</h3>
         <p>Past trades can be entered manually on any plan, and MT5 statement import on the Trader plan brings a MetaTrader 5 history file in directly. Trades brought across this way are labelled by how they arrived &mdash; importing history doesn&rsquo;t turn it into broker-synced data.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>Do I have to make my journal public?</h4>
+        <h3><span class="q">Q</span>Do I have to make my journal public?</h3>
         <p>No. A public profile is available, not required. You can journal privately and decide later whether any of it is shown to anyone.</p>
       </div>
     </div>
@@ -1869,21 +1870,28 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         </div>
       </div>
       <div class="foot-col">
-        <h5>Product</h5>
+        <div class="foot-title">Product</div>
         <a href="/#features">Features</a>
         <a href="/#showcase">Journal</a>
         <a href="/#showcase">Leaderboards</a>
         <!-- Learning hub hidden for now — we are not financial advisors. Restore when compliant. -->
+        <div class="foot-title foot-title--sub">Compare</div>
+        <a href="/compare/tradezella-alternative">TradeZella alternative</a>
+        <a href="/compare/tradersync-alternative">TraderSync alternative</a>
+        <a href="/compare/edgewonk-alternative">Edgewonk alternative</a>
+        <a href="/compare/vs-trading-journal-spreadsheet">Trading journal vs spreadsheet</a>
+        <a href="/compare/best-prop-firm-trading-journal">Prop firm trading journal</a>
+        <a href="/compare/best-mt5-trading-journal">MT5 trading journal</a>
       </div>
       <div class="foot-col">
-        <h5>Company</h5>
+        <div class="foot-title">Company</div>
         <a href="/#about">About</a>
         <a href="/pricing">Pricing</a>
         <a href="/blog">Blog</a>
         <a href="https://app.tradingsocial.io/signup">Start Free Trial</a>
       </div>
       <div class="foot-col">
-        <h5>Solutions</h5>
+        <div class="foot-title">Solutions</div>
         <a href="/for/forex">Forex traders</a>
         <a href="/for/crypto">Crypto traders</a>
         <a href="/for/futures">Futures traders</a>
@@ -1893,7 +1901,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         <a href="/for/educators">Educators</a>
       </div>
       <div class="foot-col">
-        <h5>Legal</h5>
+        <div class="foot-title">Legal</div>
         <a href="/terms">Terms of service</a>
         <a href="/privacy">Privacy policy</a>
         <a href="/disclaimer">Financial disclaimer</a>

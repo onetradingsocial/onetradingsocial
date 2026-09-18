@@ -1187,7 +1187,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .foot-social a { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border:1px solid var(--border); border-radius:10px; color: var(--dim); transition: color .2s, border-color .2s, background .2s; }
 .foot-social a:hover { color: var(--text); border-color: var(--border-2); background: var(--bg-3); }
 .foot-social svg { width:18px; height:18px; display:block; }
-.foot-col h5 { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; }
+.foot-col .foot-title { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; font-weight: 700; }
+.foot-col .foot-title--sub { margin-top: 28px; }
 .foot-col a { display:block; font-size: 14px; color: var(--dim); padding: 6px 0; transition: color .2s; }
 .foot-col a:hover { color: var(--text); }
 .foot-disc { margin-top: 44px; padding-top: 28px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap; }
@@ -1340,7 +1341,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 /* ---------- Post grid ---------- */
 .postgrid-sec { padding-top: clamp(40px, 5vw, 60px); }
 .postgrid-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
-.postgrid-head h3 { font-family: var(--display); font-size: clamp(20px, 2.4vw, 26px); font-weight: 600; letter-spacing: -0.02em; }
+.postgrid-head h2 { font-family: var(--display); font-size: clamp(20px, 2.4vw, 26px); font-weight: 600; letter-spacing: -0.02em; }
 .postgrid-head .count { font-family: var(--mono); font-size: 12px; color: var(--faint); }
 .postgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 @media (max-width: 920px){ .postgrid { grid-template-columns: repeat(2, 1fr); } }
@@ -1358,9 +1359,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 .pcard-blog .thumb .glyph svg { width: 24px; height: 24px; }
 .pcard-body { padding: 20px 20px 22px; display: flex; flex-direction: column; flex: 1; }
 .pcard-cat { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.02em; color: var(--violet-br); background: rgba(124,92,230,0.10); border: 1px solid rgba(124,92,230,0.20); padding: 4px 9px; border-radius: 7px; }
-.pcard-body h4 { font-family: var(--display); font-size: 19px; font-weight: 600; line-height: 1.18; letter-spacing: -0.015em; margin-top: 14px; text-wrap: pretty; }
-.pcard-body h4 a { transition: color .2s; }
-.pcard-blog:hover .pcard-body h4 a { color: var(--violet-br); }
+.pcard-body h3 { font-family: var(--display); font-size: 19px; font-weight: 600; line-height: 1.18; letter-spacing: -0.015em; margin-top: 14px; text-wrap: pretty; }
+.pcard-body h3 a { transition: color .2s; }
+.pcard-blog:hover .pcard-body h3 a { color: var(--violet-br); }
 .pcard-body .excerpt { font-size: 13.5px; color: var(--dim); margin-top: 10px; line-height: 1.55; }
 .pcard-body .post-meta { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
 
@@ -1386,7 +1387,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 }
 .news-card .bg-grid { background-size: 48px 48px; }
 .news-card .eyebrow { justify-content: center; }
-.news-card h3 { position: relative; z-index: 1; font-family: var(--display); font-size: clamp(26px, 3.4vw, 40px); font-weight: 600; letter-spacing: -0.025em; margin-top: 14px; }
+.news-card h2 { position: relative; z-index: 1; font-family: var(--display); font-size: clamp(26px, 3.4vw, 40px); font-weight: 600; letter-spacing: -0.025em; margin-top: 14px; }
 .news-card p { position: relative; z-index: 1; font-size: 16px; color: var(--dim); margin: 14px auto 0; max-width: 48ch; }
 .news-form { position: relative; z-index: 1; margin: 28px auto 0; max-width: 460px; display: flex; gap: 10px; }
 .news-form input {
@@ -1628,7 +1629,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 <section class="section--tight postgrid-sec">
   <div class="wrap">
     <div class="postgrid-head">
-      <h3>Latest articles</h3>
+      <h2>Latest articles</h2>
       <span class="count">Showing 9 of 24</span>
     </div>
 
@@ -1650,7 +1651,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     <div class="news-card reveal">
       <div class="bg-grid"></div>
       <span class="eyebrow eyebrow--center">The Sunday Review</span>
-      <h3>One disciplined idea, every Sunday.</h3>
+      <h2>One disciplined idea, every Sunday.</h2>
       <p>A short weekly email on journaling, psychology and risk — written for traders who'd rather improve than chase. No signals, no hype.</p>
       <form class="news-form" onsubmit="return false">
         <input type="email" placeholder="you@email.com" aria-label="Email address">
@@ -1682,21 +1683,28 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         </div>
       </div>
       <div class="foot-col">
-        <h5>Product</h5>
+        <div class="foot-title">Product</div>
         <a href="/#features">Features</a>
         <a href="/#showcase">Journal</a>
         <a href="/#showcase">Leaderboards</a>
         <!-- Learning hub hidden for now — we are not financial advisors. Restore when compliant. -->
+        <div class="foot-title foot-title--sub">Compare</div>
+        <a href="/compare/tradezella-alternative">TradeZella alternative</a>
+        <a href="/compare/tradersync-alternative">TraderSync alternative</a>
+        <a href="/compare/edgewonk-alternative">Edgewonk alternative</a>
+        <a href="/compare/vs-trading-journal-spreadsheet">Trading journal vs spreadsheet</a>
+        <a href="/compare/best-prop-firm-trading-journal">Prop firm trading journal</a>
+        <a href="/compare/best-mt5-trading-journal">MT5 trading journal</a>
       </div>
       <div class="foot-col">
-        <h5>Company</h5>
+        <div class="foot-title">Company</div>
         <a href="/#about">About</a>
         <a href="/pricing">Pricing</a>
         <a href="/blog">Blog</a>
         <a href="https://app.tradingsocial.io/signup">Start Free Trial</a>
       </div>
       <div class="foot-col">
-        <h5>Solutions</h5>
+        <div class="foot-title">Solutions</div>
         <a href="/for/forex">Forex traders</a>
         <a href="/for/crypto">Crypto traders</a>
         <a href="/for/futures">Futures traders</a>
@@ -1706,7 +1714,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         <a href="/for/educators">Educators</a>
       </div>
       <div class="foot-col">
-        <h5>Legal</h5>
+        <div class="foot-title">Legal</div>
         <a href="/terms">Terms of service</a>
         <a href="/privacy">Privacy policy</a>
         <a href="/disclaimer">Financial disclaimer</a>
@@ -1865,7 +1873,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       thumbHtml(p, href, true) +
       '<div class="pcard-body">' +
         '<span class="pcard-cat">' + esc(p.category) + '</span>' +
-        '<h4><a href="' + href + '">' + esc(p.title) + '</a></h4>' +
+        '<h3><a href="' + href + '">' + esc(p.title) + '</a></h3>' +
         '<p class="excerpt">' + esc(p.excerpt) + '</p>' +
         '<div class="post-meta">' +
           '<span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:' + esc(p.author_color) + '"></span>' +

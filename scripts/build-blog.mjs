@@ -89,7 +89,7 @@ function card(p) {
   return (
     `\n      <article class="pcard-blog reveal">${thumb}<div class="pcard-body">` +
     `<span class="pcard-cat">${esc(p.category)}</span>` +
-    `<h4><a href="${href}">${esc(p.title)}</a></h4>` +
+    `<h3><a href="${href}">${esc(p.title)}</a></h3>` +
     `<p class="excerpt">${esc(p.excerpt)}</p>` +
     `<div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:${esc(p.author_color)}"></span>` +
     `<span class="pm-t"><b>${esc(p.author_name)}</b><span>${esc(fmtDate(p.published_date))}<span class="dotsep">·</span>${esc(p.readtime)}</span></span></div>` +
