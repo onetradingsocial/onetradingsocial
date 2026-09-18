@@ -804,12 +804,21 @@
       </div>
     </div>
 
-    <div class="item sev-chk">
+    <div class="item sev-done">
       <div class="item-top">
         <span class="rank">10</span>
-        <span class="chip warn">Two-step fix</span>
+        <span class="chip done">Done · live</span>
       </div>
       <h3>Stripe's own terms checkbox is switched off, and cannot be switched on yet</h3>
+      <div class="resolved">
+        <span class="tag">Done 18 September</span>
+        Both halves are done, in the right order. The terms and privacy links are
+        set in the Stripe dashboard (Live), and then <code>STRIPE_TOS_CONSENT=on</code>
+        was set for the app in Vercel and it was redeployed. A real checkout now shows a required "I agree
+        to the Terms of Service" checkbox. From here on, Stripe records each
+        customer's acceptance on the same record as their payment. To turn it
+        off, remove the variable and redeploy.
+      </div>
       <p class="lede">
         Stripe can require customers to tick acceptance of our terms on its
         checkout page and record it against the payment — a stronger record than
@@ -865,7 +874,7 @@
       <li class="done"><span><b>Turn on the missing Stripe webhook events.</b><span class="why">Done 17 September. Item 11.</span></span></li>
       <li class="done"><span><b>Answer decisions 04, 06 and 07.</b><span class="why">Answered 18 September, and all three are done.</span></span></li>
       <li><span><b>Decide 05, the founding annual offer.</b><span class="why">Nothing breaks while it waits. The cost is that no new signup can claim the offer.</span></span></li>
-      <li><span><b>Add the terms URL in Stripe, then turn on its terms checkbox.</b><span class="why">Item 10. In that order, or every checkout breaks.</span></span></li>
+      <li class="done"><span><b>Add the terms URL in Stripe, then turn on its terms checkbox.</b><span class="why">Done 18 September. Item 10.</span></span></li>
       <li><span><b>Check what the lapsed-trial email achieved, around 2 October.</b><span class="why">Item 06. Any subscription or new trade from the 31 accounts.</span></span></li>
       <li><span><b>Remove the old card-free trial code, about 21 days after launch.</b><span class="why">Once the last grandfathered trials have run out. The last 3 end on 22, 25 and 28 September.</span></span></li>
     </ol>
@@ -878,8 +887,9 @@
 
     <br><br>Your 18 September reply is fully done: the refund policy (04), the
     lapsed-trial email (06) and the Trader warning (07). Referrals and the
-    7-day grace were already in place. <b>One decision is left: 05</b>, the
-    founding annual offer, whenever you are ready.
+    7-day grace were already in place. Stripe's checkout now also requires
+    customers to accept the terms before they pay (item 10). <b>One decision
+    is left: 05</b>, the founding annual offer, whenever you are ready.
   </p>
 
 </div>
