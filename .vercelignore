@@ -2,3 +2,4 @@ unbundle.py
 docs/
 __pycache__/
 *.pyc
+templates/
