@@ -268,17 +268,16 @@
     <h1>Day 14 Decisions</h1>
     <p class="standfirst">
       The 14-day trial is now on Stripe: a card at signup, and an automatic
-      charge on day 14 unless the customer cancels. <b>It is live.</b> The
-      original launch blocker, plan switching, is fixed. Launch turned up
-      <b>three new findings</b>, and all three are now fixed. The last was
-      Stripe not sending us the payment events that the grace decision and the
-      pre-charge email depend on; those were turned on 17 September. Four
-      decisions are still yours to make.
+      charge on day 14 unless the customer cancels. <b>It is live</b>, and
+      everything launch turned up is fixed. You answered decisions 04, 06 and 07
+      on 18 September, and all three are <b>done</b>: the refund policy is in
+      the terms, the lapsed-trial email has gone out, and the Trader warning is
+      live. <b>Only 05 is still open.</b>
     </p>
     <div class="byline">
       <span><b>For</b> Nathan</span>
       <span><b>Date</b> 15 September 2026</span>
-      <span><b>Updated</b> 17 September 2026, after launch</span>
+      <span><b>Updated</b> 18 September 2026, after your reply</span>
       <span><b>Ordered by</b> money at risk</span>
     </div>
   </header>
@@ -453,8 +452,10 @@
         Grace drops to <b>7 days</b>, and only for a subscription that has
         actually paid us at least once. A card that declines at the end of a
         trial now gets none at all. Built, tested and live in production.
-        <b>But see item 11:</b> Stripe isn't sending the event that tells us a
-        customer has paid, so right now nobody qualifies for grace.
+        Since 17 September Stripe sends the payment events this depends on
+        (item 11), so a paying customer now qualifies for grace, and the
+        failed-payment email goes out when a card declines. You confirmed both
+        on 18 September; no change was needed.
       </div>
       <p class="lede">
         When a renewal payment fails, we give the customer <b>14 days of grace</b>
@@ -524,18 +525,31 @@
   </section>
 
   <section>
-    <div class="sec-head"><h2>Yours to decide</h2></div>
+    <div class="sec-head"><h2>Your decisions</h2></div>
     <p class="sec-sub">
-      Nothing here is blocked on engineering. Each one changes what we charge,
-      who we email, or what we promise.
+      Each one changes what we charge, who we email, or what we promise. Three
+      are answered and done; 05 is still waiting on you. The original write-up
+      is kept under each answer.
     </p>
 
-    <div class="item sev-warn">
+    <div class="item sev-done">
       <div class="item-top">
         <span class="rank">04</span>
-        <span class="chip warn">Decision</span>
+        <span class="chip done">Decided · published</span>
       </div>
       <h3>What happens when someone is charged and meant to cancel</h3>
+      <div class="resolved">
+        <span class="tag">Your call, 18 September</span>
+        Refunds stay <b>case by case</b>, and the policy says that forgetting to
+        cancel is the customer's responsibility. Section 11 of the terms now
+        says exactly that. It points to the self-serve cancel and the
+        three-day warning email. It also says what we do instead: cancel
+        straight away, keep access to the end of the paid period, and refund
+        only at our discretion. The Australian Consumer Law wording is
+        unchanged. Live on tradingsocial.io/terms, dated 18 September 2026.
+        This spells out the existing "no refunds for a change of mind" rule, so
+        subscribers needed no 30 days' notice.
+      </div>
       <p class="lede">
         Today the terms say we do not refund a change of mind, that Australian
         Consumer Law rights are untouched, and that you should email us and we
@@ -569,9 +583,10 @@
     <div class="item sev-warn">
       <div class="item-top">
         <span class="rank">05</span>
-        <span class="chip warn">Decision</span>
+        <span class="chip warn">Decision · open</span>
       </div>
       <h3>The founding-member annual discount becomes unreachable</h3>
+      <p class="tight"><b>Still with you.</b> On 18 September you said you would come back on this one. Nothing has changed in the meantime.</p>
       <p class="lede">
         The beta promotion is <b>80% off the first year</b> — A$120 instead of
         A$500 for Pro. It only applies to an annual checkout.
@@ -601,12 +616,43 @@
       </div>
     </div>
 
-    <div class="item sev-warn">
+    <div class="item sev-done">
       <div class="item-top">
         <span class="rank">06</span>
-        <span class="chip warn">Decision</span>
+        <span class="chip done">Decided · sent</span>
       </div>
       <h3>Whether to invite the 42 people whose trial already lapsed</h3>
+      <div class="resolved">
+        <span class="tag">Your call, 18 September</span>
+        One email, sent on 18 September at 06:07 UTC to <b>31 people</b>. All 31
+        were delivered, with no bounces. The people still mid-trial were left
+        to decide for themselves: the in-app banner and the day-12 and
+        trial-ended emails already reach them.
+        <br><br>
+        <b>Why 31, not 42.</b> The count has moved since the 15th. Three of the
+        seven then mid-trial have finished it, and two lapsed accounts have
+        complimentary access. Of the rest, 3 addresses were left out because
+        they bounce or are typos (one had hard-bounced on 2 September). Four
+        were left out as likely automated signups: random-letter usernames, and
+        one Gmail inbox behind three accounts. No one on the list had opted out
+        of emails.
+        <br><br>
+        <b>What the email says.</b> Checking the list showed the pitch above
+        didn't fit most of them. 10 of the 42 had already had the "trial ended"
+        email. Most last signed in before their trial even started, because the
+        trial was switched on for existing accounts. Only 6 had ever logged a
+        trade. So the email invites people back to log a trade first, and
+        mentions paid plans second, from A$30. It repeats that no card was
+        taken and nothing was charged. The 6 who logged trades are told their
+        trades are all still there. Also worth knowing: "add a card" means
+        subscribing, which charges that day. There is no way to save a card
+        without paying.
+        <br><br>
+        <b>Expect little.</b> One or two subscriptions from this group would be
+        a good result. I'll check the 31 accounts for any subscription or new
+        trade around 2 October. In Resend the send is tagged
+        <code>winback-2026-09-18</code>.
+      </div>
       <p class="lede">
         Production has <b>7 real users mid-trial</b> on the old card-free version.
         They keep it — they were sold a trial that takes no card, so we cannot put
@@ -635,12 +681,23 @@
       </div>
     </div>
 
-    <div class="item sev-warn">
+    <div class="item sev-done">
       <div class="item-top">
         <span class="rank">07</span>
-        <span class="chip warn">Decision</span>
+        <span class="chip done">Decided · live</span>
       </div>
       <h3>Buying Trader mid-trial silently stops a customer's broker sync</h3>
+      <div class="resolved">
+        <span class="tag">Your call, 18 September</span>
+        Option B: Trader stays available, with a warning. Everywhere a trialist
+        can pick Trader, the warning sits under the Trader card: the in-app plan
+        picker, and the billing page before the Stripe portal. It says that
+        automatic MT5 sync is Pro only and when it will stop. That is at trial
+        end for a card-free trialist, or straight away for someone switching in
+        the portal. The in-app pop-up now says "Subscribe to Pro now", because
+        its promise that MT5 sync keeps running was untrue for the Trader card
+        under it. Live since 18 September.
+      </div>
       <p class="lede">
         Everyone trials <b>Pro</b>. Trader is still purchasable during the trial
         from two places in the app. Someone who buys Trader on day 2 keeps their
@@ -747,12 +804,21 @@
       </div>
     </div>
 
-    <div class="item sev-chk">
+    <div class="item sev-done">
       <div class="item-top">
         <span class="rank">10</span>
-        <span class="chip warn">Two-step fix</span>
+        <span class="chip done">Done · live</span>
       </div>
       <h3>Stripe's own terms checkbox is switched off, and cannot be switched on yet</h3>
+      <div class="resolved">
+        <span class="tag">Done 18 September</span>
+        Both halves are done, in the right order. The terms and privacy links are
+        set in the Stripe dashboard (Live), and then <code>STRIPE_TOS_CONSENT=on</code>
+        was set for the app in Vercel and it was redeployed. A real checkout now shows a required "I agree
+        to the Terms of Service" checkbox. From here on, Stripe records each
+        customer's acceptance on the same record as their payment. To turn it
+        off, remove the variable and redeploy.
+      </div>
       <p class="lede">
         Stripe can require customers to tick acceptance of our terms on its
         checkout page and record it against the payment — a stronger record than
@@ -805,10 +871,12 @@
     </ol>
     <h3 class="next-h">Still to do</h3>
     <ol class="steps">
-      <li><span><b>Turn on the missing Stripe webhook events.</b><span class="why">Item 11. Before 27 September, when the first trials reach day 11.</span></span></li>
-      <li><span><b>Add the terms URL in Stripe, then turn on its terms checkbox.</b><span class="why">Item 10. In that order, or every checkout breaks.</span></span></li>
-      <li><span><b>Answer decisions 04 to 07.</b><span class="why">None blocks anything today. 04 is the likeliest to turn up as a surprise, in the form of a chargeback.</span></span></li>
-      <li><span><b>Remove the old card-free trial code, about 21 days after launch.</b><span class="why">Once the 7 grandfathered trials have run out.</span></span></li>
+      <li class="done"><span><b>Turn on the missing Stripe webhook events.</b><span class="why">Done 17 September. Item 11.</span></span></li>
+      <li class="done"><span><b>Answer decisions 04, 06 and 07.</b><span class="why">Answered 18 September, and all three are done.</span></span></li>
+      <li><span><b>Decide 05, the founding annual offer.</b><span class="why">Nothing breaks while it waits. The cost is that no new signup can claim the offer.</span></span></li>
+      <li class="done"><span><b>Add the terms URL in Stripe, then turn on its terms checkbox.</b><span class="why">Done 18 September. Item 10.</span></span></li>
+      <li><span><b>Check what the lapsed-trial email achieved, around 2 October.</b><span class="why">Item 06. Any subscription or new trade from the 31 accounts.</span></span></li>
+      <li><span><b>Remove the old card-free trial code, about 21 days after launch.</b><span class="why">Once the last grandfathered trials have run out. The last 3 end on 22, 25 and 28 September.</span></span></li>
     </ol>
   </section>
 
@@ -817,11 +885,11 @@
     leaks from the first version are closed, and checkout can no longer
     restart a trial or bill someone twice (item 12).
 
-    <br><br>One issue needs fixing before <b>27 September</b>: <b>item 11</b>.
-    Stripe isn't sending the events for payments and upcoming charges. Until
-    it does, the pre-charge email can't send, and your grace rule treats every
-    paying customer as if they've never paid. It's a dashboard setting, and the
-    code for it is already live.
+    <br><br>Your 18 September reply is fully done: the refund policy (04), the
+    lapsed-trial email (06) and the Trader warning (07). Referrals and the
+    7-day grace were already in place. Stripe's checkout now also requires
+    customers to accept the terms before they pay (item 10). <b>One decision
+    is left: 05</b>, the founding annual offer, whenever you are ready.
   </p>
 
 </div>

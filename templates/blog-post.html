@@ -1,4 +1,8 @@
 ﻿<!DOCTYPE html>
+<!-- TEMPLATE, not a page. scripts/build-blog.mjs fills this from
+     data/posts.json and writes blog/<slug>.html. Edit here, then run
+     `node scripts/build-blog.mjs` and commit the regenerated pages.
+     {{x}} is HTML-escaped; {{{x}}} is inserted as-is. -->
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -6,8 +10,8 @@
 <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/favicon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
-<title>Why a trading journal is the highest-ROI habit you're not building — TradingSocial</title>
-<meta name="description" content="Most traders track P&amp;L and stop there. The traders who compound review. The case for journaling, plus a ten-minute daily framework.">
+<title>{{page_title}}</title>
+<meta name="description" content="{{description}}">
 <style>/* cyrillic-ext */
 @font-face {
   font-family: 'JetBrains Mono';
@@ -1187,7 +1191,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .foot-social a { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border:1px solid var(--border); border-radius:10px; color: var(--dim); transition: color .2s, border-color .2s, background .2s; }
 .foot-social a:hover { color: var(--text); border-color: var(--border-2); background: var(--bg-3); }
 .foot-social svg { width:18px; height:18px; display:block; }
-.foot-col h5 { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; }
+.foot-col .foot-title { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; font-weight: 700; }
+.foot-col .foot-title--sub { margin-top: 28px; }
 .foot-col a { display:block; font-size: 14px; color: var(--dim); padding: 6px 0; transition: color .2s; }
 .foot-col a:hover { color: var(--text); }
 .foot-disc { margin-top: 44px; padding-top: 28px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap; }
@@ -1340,7 +1345,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 /* ---------- Post grid ---------- */
 .postgrid-sec { padding-top: clamp(40px, 5vw, 60px); }
 .postgrid-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
-.postgrid-head h3 { font-family: var(--display); font-size: clamp(20px, 2.4vw, 26px); font-weight: 600; letter-spacing: -0.02em; }
+.postgrid-head h2 { font-family: var(--display); font-size: clamp(20px, 2.4vw, 26px); font-weight: 600; letter-spacing: -0.02em; }
 .postgrid-head .count { font-family: var(--mono); font-size: 12px; color: var(--faint); }
 .postgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 @media (max-width: 920px){ .postgrid { grid-template-columns: repeat(2, 1fr); } }
@@ -1358,9 +1363,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 .pcard-blog .thumb .glyph svg { width: 24px; height: 24px; }
 .pcard-body { padding: 20px 20px 22px; display: flex; flex-direction: column; flex: 1; }
 .pcard-cat { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.02em; color: var(--violet-br); background: rgba(124,92,230,0.10); border: 1px solid rgba(124,92,230,0.20); padding: 4px 9px; border-radius: 7px; }
-.pcard-body h4 { font-family: var(--display); font-size: 19px; font-weight: 600; line-height: 1.18; letter-spacing: -0.015em; margin-top: 14px; text-wrap: pretty; }
-.pcard-body h4 a { transition: color .2s; }
-.pcard-blog:hover .pcard-body h4 a { color: var(--violet-br); }
+.pcard-body h3 { font-family: var(--display); font-size: 19px; font-weight: 600; line-height: 1.18; letter-spacing: -0.015em; margin-top: 14px; text-wrap: pretty; }
+.pcard-body h3 a { transition: color .2s; }
+.pcard-blog:hover .pcard-body h3 a { color: var(--violet-br); }
 .pcard-body .excerpt { font-size: 13.5px; color: var(--dim); margin-top: 10px; line-height: 1.55; }
 .pcard-body .post-meta { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
 
@@ -1386,7 +1391,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 }
 .news-card .bg-grid { background-size: 48px 48px; }
 .news-card .eyebrow { justify-content: center; }
-.news-card h3 { position: relative; z-index: 1; font-family: var(--display); font-size: clamp(26px, 3.4vw, 40px); font-weight: 600; letter-spacing: -0.025em; margin-top: 14px; }
+.news-card h2 { position: relative; z-index: 1; font-family: var(--display); font-size: clamp(26px, 3.4vw, 40px); font-weight: 600; letter-spacing: -0.025em; margin-top: 14px; }
 .news-card p { position: relative; z-index: 1; font-size: 16px; color: var(--dim); margin: 14px auto 0; max-width: 48ch; }
 .news-form { position: relative; z-index: 1; margin: 28px auto 0; max-width: 460px; display: flex; gap: 10px; }
 .news-form input {
@@ -1470,7 +1475,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 /* author bio box */
 .author-box { display: flex; gap: 18px; align-items: flex-start; max-width: 720px; margin: 40px auto 0; padding: 26px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-2); }
 .author-box .av { width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; border: 1px solid var(--border); }
-.author-box h5 { font-family: var(--display); font-size: 17px; font-weight: 600; }
+.author-box .author-name { font-family: var(--display); font-size: 17px; font-weight: 600; }
 .author-box .role { font-family: var(--mono); font-size: 11.5px; color: var(--violet-br); margin-top: 3px; }
 .author-box p { font-size: 14px; color: var(--dim); margin-top: 10px; line-height: 1.6; }
 
@@ -1484,16 +1489,19 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
        consent gate allows the relevant tier (audit item 17, WS7). Do not
        re-add inline gtag/fbq/rdt loaders here -- they cannot be declined. -->
   <script src="/consent.js"></script>
-  <meta property="og:title" content="Why a trading journal is the highest-ROI habit you're not building — TradingSocial">
-  <meta property="og:description" content="Most traders track P&amp;L and stop there. The traders who compound review. The case for journaling, plus a ten-minute daily framework.">
-  <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <meta property="og:url" content="https://www.tradingsocial.io/blog-post">
-  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{title}}">
+  <meta property="og:description" content="{{description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <meta property="og:url" content="{{url}}">
+  <meta property="og:type" content="article">
+  <meta property="article:published_time" content="{{published_date}}">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Why a trading journal is the highest-ROI habit you're not building — TradingSocial">
-  <meta name="twitter:description" content="Most traders track P&amp;L and stop there. The traders who compound review. The case for journaling, plus a ten-minute daily framework.">
-  <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <link rel="canonical" href="https://www.tradingsocial.io/blog-post">
+  <meta name="twitter:title" content="{{title}}">
+  <meta name="twitter:description" content="{{description}}">
+  <meta name="twitter:image" content="{{og_image}}">
+  <link rel="canonical" href="{{url}}">
+  <script type="application/ld+json">{{{json_ld}}}</script>
+  <script type="application/ld+json">{{{breadcrumb_ld}}}</script>
 </head>
 <body>
 <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
@@ -1581,14 +1589,14 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   <div class="wrap">
     <div class="article-head">
       <span class="crumbs">
-        <a href="/blog">Blog</a><span class="sep">/</span><span id="js-crumb-cat"></span>
+        <a href="/blog">Blog</a><span class="sep">/</span><span>{{category}}</span>
       </span>
-      <h1 id="js-title"></h1>
-      <p class="standfirst" id="js-standfirst"></p>
+      <h1>{{title}}</h1>
+      <p class="standfirst">{{description}}</p>
       <div class="article-byline">
         <div class="post-meta">
-          <span id="js-av" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;display:inline-block;border:1px solid var(--border)"></span>
-          <span class="pm-t"><b id="js-author"></b><span id="js-date-read"></span></span>
+          <span style="width:36px;height:36px;border-radius:50%;flex-shrink:0;display:inline-block;border:1px solid var(--border);background:{{author_color}}"></span>
+          <span class="pm-t"><b>{{author_name}}</b><span><time datetime="{{published_date}}">{{date_label}}</time><span class="dotsep">·</span>{{readtime}} read</span></span>
         </div>
         <div class="article-share">
           <a href="#" aria-label="Share on X"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></a>
@@ -1602,23 +1610,23 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 
 <!-- ============================ COVER ============================ -->
 <div class="wrap">
-  <div class="article-cover reveal" id="js-cover"></div>
+  <div class="article-cover reveal">{{{cover}}}</div>
 </div>
 
 <!-- ============================ BODY ============================ -->
 <article class="article-body">
-  <div class="prose" id="js-prose"></div>
+  <div class="prose">{{{body}}}</div>
 
   <div class="article-foot">
-    <div class="article-tags" id="js-tags"></div>
+    <div class="article-tags">{{{tags}}}</div>
   </div>
 
   <div class="author-box">
-    <span id="js-bio-av" style="width:56px;height:56px;border-radius:50%;flex-shrink:0;border:1px solid var(--border);display:inline-block"></span>
+    <span style="width:56px;height:56px;border-radius:50%;flex-shrink:0;border:1px solid var(--border);display:inline-block;background:{{author_color}}"></span>
     <div>
-      <h5 id="js-bio-name"></h5>
-      <span class="role" id="js-bio-role"></span>
-      <p id="js-bio-text"></p>
+      <div class="author-name">{{author_name}}</div>
+      <span class="role">{{author_role}}</span>
+      <p>{{author_bio}}</p>
     </div>
   </div>
 </article>
@@ -1627,12 +1635,12 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 <section class="section related">
   <div class="wrap">
     <div class="postgrid-head">
-      <h3>Keep reading</h3>
+      <h2>Keep reading</h2>
       <a class="filter-sort" href="/blog"><b>All articles</b>
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       </a>
     </div>
-    <div class="postgrid" id="js-related"></div>
+    <div class="postgrid">{{{related}}}</div>
   </div>
 </section>
 
@@ -1673,21 +1681,28 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         </div>
       </div>
       <div class="foot-col">
-        <h5>Product</h5>
+        <div class="foot-title">Product</div>
         <a href="/#features">Features</a>
         <a href="/#showcase">Journal</a>
         <a href="/#showcase">Leaderboards</a>
         <!-- Learning hub hidden for now — we are not financial advisors. Restore when compliant. -->
+        <div class="foot-title foot-title--sub">Compare</div>
+        <a href="/compare/tradezella-alternative">TradeZella alternative</a>
+        <a href="/compare/tradersync-alternative">TraderSync alternative</a>
+        <a href="/compare/edgewonk-alternative">Edgewonk alternative</a>
+        <a href="/compare/vs-trading-journal-spreadsheet">Trading journal vs spreadsheet</a>
+        <a href="/compare/best-prop-firm-trading-journal">Prop firm trading journal</a>
+        <a href="/compare/best-mt5-trading-journal">MT5 trading journal</a>
       </div>
       <div class="foot-col">
-        <h5>Company</h5>
+        <div class="foot-title">Company</div>
         <a href="/#about">About</a>
         <a href="/pricing">Pricing</a>
         <a href="/blog">Blog</a>
         <a href="https://app.tradingsocial.io/signup">Start Free Trial</a>
       </div>
       <div class="foot-col">
-        <h5>Solutions</h5>
+        <div class="foot-title">Solutions</div>
         <a href="/for/forex">Forex traders</a>
         <a href="/for/crypto">Crypto traders</a>
         <a href="/for/futures">Futures traders</a>
@@ -1697,7 +1712,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         <a href="/for/educators">Educators</a>
       </div>
       <div class="foot-col">
-        <h5>Legal</h5>
+        <div class="foot-title">Legal</div>
         <a href="/terms">Terms of service</a>
         <a href="/privacy">Privacy policy</a>
         <a href="/disclaimer">Financial disclaimer</a>
@@ -1713,176 +1728,6 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 
 <script src="/assets/js/66e7d2ba811bad6e323afd8b3e3e557c.js"></script>
 
-<script>
-(function () {
-  var slug = window.location.pathname.replace(/^\/blog\//, '').replace(/\/$/, '');
-  if (!slug) { window.location.href = '/blog'; return; }
-
-  fetch('/data/posts.json')
-    .then(function (r) { if (!r.ok) throw new Error('fetch failed'); return r.json(); })
-    .then(function (posts) {
-      var post = null;
-      for (var i = 0; i < posts.length; i++) {
-        if (posts[i].slug === slug) { post = posts[i]; break; }
-      }
-      if (!post) { window.location.href = '/blog'; return; }
-
-      // Page meta
-      document.title = post.title + ' — TradingSocial';
-      setMeta('og:title', post.title);
-      setMeta('og:description', post.excerpt);
-      setMeta('og:url', 'https://www.tradingsocial.io/blog/' + post.slug);
-      setMeta('og:type', 'article');
-      setMetaName('description', post.excerpt);
-      setMetaName('twitter:title', post.title);
-      setMetaName('twitter:description', post.excerpt);
-      var canon = document.querySelector('link[rel="canonical"]');
-      if (canon) canon.href = 'https://www.tradingsocial.io/blog/' + post.slug;
-      injectArticleJsonLd(post);
-
-      // Hero
-      document.getElementById('js-crumb-cat').textContent = post.category;
-      document.getElementById('js-title').textContent = post.title;
-      document.getElementById('js-standfirst').textContent = post.excerpt;
-
-      // Byline
-      var av = document.getElementById('js-av');
-      av.style.background = post.author_color;
-      document.getElementById('js-author').textContent = post.author_name;
-      document.getElementById('js-date-read').innerHTML =
-        esc(fmtDate(post.published_date)) +
-        '<span class="dotsep">·</span>' +
-        esc(post.readtime) + ' read';
-
-      // Cover
-      var cover = document.getElementById('js-cover');
-      if (post.image) {
-        cover.innerHTML = '<img src="' + esc(post.image) + '" alt="' + esc(post.title) +
-          '" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
-      } else {
-        cover.innerHTML = '<div class="thumb ' + esc(post.thumb_color) + '">' +
-          '<span class="glyph">' + post.thumb_icon + '</span></div>';
-      }
-
-      // Body
-      document.getElementById('js-prose').innerHTML = post.body;
-
-      // Tags
-      document.getElementById('js-tags').innerHTML = post.tags
-        .map(function (t) { return '<span class="tag tag--neutral">' + esc(t) + '</span>'; })
-        .join('');
-
-      // Author bio
-      var bioAv = document.getElementById('js-bio-av');
-      bioAv.style.background = post.author_color;
-      document.getElementById('js-bio-name').textContent = post.author_name;
-      document.getElementById('js-bio-role').textContent = post.author_role;
-      document.getElementById('js-bio-text').textContent = post.author_bio;
-
-      // Related posts (3 most recent, excluding current)
-      var related = posts
-        .filter(function (p) { return p.slug !== slug; })
-        .sort(function (a, b) { return new Date(b.published_date) - new Date(a.published_date); })
-        .slice(0, 3);
-      document.getElementById('js-related').innerHTML = related.map(renderCard).join('');
-
-      // Site-wide reveal observer ran before these cards existed; observe them here
-      var rio = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) {
-          if (en.isIntersecting) { en.target.classList.add('in'); rio.unobserve(en.target); }
-        });
-      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
-      document.querySelectorAll('#js-related .reveal').forEach(function (el) { rio.observe(el); });
-    })
-    .catch(function () {
-      var hero = document.querySelector('.article-hero .wrap');
-      if (hero) hero.innerHTML = '<p style="color:#9d8ec4;padding:4rem 0;text-align:center">Could not load post. Please refresh.</p>';
-    });
-
-  function fmtDate(iso) {
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-
-  function esc(s) {
-    return String(s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function setMeta(prop, val) {
-    var el = document.querySelector('meta[property="' + prop + '"]');
-    if (el) el.setAttribute('content', val);
-  }
-
-  function setMetaName(name, val) {
-    var el = document.querySelector('meta[name="' + name + '"]');
-    if (el) el.setAttribute('content', val);
-  }
-
-  // BlogPosting structured data — built from the fetched post, since this page
-  // is a client-rendered shell and has no post-specific markup at load time.
-  function injectArticleJsonLd(post) {
-    var url = 'https://www.tradingsocial.io/blog/' + post.slug;
-    var data = {
-      '@context': 'https://schema.org',
-      '@type': 'BlogPosting',
-      'headline': post.title,
-      'description': post.excerpt,
-      'url': url,
-      'mainEntityOfPage': { '@type': 'WebPage', '@id': url },
-      'datePublished': post.published_date,
-      'dateModified': post.published_date,
-      'articleSection': post.category,
-      'inLanguage': 'en',
-      'author': { '@type': 'Person', 'name': post.author_name },
-      'publisher': {
-        '@type': 'Organization',
-        'name': 'TradingSocial',
-        'url': 'https://www.tradingsocial.io',
-        'logo': {
-          '@type': 'ImageObject',
-          'url': 'https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png'
-        }
-      }
-    };
-    if (post.tags && post.tags.length) data.keywords = post.tags.join(', ');
-    if (post.image) {
-      data.image = [post.image.indexOf('http') === 0
-        ? post.image
-        : 'https://www.tradingsocial.io' + post.image];
-    }
-    var s = document.createElement('script');
-    s.type = 'application/ld+json';
-    s.textContent = JSON.stringify(data);
-    document.head.appendChild(s);
-  }
-
-  function renderCard(p) {
-    var href = '/blog/' + esc(p.slug);
-    var thumb = p.image
-      ? '<a class="thumb" href="' + href + '" style="overflow:hidden;background:#1a1330">' +
-          '<img src="' + esc(p.image) + '" alt="' + esc(p.title) +
-          '" style="width:100%;height:100%;object-fit:cover"></a>'
-      : '<a class="thumb ' + esc(p.thumb_color) + '" href="' + href + '">' +
-          '<span class="glyph">' + p.thumb_icon + '</span>' +
-          '<span class="thumb-lbl">' + esc(p.category) + '</span></a>';
-    return '<article class="pcard-blog reveal">' +
-      thumb +
-      '<div class="pcard-body">' +
-        '<span class="pcard-cat">' + esc(p.category) + '</span>' +
-        '<h4><a href="' + href + '">' + esc(p.title) + '</a></h4>' +
-        '<p class="excerpt">' + esc(p.excerpt) + '</p>' +
-        '<div class="post-meta">' +
-          '<span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:' + esc(p.author_color) + '"></span>' +
-          '<span class="pm-t"><b>' + esc(p.author_name) + '</b>' +
-            '<span>' + esc(fmtDate(p.published_date)) + '<span class="dotsep">·</span>' + esc(p.readtime) + '</span>' +
-          '</span>' +
-        '</div>' +
-      '</div>' +
-    '</article>';
-  }
-})();
-</script>
 <script>
   window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
 </script>

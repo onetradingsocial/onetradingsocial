@@ -1185,7 +1185,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.04; l
 .foot-social a { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border:1px solid var(--border); border-radius:10px; color: var(--dim); transition: color .2s, border-color .2s, background .2s; }
 .foot-social a:hover { color: var(--text); border-color: var(--border-2); background: var(--bg-3); }
 .foot-social svg { width:18px; height:18px; display:block; }
-.foot-col h5 { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; }
+.foot-col .foot-title { font-family: var(--mono); font-size: 11px; letter-spacing:0.1em; text-transform:uppercase; color: var(--faint); margin-bottom: 16px; font-weight: 700; }
+.foot-col .foot-title--sub { margin-top: 28px; }
 .foot-col a { display:block; font-size: 14px; color: var(--dim); padding: 6px 0; transition: color .2s; }
 .foot-col a:hover { color: var(--text); }
 .foot-disc { margin-top: 44px; padding-top: 28px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap; }
@@ -1460,8 +1461,8 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
   padding: 24px 26px; box-shadow: var(--shadow-sm);
 }
-.faq-item h4 { font-family: var(--display); font-size: 17px; font-weight: 600; display: flex; align-items: flex-start; gap: 11px; }
-.faq-item h4 .q { font-family: var(--mono); font-size: 13px; color: var(--violet-br); margin-top: 2px; }
+.faq-item h3 { font-family: var(--display); font-size: 17px; font-weight: 600; display: flex; align-items: flex-start; gap: 11px; line-height: inherit; letter-spacing: inherit; text-wrap: inherit; }
+.faq-item h3 .q { font-family: var(--mono); font-size: 13px; color: var(--violet-br); margin-top: 2px; }
 .faq-item p { font-size: 14px; color: var(--dim); line-height: 1.6; margin-top: 11px; padding-left: 25px; }
 /* ---------- vs-page specifics ---------- */
 .vs-note { font-family: var(--mono); font-size: 12px; color: var(--faint); margin-top: 14px; }
@@ -1806,27 +1807,27 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     </div>
     <div class="faq-grid reveal">
       <div class="faq-item">
-        <h4><span class="q">Q</span>Is TradingSocial a TradeZella alternative?</h4>
+        <h3><span class="q">Q</span>Is TradingSocial a TradeZella alternative?</h3>
         <p>Partly. Both are trading journals with broker syncing and performance analytics. TradeZella is the broader product &mdash; it publishes backtesting, trade replay and AI review tooling we don&rsquo;t have. We&rsquo;re narrower, and built around one thing they don&rsquo;t publish: a provenance label on every trade, set by the system, that a trader can&rsquo;t award themselves.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>What does TradeZella do better?</h4>
+        <h3><span class="q">Q</span>What does TradeZella do better?</h3>
         <p>Breadth. Their published broker and prop-firm integration coverage is far wider than our MT5-only sync, and they offer backtesting, trade replay and deeper AI-assisted review. If the most complete analysis toolkit is what you&rsquo;re after, that&rsquo;s a real reason to choose them.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>Don&rsquo;t both let you share results publicly?</h4>
+        <h3><span class="q">Q</span>Don&rsquo;t both let you share results publicly?</h3>
         <p>Yes &mdash; both have public profiles and community features, so sharing isn&rsquo;t the difference. The difference is what a viewer can tell from what they&rsquo;re shown. Here, every trade carries a label recording how it arrived, and that label is set by the system rather than chosen by the trader.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>Which brokers does TradingSocial sync with?</h4>
+        <h3><span class="q">Q</span>Which brokers does TradingSocial sync with?</h3>
         <p>MetaTrader 5 only, hourly, on the Pro plan. That&rsquo;s narrower than TradeZella&rsquo;s published list and it&rsquo;s the main practical reason to pick them instead. Trades from anywhere else are logged manually or imported from a statement, and labelled as such.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>Is TradingSocial priced in US dollars?</h4>
+        <h3><span class="q">Q</span>Is TradingSocial priced in US dollars?</h3>
         <p>No. It&rsquo;s an Australian product priced in Australian dollars, with a free plan and a 14-day Pro trial. See <a href="/pricing">pricing</a> for the current plans.</p>
       </div>
       <div class="faq-item">
-        <h4><span class="q">Q</span>Can I try both?</h4>
+        <h3><span class="q">Q</span>Can I try both?</h3>
         <p>Yes, and you probably should. Our trial is 14 days of Pro, which is long enough to run both against the same fortnight of trading and keep whichever one you actually open.</p>
       </div>
     </div>
@@ -1867,21 +1868,28 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         </div>
       </div>
       <div class="foot-col">
-        <h5>Product</h5>
+        <div class="foot-title">Product</div>
         <a href="/#features">Features</a>
         <a href="/#showcase">Journal</a>
         <a href="/#showcase">Leaderboards</a>
         <!-- Learning hub hidden for now — we are not financial advisors. Restore when compliant. -->
+        <div class="foot-title foot-title--sub">Compare</div>
+        <a href="/compare/tradezella-alternative">TradeZella alternative</a>
+        <a href="/compare/tradersync-alternative">TraderSync alternative</a>
+        <a href="/compare/edgewonk-alternative">Edgewonk alternative</a>
+        <a href="/compare/vs-trading-journal-spreadsheet">Trading journal vs spreadsheet</a>
+        <a href="/compare/best-prop-firm-trading-journal">Prop firm trading journal</a>
+        <a href="/compare/best-mt5-trading-journal">MT5 trading journal</a>
       </div>
       <div class="foot-col">
-        <h5>Company</h5>
+        <div class="foot-title">Company</div>
         <a href="/#about">About</a>
         <a href="/pricing">Pricing</a>
         <a href="/blog">Blog</a>
         <a href="https://app.tradingsocial.io/signup">Start Free Trial</a>
       </div>
       <div class="foot-col">
-        <h5>Solutions</h5>
+        <div class="foot-title">Solutions</div>
         <a href="/for/forex">Forex traders</a>
         <a href="/for/crypto">Crypto traders</a>
         <a href="/for/futures">Futures traders</a>
@@ -1891,7 +1899,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
         <a href="/for/educators">Educators</a>
       </div>
       <div class="foot-col">
-        <h5>Legal</h5>
+        <div class="foot-title">Legal</div>
         <a href="/terms">Terms of service</a>
         <a href="/privacy">Privacy policy</a>
         <a href="/disclaimer">Financial disclaimer</a>
