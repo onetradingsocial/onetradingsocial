@@ -17,19 +17,31 @@ export const APP_ORIGIN = 'https://app.tradingsocial.io'
  *   api                   route handlers (the OG image endpoint is re-allowed)
  *   auth                  callback / confirm / reset / signout handlers
  *   r                     referral redirect — each hit writes referral_clicks
- *   settings, messages, journal, achievements, referrals, feature-board,
- *   leaderboard, learn    login-gated app pages
- *   onboarding, welcome, select-plan   signup funnel (middleware-gated)
+ *   settings, onboarding, welcome, select-plan
+ *                         middleware answers these with a 307, so there is no
+ *                         page for a crawler to index either way
  *
- * NOT listed, on purpose: login, signup, forgot-password, check-email and
- * reset-password. They carry `noindex, follow`, and a crawler that is disallowed
- * from fetching a page never sees its noindex.
+ * NOT listed, on purpose — a crawler that is disallowed from fetching a page
+ * never sees its noindex, so a URL already in the index would stay there:
+ *   - login, signup, forgot-password, check-email, reset-password
+ *     (`noindex, follow`)
+ *   - NOINDEX_GATED_ROUTES below (`noindex, nofollow`)
  */
 export const PRIVATE_ROUTES = [
   'admin', 'api', 'auth', 'r',
-  'settings', 'messages', 'journal', 'achievements', 'referrals',
+  'settings', 'onboarding', 'welcome', 'select-plan',
+] as const
+
+/**
+ * Login-gated pages that answer a logged-out crawler with a 200 and a
+ * meta-refresh to /login (redirect() runs after streaming has begun), not a
+ * 3xx. Each exports `noindex, nofollow`, and they stay crawlable so that
+ * noindex is actually read. Moving them into middleware as real redirects is
+ * a separate, deferred change; once that lands they can join PRIVATE_ROUTES.
+ */
+export const NOINDEX_GATED_ROUTES = [
+  'messages', 'journal', 'achievements', 'referrals',
   'feature-board', 'leaderboard', 'learn',
-  'onboarding', 'welcome', 'select-plan',
 ] as const
 
 /** Paths inside a disallowed route that must stay fetchable. Twitterbot obeys

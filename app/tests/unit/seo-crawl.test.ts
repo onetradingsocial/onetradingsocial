@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import robots from '@/app/robots'
 import sitemap from '@/app/sitemap'
-import { APP_ORIGIN, PRIVATE_ROUTES } from '@/lib/seo'
+import { APP_ORIGIN, NOINDEX_GATED_ROUTES, PRIVATE_ROUTES } from '@/lib/seo'
 import { isReservedProfileSegment } from '@/lib/username'
 
 /**
@@ -59,10 +59,7 @@ describe('robots.txt (finding 1)', () => {
   it.each([
     '/settings', '/settings/billing', '/admin', '/admin/users/123',
     '/api/stats', '/api/track', '/auth/callback', '/auth/confirm?token=x',
-    '/messages', '/messages?to=alex', '/journal', '/journal/report',
-    '/onboarding', '/welcome', '/select-plan', '/achievements', '/referrals',
-    '/feature-board', '/leaderboard', '/leaderboard?period=week', '/learn',
-    '/learn/risk/intro', '/r/ABC123',
+    '/onboarding', '/welcome', '/select-plan', '/r/ABC123',
   ])('disallows the private path %s', (path) => {
     expect(allowed(path, allow, disallow)).toBe(false)
   })
@@ -73,7 +70,11 @@ describe('robots.txt (finding 1)', () => {
     // Auth pages carry noindex,follow. A crawler barred from fetching them
     // would never read that noindex.
     '/login', '/signup', '/forgot-password', '/check-email', '/reset-password',
-  ])('allows the public path %s', (path) => {
+    // Gated pages answer logged-out crawlers with a 200 + noindex,nofollow.
+    // Same reasoning: blocking them would hide the noindex.
+    '/messages', '/journal', '/journal/report', '/achievements', '/referrals',
+    '/feature-board', '/leaderboard', '/leaderboard?period=week', '/learn',
+  ])('allows the fetchable path %s', (path) => {
     expect(allowed(path, allow, disallow)).toBe(true)
   })
 
@@ -88,7 +89,7 @@ describe('robots.txt (finding 1)', () => {
 
   it('covers every top-level route that is not a public page', () => {
     // Derived from the filesystem so a new private route cannot ship without
-    // a decision here. Anything not listed as public must be disallowed.
+    // a decision here. Anything not public must be disallowed or noindexed.
     const PUBLIC = new Set([
       '[username]', 'changelog', 'demo', 'verification', 'for',
       'login', 'signup', 'forgot-password', 'check-email', 'reset-password',
@@ -103,7 +104,10 @@ describe('robots.txt (finding 1)', () => {
     const dirs = readdirSync(APP_DIR).filter((e) => statSync(join(APP_DIR, e)).isDirectory() && routable(join(APP_DIR, e)))
     expect(dirs.length).toBeGreaterThan(20)
     const uncovered = dirs.filter(
-      (d) => !PUBLIC.has(d) && !(PRIVATE_ROUTES as readonly string[]).includes(d),
+      (d) =>
+        !PUBLIC.has(d) &&
+        !(PRIVATE_ROUTES as readonly string[]).includes(d) &&
+        !(NOINDEX_GATED_ROUTES as readonly string[]).includes(d),
     )
     expect(uncovered).toEqual([])
   })
@@ -178,7 +182,7 @@ describe('sitemap.xml (findings 1 and 4)', () => {
 
   it('lists no private or auth path', async () => {
     const paths = (await sitemap()).map((e) => new URL(e.url).pathname.split('/')[1])
-    for (const p of [...PRIVATE_ROUTES, 'login', 'signup', 'forgot-password', 'check-email', 'reset-password', '']) {
+    for (const p of [...PRIVATE_ROUTES, ...NOINDEX_GATED_ROUTES, 'login', 'signup', 'forgot-password', 'check-email', 'reset-password', '']) {
       expect(paths).not.toContain(p)
     }
   })
@@ -226,6 +230,12 @@ const GATED_PAGES = [
 ]
 
 describe('noindex where it belongs (finding 3)', () => {
+  it('every gated route left crawlable in robots.txt exports noindex', () => {
+    // NOINDEX_GATED_ROUTES are deliberately not disallowed, so the noindex is
+    // the only thing keeping them out of the index.
+    for (const r of NOINDEX_GATED_ROUTES) expect(GATED_PAGES).toContain(r)
+  })
+
   it.each(AUTH_PAGES)('/%s exports noindex, follow', (route) => {
     const block = metadataBlock(read(`${route}/page.tsx`))
     expect(block).not.toBeNull()
