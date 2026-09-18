@@ -52,7 +52,10 @@ export function AuthShell({
           </span>
 
           <div className="fl-aside-eyebrow"><span className="pulse" /> Now in beta</div>
-          <h2>Track. Prove. <span className="gr">Improve your trading.</span></h2>
+          {/* Not a heading: this aside renders before the form's h1, and as an
+              h2 it put a subheading ahead of the page title (SEO audit
+              2026-09-18). .fl-aside-title carries the old `.fl-aside h2` rule. */}
+          <div className="fl-aside-title">Track. Prove. <span className="gr">Improve your trading.</span></div>
           <p className="fl-aside-sub">
             Build a trading profile backed by real numbers — not screenshots. Journal your trades,
             prove your edge, and climb the leaderboard.

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
@@ -47,6 +48,14 @@ import { GOAL_META, type GoalKind } from '@/lib/goals'
 import { getComparison } from '@/lib/server/compare'
 import { ComparisonCard } from './_components/ComparisonCard'
 import type { EditTradeConfig } from './_components/EditTradeModal'
+
+// Login-gated. Logged out, this answers 200 with a meta-refresh to /login
+// (redirect() runs after streaming has started), so the page itself has to
+// say noindex. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Journal — TradingSocial',
+  robots: { index: false, follow: false },
+}
 
 export default async function JournalPage() {
   const supabase = await createClient()

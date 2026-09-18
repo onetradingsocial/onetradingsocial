@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { getEntitlements, getSubscription } from '@/lib/server/entitlements'
@@ -6,6 +7,13 @@ import { PlanCards } from './BillingActions'
 import { MetaPixel } from '@/app/_components/MetaPixel'
 import { subscribeParams } from '@/lib/meta'
 import { formatBillingDate } from '@/lib/locale-format'
+
+// Private. Middleware already 3xx-redirects logged-out visitors; noindex is
+// the backstop if that ever changes. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Billing — TradingSocial',
+  robots: { index: false, follow: false },
+}
 
 const PLAN_LABEL = { free: 'Free', trader: 'Trader', pro: 'Pro Trader' } as const
 

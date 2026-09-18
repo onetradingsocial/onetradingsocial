@@ -1,5 +1,13 @@
+import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { CheckEmailForm } from './CheckEmailForm'
+
+// Auth page: never indexed, but its links may be followed.
+// SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Confirm your email — TradingSocial',
+  robots: { index: false, follow: true },
+}
 
 /**
  * "Check your inbox" landing for the email-confirmation flow (item 9 F2).

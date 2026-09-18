@@ -1,6 +1,14 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { FEEDBACK_TYPE_LABELS, type FeedbackType } from '@/lib/feedback'
+
+// Private. Middleware already 3xx-redirects logged-out visitors; noindex is
+// the backstop if that ever changes. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Your feedback — TradingSocial',
+  robots: { index: false, follow: false },
+}
 
 /**
  * "Your messages" — everything this user sent through the help widget, with the

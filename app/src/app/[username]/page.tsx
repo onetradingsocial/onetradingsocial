@@ -11,7 +11,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { RESERVED_USERNAMES } from '@/lib/username'
+import { isReservedProfileSegment } from '@/lib/username'
 import { computeMetrics, type TradeForMetrics } from '@/lib/trade'
 import { calendarCells, MONTHS, type JTrade } from '@/lib/journal-stats'
 import { FollowButton } from '@/app/_components/FollowButton'
@@ -48,13 +48,13 @@ const BADGE_GRAD: Record<string, string> = {
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.tradingsocial.io'
 
 // SEO metadata (Sprint 4, row 38): unique title/description, OG share image,
-// canonical URL. Only public, onboarded profiles are indexable.
+// canonical URL. Only public, onboarded, non-internal profiles are indexable.
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
   const { username } = await params
-  if ((RESERVED_USERNAMES as readonly string[]).includes(username.toLowerCase())) return {}
+  if (isReservedProfileSegment(username)) return { robots: { index: false, follow: false } }
   const supabase = await createClient()
   const { data: p } = await supabase
-    .from('profiles').select('username, display_name, bio, is_public, onboarding_completed')
+    .from('profiles').select('id, username, display_name, bio, is_public, onboarding_completed')
     .eq('username', username).maybeSingle()
   if (!p || !p.is_public || !p.onboarding_completed) {
     return { title: 'Trader profile — TradingSocial', robots: { index: false, follow: false } }
@@ -64,17 +64,39 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   const description = p.bio?.trim() || `See ${name}'s verified trading performance on TradingSocial — win rate, R multiples and profit factor computed from logged trades.`
   const url = `${SITE}/${p.username}`
   const image = `${SITE}/api/og/profile/${p.username}`
-  return {
+  const meta: Metadata = {
     title, description,
     alternates: { canonical: url },
     openGraph: { title, description, url, type: 'profile', images: [{ url: image, width: 1200, height: 630 }] },
     twitter: { card: 'summary_large_image', title, description, images: [image] },
   }
+  // SEO audit 2026-09-18, finding 4: seed and staff accounts were indexable as
+  // "verified trading track record" pages. They stay viewable; search engines
+  // are just told not to index them, and sitemap.ts leaves them out.
+  if (await isInternalProfile(p.id)) meta.robots = { index: false, follow: false }
+  return meta
+}
+
+/** Service client: migration 0047 revokes SELECT on `is_internal` from anon and
+ *  authenticated. Same pattern as the broker_accounts and owner-tier reads in
+ *  the page below. Reached only after the RLS-scoped read above has already
+ *  shown the row is public, is filtered by that row's id, and reads one
+ *  boolean. Fails CLOSED — a read error means noindex for this render, never
+ *  an internal account indexed. */
+async function isInternalProfile(id: string): Promise<boolean> {
+  try {
+    const { data, error } = await createServiceClient()
+      .from('profiles').select('is_internal').eq('id', id).maybeSingle()
+    if (error || !data) return true
+    return data.is_internal === true
+  } catch {
+    return true
+  }
 }
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
-  if ((RESERVED_USERNAMES as readonly string[]).includes(username.toLowerCase())) notFound()
+  if (isReservedProfileSegment(username)) notFound()
 
   const supabase = await createClient()
   const { data: profile } = await supabase
@@ -350,7 +372,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                   </div>
                   <div className="pf-id">
                     <div className="pf-name">
-                      {name}
+                      {/* The page's only h1 (SEO audit 2026-09-18, finding 5).
+                          Wraps the name alone so the heading reads as the
+                          trader's name, not "Name LV 3"; .pf-name-text makes it
+                          inherit .pf-name's type exactly. */}
+                      <h1 className="pf-name-text">{name}</h1>
                       {proBadge && <span className="pf-verified" title="Pro"><Icon name="check" size={13} /></span>}
                       {customBadge && (
                         <span className="pf-custombadge" style={{ background: customBadge.grad }}>

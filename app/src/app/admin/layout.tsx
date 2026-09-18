@@ -1,6 +1,14 @@
+import type { Metadata } from 'next'
 import { requireAdmin } from '@/lib/server/admin'
 import { createServiceClient } from '@/lib/supabase/service'
 import { AdminNav, type NavCounts, type NavGroup } from './_components/AdminNav'
+
+// Staff tools. requireAdmin() already 404s everyone else; this keeps the admin
+// pages out of any index regardless. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Admin — TradingSocial',
+  robots: { index: false, follow: false },
+}
 
 /** Head-only count — no rows transferred. */
 async function pending(table: string, col: string, value: string | boolean): Promise<number> {

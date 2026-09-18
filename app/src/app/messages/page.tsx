@@ -1,9 +1,18 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import {
   getConversations, getMessages, getConversationPeer,
 } from '@/lib/server/messaging'
 import { MessagesClient } from './MessagesClient'
+
+// Login-gated. Logged out, this answers 200 with a meta-refresh to /login
+// (redirect() runs after streaming has started), so the page itself has to
+// say noindex. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Messages — TradingSocial',
+  robots: { index: false, follow: false },
+}
 
 export const dynamic = 'force-dynamic'
 
