@@ -1,0 +1,12 @@
+# Deliberately present. A Vercel project whose Root Directory has no
+# .vercelignore falls back to the one at the repo root
+# (https://vercel.com/docs/deployments/vercel-ignore#monorepos). The root one is
+# an allowlist for the marketing site that starts with `/*`; inherited here, it
+# could strip this project's source out of its own upload.
+#
+# These are the entries the root file held before it became an allowlist, so
+# this project's upload is what it was when it was inheriting them.
+unbundle.py
+docs/
+__pycache__/
+*.pyc
