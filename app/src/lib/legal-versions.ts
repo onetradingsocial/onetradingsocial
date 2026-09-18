@@ -87,19 +87,20 @@ export type LegalDoc = {
 export const LEGAL_DOCUMENTS: Readonly<Record<LegalDocKey, LegalDoc>> = {
   terms: {
     file: 'terms.html',
-    // 2026-09-15, two changes under one version because they SHIP TOGETHER and
-    // no user has ever been shown either: the GST position in §7, and the §8
-    // rewrite for the card-required trial (plus §9 cancelling during a free
-    // period and §10 a first payment failing). Bumped WITH the bodyHash and the
-    // page's own "Last updated" line, per the guard's instructions — acceptance
-    // records must not claim a version that no longer says what it said.
+    // 2026-09-18: §11 now says forgetting to cancel is not grounds for a refund
+    // and that other requests are considered individually (owner decision,
+    // day-14 item 04: case by case). A clarification of the existing
+    // change-of-mind rule, not a change that disadvantages subscribers, so no
+    // 30-day notice under §15.
     //
-    // ⚠ RE-BUMP BOTH TO THE ACTUAL LAUNCH DATE when §8 ships. It describes a
-    // trial that takes a card, so it cannot be published before the card-required
-    // trial is live, and the date a user sees must be the date they could first
-    // have read it. See docs/stripe-trial-transfer-2026-09-15.md.
-    version: '2026-09-15',
-    bodyHash: '0a5e27b0e48fac40',
+    // 2026-09-15: the GST position in §7 and the §8 rewrite for the
+    // card-required trial (plus §9 and §10), shipped together at launch.
+    //
+    // Always bumped WITH the bodyHash and the page's own "Last updated" line,
+    // per the guard's instructions — acceptance records must not claim a
+    // version that no longer says what it said.
+    version: '2026-09-18',
+    bodyHash: '4185139463e002c5',
   },
   privacy: {
     file: 'privacy.html',
