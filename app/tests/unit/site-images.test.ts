@@ -117,4 +117,25 @@ describe.each(PAGES)('site images: %s', (page) => {
     const posters = [...html.matchAll(/<video\b[^>]*>/gi)].flatMap((m) => localUrls(attrs(m[0]).poster))
     expect(posters.filter((u) => exists(u) && bytes(u) > MAX_UNWRAPPED_BYTES)).toEqual([])
   })
+
+  it('a multi-megabyte autoplaying video is not fetched on phones', () => {
+    // `autoplay` defeats preload="metadata": the whole file downloads, and the
+    // hero video is 11-17 MB. Phones and reduced-motion visitors get the
+    // 33 KB poster instead, so the sources must ship as data-src and be
+    // promoted by the gate script, never as a plain src.
+    const html = readFileSync(join(ROOT, page), 'utf8')
+    for (const v of html.matchAll(/<video\b[^>]*>([\s\S]*?)<\/video>/gi)) {
+      const sources = [...v[1].matchAll(/<source\b[^>]*>/gi)].map((m) => m[0])
+      const heavy = sources.flatMap((s) => localUrls(attrs(s).src)).filter((u) => exists(u) && bytes(u) > MAX_UNWRAPPED_BYTES)
+      expect(heavy, `${page}: heavy video source loads eagerly`).toEqual([])
+      const gated = sources.flatMap((s) => localUrls(attrs(s)['data-src'])).filter((u) => exists(u) && bytes(u) > MAX_UNWRAPPED_BYTES)
+      if (!gated.length) continue
+      expect(v[0]).toMatch(/data-video-min-width="\d+"/)
+      const script = html.slice(html.indexOf(v[0]) + v[0].length)
+      expect(script).toMatch(/prefers-reduced-motion: reduce/)
+      expect(script).toMatch(/min-width: ' \+ v\.dataset\.videoMinWidth/)
+      // Decided once, a viewport that measures 0 at parse time never gets it.
+      expect(script).toMatch(/addEventListener\('change', apply\)/)
+    }
+  })
 })
