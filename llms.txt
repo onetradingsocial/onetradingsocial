@@ -23,6 +23,7 @@ TradingSocial is an education and performance-tracking platform. It does not pro
 ## Free tools
 
 - [Position size calculator](https://www.tradingsocial.io/tools/position-size-calculator): Enter account size, risk percentage, entry and stop; returns the position size that keeps the loss at the stop equal to the risk amount. Runs in the browser, no sign-up, and it never suggests a risk percentage.
+- [Expectancy calculator](https://www.tradingsocial.io/tools/expectancy-calculator): Enter win rate, average win and average loss; returns expectancy per trade, the break-even win rate and profit factor, in R or in a currency. Runs in the browser, no sign-up, and it states no target expectancy.
 
 ## Compare
 

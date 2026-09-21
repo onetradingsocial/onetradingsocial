@@ -195,8 +195,7 @@ describe('llms.txt', () => {
 // browser, and that it never tells you how much to risk — we hid the Learning
 // Hub for the second reason. Both are one careless edit away from untrue.
 // ---------------------------------------------------------------------------
-describe('position size calculator', () => {
-  const PAGE = 'tools/position-size-calculator.html'
+describe.each(htmlIn('tools'))('free tool: %s', (PAGE) => {
   const html = read(PAGE)
   const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)]
     .filter((m) => !/application\/ld\+json/.test(m[0]))
@@ -218,7 +217,7 @@ describe('position size calculator', () => {
     const shipped = html
       .replace(/<!--[\s\S]*?-->/g, ' ')
       .replace(/<script[\s\S]*?<\/script>/g, ' ')
-    expect(shipped).toMatch(/Your number, not ours/)
+    expect(shipped).toMatch(/Your number, not ours|We do not publish a target/)
     for (const advice of [
       /we recommend/i, /you should risk/i, /recommended risk/i, /aim for \d/i,
       /never risk more than/i, /best risk/i, /ideal risk/i,
@@ -236,17 +235,20 @@ describe('position size calculator', () => {
     const types = jsonLd(html).map((b: string) => JSON.parse(b)['@type'])
     expect(types).toEqual(expect.arrayContaining(['BreadcrumbList', 'WebApplication', 'FAQPage']))
     const app = JSON.parse(jsonLd(html).find((b: string) => JSON.parse(b)['@type'] === 'WebApplication')!)
-    expect(app.url).toBe(`${SITE}/tools/position-size-calculator`)
+    expect(app.url).toBe(`${SITE}/${PAGE.replace(/.html$/, '')}`)
     expect(app.offers.price).toBe('0')
+    // Two tools, two pages: neither may inherit the other's identity.
+    const crumb = JSON.parse(jsonLd(html)[0]).itemListElement.slice(-1)[0]
+    expect(crumb.item).toBe(app.url)
   })
 
   it('is reachable: in the sitemap, in llms.txt, and linked from every footer', () => {
-    const url = `${SITE}/tools/position-size-calculator`
-    expect(read('sitemap.xml')).toContain(`<loc>${url}</loc>`)
-    expect(read('llms.txt')).toContain(url)
+    const path = '/' + PAGE.replace(/.html$/, '')
+    expect(read('sitemap.xml')).toContain(`<loc>${SITE}${path}</loc>`)
+    expect(read('llms.txt')).toContain(`${SITE}${path}`)
     for (const p of PAGES) {
       if (p === '404.html') continue // no footer by design
-      expect(read(p), `${p} footer does not link the calculator`).toContain('href="/tools/position-size-calculator"')
+      expect(read(p), `${p} footer does not link ${path}`).toContain(`href="${path}"`)
     }
   })
 })
