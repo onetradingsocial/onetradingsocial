@@ -31,7 +31,7 @@ const htmlIn = (dir: string) =>
 /** Shipped static pages, including the posts pre-rendered by
  *  scripts/build-blog.mjs. A post that gains a cover `image` in posts.json
  *  fails here until the generator emits its width and height. */
-const PAGES = [...htmlIn(''), ...htmlIn('for'), ...htmlIn('compare'), ...htmlIn('blog')]
+const PAGES = [...htmlIn(''), ...htmlIn('for'), ...htmlIn('compare'), ...htmlIn('blog'), ...htmlIn('tools')]
 
 /** Static markup only: comments and <script> bodies removed. */
 const staticMarkup = (html: string) =>

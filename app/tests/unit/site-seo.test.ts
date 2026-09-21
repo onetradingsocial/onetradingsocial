@@ -27,7 +27,7 @@ const htmlIn = (dir: string) =>
     .map((f) => (dir === '.' ? f : `${dir}/${f}`))
 
 /** Every page Vercel serves from the repo root (templates/ and docs/ are ignored). */
-const PAGES = [...htmlIn('.'), ...htmlIn('for'), ...htmlIn('compare'), ...htmlIn('blog')]
+const PAGES = [...htmlIn('.'), ...htmlIn('for'), ...htmlIn('compare'), ...htmlIn('blog'), ...htmlIn('tools')]
 const COMPARE = htmlIn('compare').map((f) => '/' + f.replace(/\.html$/, ''))
 
 /** The markup a crawler parses: no scripts, styles or comments. */
@@ -183,6 +183,70 @@ describe('llms.txt', () => {
     const pricing = links.find((l) => l.url === `${SITE}/pricing`)!
     for (const o of JSON.parse(jsonLd(read('pricing.html'))[0]).offers) {
       if (o.price !== '0') expect(pricing.note).toContain(`${o.name} at A$${o.price}/month`)
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// The position size calculator (SEO audit D4)
+//
+// The page exists to earn links, which means strangers will run it and quote
+// it. Two of its promises are load-bearing: that nothing you type leaves the
+// browser, and that it never tells you how much to risk — we hid the Learning
+// Hub for the second reason. Both are one careless edit away from untrue.
+// ---------------------------------------------------------------------------
+describe('position size calculator', () => {
+  const PAGE = 'tools/position-size-calculator.html'
+  const html = read(PAGE)
+  const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)]
+    .filter((m) => !/application\/ld\+json/.test(m[0]))
+    .map((m) => m[1])
+    .join('\n')
+
+  it('keeps what the visitor types in the browser', () => {
+    // "Runs in your browser · Nothing is sent anywhere · No account needed"
+    expect(html).toContain('Nothing is sent anywhere')
+    for (const sink of ['fetch(', 'XMLHttpRequest', 'sendBeacon', 'localStorage', 'sessionStorage', 'indexedDB', 'document.cookie', 'new WebSocket']) {
+      expect(scripts, `calculator script uses ${sink}`).not.toContain(sink)
+    }
+    // No form post either: the submit handler must preventDefault.
+    expect(html).not.toMatch(/<form[^>]*\saction=/)
+    expect(scripts).toMatch(/preventDefault\(\)/)
+  })
+
+  it('never recommends a risk percentage', () => {
+    const shipped = html
+      .replace(/<!--[\s\S]*?-->/g, ' ')
+      .replace(/<script[\s\S]*?<\/script>/g, ' ')
+    expect(shipped).toMatch(/Your number, not ours/)
+    for (const advice of [
+      /we recommend/i, /you should risk/i, /recommended risk/i, /aim for \d/i,
+      /never risk more than/i, /best risk/i, /ideal risk/i,
+    ]) {
+      expect(shipped, `calculator copy matches ${advice}`).not.toMatch(advice)
+    }
+  })
+
+  it('carries the disclaimer and links to the full one', () => {
+    expect(html).toMatch(/not financial advice/)
+    expect(html).toContain('href="/disclaimer"')
+  })
+
+  it('describes itself to search engines as a free web app with its FAQ', () => {
+    const types = jsonLd(html).map((b: string) => JSON.parse(b)['@type'])
+    expect(types).toEqual(expect.arrayContaining(['BreadcrumbList', 'WebApplication', 'FAQPage']))
+    const app = JSON.parse(jsonLd(html).find((b: string) => JSON.parse(b)['@type'] === 'WebApplication')!)
+    expect(app.url).toBe(`${SITE}/tools/position-size-calculator`)
+    expect(app.offers.price).toBe('0')
+  })
+
+  it('is reachable: in the sitemap, in llms.txt, and linked from every footer', () => {
+    const url = `${SITE}/tools/position-size-calculator`
+    expect(read('sitemap.xml')).toContain(`<loc>${url}</loc>`)
+    expect(read('llms.txt')).toContain(url)
+    for (const p of PAGES) {
+      if (p === '404.html') continue // no footer by design
+      expect(read(p), `${p} footer does not link the calculator`).toContain('href="/tools/position-size-calculator"')
     }
   })
 })
