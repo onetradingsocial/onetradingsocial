@@ -1,6 +1,14 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { TrialWelcome } from './TrialWelcome'
+
+// Private. Middleware already 3xx-redirects logged-out visitors; noindex is
+// the backstop if that ever changes. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Welcome — TradingSocial',
+  robots: { index: false, follow: false },
+}
 
 // Sits between sign-up and onboarding: Sign up → Trial → Onboarding.
 //

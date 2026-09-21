@@ -3,7 +3,12 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { ForgotPasswordForm } from './ForgotPasswordForm'
 
-export const metadata: Metadata = { title: 'Reset your password — TradingSocial' }
+// Auth page: never indexed, but its links may be followed.
+// SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Reset your password — TradingSocial',
+  robots: { index: false, follow: true },
+}
 
 /**
  * Step 1 of password recovery (item 9 F1).

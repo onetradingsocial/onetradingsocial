@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient, getSessionUser } from '@/lib/supabase/server'
 import Link from 'next/link'
@@ -5,6 +6,14 @@ import { getLessonForViewer } from '@/lib/server/learning'
 import { getTier } from '@/lib/server/entitlements'
 import { TIER_RANK, type Tier } from '@/lib/entitlements'
 import { Quiz } from './Quiz'
+
+// Login-gated. Logged out, this answers 200 with a meta-refresh to /login
+// (redirect() runs after streaming has started), so the page itself has to
+// say noindex. SEO audit 2026-09-18, finding 3.
+export const metadata: Metadata = {
+  title: 'Lesson — TradingSocial',
+  robots: { index: false, follow: false },
+}
 
 // Learn hidden for now — we are not financial advisors. Flip to false when compliant.
 const LEARN_HIDDEN = true

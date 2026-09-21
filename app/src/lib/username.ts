@@ -7,6 +7,23 @@ export const RESERVED_USERNAMES = [
   'referrals', 'r',
 ] as const
 
+/**
+ * True for a first path segment that `/[username]` must never treat as a
+ * profile: a reserved route name, or anything file-shaped (`robots.txt`,
+ * `sitemap.xml`, `llms.txt`, `ads.txt`, `security.txt` ...).
+ *
+ * The dot rule is what closes the file-name hole, and it has to live here
+ * rather than in validateUsername alone: the signup trigger
+ * (`handle_new_user`) copies `raw_user_meta_data->>'username'` into the row
+ * unvalidated, so a direct Auth API signup can store a name this app's own
+ * forms would reject. validateUsername already forbids `.`, so no name created
+ * through the app is excluded by it.
+ */
+export function isReservedProfileSegment(segment: string): boolean {
+  const s = segment.toLowerCase()
+  return (RESERVED_USERNAMES as readonly string[]).includes(s) || s.includes('.')
+}
+
 /** On success the caller gets the NORMALISED name back, and must store that
  *  rather than its own input. Validating a trimmed copy while writing the raw
  *  string is how " jennifer_johnson" reached `profiles.username` on 2026-09-15:
