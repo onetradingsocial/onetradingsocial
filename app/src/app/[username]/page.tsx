@@ -28,7 +28,10 @@ import { TradingCalendar } from '@/app/journal/_components/TradingCalendar'
 import { VerificationBadge, AccountTypeBadge } from '@/app/_components/VerificationBadge'
 import { ReportButton } from '@/app/_components/ReportButton'
 import { ShareCardButton } from '@/app/_components/ShareCardButton'
-import { profileLevel, sourceMix, type SourceCounts, type BrokerStatus, type AccountType } from '@/lib/verification'
+import {
+  profileLevel, profileRecordLabel, profileSourcePhrase, sourceMix,
+  type SourceCounts, type BrokerStatus, type AccountType, type VerificationLevel,
+} from '@/lib/verification'
 import { Icon } from './_components/Icon'
 import { Sparkline } from './_components/Sparkline'
 import { ProfileEquity, type EqPoint } from './_components/ProfileEquity'
@@ -60,8 +63,11 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
     return { title: 'Trader profile — TradingSocial', robots: { index: false, follow: false } }
   }
   const name = p.display_name || p.username
-  const title = `${name} (@${p.username}) — verified trading track record`
-  const description = p.bio?.trim() || `See ${name}'s verified trading performance on TradingSocial — win rate, R multiples and profit factor computed from logged trades.`
+  // "verified" is earned per profile, not asserted for everyone: the wording
+  // follows the same source rule the page body shows (SEO audit D6).
+  const level = await publicTradeLevel(p.id)
+  const title = `${name} (@${p.username}) — ${profileRecordLabel(level)}`
+  const description = p.bio?.trim() || `See ${name}'s ${profileRecordLabel(level)} on TradingSocial — win rate, R multiples and profit factor computed from ${profileSourcePhrase(level)}.`
   const url = `${SITE}/${p.username}`
   const image = `${SITE}/api/og/profile/${p.username}`
   const meta: Metadata = {
@@ -75,6 +81,26 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   // are just told not to index them, and sitemap.ts leaves them out.
   if (await isInternalProfile(p.id)) meta.robots = { index: false, follow: false }
   return meta
+}
+
+/** Verification level of a profile's PUBLIC closed trades, for the metadata
+ *  wording. Same rule as the page body, from the same RLS-scoped read, so the
+ *  title cannot claim more than the page shows. Broker connection state is
+ *  deliberately not folded in here: a connection with no synced trades yet
+ *  verifies nothing, and reading broker_accounts would need the service
+ *  client. A read error falls back to the unverified wording. */
+async function publicTradeLevel(id: string): Promise<VerificationLevel> {
+  const counts: SourceCounts = { manual: 0, statement: 0, broker: 0 }
+  try {
+    const { data, error } = await (await createClient())
+      .from('trades').select('source')
+      .eq('user_id', id).eq('is_public', true).eq('status', 'closed')
+    if (error || !data) return 'self_reported'
+    for (const t of data) counts[((t.source as string) ?? 'manual') as keyof SourceCounts] += 1
+  } catch {
+    return 'self_reported'
+  }
+  return profileLevel(counts, null)
 }
 
 /** Service client: migration 0047 revokes SELECT on `is_internal` from anon and

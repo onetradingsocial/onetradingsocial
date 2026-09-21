@@ -5,6 +5,7 @@ import robots from '@/app/robots'
 import sitemap from '@/app/sitemap'
 import { APP_ORIGIN, NOINDEX_GATED_ROUTES, PRIVATE_ROUTES } from '@/lib/seo'
 import { isReservedProfileSegment } from '@/lib/username'
+import { profileRecordLabel, profileSourcePhrase } from '@/lib/verification'
 
 /**
  * SEO audit 2026-09-18, findings 1, 3, 4 and 5.
@@ -330,6 +331,32 @@ describe('heading order', () => {
     const src = read('for/[audience]/page.tsx')
     expect(src).not.toMatch(/<h3[\s>]/)
     expect(src).toMatch(/<h2 style=\{\{ fontFamily: 'var\(--font-display\)', fontSize: 17, marginBottom: 6 \}\}>\{p\.title\}<\/h2>/)
+  })
+
+  it('a profile claims "verified" only when its trades came from a broker or a statement', () => {
+    // D6: every public profile was titled "verified trading track record",
+    // including ones whose trades were all typed in by hand. The page body has
+    // always shown the source mix; the metadata now uses the same rule.
+    expect(profileRecordLabel('broker_connected')).toBe('broker-verified trading track record')
+    expect(profileRecordLabel('statement_imported')).toBe('statement-verified trading track record')
+    for (const l of ['self_reported', 'verification_pending', 'verification_failed'] as const) {
+      expect(profileRecordLabel(l)).toBe('trading track record')
+      expect(profileRecordLabel(l)).not.toMatch(/verified/)
+      expect(profileSourcePhrase(l)).toBe('self-reported trades')
+    }
+
+    const src = read('[username]/page.tsx')
+    const meta = src
+      .slice(src.indexOf('export async function generateMetadata'), src.indexOf('async function publicTradeLevel'))
+      // Comments explain the rule and quote the old wording; scan shipped strings only.
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/^[ \t]*\/\/.*$/gm, ' ')
+    expect(meta).not.toMatch(/verified/)
+    expect(meta).toMatch(/profileRecordLabel\(level\)/)
+    // The level must come from this profile's own public trades.
+    expect(src).toMatch(/publicTradeLevel[\s\S]{0,400}\.eq\('is_public', true\)[\s\S]{0,80}\.eq\('status', 'closed'\)/)
+    // Fails to the weaker claim, never the stronger one.
+    expect(src).toMatch(/if \(error \|\| !data\) return 'self_reported'/)
   })
 
   it('AuthShell puts no heading ahead of the form h1', () => {
