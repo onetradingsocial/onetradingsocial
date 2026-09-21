@@ -1442,11 +1442,42 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 <section class="hero" id="top">
   <div class="wrap">
     <div class="hero-banner">
+      <!-- The sources are data-src, not src, so the 11-17 MB background video
+           is fetched only where it will be seen: a phone, or a visitor who
+           asked for reduced motion, keeps the 33 KB poster and nothing else.
+           autoplay defeats preload="metadata": the whole file downloads. The
+           CSS below already hid this for prefers-reduced-motion, but hiding it
+           never stopped the download. Script-off leaves the poster too. -->
       <video class="hero-banner-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1"
-             poster="/assets/videos/website-hero-poster.webp">
-        <source src="/assets/videos/website-hero.webm" type="video/webm">
-        <source src="/assets/videos/website-hero.mp4" type="video/mp4">
+             poster="/assets/videos/website-hero-poster.webp" data-video-min-width="768">
+        <source data-src="/assets/videos/website-hero.webm" type="video/webm">
+        <source data-src="/assets/videos/website-hero.mp4" type="video/mp4">
       </video>
+      <script>
+      (function () {
+        var v = document.currentScript.previousElementSibling
+        if (!v || !window.matchMedia) return
+        var motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+        var wide = window.matchMedia('(min-width: ' + v.dataset.videoMinWidth + 'px)')
+        // Re-checked rather than decided once: at parse time the viewport can
+        // still measure 0, and a window can be widened after load.
+        function apply() {
+          if (motion.matches || !wide.matches) return
+          var s = v.querySelectorAll('source[data-src]')
+          if (!s.length) return
+          for (var i = 0; i < s.length; i++) {
+            s[i].src = s[i].dataset.src
+            s[i].removeAttribute('data-src')
+          }
+          v.load()
+        }
+        apply()
+        window.addEventListener('DOMContentLoaded', apply)
+        window.addEventListener('load', apply)
+        if (wide.addEventListener) wide.addEventListener('change', apply)
+        if (motion.addEventListener) motion.addEventListener('change', apply)
+      })()
+      </script>
       <div class="hero-banner-grid"></div>
       <div class="hero-banner-noise"></div>
       <div class="hero-content">
