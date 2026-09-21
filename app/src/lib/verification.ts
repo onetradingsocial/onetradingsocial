@@ -82,3 +82,28 @@ export const ACCOUNT_TYPE_SHORT: Record<AccountType, string> = {
   prop: 'Prop',
   competition: 'Comp',
 }
+
+/**
+ * Search-result wording for a profile (SEO audit 2026-09-18, D6).
+ *
+ * Every public profile used to be titled "verified trading track record",
+ * including ones whose trades were all typed in by hand. The page itself has
+ * always been precise — it shows the per-source mix and counts only
+ * statement/broker trades as verified days — so the metadata now follows the
+ * same rule instead of making one flat claim for everyone.
+ *
+ * Pending and failed connections read as unverified on purpose: nothing is
+ * verified until trades actually arrive from the broker.
+ */
+export function profileRecordLabel(level: VerificationLevel): string {
+  if (level === 'broker_connected') return 'broker-verified trading track record'
+  if (level === 'statement_imported') return 'statement-verified trading track record'
+  return 'trading track record'
+}
+
+/** How the trades behind the numbers reached the journal. */
+export function profileSourcePhrase(level: VerificationLevel): string {
+  if (level === 'broker_connected') return 'broker-synced trades'
+  if (level === 'statement_imported') return 'imported broker statements'
+  return 'self-reported trades'
+}
