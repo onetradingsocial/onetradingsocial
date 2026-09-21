@@ -119,27 +119,42 @@ describe('robots.txt (finding 1)', () => {
 // filters the code actually sends. If a filter is dropped, the row it was
 // meant to exclude shows up in the output.
 // --------------------------------------------------------------------------
-type Row = { username: string; updated_at: string | null; is_public: boolean; onboarding_completed: boolean; is_internal: boolean }
+type Row = { username: string; updated_at: string | null; is_public: boolean; onboarding_completed: boolean; is_internal: boolean; trades: number }
 let ROWS: Row[] = []
 let failWith: unknown = null
+let tradesFailWith: unknown = null
+
+const idOf = (username: string) => `id-${username}`
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: () => ({
     from: (table: string) => {
-      expect(table).toBe('profiles')
+      expect(['profiles', 'trades']).toContain(table)
       const filters: [string, unknown][] = []
+      let ids: string[] = []
       let range: [number, number] = [0, Number.MAX_SAFE_INTEGER]
       const q = {
         select: () => q,
         eq: (col: string, val: unknown) => { filters.push([col, val]); return q },
+        in: (_col: string, vals: string[]) => { ids = vals; return q },
         order: () => q,
+        limit: () => q,
         range: (a: number, b: number) => { range = [a, b]; return q },
         then: (resolve: (v: unknown) => void) => {
+          const match = (r: Row) => filters.every(([c, v]) => (r as unknown as Record<string, unknown>)[c] === v)
+          if (table === 'trades') {
+            if (tradesFailWith) return resolve({ data: null, error: tradesFailWith })
+            // One row per public closed trade, as PostgREST would return.
+            const data = ROWS
+              .filter((r) => ids.includes(idOf(r.username)))
+              .flatMap((r) => Array.from({ length: r.trades }, () => ({ user_id: idOf(r.username) })))
+            return resolve({ data, error: null })
+          }
           if (failWith) return resolve({ data: null, error: failWith })
           const data = ROWS
-            .filter((r) => filters.every(([c, v]) => (r as Record<string, unknown>)[c] === v))
+            .filter(match)
             .slice(range[0], range[1] + 1)
-            .map(({ username, updated_at }) => ({ username, updated_at }))
+            .map(({ username, updated_at }) => ({ id: idOf(username), username, updated_at }))
           resolve({ data, error: null })
         },
       }
@@ -149,11 +164,11 @@ vi.mock('@/lib/supabase/service', () => ({
 }))
 
 const row = (username: string, over: Partial<Row> = {}): Row => ({
-  username, updated_at: '2026-09-01T00:00:00Z', is_public: true, onboarding_completed: true, is_internal: false, ...over,
+  username, updated_at: '2026-09-01T00:00:00Z', is_public: true, onboarding_completed: true, is_internal: false, trades: 3, ...over,
 })
 
 describe('sitemap.xml (findings 1 and 4)', () => {
-  beforeEach(() => { ROWS = []; failWith = null })
+  beforeEach(() => { ROWS = []; failWith = null; tradesFailWith = null })
 
   it('lists public, onboarded, non-internal profiles and nothing else', async () => {
     ROWS = [
@@ -193,6 +208,22 @@ describe('sitemap.xml (findings 1 and 4)', () => {
     failWith = { message: 'boom' }
     const urls = (await sitemap()).map((e) => e.url)
     expect(urls.some((u) => /alex_07|mateorivera/.test(u))).toBe(false)
+  })
+
+  it('leaves out a profile with nothing to show (D9)', async () => {
+    // An empty profile is a name and no content. It stays viewable and
+    // crawlable; it is just not advertised until it has a trade.
+    ROWS = [row('alex_07'), row('empty_ed', { trades: 0 })]
+    const urls = (await sitemap()).map((e) => e.url)
+    expect(urls).toContain(`${APP_ORIGIN}/alex_07`)
+    expect(urls.some((u) => /empty_ed/.test(u))).toBe(false)
+  })
+
+  it('fails closed when the trade read fails, rather than listing everyone', async () => {
+    ROWS = [row('alex_07'), row('empty_ed', { trades: 0 })]
+    tradesFailWith = { message: 'boom' }
+    const urls = (await sitemap()).map((e) => e.url)
+    expect(urls.some((u) => /alex_07|empty_ed/.test(u))).toBe(false)
   })
 
   it('pages through more than one PostgREST page', async () => {
