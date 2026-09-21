@@ -1474,31 +1474,115 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 .vs-card li { font-size: 14px; color: var(--dim); line-height: 1.6; display: flex; gap: 10px; align-items: flex-start; }
 .vs-card li span.m { font-family: var(--mono); font-size: 12px; color: var(--violet-br); margin-top: 1px; }
 .vs-card--fair { background: var(--bg-2); }
+
+/* ---------- position size calculator ---------- */
+.calc { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 22px; align-items: start; margin-top: 8px; }
+@media (max-width: 900px){ .calc { grid-template-columns: 1fr; } }
+.calc-form, .calc-out {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 26px; box-shadow: var(--shadow-sm);
+}
+.calc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+@media (max-width: 560px){ .calc-grid { grid-template-columns: 1fr; } }
+.calc-field label { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 7px; }
+.calc-optional { font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--faint); margin-left: 6px; }
+.calc-input { display: flex; align-items: center; gap: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2); overflow: hidden; }
+.calc-input:focus-within { border-color: var(--violet-br); box-shadow: 0 0 0 3px rgba(107,67,224,0.14); }
+.calc-affix { font-family: var(--mono); font-size: 13px; color: var(--dim); padding: 0 2px 0 13px; }
+.calc-affix--end { padding: 0 13px 0 2px; }
+.calc-input input {
+  flex: 1; width: 100%; min-width: 0; border: 0; background: transparent; outline: none;
+  font-family: var(--mono); font-size: 15px; color: inherit; padding: 12px 13px;
+}
+.calc-field select {
+  width: 100%; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2);
+  font-family: inherit; font-size: 14px; color: inherit; padding: 12px 13px;
+}
+.calc-field select:focus-visible { outline: none; border-color: var(--violet-br); box-shadow: 0 0 0 3px rgba(107,67,224,0.14); }
+.calc-hint { font-size: 12px; color: var(--faint); margin-top: 7px; line-height: 1.5; }
+.calc-error { font-size: 13px; color: #C2255C; margin-top: 16px; }
+.calc-primary { text-align: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.calc-label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--violet-br); }
+.calc-value { display: block; font-family: var(--display); font-size: 38px; font-weight: 600; letter-spacing: -0.02em; margin: 6px 0 4px; overflow-wrap: anywhere; }
+.calc-unit { font-size: 12.5px; color: var(--faint); }
+.calc-rows { margin-top: 18px; display: grid; gap: 12px; }
+.calc-rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
+.calc-rows dt { font-size: 13.5px; color: var(--dim); }
+.calc-rows dd { font-family: var(--mono); font-size: 14px; text-align: right; }
+.calc-note { font-size: 12.5px; color: var(--dim); line-height: 1.6; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.calc-disclaimer { font-size: 12.5px; color: var(--faint); line-height: 1.7; max-width: 900px; margin: 22px auto 0; text-align: center; }
+.calc-disclaimer a { color: var(--violet-br); text-decoration: underline; }
+.calc-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; }
+@media (max-width: 900px){ .calc-steps { grid-template-columns: 1fr; } }
+.calc-step { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-sm); }
+.calc-step-n { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-family: var(--mono); font-size: 13px; color: #fff; background: linear-gradient(135deg,#7C5CE6,#C840BC); }
+.calc-step h3 { font-family: var(--display); font-size: 17px; font-weight: 600; margin-top: 14px; }
+.calc-step p { font-size: 14px; color: var(--dim); line-height: 1.65; margin-top: 10px; }
+.calc-step p b { color: inherit; font-family: var(--mono); font-size: 13px; }
+.calc-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+@media (max-width: 900px){ .calc-links { grid-template-columns: 1fr; } }
+.calc-link { display: block; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; box-shadow: var(--shadow-sm); transition: transform .18s ease, border-color .18s ease; }
+.calc-link:hover { transform: translateY(-2px); border-color: var(--violet-br); }
+.calc-link h3 { font-family: var(--display); font-size: 16px; font-weight: 600; }
+.calc-link p { font-size: 13.5px; color: var(--dim); margin-top: 8px; line-height: 1.6; }
 </style>
   <!-- Analytics / advertising tags. Loaded by /consent.js only after the
        consent gate allows the relevant tier (audit item 17, WS7). Do not
        re-add inline gtag/fbq/rdt loaders here -- they cannot be declined. -->
   <script src="/consent.js"></script>
-  <title>Edgewonk Alternative: An Honest Comparison | TradingSocial</title>
-  <meta name="description" content="Looking for an Edgewonk alternative? A fair comparison of psychology tracking, broker coverage and reporting — and the one difference that isn&rsquo;t a feature.">
-  <meta property="og:title" content="Edgewonk Alternative: An Honest Comparison | TradingSocial">
-  <meta property="og:description" content="Looking for an Edgewonk alternative? A fair comparison of psychology tracking, broker coverage and reporting — and the one difference that isn&rsquo;t a feature.">
+  <title>Position Size Calculator for Traders | TradingSocial</title>
+  <meta name="description" content="Free position size calculator: enter account size, risk percentage, entry and stop, and get the position size that keeps the loss at your stop equal to your risk.">
+  <meta property="og:title" content="Position Size Calculator for Traders | TradingSocial">
+  <meta property="og:description" content="Free position size calculator: enter account size, risk percentage, entry and stop, and get the position size that keeps the loss at your stop equal to your risk.">
   <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <meta property="og:url" content="https://www.tradingsocial.io/compare/edgewonk-alternative">
-  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://www.tradingsocial.io/tools/position-size-calculator">
+  <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Edgewonk Alternative: An Honest Comparison | TradingSocial">
-  <meta name="twitter:description" content="Looking for an Edgewonk alternative? A fair comparison of psychology tracking, broker coverage and reporting — and the one difference that isn&rsquo;t a feature.">
+  <meta name="twitter:title" content="Position Size Calculator for Traders | TradingSocial">
+  <meta name="twitter:description" content="Free position size calculator: enter account size, risk percentage, entry and stop, and get the position size that keeps the loss at your stop equal to your risk.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <link rel="canonical" href="https://www.tradingsocial.io/compare/edgewonk-alternative">
+  <link rel="canonical" href="https://www.tradingsocial.io/tools/position-size-calculator">
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.tradingsocial.io/" },
-    { "@type": "ListItem", "position": 2, "name": "Edgewonk alternative", "item": "https://www.tradingsocial.io/compare/edgewonk-alternative" }
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://www.tradingsocial.io/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Position size calculator",
+      "item": "https://www.tradingsocial.io/tools/position-size-calculator"
+    }
   ]
+}
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Position size calculator",
+  "url": "https://www.tradingsocial.io/tools/position-size-calculator",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Any (web browser)",
+  "browserRequirements": "Requires JavaScript",
+  "inLanguage": "en",
+  "description": "Free position size calculator: enter account size, risk percentage, entry and stop, and get the position size that keeps the loss at your stop equal to your risk.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "AUD"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "TradingSocial",
+    "url": "https://www.tradingsocial.io"
+  }
 }
   </script>
   <script type="application/ld+json">
@@ -1508,42 +1592,50 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "Is TradingSocial an Edgewonk alternative?",
+      "name": "What percentage should I risk per trade?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "For some traders. Both journal trades and analyse them, and both track mistakes. Edgewonk publishes far deeper analytical reporting and a much wider import list. TradingSocial is narrower and differs in one respect Edgewonk does not publish: every trade carries a system-set label recording how it arrived, which a trader cannot award to themselves."
+        "text": "We do not answer that, and you should be wary of a tool that does. The right number depends on your account, your strategy, your drawdown tolerance and, if you trade a funded account, your firm’s rules. The calculator uses the number you enter."
       }
     },
     {
       "@type": "Question",
-      "name": "What is Edgewonk best at?",
+      "name": "Does it work for forex, crypto, futures and stocks?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Depth of self-analysis. Edgewonk publishes 50+ data reports, an Edge Finder scanner, a strategy lab, trade checklists, an integrated diary and mistake tracking. If you want the most thorough look at your own psychology and statistics, that is a genuine reason to choose it over anything here."
+        "text": "The arithmetic is the same for all of them, because it works in units of the instrument. What differs is what a “unit” means: shares for stocks, coins or contracts for crypto, and base-currency units for forex, where 100,000 units is a standard lot. Futures trade in whole contracts with a fixed tick value, so round down to a whole number."
       }
     },
     {
       "@type": "Question",
-      "name": "Does Edgewonk import trades automatically?",
+      "name": "Why is the position value bigger than my account?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Edgewonk publishes automatic import across 200+ brokers including MetaTrader 4 and 5, NinjaTrader, Interactive Brokers and cTrader. TradingSocial syncs MetaTrader 5 only. If you trade anything else, Edgewonk covers you and we do not."
+        "text": "Because a small price distance to your stop needs a large position for the loss to reach your risk amount. Whether you can hold that position depends on your leverage and your broker’s margin requirement, which this calculator knows nothing about. Check before you place the trade."
       }
     },
     {
       "@type": "Question",
-      "name": "What does TradingSocial do that Edgewonk does not publish?",
+      "name": "Are spread, commission and slippage included?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Two things. A per-trade provenance label recording whether a trade was typed, imported from a statement, or synced from a connected broker, with the broker label set by the system rather than chosen. And a public profile, so the record has somewhere to be seen rather than only exported."
+        "text": "No. They make the real loss slightly larger than the number shown, and they matter most when your stop is close. Some traders size a little smaller to absorb them."
       }
     },
     {
       "@type": "Question",
-      "name": "Is a deeper journal better than a shareable one?",
+      "name": "Do you store what I type?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "It depends entirely on who the journal is for. If it is for you alone, depth wins and Edgewonk has more of it. If someone else will eventually need to believe your record — a prop firm, an audience, a mentor — then depth is not the constraint, provenance is."
+        "text": "No. The page does the arithmetic in your browser. Nothing is sent to a server, nothing is saved, and closing the tab discards it."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is R, and what is a good reward-to-risk ratio?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "R is your risk on the trade: a 2R win makes twice what a loss at your stop would have cost. There is no universally good ratio, because it trades off against how often you win. A journal that records both is how you find out which combination works for you."
       }
     }
   ]
@@ -1638,158 +1730,149 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       <div class="hero-banner-grid"></div>
       <div class="hero-banner-noise"></div>
       <div class="hero-content">
-        <span class="chip chip--band"><span class="dot"></span>Edgewonk alternative</span>
-        <h1 class="h1">An Edgewonk alternative, <em>fairly compared</em>.</h1>
-        <p class="hero-sub">Edgewonk goes deeper into your own statistics and psychology than we do, and it isn&rsquo;t close. Here&rsquo;s the honest comparison, and the one axis where the answer flips.</p>
-        <div class="hero-cta">
-          <a class="btn btn-lg btn-onband" href="https://app.tradingsocial.io/signup">Try it free for 14 days</a>
-          <a class="btn btn-lg btn-band-ghost" href="/pricing">See pricing</a>
-        </div>
-        <p class="lp-hero-note">Free plan available &middot; 14 days of Pro free &middot; Card required, cancel anytime</p>
+        <span class="chip chip--band"><span class="dot"></span>Free tool &middot; no sign-up</span>
+        <h1 class="h1">Position size <em>calculator</em>.</h1>
+        <p class="hero-sub">Enter your account size, the percentage you are willing to risk, your entry and your stop. It returns the position size that makes that stop cost exactly that much.</p>
+        <p class="lp-hero-note">Runs in your browser &middot; Nothing is sent anywhere &middot; No account needed</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ FAIR HEARING ============================ -->
-<section class="section">
+<!-- ============================ CALCULATOR ============================ -->
+<section class="section calc-section">
   <div class="wrap">
-    <div class="sec-head">
-      <span class="eyebrow">Read this first</span>
-      <h2 class="h2">Where Edgewonk is the better choice.</h2>
-      <p class="lead">Edgewonk has spent years on one thing — making a trader confront their own numbers and their own behaviour — and it is very good at it. If that is what you want, this page should end with you choosing them.</p>
-    </div>
-    <div class="vs-cols reveal">
-      <div class="vs-card vs-card--fair">
-        <h3>Genuine Edgewonk advantages</h3>
-        <ul>
-          <li><span class="m">01</span><div><b>Depth of analysis.</b> They publish 50+ data reports, an Edge Finder scanner, and a strategy lab. Our analytics are honest and useful; they are not this.</div></li>
-          <li><span class="m">02</span><div><b>Psychology and mistake work is their core, not a tag.</b> Trade checklists, report cards and an integrated diary, built around confronting tilt. We have mistake tagging; that is a smaller idea.</div></li>
-          <li><span class="m">03</span><div><b>Far wider import.</b> 200+ brokers including MT4, NinjaTrader, Interactive Brokers and cTrader. We sync MetaTrader 5 and nothing else.</div></li>
-          <li><span class="m">04</span><div><b>Years of refinement.</b> It is a mature tool with a settled point of view. We are early.</div></li>
-        </ul>
+    <div class="calc">
+      <form class="calc-form" id="calcForm" novalidate>
+        <div class="calc-grid">
+          <div class="calc-field">
+            <label for="balance">Account size</label>
+            <div class="calc-input">
+              <span class="calc-affix" id="curPrefix">$</span>
+              <input type="number" id="balance" name="balance" inputmode="decimal" step="any" min="0" placeholder="10000" autocomplete="off">
+            </div>
+          </div>
+          <div class="calc-field">
+            <label for="currency">Currency</label>
+            <select id="currency" name="currency">
+              <option value="USD">USD — US dollar</option>
+              <option value="AUD">AUD — Australian dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — Pound sterling</option>
+              <option value="JPY">JPY — Japanese yen</option>
+              <option value="CAD">CAD — Canadian dollar</option>
+              <option value="NZD">NZD — New Zealand dollar</option>
+              <option value="SGD">SGD — Singapore dollar</option>
+              <option value="ZAR">ZAR — South African rand</option>
+              <option value="INR">INR — Indian rupee</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label for="risk">Risk per trade</label>
+            <div class="calc-input">
+              <input type="number" id="risk" name="risk" inputmode="decimal" step="any" min="0" max="100" placeholder="1" autocomplete="off">
+              <span class="calc-affix calc-affix--end">%</span>
+            </div>
+            <p class="calc-hint">Your number, not ours. We do not suggest one.</p>
+          </div>
+          <div class="calc-field">
+            <label for="entry">Entry price</label>
+            <div class="calc-input">
+              <input type="number" id="entry" name="entry" inputmode="decimal" step="any" min="0" placeholder="1.2500" autocomplete="off">
+            </div>
+          </div>
+          <div class="calc-field">
+            <label for="stop">Stop-loss price</label>
+            <div class="calc-input">
+              <input type="number" id="stop" name="stop" inputmode="decimal" step="any" min="0" placeholder="1.2450" autocomplete="off">
+            </div>
+          </div>
+          <div class="calc-field">
+            <label for="target">Target price <span class="calc-optional">optional</span></label>
+            <div class="calc-input">
+              <input type="number" id="target" name="target" inputmode="decimal" step="any" min="0" placeholder="1.2600" autocomplete="off">
+            </div>
+            <p class="calc-hint">Only used to show the reward-to-risk ratio.</p>
+          </div>
+        </div>
+        <p class="calc-error" id="calcError" role="alert" hidden></p>
+      </form>
+
+      <div class="calc-out" id="calcOut" aria-live="polite">
+        <div class="calc-primary">
+          <span class="calc-label">Position size</span>
+          <strong class="calc-value" id="outUnits">&mdash;</strong>
+          <span class="calc-unit">units of the instrument</span>
+        </div>
+        <dl class="calc-rows">
+          <div><dt>Direction</dt><dd id="outSide">&mdash;</dd></div>
+          <div><dt>Risk on this trade (1R)</dt><dd id="outRisk">&mdash;</dd></div>
+          <div><dt>Risk per unit</dt><dd id="outPerUnit">&mdash;</dd></div>
+          <div><dt>Position value at entry</dt><dd id="outValue">&mdash;</dd></div>
+          <div id="rowRR" hidden><dt>Reward-to-risk</dt><dd id="outRR">&mdash;</dd></div>
+        </dl>
+        <p class="calc-note" id="outNote" hidden></p>
       </div>
-      <div class="vs-card">
-        <h3>Where TradingSocial differs</h3>
-        <ul>
-          <li><span class="m">01</span><div><b>Every trade records how it arrived</b> — typed, imported from a statement, or synced from a connected broker.</div></li>
-          <li><span class="m">02</span><div><b>The broker label can&rsquo;t be self-awarded.</b> The system sets it when a trade comes through a connected account.</div></li>
-          <li><span class="m">03</span><div><b>The record has somewhere to be seen.</b> A public profile is the normal shape of the product, not an export you generate.</div></li>
-          <li><span class="m">04</span><div><b>Australian, priced in Australian dollars.</b></div></li>
-        </ul>
-      </div>
     </div>
+
+    <p class="calc-disclaimer">
+      This is arithmetic on the numbers you type: it is general information, not financial advice, and it does not
+      tell you what to trade or how much to risk. Costs such as spread, commission, swap and slippage are not
+      included, and position size is given in units of the instrument &mdash; convert to lots or contracts yourself.
+      See the <a href="/disclaimer">risk disclaimer</a>.
+    </p>
   </div>
 </section>
 
-<!-- ============================ THE REAL DIFFERENCE ============================ -->
+<!-- ============================ THE MATHS ============================ -->
 <section class="section" style="background:var(--bg-2); border-block:1px solid var(--border)">
   <div class="wrap">
     <div class="sec-head">
-      <span class="eyebrow">The difference that isn&rsquo;t a feature</span>
-      <h2 class="h2">Who is the journal for?</h2>
-      <p class="lead">This is the question that decides it, and it is not a question about features. Edgewonk is built on the assumption that the journal is for you. Everything excellent about it follows from that assumption.</p>
+      <span class="eyebrow">The arithmetic</span>
+      <h2 class="h2">Three lines, no mystery.</h2>
+      <p class="lead">Position sizing is the one part of trading that is fully under your control before the trade starts. It is also short enough to check by hand.</p>
     </div>
-    <div class="vs-cols reveal">
-      <div class="vs-card">
-        <h3>A journal for you</h3>
-        <ul>
-          <li><span class="m">&mdash;</span><div>Depth is the right thing to optimise. More reports, sharper scanners, better prompts to make you notice what you keep doing.</div></li>
-          <li><span class="m">&mdash;</span><div>Where a number came from is irrelevant, because you were there. You know which trades were real.</div></li>
-          <li><span class="m">&mdash;</span><div>On this axis Edgewonk beats us and we would rather say so than pretend the axis doesn&rsquo;t exist.</div></li>
-        </ul>
+    <div class="calc-steps">
+      <div class="calc-step">
+        <span class="calc-step-n">1</span>
+        <h3>Decide what one loss costs</h3>
+        <p><b>Risk amount = account size &times; risk %</b><br>A $10,000 account risking 1% puts $100 on the line. That $100 is 1R &mdash; one unit of risk, and the yardstick every other number on your trade is measured in.</p>
       </div>
-      <div class="vs-card">
-        <h3>A journal someone else will read</h3>
-        <ul>
-          <li><span class="m">&mdash;</span><div>Depth stops being the constraint. A viewer cannot audit fifty reports; they can only decide whether to believe the inputs.</div></li>
-          <li><span class="m">&mdash;</span><div>So the useful thing is a per-trade label recording origin, written by the system rather than chosen by the trader.</div></li>
-          <li><span class="m">&mdash;</span><div>That is a claim about provenance, not performance. It won&rsquo;t make you a better trader. It makes the record of what you did checkable.</div></li>
-        </ul>
+      <div class="calc-step">
+        <span class="calc-step-n">2</span>
+        <h3>Measure the distance to your stop</h3>
+        <p><b>Risk per unit = |entry &minus; stop|</b><br>Buying at 1.2500 with a stop at 1.2450 risks 0.0050 per unit. The stop belongs where the trade is wrong, not where the loss feels comfortable.</p>
       </div>
-    </div>
-    <p class="vs-note">We describe Edgewonk only from what they publish on their own site, read 1 September 2026. Capabilities change &mdash; check <a href="https://edgewonk.com/" target="_blank" rel="noopener noreferrer nofollow">edgewonk.com</a> for their current feature set, and tell us if anything here is out of date.</p>
-  </div>
-</section>
-
-<!-- ============================ CAPABILITY TABLE ============================ -->
-<section class="section compare">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="eyebrow eyebrow--center" style="justify-content:center">Side by side</span>
-      <h2 class="h2">Capabilities, not scorecards.</h2>
-      <p class="lead">No prices and no feature counts here on purpose &mdash; both change, and a stale number in a comparison table is just a wrong claim about someone else&rsquo;s product. Where we can&rsquo;t confirm something from their own material, the cell says so rather than guessing.</p>
-    </div>
-    <div class="ctable-scroll reveal">
-      <table class="ctable">
-        <colgroup>
-          <col class="c-feat">
-          <col class="c-plan">
-          <col class="c-plan">
-        </colgroup>
-        <thead>
-          <tr class="ct-head">
-            <th class="ct-h-feat">Capability</th>
-            <th class="ct-plan-h"><span class="pn">Edgewonk</span><span class="pp">as published</span></th>
-            <th class="ct-plan-h pop"><span class="pn">TradingSocial</span><span class="pp">today</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="ct-cat"><td colspan="3">Getting trades in</td></tr>
-          <tr class="ct-row"><td class="ct-feat">Manual trade logging</td><td class="ct-cell"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td><td class="ct-cell pop"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">Automatic import</td><td class="ct-cell"><span class="ct-val up">Wide coverage</span></td><td class="ct-cell pop"><span class="ct-val">MT5 only, hourly</span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">MetaTrader 4</td><td class="ct-cell"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td><td class="ct-cell pop"><span class="ct-no">&mdash;</span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">MetaTrader 5</td><td class="ct-cell"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td><td class="ct-cell pop"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td></tr>
-
-          <tr class="ct-cat"><td colspan="3">Analysis</td></tr>
-          <tr class="ct-row"><td class="ct-feat">Depth of reporting</td><td class="ct-cell"><span class="ct-val up">Their core strength</span></td><td class="ct-cell pop"><span class="ct-val dim">Solid, not comparable</span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">Mistake tracking</td><td class="ct-cell"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td><td class="ct-cell pop"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">Trade checklists &amp; diary</td><td class="ct-cell"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td><td class="ct-cell pop"><span class="ct-val">Journal notes + 6 rules</span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">Strategy testing tools</td><td class="ct-cell"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td><td class="ct-cell pop"><span class="ct-no">&mdash;</span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">Weekly review delivered by email</td><td class="ct-cell"><span class="ct-val dim">Not documented</span></td><td class="ct-cell pop"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td></tr>
-
-          <tr class="ct-cat"><td colspan="3">Sharing &amp; provenance</td></tr>
-          <tr class="ct-row"><td class="ct-feat">Public profile</td><td class="ct-cell"><span class="ct-val dim">Not documented</span></td><td class="ct-cell pop"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">Per-trade record of how it arrived</td><td class="ct-cell"><span class="ct-val dim">Not documented</span></td><td class="ct-cell pop"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">Broker label can&rsquo;t be self-awarded</td><td class="ct-cell"><span class="ct-val dim">Not documented</span></td><td class="ct-cell pop"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td></tr>
-          <tr class="ct-row"><td class="ct-feat">Priced in Australian dollars</td><td class="ct-cell"><span class="ct-no">&mdash;</span></td><td class="ct-cell pop"><span class="ct-yes"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="vs-note">&ldquo;Not documented&rdquo; means we could not find it stated on their own site as at 1 September 2026 &mdash; not that it doesn&rsquo;t exist. If we&rsquo;ve got something wrong, tell us and we&rsquo;ll correct it.</p>
-    <div class="compare-cta">
-      <a class="btn btn-lg btn-primary" href="https://app.tradingsocial.io/signup">Start your free trial</a>
-      <a class="btn btn-lg btn-ghost" href="/for/mt5">See how MT5 sync works</a>
+      <div class="calc-step">
+        <span class="calc-step-n">3</span>
+        <h3>Divide one by the other</h3>
+        <p><b>Position size = risk amount &divide; risk per unit</b><br>$100 &divide; 0.0050 = 20,000 units. Move the stop further away and the position gets smaller: the loss stays $100 either way. That is the whole point.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ WHO SHOULD PICK WHICH ============================ -->
+<!-- ============================ WHY R ============================ -->
 <section class="section">
   <div class="wrap">
     <div class="sec-head">
-      <span class="eyebrow">Honest recommendation</span>
-      <h2 class="h2">Which one you should actually use.</h2>
+      <span class="eyebrow">Why traders size in R</span>
+      <h2 class="h2">Same risk every time makes your results comparable.</h2>
+      <p class="lead">If every trade risks 1R, a win of $300 on a $100 risk is +3R whatever the instrument or the account size that day. Your win rate and your average R together decide whether you make money &mdash; which is why a 40% win rate can beat a 70% one.</p>
     </div>
-    <div class="vs-cols reveal">
-      <div class="vs-card vs-card--fair">
-        <h3>Choose Edgewonk if</h3>
-        <ul>
-          <li><span class="m">&rarr;</span><div>You want the deepest possible look at your own statistics and behaviour. They win this outright.</div></li>
-          <li><span class="m">&rarr;</span><div>Your broker isn&rsquo;t MetaTrader 5.</div></li>
-          <li><span class="m">&rarr;</span><div>Your problem is tilt, and you want a tool built specifically to make you face it.</div></li>
-          <li><span class="m">&rarr;</span><div>The journal is for you alone and always will be.</div></li>
-        </ul>
-      </div>
-      <div class="vs-card">
-        <h3>Choose TradingSocial if</h3>
-        <ul>
-          <li><span class="m">&rarr;</span><div>Someone else will eventually need to believe your record.</div></li>
-          <li><span class="m">&rarr;</span><div>You trade MT5 and want closed trades to arrive without you touching them.</div></li>
-          <li><span class="m">&rarr;</span><div>You want the record to live somewhere public by default, not as a file you export.</div></li>
-          <li><span class="m">&rarr;</span><div>You&rsquo;d rather pay in Australian dollars.</div></li>
-        </ul>
-      </div>
+    <div class="calc-links">
+      <a class="calc-link" href="/blog/position-sizing-101">
+        <h3>Position sizing 101</h3>
+        <p>The framework this calculator implements, in full.</p>
+      </a>
+      <a class="calc-link" href="/blog/win-rate-is-lying-to-you">
+        <h3>Win rate is lying to you</h3>
+        <p>R multiples and expectancy, in plain English.</p>
+      </a>
+      <a class="calc-link" href="/for/prop-firm">
+        <h3>Trading a prop-firm evaluation?</h3>
+        <p>Where a daily drawdown rule changes the sizing question.</p>
+      </a>
     </div>
   </div>
 </section>
@@ -1798,33 +1881,33 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 <section class="section" style="background:var(--bg-2); border-block:1px solid var(--border)">
   <div class="wrap">
     <div class="sec-head">
-      <span class="eyebrow">Common questions</span>
-      <h2 class="h2">Edgewonk alternative &mdash; frequently asked</h2>
+      <span class="eyebrow">Questions</span>
+      <h2 class="h2">About this calculator</h2>
     </div>
-    <div class="faq-grid reveal">
+    <div class="faq-grid">
       <div class="faq-item">
-        <h3><span class="q">Q</span>Is TradingSocial an Edgewonk alternative?</h3>
-        <p>For some traders. Both journal trades and analyse them, and both track mistakes. Edgewonk publishes far deeper reporting and a much wider import list. We&rsquo;re narrower, and differ in one respect they don&rsquo;t publish: a system-set label on every trade recording how it arrived.</p>
+        <h3><span class="q">Q</span>What percentage should I risk per trade?</h3>
+        <p>We do not answer that, and you should be wary of a tool that does. The right number depends on your account, your strategy, your drawdown tolerance and, if you trade a funded account, your firm&rsquo;s rules. The calculator uses the number you enter.</p>
       </div>
       <div class="faq-item">
-        <h3><span class="q">Q</span>What is Edgewonk best at?</h3>
-        <p>Depth of self-analysis. 50+ data reports, an Edge Finder scanner, a strategy lab, trade checklists and an integrated diary, all built around confronting your own behaviour. If that&rsquo;s what you want, it beats anything here.</p>
+        <h3><span class="q">Q</span>Does it work for forex, crypto, futures and stocks?</h3>
+        <p>The arithmetic is the same for all of them, because it works in units of the instrument. What differs is what a &ldquo;unit&rdquo; means: shares for stocks, coins or contracts for crypto, and base-currency units for forex, where 100,000 units is a standard lot. Futures trade in whole contracts with a fixed tick value, so round down to a whole number.</p>
       </div>
       <div class="faq-item">
-        <h3><span class="q">Q</span>Does Edgewonk import trades automatically?</h3>
-        <p>Yes &mdash; they publish automatic import across 200+ brokers including MT4 and MT5, NinjaTrader, Interactive Brokers and cTrader. We sync MetaTrader 5 only. If you trade anything else, they cover you and we don&rsquo;t.</p>
+        <h3><span class="q">Q</span>Why is the position value bigger than my account?</h3>
+        <p>Because a small price distance to your stop needs a large position for the loss to reach your risk amount. Whether you can hold that position depends on your leverage and your broker&rsquo;s margin requirement, which this calculator knows nothing about. Check before you place the trade.</p>
       </div>
       <div class="faq-item">
-        <h3><span class="q">Q</span>What does TradingSocial do that Edgewonk doesn&rsquo;t publish?</h3>
-        <p>Two things: a per-trade provenance label, set by the system rather than chosen; and a public profile, so the record has somewhere to be seen rather than only exported.</p>
+        <h3><span class="q">Q</span>Are spread, commission and slippage included?</h3>
+        <p>No. They make the real loss slightly larger than the number shown, and they matter most when your stop is close. Some traders size a little smaller to absorb them.</p>
       </div>
       <div class="faq-item">
-        <h3><span class="q">Q</span>Is a deeper journal better than a shareable one?</h3>
-        <p>It depends who the journal is for. For you alone, depth wins and Edgewonk has more of it. If someone else will need to believe your record, depth isn&rsquo;t the constraint &mdash; provenance is.</p>
+        <h3><span class="q">Q</span>Do you store what I type?</h3>
+        <p>No. The page does the arithmetic in your browser. Nothing is sent to a server, nothing is saved, and closing the tab discards it.</p>
       </div>
       <div class="faq-item">
-        <h3><span class="q">Q</span>Can I use both?</h3>
-        <p>Plenty of people would be well served doing exactly that: Edgewonk for the deep review, a public profile for the record. We&rsquo;d rather say so than pretend the choice is forced.</p>
+        <h3><span class="q">Q</span>What is R, and what is a good reward-to-risk ratio?</h3>
+        <p>R is your risk on the trade: a 2R win makes twice what a loss at your stop would have cost. There is no universally good ratio, because it trades off against how often you win. A journal that records both is how you find out which combination works for you.</p>
       </div>
     </div>
   </div>
@@ -1833,12 +1916,14 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 <!-- ============================ FINAL CTA ============================ -->
 <section class="section finalcta">
   <div class="wrap">
-    <div class="sec-head">
-      <h2 class="h2">Fourteen days of Pro, no argument.</h2>
-      <p class="lead">If depth is what you&rsquo;re short of, Edgewonk is the better buy and this page has done its job. If provenance is, try this one.</p>
-      <div class="hero-cta" style="justify-content:center;margin-top:26px">
-        <a class="btn btn-lg btn-primary" href="https://app.tradingsocial.io/signup">Start free</a>
-        <a class="btn btn-lg btn-ghost" href="/compare/best-mt5-trading-journal">How to choose an MT5 journal</a>
+    <div class="finalcta-card reveal">
+      <div class="hero-banner-grid"></div>
+      <span class="eyebrow eyebrow--center" style="justify-content:center">The part the calculator cannot do</span>
+      <h2 class="h2">Sizing a trade is easy. Proving you stuck to it is the hard part.</h2>
+      <p class="hero-sub">TradingSocial logs the size you planned against the trade you actually took, in R, and shows you the pattern over hundreds of trades. Free for 14 days of Pro &mdash; a card starts the trial, and cancelling before it ends costs nothing.</p>
+      <div class="hero-cta">
+        <a class="btn btn-onband btn-lg" href="https://app.tradingsocial.io/signup">Start Free<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+        <a class="btn btn-band-ghost btn-lg" href="/for/journal">See the journal</a>
       </div>
     </div>
   </div>
@@ -1917,4 +2002,127 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 </script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
+<script>
+/* Position size calculator.
+   Runs entirely in the browser: nothing is sent anywhere, nothing is stored.
+   The arithmetic is the three lines printed on the page —
+     risk amount   = balance * risk% / 100
+     risk per unit = |entry - stop|
+     units         = risk amount / risk per unit
+   Anything the page cannot know (leverage, margin, tick value, costs) is
+   reported as a caveat rather than guessed at. */
+(function () {
+  var form = document.getElementById('calcForm')
+  if (!form) return
+  var $ = function (id) { return document.getElementById(id) }
+  var f = { balance: $('balance'), currency: $('currency'), risk: $('risk'), entry: $('entry'), stop: $('stop'), target: $('target') }
+  var out = { units: $('outUnits'), side: $('outSide'), risk: $('outRisk'), perUnit: $('outPerUnit'), value: $('outValue'), rr: $('outRR'), rowRR: $('rowRR'), note: $('outNote') }
+  var err = $('calcError')
+  var prefix = $('curPrefix')
+  var DASH = '—'
+
+  var SYMBOL = { USD: '$', AUD: 'A$', EUR: '€', GBP: '£', JPY: '¥', CAD: 'C$', NZD: 'NZ$', SGD: 'S$', ZAR: 'R', INR: '₹' }
+
+  function num(el) {
+    var raw = String(el.value).trim()
+    if (raw === '') return null
+    var n = Number(raw)
+    return isFinite(n) ? n : NaN
+  }
+
+  function money(n, code) {
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, maximumFractionDigits: 2 }).format(n)
+    } catch (e) {
+      return (SYMBOL[code] || '') + n.toFixed(2)
+    }
+  }
+
+  /** Prices can be 1.23456 (forex) or 68,000 (crypto): keep enough digits to be
+   *  useful without printing float noise. */
+  function price(n) {
+    var digits = Math.abs(n) >= 100 ? 2 : Math.abs(n) >= 1 ? 4 : 6
+    return n.toFixed(digits).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
+  }
+
+  function units(n) {
+    var digits = n >= 1000 ? 0 : n >= 1 ? 2 : 6
+    return n.toLocaleString(undefined, { maximumFractionDigits: digits })
+  }
+
+  function blank() {
+    out.units.textContent = DASH
+    out.side.textContent = DASH
+    out.risk.textContent = DASH
+    out.perUnit.textContent = DASH
+    out.value.textContent = DASH
+    out.rowRR.hidden = true
+    out.note.hidden = true
+  }
+
+  function fail(msg) {
+    err.textContent = msg
+    err.hidden = false
+    blank()
+  }
+
+  function calculate() {
+    err.hidden = true
+    var code = f.currency.value
+    prefix.textContent = SYMBOL[code] || '$'
+
+    var balance = num(f.balance), riskPct = num(f.risk), entry = num(f.entry), stop = num(f.stop), target = num(f.target)
+    for (var k in f) {
+      if (k !== 'currency' && isNaN(num(f[k]))) return fail('Those need to be numbers.')
+    }
+    // Nothing typed yet is not an error: the fields just sit empty.
+    if (balance === null || riskPct === null || entry === null || stop === null) return blank()
+
+    if (balance <= 0) return fail('Account size has to be more than zero.')
+    if (riskPct <= 0) return fail('Risk per trade has to be more than zero.')
+    if (riskPct > 100) return fail('Risk per trade cannot be more than 100% of the account.')
+    if (entry <= 0 || stop <= 0) return fail('Entry and stop have to be more than zero.')
+    if (entry === stop) return fail('Entry and stop are the same price, so the trade has no risk to size against.')
+
+    var riskAmount = balance * riskPct / 100
+    var perUnit = Math.abs(entry - stop)
+    var size = riskAmount / perUnit
+    var value = size * entry
+    var long = stop < entry
+
+    out.units.textContent = units(size)
+    out.side.textContent = long ? 'Long (stop below entry)' : 'Short (stop above entry)'
+    out.risk.textContent = money(riskAmount, code)
+    out.perUnit.textContent = price(perUnit) + ' per unit'
+    out.value.textContent = money(value, code)
+
+    var notes = []
+    if (value > balance) {
+      notes.push('The position is worth ' + Math.round(value / balance) + '× your account, so it needs leverage and enough margin. Check both with your broker before placing it.')
+    }
+    if (target !== null && target > 0) {
+      var reward = Math.abs(target - entry)
+      var towards = long ? target > entry : target < entry
+      if (!towards) {
+        out.rowRR.hidden = true
+        notes.push('The target is on the same side as the stop, so it is not a target for this direction.')
+      } else {
+        out.rr.textContent = (reward / perUnit).toFixed(2) + 'R'
+        out.rowRR.hidden = false
+      }
+    } else {
+      out.rowRR.hidden = true
+    }
+    notes.push('Costs (spread, commission, swap, slippage) are not included, so the real loss at your stop will be a little larger.')
+
+    out.note.innerHTML = notes.join('<br><br>')
+    out.note.hidden = false
+  }
+
+  form.addEventListener('input', calculate)
+  form.addEventListener('change', calculate)
+  form.addEventListener('submit', function (e) { e.preventDefault(); calculate() })
+  calculate()
+})()
+</script>
 </body></html>
