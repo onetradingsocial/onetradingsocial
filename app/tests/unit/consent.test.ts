@@ -44,6 +44,7 @@ const MARKETING_PAGES = [
   // loader added there is caught before it is copied into every post.
   'templates/blog-post.html',
   'tools/position-size-calculator.html',
+  'tools/expectancy-calculator.html',
   ...readdirSync(join(ROOT, 'blog'))
     .filter((f) => f.endsWith('.html'))
     .map((f) => `blog/${f}`),

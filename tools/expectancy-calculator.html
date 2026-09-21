@@ -1407,22 +1407,141 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 .lp-crumb a { color: var(--faint); }
 .lp-crumb a:hover { color: var(--violet-br); }
 </style>
+<style>
+/* ---------- Comparison-page additions (ported from /pricing) ---------- */
+/* ---------- Comparison table ---------- */
+.compare { background: var(--bg-2); border-block: 1px solid var(--border); }
+.ctable-scroll { margin-top: 52px; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-lg); }
+.ctable {
+  width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 0;
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;
+}
+.ctable thead th { position: sticky; top: 0; z-index: 3; }
+.ctable th, .ctable td { text-align: left; padding: 16px 20px; }
+.ctable col.c-feat { width: 40%; }
+.ctable col.c-plan { width: 20%; }
+
+.ct-head th { background: #fff; border-bottom: 1px solid var(--border); vertical-align: bottom; }
+.ct-head .ct-h-feat { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+.ct-plan-h { text-align: center !important; border-left: 1px solid var(--border); }
+.ct-plan-h .pn { font-family: var(--display); font-size: 18px; font-weight: 600; }
+.ct-plan-h .pp { font-family: var(--mono); font-size: 12px; color: var(--faint); margin-top: 4px; }
+.ct-plan-h.pop { background: linear-gradient(180deg, rgba(124,92,230,0.07), rgba(124,92,230,0.03)); }
+.ct-plan-h.pop .pn { color: var(--violet-br); }
+.ct-plan-h .mini-badge {
+  display: inline-block; margin-bottom: 9px;
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+  color: #fff; background: var(--brand-grad); padding: 3px 9px; border-radius: 999px;
+}
+
+.ct-cat td {
+  background: var(--surface-2); border-block: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--violet-br); font-weight: 600;
+}
+.ctable tbody tr.ct-row td { border-bottom: 1px solid var(--border); font-size: 14px; }
+.ctable tbody tr.ct-row:last-child td { border-bottom: none; }
+.ct-row .ct-feat { color: var(--text); font-weight: 500; }
+.ct-row td.ct-cell { text-align: center; border-left: 1px solid var(--border); color: var(--dim); }
+.ct-row td.ct-cell.pop { background: rgba(124,92,230,0.035); }
+
+.ct-yes { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: var(--up-soft); border: 1px solid rgba(18,165,107,0.28); }
+.ct-yes svg { width: 13px; height: 13px; color: var(--up); }
+.ct-no { color: var(--faintest); font-size: 18px; line-height: 1; }
+.ct-val { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); }
+.ct-val.dim { color: var(--faint); font-weight: 500; }
+.ct-val.up { color: var(--up); }
+
+.compare-cta { display: flex; justify-content: center; gap: 12px; margin-top: 36px; flex-wrap: wrap; }
+
+/* ---------- FAQ ---------- */
+.faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 48px; }
+@media (max-width: 800px){ .faq-grid { grid-template-columns: 1fr; } }
+.faq-item {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px 26px; box-shadow: var(--shadow-sm);
+}
+.faq-item h3 { font-family: var(--display); font-size: 17px; font-weight: 600; display: flex; align-items: flex-start; gap: 11px; line-height: inherit; letter-spacing: inherit; text-wrap: inherit; }
+.faq-item h3 .q { font-family: var(--mono); font-size: 13px; color: var(--violet-br); margin-top: 2px; }
+.faq-item p { font-size: 14px; color: var(--dim); line-height: 1.6; margin-top: 11px; padding-left: 25px; }
+/* ---------- vs-page specifics ---------- */
+.vs-note { font-family: var(--mono); font-size: 12px; color: var(--faint); margin-top: 14px; }
+.vs-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 44px; }
+@media (max-width: 800px){ .vs-cols { grid-template-columns: 1fr; } }
+.vs-card { background:#fff; border:1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); }
+.vs-card h3 { font-family: var(--display); font-size: 19px; font-weight: 600; }
+.vs-card ul { margin-top: 16px; display: grid; gap: 11px; }
+.vs-card li { font-size: 14px; color: var(--dim); line-height: 1.6; display: flex; gap: 10px; align-items: flex-start; }
+.vs-card li span.m { font-family: var(--mono); font-size: 12px; color: var(--violet-br); margin-top: 1px; }
+.vs-card--fair { background: var(--bg-2); }
+
+/* ---------- position size calculator ---------- */
+.calc { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 22px; align-items: start; margin-top: 8px; }
+@media (max-width: 900px){ .calc { grid-template-columns: 1fr; } }
+.calc-form, .calc-out {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 26px; box-shadow: var(--shadow-sm);
+}
+.calc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+@media (max-width: 560px){ .calc-grid { grid-template-columns: 1fr; } }
+.calc-field label { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 7px; }
+.calc-optional { font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--faint); margin-left: 6px; }
+.calc-input { display: flex; align-items: center; gap: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2); overflow: hidden; }
+.calc-input:focus-within { border-color: var(--violet-br); box-shadow: 0 0 0 3px rgba(107,67,224,0.14); }
+.calc-affix { font-family: var(--mono); font-size: 13px; color: var(--dim); padding: 0 2px 0 13px; }
+.calc-affix--end { padding: 0 13px 0 2px; }
+.calc-input input {
+  flex: 1; width: 100%; min-width: 0; border: 0; background: transparent; outline: none;
+  font-family: var(--mono); font-size: 15px; color: inherit; padding: 12px 13px;
+}
+.calc-field select {
+  width: 100%; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2);
+  font-family: inherit; font-size: 14px; color: inherit; padding: 12px 13px;
+}
+.calc-field select:focus-visible { outline: none; border-color: var(--violet-br); box-shadow: 0 0 0 3px rgba(107,67,224,0.14); }
+.calc-hint { font-size: 12px; color: var(--faint); margin-top: 7px; line-height: 1.5; }
+.calc-error { font-size: 13px; color: #C2255C; margin-top: 16px; }
+.calc-primary { text-align: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.calc-label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--violet-br); }
+.calc-value { display: block; font-family: var(--display); font-size: 38px; font-weight: 600; letter-spacing: -0.02em; margin: 6px 0 4px; overflow-wrap: anywhere; }
+.calc-unit { font-size: 12.5px; color: var(--faint); }
+.calc-rows { margin-top: 18px; display: grid; gap: 12px; }
+.calc-rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
+.calc-rows dt { font-size: 13.5px; color: var(--dim); }
+.calc-rows dd { font-family: var(--mono); font-size: 14px; text-align: right; }
+.calc-note { font-size: 12.5px; color: var(--dim); line-height: 1.6; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.calc-disclaimer { font-size: 12.5px; color: var(--faint); line-height: 1.7; max-width: 900px; margin: 22px auto 0; text-align: center; }
+.calc-disclaimer a { color: var(--violet-br); text-decoration: underline; }
+.calc-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; }
+@media (max-width: 900px){ .calc-steps { grid-template-columns: 1fr; } }
+.calc-step { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-sm); }
+.calc-step-n { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-family: var(--mono); font-size: 13px; color: #fff; background: linear-gradient(135deg,#7C5CE6,#C840BC); }
+.calc-step h3 { font-family: var(--display); font-size: 17px; font-weight: 600; margin-top: 14px; }
+.calc-step p { font-size: 14px; color: var(--dim); line-height: 1.65; margin-top: 10px; }
+.calc-step p b { color: inherit; font-family: var(--mono); font-size: 13px; }
+.calc-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+@media (max-width: 900px){ .calc-links { grid-template-columns: 1fr; } }
+.calc-link { display: block; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; box-shadow: var(--shadow-sm); transition: transform .18s ease, border-color .18s ease; }
+.calc-link:hover { transform: translateY(-2px); border-color: var(--violet-br); }
+.calc-link h3 { font-family: var(--display); font-size: 16px; font-weight: 600; }
+.calc-link p { font-size: 13.5px; color: var(--dim); margin-top: 8px; line-height: 1.6; }
+</style>
   <!-- Analytics / advertising tags. Loaded by /consent.js only after the
        consent gate allows the relevant tier (audit item 17, WS7). Do not
        re-add inline gtag/fbq/rdt loaders here -- they cannot be declined. -->
   <script src="/consent.js"></script>
-  <title>Trading Journal That Reviews Your Trades — TradingSocial</title>
-  <meta name="description" content="The online trading journal that gives feedback, not just storage: log every trade, get a weekly review, and see insights with their sample size stated.">
-  <meta property="og:title" content="Trading Journal That Reviews Your Trades — TradingSocial">
-  <meta property="og:description" content="The online trading journal that gives feedback, not just storage: log every trade, get a weekly review, and see insights with their sample size stated.">
+  <title>Trading Expectancy Calculator | TradingSocial</title>
+  <meta name="description" content="Free trading expectancy calculator: enter win rate, average win and average loss to see what one trade is worth, the break-even win rate and your profit factor.">
+  <meta property="og:title" content="Trading Expectancy Calculator | TradingSocial">
+  <meta property="og:description" content="Free trading expectancy calculator: enter win rate, average win and average loss to see what one trade is worth, the break-even win rate and your profit factor.">
   <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <meta property="og:url" content="https://www.tradingsocial.io/for/journal">
+  <meta property="og:url" content="https://www.tradingsocial.io/tools/expectancy-calculator">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Trading Journal That Reviews Your Trades — TradingSocial">
-  <meta name="twitter:description" content="The online trading journal that gives feedback, not just storage: log every trade, get a weekly review, and see insights with their sample size stated.">
+  <meta name="twitter:title" content="Trading Expectancy Calculator | TradingSocial">
+  <meta name="twitter:description" content="Free trading expectancy calculator: enter win rate, average win and average loss to see what one trade is worth, the break-even win rate and your profit factor.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <link rel="canonical" href="https://www.tradingsocial.io/for/journal">
+  <link rel="canonical" href="https://www.tradingsocial.io/tools/expectancy-calculator">
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -1437,16 +1556,33 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "Solutions",
-      "item": "https://www.tradingsocial.io/for"
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "Trading journal",
-      "item": "https://www.tradingsocial.io/for/journal"
+      "name": "Expectancy calculator",
+      "item": "https://www.tradingsocial.io/tools/expectancy-calculator"
     }
   ]
+}
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Expectancy calculator",
+  "url": "https://www.tradingsocial.io/tools/expectancy-calculator",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Any (web browser)",
+  "browserRequirements": "Requires JavaScript",
+  "inLanguage": "en",
+  "description": "Free trading expectancy calculator: enter win rate, average win and average loss to see what one trade is worth, the break-even win rate and your profit factor.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "AUD"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "TradingSocial",
+    "url": "https://www.tradingsocial.io"
+  }
 }
   </script>
   <script type="application/ld+json">
@@ -1456,42 +1592,50 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "What should I record in a trading journal?",
+      "name": "What counts as a good expectancy?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "At minimum: the setup, entry and exit prices, position size, and risk expressed in R. A useful journal goes further — a screenshot of the chart, the rationale behind the trade, your emotional state going in, and a mistake tag if something went wrong. Those last four are what turn a log into feedback."
+        "text": "Any positive number is an edge on the trades you measured; how large a number is worth chasing depends on how many trades you take and what they cost you in fees and attention. We do not publish a target, because a number that looks good over 30 trades routinely disappears over 300."
       }
     },
     {
       "@type": "Question",
-      "name": "How often should I review my trades?",
+      "name": "Should I use R or currency?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Weekly is the practical minimum — often enough to catch a pattern before it costs you a month of results, infrequent enough to have a real sample. TradingSocial auto-generates a weekly review (Trader plan and above) covering P&L, win rate, drawdown, best setup and your costliest mistake."
+        "text": "R, if you can. Expressing wins and losses as multiples of the risk you took makes the result comparable across instruments and account sizes, and it stops a period of larger position sizes from looking like an improvement in skill. Currency is fine when every trade risked a similar amount."
       }
     },
     {
       "@type": "Question",
-      "name": "Is there a free trading journal?",
+      "name": "How many trades before this means anything?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. TradingSocial's free plan logs trades, setup tags and mistake tags with no card required, and keeps your last 30 trades visible. Nothing is ever deleted — upgrading to Trader adds unlimited history plus the weekly review."
+        "text": "More than most traders would like. Averages are unstable in small samples, and a single outlier can flip the sign of your expectancy. Treat an early number as a rough indication, watch whether it holds as the sample grows, and be sceptical of any figure quoted without the count behind it."
       }
     },
     {
       "@type": "Question",
-      "name": "What's the difference between a trading journal and a trade log?",
+      "name": "Does a positive expectancy mean I will make money?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "A trade log is a record of what happened — entry, exit, size, result. A trading journal adds why: the setup, the rationale, how you felt, and what went wrong. That extra layer is what makes patterns visible and reviews possible."
+        "text": "No. It describes the average of trades that already happened. The future only matches it if your strategy, your execution and the market stay as they were, and results arrive in streaks either way — a positive expectancy is entirely compatible with a long losing run."
       }
     },
     {
       "@type": "Question",
-      "name": "Does a trading journal need to include losing trades?",
+      "name": "What is profit factor, and how is it different?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes — a journal that only records winners can't tell you anything useful. Logging every trade, including losses and mistakes, is what makes the weekly review and personalised insights meaningful instead of a highlight reel."
+        "text": "Profit factor is gross profit divided by gross loss: 1.0 is break-even, and it is the same information as expectancy from another angle. Expectancy tells you what one trade is worth; profit factor tells you how many dollars you earn per dollar lost. Both move together."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do you store what I type?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The page does the arithmetic in your browser. Nothing is sent to a server, nothing is saved, and closing the tab discards it."
       }
     }
   ]
@@ -1580,228 +1724,204 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 </header>
 
 <!-- ============================ HERO ============================ -->
-<section class="lp-hero lp-hero--shot">
+<section class="lp-hero">
   <div class="wrap">
     <div class="hero-banner">
       <div class="hero-banner-grid"></div>
       <div class="hero-banner-noise"></div>
       <div class="hero-content">
-        <span class="chip chip--band"><span class="dot"></span>The trading journal, done properly</span>
-        <h1 class="h1">A trading journal that gives you <em>feedback</em>, not just storage.</h1>
-        <p class="hero-sub">Log the setup, the size, the risk in R and the story behind each trade. Every week you get an automatic review of the result — not a spreadsheet that only remembers what you typed in.</p>
-        <div class="hero-cta">
-          <a class="btn btn-lg btn-onband" href="https://app.tradingsocial.io/signup">Start your journal free</a>
-          <a class="btn btn-lg btn-band-ghost" href="/pricing">See pricing</a>
-        </div>
-        <p class="lp-hero-note">Free plan available &middot; 14 days of Pro free &middot; Card required, cancel anytime</p>
-      </div>
-    </div>
-    <div class="lp-shot reveal">
-      <div class="bwin">
-        <div class="bwin-bar">
-          <div class="dots"><i></i><i></i><i></i></div>
-          <div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/journal</div>
-        </div>
-        <picture style="display:contents"><source style="display:none" type="image/avif" srcset="/assets/images/Journal-480.avif 480w, /assets/images/Journal-800.avif 800w, /assets/images/Journal-1200.avif 1200w, /assets/images/Journal-1440.avif 1440w" sizes="(max-width: 1060px) 100vw, 1000px"><source style="display:none" type="image/webp" srcset="/assets/images/Journal-480.webp 480w, /assets/images/Journal-800.webp 800w, /assets/images/Journal-1200.webp 1200w, /assets/images/Journal-1440.webp 1440w" sizes="(max-width: 1060px) 100vw, 1000px"><img class="bwin-shot" src="/assets/images/Journal.png" alt="TradingSocial journal page — this month's trade count and net P/L, stat tiles for overall ranking, total P/L, win rate, average R and total trades, a Personalised insights panel stating the sample size behind each insight, including a warning that win rate drops after two straight losses, and a weekly performance review covering profit factor, average winner/loser, max drawdown, best strategy, best session and most expensive mistake" width="1440" height="1221" style="aspect-ratio:1440/1221" loading="eager" decoding="async"></picture>
+        <span class="chip chip--band"><span class="dot"></span>Free tool &middot; no sign-up</span>
+        <h1 class="h1">Trading expectancy <em>calculator</em>.</h1>
+        <p class="hero-sub">Enter your win rate, your average win and your average loss. It returns what one trade is worth on average, the win rate you would need just to break even, and what the same numbers do over a run of trades.</p>
+        <p class="lp-hero-note">Runs in your browser &middot; Nothing is sent anywhere &middot; No account needed</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ STAT STRIP ============================ -->
-<section class="section--tight">
+<!-- ============================ CALCULATOR ============================ -->
+<section class="section calc-section">
   <div class="wrap">
-    <div class="lp-stats reveal">
-      <div class="lp-stat"><b>8 fields</b><span>logged per trade, from setup to mistake tag</span></div>
-      <div class="lp-stat"><b>Weekly</b><span>auto-generated review: P&amp;L, win rate, drawdown</span></div>
-      <div class="lp-stat"><b>30 trades</b><span>kept free &middot; unlimited history on Trader</span></div>
-      <div class="lp-stat"><b>Sample-sized</b><span>insights — every pattern states its n</span></div>
+    <div class="calc">
+      <form class="calc-form" id="calcForm" novalidate>
+        <div class="calc-grid">
+          <div class="calc-field">
+            <label for="winrate">Win rate</label>
+            <div class="calc-input">
+              <input type="number" id="winrate" name="winrate" inputmode="decimal" step="any" min="0" max="100" placeholder="40" autocomplete="off">
+              <span class="calc-affix calc-affix--end">%</span>
+            </div>
+            <p class="calc-hint">Winners divided by all closed trades.</p>
+          </div>
+          <div class="calc-field">
+            <label for="units">Measured in</label>
+            <select id="units" name="units">
+              <option value="R">R multiples</option>
+              <option value="USD">USD — US dollar</option>
+              <option value="AUD">AUD — Australian dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — Pound sterling</option>
+              <option value="JPY">JPY — Japanese yen</option>
+              <option value="CAD">CAD — Canadian dollar</option>
+              <option value="NZD">NZD — New Zealand dollar</option>
+              <option value="SGD">SGD — Singapore dollar</option>
+              <option value="ZAR">ZAR — South African rand</option>
+              <option value="INR">INR — Indian rupee</option>
+            </select>
+            <p class="calc-hint">R keeps the answer comparable across accounts.</p>
+          </div>
+          <div class="calc-field">
+            <label for="avgwin">Average win</label>
+            <div class="calc-input">
+              <span class="calc-affix" id="winPrefix">R</span>
+              <input type="number" id="avgwin" name="avgwin" inputmode="decimal" step="any" min="0" placeholder="2" autocomplete="off">
+            </div>
+          </div>
+          <div class="calc-field">
+            <label for="avgloss">Average loss</label>
+            <div class="calc-input">
+              <span class="calc-affix" id="lossPrefix">R</span>
+              <input type="number" id="avgloss" name="avgloss" inputmode="decimal" step="any" min="0" placeholder="1" autocomplete="off">
+            </div>
+            <p class="calc-hint">Enter it as a positive number.</p>
+          </div>
+          <div class="calc-field">
+            <label for="trades">Trades in the run <span class="calc-optional">optional</span></label>
+            <div class="calc-input">
+              <input type="number" id="trades" name="trades" inputmode="numeric" step="1" min="0" placeholder="100" autocomplete="off">
+            </div>
+            <p class="calc-hint">How many trades to project the same numbers over.</p>
+          </div>
+        </div>
+        <p class="calc-error" id="calcError" role="alert" hidden></p>
+      </form>
+
+      <div class="calc-out" id="calcOut" aria-live="polite">
+        <div class="calc-primary">
+          <span class="calc-label">Expectancy per trade</span>
+          <strong class="calc-value" id="outExp">&mdash;</strong>
+          <span class="calc-unit" id="outExpUnit">average result of one trade</span>
+        </div>
+        <dl class="calc-rows">
+          <div><dt>Reward-to-risk</dt><dd id="outRR">&mdash;</dd></div>
+          <div><dt>Break-even win rate</dt><dd id="outBE">&mdash;</dd></div>
+          <div><dt>Profit factor</dt><dd id="outPF">&mdash;</dd></div>
+          <div id="rowRun" hidden><dt>Over the run</dt><dd id="outRun">&mdash;</dd></div>
+        </dl>
+        <p class="calc-note" id="outNote" hidden></p>
+      </div>
     </div>
+
+    <p class="calc-disclaimer">
+      This is arithmetic on the numbers you type: general information, not financial advice, and not a prediction.
+      An expectancy is an average of trades that already happened, so it describes the past and only holds while
+      your trading, your strategy and the market stay as they were. Real results arrive in streaks, not averages.
+      See the <a href="/disclaimer">risk disclaimer</a>.
+    </p>
   </div>
 </section>
 
-<!-- ============================ PROBLEM ============================ -->
+<!-- ============================ THE MATHS ============================ -->
 <section class="section" style="background:var(--bg-2); border-block:1px solid var(--border)">
   <div class="wrap">
-    <div class="problem-grid">
-      <div class="reveal">
-        <span class="eyebrow">Why most journals stall</span>
-        <h2 class="h2" style="margin-top:16px">Logging trades is easy. Learning from them is the hard part.</h2>
-        <p class="lead" style="margin-top:18px">A spreadsheet or a broker export will record what happened. It won't tell you anything back.</p>
-        <p class="lead" style="margin-top:16px">The fix: an automatic weekly review, generated whether you ask for it or not.</p>
+    <div class="sec-head">
+      <span class="eyebrow">The arithmetic</span>
+      <h2 class="h2">One line, and a second one that catches people out.</h2>
+      <p class="lead">Expectancy is the number that decides whether a strategy makes money. Win rate on its own cannot, which is why a 40% win rate can beat a 70% one.</p>
+    </div>
+    <div class="calc-steps">
+      <div class="calc-step">
+        <span class="calc-step-n">1</span>
+        <h3>What one trade is worth</h3>
+        <p><b>E = (win% &times; average win) &minus; (loss% &times; average loss)</b><br>Win 40% of the time, +2R on winners and &minus;1R on losers: (0.40 &times; 2) &minus; (0.60 &times; 1) = +0.20R per trade. Positive means the edge is in your favour on these numbers.</p>
       </div>
-      <div class="problem-vs reveal">
-        <div class="vs-row bad">
-          <span class="vs-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#E5475D" stroke-width="2.4" stroke-linecap="round"></path></svg></span>
-          <div class="vt"><b>A log nobody reviews</b><p>Most journals are a table you fill in and never open again. Nothing prompts you to look back, so the same setup keeps costing you the same way.</p></div>
-        </div>
-        <div class="vs-row bad">
-          <span class="vs-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#E5475D" stroke-width="2.4" stroke-linecap="round"></path></svg></span>
-          <div class="vt"><b>Reviewing on feel, not on a sample</b><p>Without a stated sample size, a real pattern in your trades and a four-trade hunch look exactly the same.</p></div>
-        </div>
-        <div class="vs-row good">
-          <span class="vs-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#12A56B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-          <div class="vt"><b>A journal that reports back with the sample size behind it</b><p>Personalised patterns (Pro) always state the sample size behind them, so you know whether it's a real tendency or four trades and a hunch.</p></div>
-        </div>
+      <div class="calc-step">
+        <span class="calc-step-n">2</span>
+        <h3>The win rate you actually need</h3>
+        <p><b>Break-even win rate = 1 &divide; (1 + reward-to-risk)</b><br>At 2R winners against 1R losers, 33.3% is break-even. Everything above that is edge; a 70% win rate on 0.3R winners against 1R losers is not.</p>
+      </div>
+      <div class="calc-step">
+        <span class="calc-step-n">3</span>
+        <h3>Why sample size decides the answer</h3>
+        <p>Thirty trades tell you very little: one outlier moves the average win enough to flip the sign. Expectancy becomes trustworthy the way any average does &mdash; slowly, and only if you keep the inputs honest.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ FEATURES ============================ -->
+<!-- ============================ WHERE THE NUMBERS COME FROM ============================ -->
 <section class="section">
   <div class="wrap">
-    <div class="section-head center reveal">
-      <span class="eyebrow eyebrow--center" style="justify-content:center">What you get</span>
-      <h2 class="h2">A journal built to talk back</h2>
-      <p class="lead">Every part of it points at the same job: turning trades you've already taken into decisions you make better next time.</p>
+    <div class="sec-head">
+      <span class="eyebrow">Garbage in, confident garbage out</span>
+      <h2 class="h2">The hard part is the three numbers you type.</h2>
+      <p class="lead">Win rate, average win and average loss are easy to estimate and easy to get wrong. Remembered numbers flatter you: the winners are vivid, the scratch trades are forgotten, and the one catastrophic loss gets filed as an exception. A journal that records every closed trade is where honest inputs come from.</p>
     </div>
-    <div class="lp-grid">
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l5 5v13H6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M10 9h6M10 13h6M10 17h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-        <h3>Everything worth recording</h3>
-        <p>Setup, entry, exit, size and risk in R as standard — plus a screenshot, your rationale, emotional state and a mistake tag on every trade.</p>
-      </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"></rect><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M8 14.5l2.3 2.3L16 11.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-        <h3>A weekly review, done for you</h3>
-        <p>Every week (Trader plan and above) TradingSocial rolls your trades into one page: P&amp;L, win rate, drawdown, your best setup and your costliest mistake.</p>
-      </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M10 19V5M15 19v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><circle cx="18.5" cy="7.5" r="2.6" stroke="currentColor" stroke-width="2"></circle><path d="M20.4 9.4L22 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-        <h3>Insights that show their working</h3>
-        <p>Personalised patterns (Pro) always state the sample size behind them, so you know whether it's a real tendency or four trades and a hunch.</p>
-      </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"></circle><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"></circle><circle cx="12" cy="12" r="0.8" fill="currentColor"></circle></svg></span>
-        <h3>Goals built on process, not P&amp;L</h3>
-        <p>Track your journaling streak and your rule compliance. The target is showing up and following your own rules — not a profit number to chase.</p>
-      </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-        <h3>A monthly report you can hand over</h3>
-        <p>Pro members get a downloadable monthly trader report — strategy breakdown, mistake summary and full trade log in one document.</p>
-      </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="2"></circle><path d="M12 9v4l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M6 3L4 5M18 3l2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-        <h3>Your history stays yours</h3>
-        <p>Free keeps your last 30 trades visible, nothing deleted. Trader plan adds unlimited history, so your record runs as far back as you've been journaling.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================ PROOF ============================ -->
-<section class="section" style="background:var(--bg-2); border-block:1px solid var(--border)">
-  <div class="wrap">
-    <div class="show-panel-grid">
-      <div class="pcopy">
-        <h3 class="h3">Your log becomes real performance data.</h3>
-        <p class="lead">Every trade you log feeds the numbers below &mdash; not just a table you filled in and never opened again.</p>
-        <ul class="feature-list">
-          <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>A weekly review, done for you</b><p>Every week (Trader plan and above) TradingSocial rolls your trades into one page: P&amp;L, win rate, drawdown, your best setup and your costliest mistake.</p></div></li>
-          <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Insights that show their working</b><p>Personalised patterns (Pro) always state the sample size behind them, so you know whether it's a real tendency or four trades and a hunch.</p></div></li>
-          <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Risk, in R</b><p>How much you risked relative to your account, so a win on one instrument compares fairly with a loss on another.</p></div></li>
-        </ul>
-      </div>
-      <div class="bwin reveal">
-        <div class="bwin-bar">
-          <div class="dots"><i></i><i></i><i></i></div>
-          <div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/leaderboard</div>
-        </div>
-        <picture style="display:contents"><source style="display:none" type="image/avif" srcset="/assets/images/Leaderboard-480.avif 480w, /assets/images/Leaderboard-800.avif 800w, /assets/images/Leaderboard-1200.avif 1200w, /assets/images/Leaderboard-1600.avif 1600w, /assets/images/Leaderboard-1918.avif 1918w" sizes="(max-width: 920px) 100vw, 660px"><source style="display:none" type="image/webp" srcset="/assets/images/Leaderboard-480.webp 480w, /assets/images/Leaderboard-800.webp 800w, /assets/images/Leaderboard-1200.webp 1200w, /assets/images/Leaderboard-1600.webp 1600w, /assets/images/Leaderboard-1918.webp 1918w" sizes="(max-width: 920px) 100vw, 660px"><img class="bwin-shot" src="/assets/images/Leaderboard.png" alt="TradingSocial leaderboard page — top performers ranked by win rate and average R:R, time-range and sample filters, and a full traders table with win rate, average R:R, expectancy and profit factor for every trader" width="1918" height="1221" style="aspect-ratio:1918/1221" loading="lazy" decoding="async"></picture>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================ STEPS ============================ -->
-<section class="section">
-  <div class="wrap">
-    <div class="section-head center reveal">
-      <span class="eyebrow eyebrow--center" style="justify-content:center">How it works</span>
-      <h2 class="h2">Log it. Review it. Fix it.</h2>
-      <p class="lead">The loop is short on purpose — a journal only helps if you keep closing it.</p>
-    </div>
-    <div class="lp-steps">
-      <div class="lp-step reveal">
-        <h3>Log it</h3>
-        <p>Add the trade with setup, size, risk in R, a screenshot and the rationale. Under a minute once it's a habit.</p>
-      </div>
-      <div class="lp-step reveal">
-        <h3>Review it</h3>
-        <p>Every week, TradingSocial rolls it up automatically: P&amp;L, win rate, drawdown, best setup and your costliest mistake.</p>
-      </div>
-      <div class="lp-step reveal">
-        <h3>Fix it</h3>
-        <p>Set a goal around your journaling streak or rule compliance, and see whether the pattern actually changes.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================ QUOTE ============================ -->
-<section class="section" style="background:var(--bg-2); border-block:1px solid var(--border)">
-  <div class="wrap">
-    <div class="lp-quote reveal">
-      <p>A trading journal only earns its name if it changes what you do next week. That's the one job ours is built around.</p>
-      <p class="who">On what makes a journal worth keeping</p>
+    <div class="calc-links">
+      <a class="calc-link" href="/blog/win-rate-is-lying-to-you">
+        <h3>Win rate is lying to you</h3>
+        <p>R multiples and expectancy, worked through in full.</p>
+      </a>
+      <a class="calc-link" href="/tools/position-size-calculator">
+        <h3>Position size calculator</h3>
+        <p>The other half: making every loss the same size in the first place.</p>
+      </a>
+      <a class="calc-link" href="/for/journal">
+        <h3>Where the inputs come from</h3>
+        <p>A journal that computes these three from your actual trades.</p>
+      </a>
     </div>
   </div>
 </section>
 
 <!-- ============================ FAQ ============================ -->
-<section class="section">
+<section class="section" style="background:var(--bg-2); border-block:1px solid var(--border)">
   <div class="wrap">
-    <div class="section-head center reveal">
-      <h2 class="h2">Trading journal questions, answered</h2>
+    <div class="sec-head">
+      <span class="eyebrow">Questions</span>
+      <h2 class="h2">About this calculator</h2>
     </div>
-    <div class="lp-faq">
-      <details>
-        <summary>What should I record in a trading journal?</summary>
-        <p>At minimum: the setup, entry and exit prices, position size, and risk expressed in R. A useful journal goes further — a screenshot of the chart, the rationale behind the trade, your emotional state going in, and a mistake tag if something went wrong. Those last four are what turn a log into feedback.</p>
-      </details>
-      <details>
-        <summary>How often should I review my trades?</summary>
-        <p>Weekly is the practical minimum — often enough to catch a pattern before it costs you a month of results, infrequent enough to have a real sample. TradingSocial auto-generates a weekly review (Trader plan and above) covering P&amp;L, win rate, drawdown, best setup and your costliest mistake.</p>
-      </details>
-      <details>
-        <summary>Is there a free trading journal?</summary>
-        <p>Yes. TradingSocial's free plan logs trades, setup tags and mistake tags with no card required, and keeps your last 30 trades visible. Nothing is ever deleted — upgrading to Trader adds unlimited history plus the weekly review.</p>
-      </details>
-      <details>
-        <summary>What's the difference between a trading journal and a trade log?</summary>
-        <p>A trade log is a record of what happened — entry, exit, size, result. A trading journal adds why: the setup, the rationale, how you felt, and what went wrong. That extra layer is what makes patterns visible and reviews possible. If you're currently on a spreadsheet, the <a href="/compare/vs-trading-journal-spreadsheet">spreadsheet comparison</a> sets out what it genuinely does better before making any case against it.</p>
-      </details>
-      <details>
-        <summary>Does a trading journal need to include losing trades?</summary>
-        <p>Yes — a journal that only records winners can't tell you anything useful. Logging every trade, including losses and mistakes, is what makes the weekly review and personalised insights meaningful instead of a highlight reel.</p>
-      </details>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h3><span class="q">Q</span>What counts as a good expectancy?</h3>
+        <p>Any positive number is an edge on the trades you measured; how large a number is worth chasing depends on how many trades you take and what they cost you in fees and attention. We do not publish a target, because a number that looks good over 30 trades routinely disappears over 300.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>Should I use R or currency?</h3>
+        <p>R, if you can. Expressing wins and losses as multiples of the risk you took makes the result comparable across instruments and account sizes, and it stops a period of larger position sizes from looking like an improvement in skill. Currency is fine when every trade risked a similar amount.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>How many trades before this means anything?</h3>
+        <p>More than most traders would like. Averages are unstable in small samples, and a single outlier can flip the sign of your expectancy. Treat an early number as a rough indication, watch whether it holds as the sample grows, and be sceptical of any figure quoted without the count behind it.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>Does a positive expectancy mean I will make money?</h3>
+        <p>No. It describes the average of trades that already happened. The future only matches it if your strategy, your execution and the market stay as they were, and results arrive in streaks either way &mdash; a positive expectancy is entirely compatible with a long losing run.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>What is profit factor, and how is it different?</h3>
+        <p>Profit factor is gross profit divided by gross loss: 1.0 is break-even, and it is the same information as expectancy from another angle. Expectancy tells you what one trade is worth; profit factor tells you how many dollars you earn per dollar lost. Both move together.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>Do you store what I type?</h3>
+        <p>No. The page does the arithmetic in your browser. Nothing is sent to a server, nothing is saved, and closing the tab discards it.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ FINAL CTA + SIBLINGS ============================ -->
+<!-- ============================ FINAL CTA ============================ -->
 <section class="section finalcta">
   <div class="wrap">
-    <div class="finalcta-card">
-      <span class="chip chip--band"><span class="dot"></span>Start journaling properly</span>
-      <h2 class="h2">Your first review is one week away.</h2>
-      <p class="hero-sub">Free to start. Log your first trade today and let next Monday's review do the rest.</p>
+    <div class="finalcta-card reveal">
+      <div class="hero-banner-grid"></div>
+      <span class="eyebrow eyebrow--center" style="justify-content:center">The part the calculator cannot do</span>
+      <h2 class="h2">The three numbers are only as good as the record behind them.</h2>
+      <p class="hero-sub">TradingSocial computes your win rate, average win and average loss from every closed trade you log, in R, and states the sample size next to them. Free for 14 days of Pro &mdash; a card starts the trial, and cancelling before it ends costs nothing.</p>
       <div class="hero-cta">
-        <a class="btn btn-lg btn-onband" href="https://app.tradingsocial.io/signup">Start your journal free</a>
-        <a class="btn btn-lg btn-band-ghost" href="/pricing">See pricing</a>
+        <a class="btn btn-onband btn-lg" href="https://app.tradingsocial.io/signup">Start Free<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+        <a class="btn btn-band-ghost btn-lg" href="/for/journal">See the journal</a>
       </div>
-    </div>
-    <div class="lp-siblings">
-      <span class="muted">More ways to use TradingSocial</span>
-      <a href="/for/forex">Forex journal</a>
-      <a href="/for/crypto">Crypto journal</a>
-      <a href="/for/futures">Futures journal</a>
-      <a href="/for/mt5">MT5 sync</a>
-      <a href="/for/prop-firm">Prop-firm challenges</a>
-      <a href="/for/educators">For educators</a>
-      <a href="/for">All solutions</a>
     </div>
   </div>
 </section>
@@ -1880,4 +2000,114 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 </script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
+<script>
+/* Trading expectancy calculator.
+   Runs entirely in the browser: nothing is sent anywhere, nothing is stored.
+     expectancy          = win% * avgWin - loss% * avgLoss
+     reward-to-risk      = avgWin / avgLoss
+     break-even win rate = 1 / (1 + reward-to-risk)
+     profit factor       = (win% * avgWin) / (loss% * avgLoss)
+   It reports what the numbers say and never what to do about it. */
+(function () {
+  var form = document.getElementById('calcForm')
+  if (!form) return
+  var $ = function (id) { return document.getElementById(id) }
+  var f = { winrate: $('winrate'), units: $('units'), avgwin: $('avgwin'), avgloss: $('avgloss'), trades: $('trades') }
+  var out = { exp: $('outExp'), expUnit: $('outExpUnit'), rr: $('outRR'), be: $('outBE'), pf: $('outPF'), run: $('outRun'), rowRun: $('rowRun'), note: $('outNote') }
+  var err = $('calcError')
+  var winPrefix = $('winPrefix'), lossPrefix = $('lossPrefix')
+  var DASH = '—'
+
+  var SYMBOL = { USD: '$', AUD: 'A$', EUR: '€', GBP: '£', JPY: '¥', CAD: 'C$', NZD: 'NZ$', SGD: 'S$', ZAR: 'R', INR: '₹' }
+
+  function num(el) {
+    var raw = String(el.value).trim()
+    if (raw === '') return null
+    var n = Number(raw)
+    return isFinite(n) ? n : NaN
+  }
+
+  function isR() { return f.units.value === 'R' }
+
+  function amount(n) {
+    if (isR()) return (n >= 0 ? '' : '−') + Math.abs(n).toFixed(2) + 'R'
+    var code = f.units.value
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, maximumFractionDigits: 2 }).format(n)
+    } catch (e) {
+      return (n < 0 ? '−' : '') + (SYMBOL[code] || '') + Math.abs(n).toFixed(2)
+    }
+  }
+
+  function blank() {
+    out.exp.textContent = DASH
+    out.rr.textContent = DASH
+    out.be.textContent = DASH
+    out.pf.textContent = DASH
+    out.rowRun.hidden = true
+    out.note.hidden = true
+  }
+
+  function fail(msg) {
+    err.textContent = msg
+    err.hidden = false
+    blank()
+  }
+
+  function calculate() {
+    err.hidden = true
+    var sym = isR() ? 'R' : (SYMBOL[f.units.value] || '$')
+    winPrefix.textContent = sym
+    lossPrefix.textContent = sym
+    out.expUnit.textContent = isR() ? 'average result of one trade, in R' : 'average result of one trade'
+
+    var win = num(f.winrate), avgWin = num(f.avgwin), avgLoss = num(f.avgloss), trades = num(f.trades)
+    for (var k in f) {
+      if (k !== 'units' && isNaN(num(f[k]))) return fail('Those need to be numbers.')
+    }
+    if (win === null || avgWin === null || avgLoss === null) return blank()
+
+    if (win < 0 || win > 100) return fail('A win rate is between 0 and 100%.')
+    if (avgWin < 0 || avgLoss < 0) return fail('Enter the average win and average loss as positive numbers.')
+    if (avgWin === 0 && avgLoss === 0) return fail('With no average win and no average loss there is nothing to compare.')
+    if (trades !== null && trades < 0) return fail('A run cannot have fewer than zero trades.')
+
+    var p = win / 100, q = 1 - p
+    var expectancy = p * avgWin - q * avgLoss
+    var grossWin = p * avgWin, grossLoss = q * avgLoss
+
+    out.exp.textContent = amount(expectancy)
+    out.rr.textContent = avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) + ' : 1' : 'no losses entered'
+    out.be.textContent = avgLoss > 0 ? (100 / (1 + avgWin / avgLoss)).toFixed(1) + '%' : '0%'
+    out.pf.textContent = grossLoss > 0 ? (grossWin / grossLoss).toFixed(2) : 'no losses entered'
+
+    if (trades !== null && trades > 0) {
+      out.run.textContent = amount(expectancy * trades) + ' over ' + trades.toLocaleString() + ' trades'
+      out.rowRun.hidden = false
+    } else {
+      out.rowRun.hidden = true
+    }
+
+    var notes = []
+    if (expectancy > 0) {
+      notes.push('On these numbers the edge is positive: each trade is worth ' + amount(expectancy) + ' on average. Averages still arrive in streaks, so losing runs are normal.')
+    } else if (expectancy < 0) {
+      notes.push('On these numbers each trade loses ' + amount(Math.abs(expectancy)) + ' on average. At this reward-to-risk the win rate would have to clear ' + out.be.textContent + ' to break even.')
+    } else {
+      notes.push('These numbers break even exactly: wins and losses cancel out before costs.')
+    }
+    if (trades !== null && trades > 0 && trades < 100) {
+      notes.push('Under 100 trades is a small sample. One outlier can flip the sign of an average this size, so treat the result as an indication rather than a measurement.')
+    }
+    notes.push('Fees, commission and slippage are not included unless they are already inside the averages you entered.')
+    out.note.innerHTML = notes.join('<br><br>')
+    out.note.hidden = false
+  }
+
+  form.addEventListener('input', calculate)
+  form.addEventListener('change', calculate)
+  form.addEventListener('submit', function (e) { e.preventDefault(); calculate() })
+  calculate()
+})()
+</script>
 </body></html>
