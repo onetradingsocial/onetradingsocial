@@ -41,35 +41,20 @@ https://www.tradingsocial.io/tools/position-size-calculator
 
 ---
 
-## 1. SaaSHub
+## Where each one goes
 
-Submit at <https://www.saashub.com/submit>. Ask for TradingSocial to be listed
-as an alternative to TraderSync, TradeZella, Edgewonk and Myfxbook, which all
-have pages there.
+The exact paths, and which competitors are actually listed on each site, are in
+**Step by step** at the end — the plan's original links were partly wrong, so
+use those rather than these headings.
 
-- Use the short description above.
-- Pricing: Freemium, from A$30/month, free trial.
-- Alternatives-to field: TraderSync, TradeZella, Edgewonk, Myfxbook.
-
-## 2. AlternativeTo
-
-Submit at <https://alternativeto.net/manage-app/submit-app/>.
-
-- Same short description.
-- Tag it against Myfxbook, TradeZella, TraderSync and Edgewonk.
-- Licence: Freemium · Platforms: Web.
-- Add one screenshot of a public profile, not of the marketing site.
-
-## 3. Slashdot / SourceForge
-
-"Add Your Software" on <https://slashdot.org/software/trading-journals/>. One
-vendor account covers both sites.
-
-- Use the long description; their listings reward detail.
-- Categories: Trading Journal, Investment Management.
-- They ask for a feature list. Use: trade journal with thesis and rule
-  adherence, source-labelled trades, MT5 statement import and sync, weekly
-  review, public profile, leaderboards, mistake tagging, R-multiple analytics.
+- **SaaSHub** — short description, Freemium pricing, tagged against TraderSync
+  and Edgewonk.
+- **AlternativeTo** — short description, tagged against Edgewonk, Stonk Journal
+  and Plancana Trading Journal.
+- **Slashdot / SourceForge** — long description plus the feature list: trade
+  journal with thesis and rule adherence, source-labelled trades, MT5 statement
+  import and sync, weekly review, public profile, leaderboards, mistake tagging,
+  R-multiple analytics.
 
 **Do all three in one sitting.** The fields barely differ, and the copy above
 covers every one of them.
