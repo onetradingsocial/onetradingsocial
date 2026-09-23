@@ -10,7 +10,7 @@
       "drawdown",
       "validation"
     ],
-    "readtime": "7 min",
+    "readtime": "8 min",
     "published_date": "2026-10-10",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -33,7 +33,7 @@
       "process",
       "psychology"
     ],
-    "readtime": "7 min",
+    "readtime": "8 min",
     "published_date": "2026-10-07",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -56,7 +56,7 @@
       "sample size",
       "analytics"
     ],
-    "readtime": "7 min",
+    "readtime": "8 min",
     "published_date": "2026-10-03",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -79,7 +79,7 @@
       "thesis",
       "mistakes"
     ],
-    "readtime": "7 min",
+    "readtime": "8 min",
     "published_date": "2026-09-30",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -102,7 +102,7 @@
       "MT5",
       "verification"
     ],
-    "readtime": "7 min",
+    "readtime": "8 min",
     "published_date": "2026-09-26",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -125,7 +125,7 @@
       "prop firm",
       "rules"
     ],
-    "readtime": "7 min",
+    "readtime": "8 min",
     "published_date": "2026-09-23",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -148,7 +148,7 @@
       "review",
       "discipline"
     ],
-    "readtime": "9 min",
+    "readtime": "4 min",
     "published_date": "2026-06-03",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -172,7 +172,7 @@
       "risk-reward",
       "analytics"
     ],
-    "readtime": "7 min",
+    "readtime": "4 min",
     "published_date": "2026-06-01",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -182,7 +182,7 @@
     "thumb_color": "t-cyan",
     "thumb_icon": "<svg viewBox='0 0 24 24' fill='none'><path d='M4 19V9M10 19V5M16 19v-7M22 19H2' stroke='currentColor' stroke-width='2' stroke-linecap='round'></path></svg>",
     "image": null,
-    "body": "<p class='dek'>A trader walks into a forum and posts their stats: 72% <a href=\"/for/futures\">win rate</a>, 180 trades. The replies flood in — \"nice edge,\" \"solid system,\" \"what is your setup?\" Nobody asks the one question that actually matters: what is your average winner versus your average loser?</p>\n\n<p>Because a 72% win rate is completely compatible with a losing system. And a 35% win rate is completely compatible with a highly profitable one. Win rate, on its own, tells you almost nothing about whether your strategy makes money. Yet it remains the headline stat most retail traders optimize for — and that obsession quietly bleeds accounts dry.</p>\n\n<h2>The Win Rate Trap: Why the Most-Watched Number Misleads You</h2>\n<p>Win rate measures how often you are right. It does not measure how much you make when you are right, or how much you lose when you are wrong. Those two omissions make it nearly useless as a standalone metric.</p>\n\n<p>Here is the arithmetic that exposes the trap. Suppose you have a 70% win rate. Your average winner is $80, your average loser is $200. Run 100 trades:</p>\n<ul>\n  <li>70 winners × $80 = $5,600 profit</li>\n  <li>30 losers × $200 = $6,000 loss</li>\n  <li>Net result: <strong>–$400</strong></li>\n</ul>\n\n<p>You were right nearly three-quarters of the time and still lost money. Now flip the scenario: 40% win rate, average winner $300, average loser $120.</p>\n<ul>\n  <li>40 winners × $300 = $12,000 profit</li>\n  <li>60 losers × $120 = $7,200 loss</li>\n  <li>Net result: <strong>+$4,800</strong></li>\n</ul>\n<p>You were wrong 60% of the time and turned a meaningful profit. Win rate is not the edge. The relationship between winner size and loser size is the edge.</p>\n\n<h2>R-Multiple: The Unit That Makes Systems Comparable</h2>\n<p>The cleanest way to measure that relationship is the <strong><a href=\"/for/journal\">R-multiple</a></strong>. R is simply your initial risk on a trade — the distance in dollars from entry to your stop loss. Every outcome is then expressed as a multiple of that risk.</p>\n\n<p>The formula: <em>R-Multiple = (Exit Price − Entry Price) ÷ (Entry Price − Stop Loss)</em></p>\n\n<p>If you risk $100 on a trade and close it for a $250 profit, your R-multiple is +2.5R. If you get stopped out, your R-multiple is −1R. If you exit early and lose $60, it is −0.6R. Suddenly every trade, regardless of position size or instrument, speaks the same language.</p>\n\n<blockquote>Some professional trading systems run at 25–35% win rates. They lose most of the time. When they win, they win big — often at 5R, 8R, or higher. The math works because expectancy, not win rate, is the engine.</blockquote>\n\n<h2>Expectancy: The One Number That Tells You If Your System Works</h2>\n<p><strong>Expectancy</strong> combines win rate, average winner, and average loser into a single number that predicts your average profit or loss per unit of risk across many trades.</p>\n\n<p>The formula: <em>Expectancy = (Win Rate × Average Win in R) − (Loss Rate × Average Loss in R)</em></p>\n\n<p>A positive expectancy means the system is profitable over a large sample. A negative expectancy means no amount of discipline or money management will save you — you are playing a losing game. Profitability benchmarks: most profitable retail strategies produce expectancy between 0.2R and 0.6R per trade. Anything above 0.5R sustained over 100+ trades is a genuinely strong edge.</p>\n\n<h2>Practical Steps: Start Calculating Expectancy This Week</h2>\n<ol>\n  <li><strong>Define your R before every trade.</strong> Entry price minus stop loss price, multiplied by position size. Write it down before you enter.</li>\n  <li><strong>Log every exit as an R-multiple.</strong> Profit or loss divided by your defined R. One column in your journal, every trade.</li>\n  <li><strong>Calculate rolling expectancy every 20 trades.</strong> Apply the formula. If it is negative, you have a data problem to solve — not a mindset problem.</li>\n  <li><strong>Segment by setup type.</strong> Your overall expectancy may be positive while one specific pattern is dragging it down. Segmentation finds the leak.</li>\n  <li><strong>Set a minimum R target per trade type.</strong> Many profitable systems require a minimum 2R potential before entry is valid.</li>\n  <li><strong>Review win rate last, not first.</strong> After you know your expectancy and average R-multiple, then check win rate to understand the shape of the system — not to judge whether it works.</li>\n</ol>\n\n<h2>One Metric, Fewer Illusions</h2>\n<p>Win rate flatters. Expectancy does not. It will tell you in cold R-units whether your edge is real or whether you have been winning the battle of individual trades while losing the war of accumulated outcome. The traders who compound over years are not the ones who are right most often. They are the ones who make more when they are right than they lose when they are wrong — and they have the data to prove it.</p>"
+    "body": "<p class='dek'>A trader walks into a forum and posts their stats: 72% <a href=\"/for/futures\">win rate</a>, 180 trades. The replies flood in — \"nice edge,\" \"solid system,\" \"what is your setup?\" Nobody asks the one question that actually matters: what is your average winner versus your average loser?</p>\n\n<p>Because a 72% win rate is completely compatible with a losing system. And a 35% win rate is completely compatible with a highly profitable one. Win rate, on its own, tells you almost nothing about whether your strategy makes money. Yet it remains the headline stat most retail traders optimize for — and that obsession quietly bleeds accounts dry.</p>\n\n<h2>The Win Rate Trap: Why the Most-Watched Number Misleads You</h2>\n<p>Win rate measures how often you are right. It does not measure how much you make when you are right, or how much you lose when you are wrong. Those two omissions make it nearly useless as a standalone metric.</p>\n\n<p>Here is the arithmetic that exposes the trap. Suppose you have a 70% win rate. Your average winner is $80, your average loser is $200. Run 100 trades:</p>\n<ul>\n  <li>70 winners × $80 = $5,600 profit</li>\n  <li>30 losers × $200 = $6,000 loss</li>\n  <li>Net result: <strong>–$400</strong></li>\n</ul>\n\n<p>You were right nearly three-quarters of the time and still lost money. Now flip the scenario: 40% win rate, average winner $300, average loser $120.</p>\n<ul>\n  <li>40 winners × $300 = $12,000 profit</li>\n  <li>60 losers × $120 = $7,200 loss</li>\n  <li>Net result: <strong>+$4,800</strong></li>\n</ul>\n<p>You were wrong 60% of the time and turned a meaningful profit. Win rate is not the edge. The relationship between winner size and loser size is the edge.</p>\n\n<h2>R-Multiple: The Unit That Makes Systems Comparable</h2>\n<p>The cleanest way to measure that relationship is the <strong><a href=\"/for/journal\">R-multiple</a></strong>. R is simply your initial risk on a trade — the distance in dollars from entry to your stop loss. Every outcome is then expressed as a multiple of that risk.</p>\n\n<p>The formula: <em>R-Multiple = (Exit Price − Entry Price) ÷ (Entry Price − Stop Loss)</em></p>\n\n<p>If you risk $100 on a trade and close it for a $250 profit, your R-multiple is +2.5R. If you get stopped out, your R-multiple is −1R. If you exit early and lose $60, it is −0.6R. Suddenly every trade, regardless of position size or instrument, speaks the same language.</p>\n\n<blockquote>Some professional trading systems run at 25–35% win rates. They lose most of the time. When they win, they win big — often at 5R, 8R, or higher. The math works because expectancy, not win rate, is the engine.</blockquote>\n\n<h2>Where win rate and average win meet</h2>\n<p><strong>Expectancy</strong> combines win rate, average winner, and average loser into a single number that predicts your average profit or loss per unit of risk across many trades.</p>\n\n<p>The formula: <em>Expectancy = (Win Rate × Average Win in R) − (Loss Rate × Average Loss in R)</em></p>\n\n<p>A positive expectancy means the system is profitable over a large sample. A negative expectancy means no amount of discipline or money management will save you — you are playing a losing game.</p>\n\n<h2>Practical Steps: Start Calculating Expectancy This Week</h2>\n<ol>\n  <li><strong>Define your R before every trade.</strong> Entry price minus stop loss price, multiplied by position size. Write it down before you enter.</li>\n  <li><strong>Log every exit as an R-multiple.</strong> Profit or loss divided by your defined R. One column in your journal, every trade.</li>\n  <li><strong>Calculate rolling expectancy every 20 trades.</strong> Apply the formula. If it is negative, you have a data problem to solve — not a mindset problem.</li>\n  <li><strong>Segment by setup type.</strong> Your overall expectancy may be positive while one specific pattern is dragging it down. Segmentation finds the leak.</li>\n  <li><strong>Set a minimum R target per trade type.</strong> Many profitable systems require a minimum 2R potential before entry is valid.</li>\n  <li><strong>Review win rate last, not first.</strong> After you know your expectancy and average R-multiple, then check win rate to understand the shape of the system — not to judge whether it works.</li>\n</ol>\n\n<h2>One Metric, Fewer Illusions</h2>\n<p>Win rate flatters. Expectancy does not. It will tell you in cold R-units whether your edge is real or whether you have been winning the battle of individual trades while losing the war of accumulated outcome. The traders who compound over years are not the ones who are right most often. They are the ones who make more when they are right than they lose when they are wrong — and they have the data to prove it.</p>"
   },
   {
     "slug": "how-to-tag-your-trading-mistakes",
@@ -195,7 +195,7 @@
       "process",
       "tags"
     ],
-    "readtime": "6 min",
+    "readtime": "2 min",
     "published_date": "2026-05-28",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -218,7 +218,7 @@
       "drawdown",
       "Kelly"
     ],
-    "readtime": "8 min",
+    "readtime": "2 min",
     "published_date": "2026-05-24",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -241,7 +241,7 @@
       "loss aversion",
       "discipline"
     ],
-    "readtime": "6 min",
+    "readtime": "2 min",
     "published_date": "2026-05-20",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -265,7 +265,7 @@
       "curve fitting",
       "validation"
     ],
-    "readtime": "10 min",
+    "readtime": "2 min",
     "published_date": "2026-05-16",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -289,7 +289,7 @@
       "transition",
       "psychology"
     ],
-    "readtime": "7 min",
+    "readtime": "2 min",
     "published_date": "2026-05-12",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -313,7 +313,7 @@
       "volume",
       "strategy"
     ],
-    "readtime": "9 min",
+    "readtime": "2 min",
     "published_date": "2026-05-08",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -337,7 +337,7 @@
       "process",
       "discipline"
     ],
-    "readtime": "5 min",
+    "readtime": "1 min",
     "published_date": "2026-05-04",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
@@ -361,7 +361,7 @@
       "selectivity",
       "edge"
     ],
-    "readtime": "6 min",
+    "readtime": "1 min",
     "published_date": "2026-04-30",
     "author_name": "Nathan Maiolo",
     "author_role": "Founder · TradingSocial",
