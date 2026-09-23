@@ -30,8 +30,23 @@ saying what the label certifies.
 >
 > Free plan. Trader A$30/month adds MT5 statement import; Pro Trader A$50/month adds hourly MT5 sync. 14 days of Pro free, card required.
 
-**Categories / tags:** trading journal, trading analytics, fintech, MT5,
-prop trading, performance tracking, SaaS
+**Categories / tags — use each site's own names, not this generic list.**
+Checked against how these sites already file your competitors, 23 September 2026:
+
+- **SaaSHub:** Finance, Personal Finance, Investment Management. (These are the
+  three SaaSHub itself applies to TraderSync — `/best-finance-software`,
+  `/best-personal-finance-software`, `/best-investment-management-software`.)
+- **AlternativeTo:** Trading, Trade journal, trading journal, stock-journal.
+  (The tags on Stonk Journal's page; AlternativeTo is tag-based, not
+  category-based, so match the existing ones or the app lands in no cluster.)
+- **Slashdot / SourceForge:** Trading Journals is the directory your competitors
+  sit in; add Investment Management if a second slot is offered. I could not
+  re-open their category page to confirm the full list — it is behind a bot
+  check, and I did not work around it.
+
+If a site asks for free-text keywords as well, use: trading journal, trade
+journal, MT5, MetaTrader 5, prop firm, trading analytics, performance
+tracking.
 
 **Links:** https://www.tradingsocial.io · pricing
 https://www.tradingsocial.io/pricing · free tools
