@@ -43,6 +43,7 @@ export const PAGES = [
   { loc: '/for/educators', file: 'for/educators.html', changefreq: 'monthly', priority: '0.8' },
   { loc: '/tools/position-size-calculator', file: 'tools/position-size-calculator.html', changefreq: 'monthly', priority: '0.8' },
   { loc: '/tools/expectancy-calculator', file: 'tools/expectancy-calculator.html', changefreq: 'monthly', priority: '0.8' },
+  { loc: '/tools/consistency-rule-calculator', file: 'tools/consistency-rule-calculator.html', changefreq: 'monthly', priority: '0.8' },
   { loc: '/terms', file: 'terms.html', changefreq: 'monthly', priority: '0.5' },
   { loc: '/privacy', file: 'privacy.html', changefreq: 'monthly', priority: '0.5' },
   { loc: '/disclaimer', file: 'disclaimer.html', changefreq: 'monthly', priority: '0.5' },

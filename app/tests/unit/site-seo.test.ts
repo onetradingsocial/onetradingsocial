@@ -217,7 +217,9 @@ describe.each(htmlIn('tools'))('free tool: %s', (PAGE) => {
     const shipped = html
       .replace(/<!--[\s\S]*?-->/g, ' ')
       .replace(/<script[\s\S]*?<\/script>/g, ' ')
-    expect(shipped).toMatch(/Your number, not ours|We do not publish a target/)
+    // Each tool says, in its own words, that the number is the reader's to
+    // choose. The apostrophe ships as an entity on some pages.
+    expect(shipped).toMatch(/Your (firm(&rsquo;|’|')s )?number, not ours|We do not publish a target/)
     for (const advice of [
       /we recommend/i, /you should risk/i, /recommended risk/i, /aim for \d/i,
       /never risk more than/i, /best risk/i, /ideal risk/i,
