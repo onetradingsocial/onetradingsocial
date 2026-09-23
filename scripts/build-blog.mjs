@@ -304,15 +304,41 @@ export function renderLlms(template, posts) {
 
 // ---------------------------------------------------------------------------
 
-export function loadPosts() {
+/** Today in UTC, as `YYYY-MM-DD`. The comparison is a string compare against
+ *  published_date, which is the same shape — no timezone arithmetic, and no
+ *  "it is already tomorrow in Sydney" edge. */
+export const today = () => new Date().toISOString().slice(0, 10)
+
+/**
+ * Posts in data/posts.json. A post whose `published_date` is in the future is
+ * SCHEDULED: it stays in the data file and out of everything the site serves —
+ * no page, no card on /blog, no sitemap or llms.txt entry, and no related-post
+ * link. .github/workflows/publish-scheduled-posts.yml rebuilds daily and
+ * commits, so a post appears on its own date without anyone touching the repo.
+ *
+ * That is the whole scheduler. There is no queue and no state: the date in the
+ * file is the schedule, and moving it is how you reschedule.
+ */
+export function loadPosts({ now = today() } = {}) {
   const posts = JSON.parse(readFileSync(join(ROOT, 'data', 'posts.json'), 'utf8'))
   const seen = new Set()
   for (const p of posts) {
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(p.slug)) throw new Error(`bad slug: ${p.slug}`)
     if (seen.has(p.slug)) throw new Error(`duplicate slug: ${p.slug}`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(p.published_date)) {
+      throw new Error(`${p.slug}: published_date must be YYYY-MM-DD, got ${p.published_date}`)
+    }
     seen.add(p.slug)
   }
-  return posts
+  return posts.filter((p) => p.published_date <= now)
+}
+
+/** Posts still waiting for their date, soonest first. Reported by the build so
+ *  a scheduled post cannot be silently forgotten. */
+export function scheduledPosts({ now = today() } = {}) {
+  return JSON.parse(readFileSync(join(ROOT, 'data', 'posts.json'), 'utf8'))
+    .filter((p) => p.published_date > now)
+    .sort((a, b) => a.published_date.localeCompare(b.published_date))
 }
 
 /**
@@ -361,6 +387,7 @@ function main() {
       process.exit(1)
     }
     console.log(`blog/, blog.html, llms.txt and sitemap.xml are up to date (${expected.size - 3} posts)`)
+    reportScheduled()
     return
   }
 
@@ -373,6 +400,15 @@ function main() {
   const sitemapChanged = readText(join(ROOT, 'sitemap.xml')) !== sitemap
   if (sitemapChanged) writeFileSync(join(ROOT, 'sitemap.xml'), sitemap)
   console.log(`wrote ${pages.length + (sitemapChanged ? 1 : 0)}, removed ${orphans.length}, ${expected.size - 3} posts total`)
+  reportScheduled()
+}
+
+/** Say what is still waiting, so a scheduled post is never a surprise. */
+function reportScheduled() {
+  const queued = scheduledPosts()
+  if (!queued.length) return
+  console.log(`scheduled (${queued.length}), not yet on the site:`)
+  for (const p of queued) console.log(`  ${p.published_date}  ${p.slug}`)
 }
 
 if (process.argv[1] && resolve(fileURLToPath(import.meta.url)) === resolve(process.argv[1])) main()

@@ -28,7 +28,13 @@ type Post = {
   published_date: string
   updated_date?: string
 }
-const posts: Post[] = JSON.parse(read('data/posts.json'))
+const allPosts: Post[] = JSON.parse(read('data/posts.json'))
+/** Today in UTC, matching scripts/build-blog.mjs — a string compare, no zones. */
+const TODAY = new Date().toISOString().slice(0, 10)
+/** A post dated in the future is scheduled: it is in the data file and on no
+ *  page. The workflow publishes it on the day (see scheduled posts, below). */
+const posts = allPosts.filter((p) => p.published_date <= TODAY)
+const scheduled = allPosts.filter((p) => p.published_date > TODAY)
 const SITE = 'https://www.tradingsocial.io'
 
 /** Minimal entity decoding — enough to compare escaped HTML with posts.json. */
@@ -150,5 +156,43 @@ describe('the blog index without JavaScript', () => {
     // (copy-claims.test.ts), but it must not replace the rendered cards.
     expect(html).not.toMatch(/postGrid['"]\)\.innerHTML\s*=/)
     expect(html).not.toMatch(/\.featured \.wrap['"]\)\.innerHTML\s*=/)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Scheduled posts (2026-09-23). A post dated in the future lives in
+// data/posts.json and nowhere else: no page, no card, no sitemap or llms.txt
+// entry, no inbound link. .github/workflows/publish-scheduled-posts.yml
+// rebuilds daily and commits, so the date in the data file IS the schedule.
+//
+// The failure this guards against is the quiet one: a draft going live early
+// because something enumerated posts.json without filtering.
+// ---------------------------------------------------------------------------
+describe('scheduled posts are not on the site yet', () => {
+  const index = read('blog.html')
+  const sitemap = read('sitemap.xml')
+  const llms = read('llms.txt')
+
+  it('every post carries an ISO date, and the schedule is in the data file', () => {
+    for (const p of allPosts) expect(p.published_date, p.slug).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(posts.length).toBeGreaterThan(0)
+  })
+
+  it.each(scheduled.map((p) => p.slug))('%s has no page, no card, no sitemap or llms entry', (slug) => {
+    expect(existsSync(join(ROOT, `blog/${slug}.html`)), `blog/${slug}.html exists`).toBe(false)
+    expect(index).not.toContain(`/blog/${slug}`)
+    expect(sitemap).not.toContain(`/blog/${slug}<`)
+    expect(llms).not.toContain(`/blog/${slug})`)
+    for (const p of posts) {
+      expect(read(`blog/${p.slug}.html`), `${p.slug} links to the unpublished ${slug}`).not.toContain(`/blog/${slug}"`)
+    }
+  })
+
+  it('the workflow that publishes them exists and reads the same dates', () => {
+    const wf = read('.github/workflows/publish-scheduled-posts.yml')
+    expect(wf).toMatch(/schedule:\s*\n\s*(#[^\n]*\n\s*)*- cron:/)
+    expect(wf).toContain('node scripts/build-blog.mjs')
+    expect(wf).toContain('contents: write')
+    expect(wf).toContain('git push')
   })
 })
