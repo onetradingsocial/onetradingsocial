@@ -152,6 +152,31 @@ function related(post, posts) {
   )
 }
 
+/**
+ * Links to posts that have not published yet become plain text.
+ *
+ * A post can therefore link to one scheduled for next week: the sentence reads
+ * the same today and becomes a link on the day, with no edit and nothing to
+ * remember. Without this the choice is a link that 404s for a week, or a note
+ * in a file that someone has to act on.
+ *
+ * Only `/blog/<slug>` links are touched, and only when the slug is not among
+ * the posts being built. An unknown slug is left alone: blog-static.test.ts
+ * fails on it, which is the right way to hear about a typo.
+ */
+export function unlinkScheduled(body, posts) {
+  const live = new Set(posts.map((p) => p.slug))
+  const all = new Set(allSlugs())
+  return body.replace(/<a href="\/blog\/([^"]+)">([\s\S]*?)<\/a>/g, (whole, slug, text) =>
+    !live.has(slug) && all.has(slug) ? text : whole,
+  )
+}
+
+/** Every slug in the data file, published or not. */
+function allSlugs() {
+  return JSON.parse(readFileSync(join(ROOT, 'data', 'posts.json'), 'utf8')).map((p) => p.slug)
+}
+
 export function renderPost(template, post, posts) {
   const vars = {
     page_title: `${post.title} — TradingSocial`,
@@ -172,7 +197,7 @@ export function renderPost(template, post, posts) {
     json_ld: jsonLd(post),
     breadcrumb_ld: breadcrumbLd(post),
     cover: cover(post),
-    body: post.body,
+    body: unlinkScheduled(post.body, posts),
     tags: post.tags.map((t) => `<span class="tag tag--neutral">${esc(t)}</span>`).join(''),
     related: related(post, posts),
   }

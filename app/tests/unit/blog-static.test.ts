@@ -41,6 +41,15 @@ const SITE = 'https://www.tradingsocial.io'
 const decode = (s: string) =>
   s.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
 
+/** The one transformation the builder applies to a body: a link to a post that
+ *  is still scheduled ships as its own text, so the sentence reads today and
+ *  becomes a link on the day the target publishes. */
+const scheduledSlugs = new Set(scheduled.map((p) => p.slug))
+const asRendered = (body: string) =>
+  body.replace(/<a href="\/blog\/([^"]+)">([\s\S]*?)<\/a>/g, (whole, slug, text) =>
+    scheduledSlugs.has(slug) ? text : whole,
+  )
+
 const one = (html: string, re: RegExp, what: string) => {
   const all = [...html.matchAll(new RegExp(re.source, 'g'))]
   expect(all.length, `expected exactly one ${what}`).toBe(1)
@@ -68,8 +77,9 @@ describe('pre-rendered blog posts', () => {
     expect(one(html, /<meta property="og:url" content="([^"]*)">/, 'og:url')).toBe(url)
     expect(one(html, /<h1[^>]*>([^<]*)<\/h1>/, '<h1>')).toBe(post.title)
 
-    // The body is in the HTML, not fetched.
-    expect(html).toContain(post.body)
+    // The body is in the HTML, not fetched — with links to posts that have not
+    // published yet rendered as plain text (see the scheduled-link tests).
+    expect(html).toContain(asRendered(post.body))
     expect(html).not.toContain('posts.json')
     expect(html).not.toMatch(/\{\{/)
 
@@ -194,5 +204,49 @@ describe('scheduled posts are not on the site yet', () => {
     expect(wf).toContain('node scripts/build-blog.mjs')
     expect(wf).toContain('contents: write')
     expect(wf).toContain('git push')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Links to scheduled posts (2026-09-23). A post may link to one that publishes
+// next week: build-blog.mjs renders that link as plain text until the target is
+// live, so the sentence reads the same today and becomes a link on the day.
+// The alternative was a link that 404s for a week, or a note someone has to
+// remember to act on.
+// ---------------------------------------------------------------------------
+describe('links to scheduled posts degrade to text', () => {
+  it('no published page links to a post that is not live yet', () => {
+    for (const p of posts) {
+      const html = read(`blog/${p.slug}.html`)
+      for (const s of scheduled) {
+        expect(html, `${p.slug} links to the unpublished ${s.slug}`).not.toContain(`href="/blog/${s.slug}"`)
+      }
+    }
+    expect(read('blog.html')).not.toMatch(/href="\/blog\/(?!$)/.source && new RegExp(scheduled.map((s) => `href="/blog/${s.slug}"`).join('|') || 'x^'))
+  })
+
+  it('the anchor text survives, so the sentence still reads', () => {
+    // At least one live post links forward today; if that stops being true,
+    // this is what says so rather than the guard silently doing nothing.
+    const forward = allPosts.flatMap((host) =>
+      [...host.body.matchAll(/<a href="\/blog\/([^"]+)">([\s\S]*?)<\/a>/g)]
+        .filter(([, slug]) => scheduledSlugs.has(slug) && host.published_date <= TODAY)
+        .map(([, slug, text]) => ({ host: host.slug, slug, text })),
+    )
+    expect(forward.length, 'no live post links forward to a scheduled one').toBeGreaterThan(0)
+    for (const f of forward) {
+      const html = read(`blog/${f.host}.html`)
+      expect(html, `${f.host} still links to the unpublished ${f.slug}`).not.toContain(`href="/blog/${f.slug}"`)
+      expect(html, `${f.host} lost the words of its forward link`).toContain(f.text)
+    }
+  })
+
+  it('the key file IndexNow validates against is served from the root', () => {
+    const wf = read('.github/workflows/publish-scheduled-posts.yml')
+    const key = wf.match(/key=([0-9a-f]{32})/)?.[1]
+    expect(key, 'the workflow names no IndexNow key').toBeTruthy()
+    expect(existsSync(join(ROOT, `${key}.txt`)), `${key}.txt is not at the repo root`).toBe(true)
+    expect(read(`${key}.txt`).trim()).toBe(key)
+    expect(read('.vercelignore')).not.toContain('.txt')
   })
 })

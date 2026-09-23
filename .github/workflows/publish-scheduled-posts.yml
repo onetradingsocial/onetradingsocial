@@ -47,6 +47,7 @@ jobs:
         run: node scripts/build-blog.mjs
 
       - name: Commit anything that went live
+        id: commit
         run: |
           git add -A blog blog.html sitemap.xml llms.txt
           if git diff --cached --quiet; then
@@ -56,10 +57,42 @@ jobs:
           # Name the posts in the message so the deploy is self-explaining. The
           # staged diff, not `git diff`: a post that goes live is a NEW file,
           # and a new file is invisible to an unstaged diff.
-          slugs=$(git diff --cached --name-only --diff-filter=A -- blog/ \
-            | sed 's|blog/||; s|\.html$||' | paste -sd', ' -)
+          new=$(git diff --cached --name-only --diff-filter=A -- blog/ | sed 's|blog/||; s|\.html$||')
+          slugs=$(echo "$new" | paste -sd', ' -)
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore(blog): publish scheduled post(s): ${slugs:-rebuild}" \
                      -m "Automated by .github/workflows/publish-scheduled-posts.yml. The date in data/posts.json is the schedule."
           git push
+          # Newline-separated, for the IndexNow step below.
+          {
+            echo 'published<<EOF'
+            echo "$new"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # Bing and the other IndexNow consumers take a ping; Google does not
+      # participate, so Search Console stays a manual job for now. The key file
+      # at the site root is what proves we own the domain — see
+      # docs/indexnow.md. A failure here must not fail the publish: the post is
+      # already live, and the crawlers will find it from the sitemap anyway.
+      - name: Tell IndexNow what went live
+        if: steps.commit.outputs.published != ''
+        continue-on-error: true
+        run: |
+          key=3e3bf9c898caa42b3cb08407a7711153
+          urls=$(echo "${{ steps.commit.outputs.published }}" \
+            | sed 's|^|"https://www.tradingsocial.io/blog/|; s|$|"|' | paste -sd, -)
+          payload="{\"host\":\"www.tradingsocial.io\",\"key\":\"${key}\",\"keyLocation\":\"https://www.tradingsocial.io/${key}.txt\",\"urlList\":[${urls}]}"
+          echo "$payload"
+          # Give the deploy a moment: a URL that 404s when they fetch it is
+          # worse than submitting it a little later.
+          sleep 90
+          code=$(curl -sS -o /tmp/indexnow.out -w '%{http_code}' \
+            -X POST 'https://api.indexnow.org/indexnow' \
+            -H 'Content-Type: application/json; charset=utf-8' \
+            --data "$payload")
+          cat /tmp/indexnow.out; echo
+          echo "HTTP ${code}"
+          # 200 accepted, 202 accepted pending key validation.
+          test "${code}" = "200" || test "${code}" = "202"
