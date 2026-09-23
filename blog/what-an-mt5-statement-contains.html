@@ -6,8 +6,8 @@
 <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/favicon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
-<title>From demo to live: a calm framework for going real — TradingSocial</title>
-<meta name="description" content="Demo teaches you about your strategy. Live teaches you about yourself. Here's how to cross the gap without blowing up.">
+<title>What an MT5 statement actually contains — TradingSocial</title>
+<meta name="description" content="MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.">
 <style>/* cyrillic-ext */
 @font-face {
   font-family: 'JetBrains Mono';
@@ -1485,19 +1485,19 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
        consent gate allows the relevant tier (audit item 17, WS7). Do not
        re-add inline gtag/fbq/rdt loaders here -- they cannot be declined. -->
   <script src="/consent.js"></script>
-  <meta property="og:title" content="From demo to live: a calm framework for going real">
-  <meta property="og:description" content="Demo teaches you about your strategy. Live teaches you about yourself. Here's how to cross the gap without blowing up.">
+  <meta property="og:title" content="What an MT5 statement actually contains">
+  <meta property="og:description" content="MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.">
   <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <meta property="og:url" content="https://www.tradingsocial.io/blog/from-demo-to-live">
+  <meta property="og:url" content="https://www.tradingsocial.io/blog/what-an-mt5-statement-contains">
   <meta property="og:type" content="article">
-  <meta property="article:published_time" content="2026-05-12">
+  <meta property="article:published_time" content="2026-09-23">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="From demo to live: a calm framework for going real">
-  <meta name="twitter:description" content="Demo teaches you about your strategy. Live teaches you about yourself. Here's how to cross the gap without blowing up.">
+  <meta name="twitter:title" content="What an MT5 statement actually contains">
+  <meta name="twitter:description" content="MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <link rel="canonical" href="https://www.tradingsocial.io/blog/from-demo-to-live">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"From demo to live: a calm framework for going real","description":"Demo teaches you about your strategy. Live teaches you about yourself. Here's how to cross the gap without blowing up.","url":"https://www.tradingsocial.io/blog/from-demo-to-live","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tradingsocial.io/blog/from-demo-to-live"},"datePublished":"2026-05-12","dateModified":"2026-05-12","articleSection":"Beginner","inLanguage":"en","author":{"@type":"Person","name":"Nathan Maiolo"},"publisher":{"@type":"Organization","name":"TradingSocial","url":"https://www.tradingsocial.io","logo":{"@type":"ImageObject","url":"https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png"}},"image":["https://www.tradingsocial.io/assets/images/og-image.png"],"keywords":"beginner, demo trading, live trading, transition, psychology"}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.tradingsocial.io/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.tradingsocial.io/blog"},{"@type":"ListItem","position":3,"name":"From demo to live: a calm framework for going real","item":"https://www.tradingsocial.io/blog/from-demo-to-live"}]}</script>
+  <link rel="canonical" href="https://www.tradingsocial.io/blog/what-an-mt5-statement-contains">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"What an MT5 statement actually contains","description":"MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.","url":"https://www.tradingsocial.io/blog/what-an-mt5-statement-contains","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tradingsocial.io/blog/what-an-mt5-statement-contains"},"datePublished":"2026-09-23","dateModified":"2026-09-23","articleSection":"Analytics","inLanguage":"en","author":{"@type":"Person","name":"Nathan Maiolo"},"publisher":{"@type":"Organization","name":"TradingSocial","url":"https://www.tradingsocial.io","logo":{"@type":"ImageObject","url":"https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png"}},"image":["https://www.tradingsocial.io/assets/images/og-image.png"],"keywords":"validation, analytics, MT5, verification"}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.tradingsocial.io/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.tradingsocial.io/blog"},{"@type":"ListItem","position":3,"name":"What an MT5 statement actually contains","item":"https://www.tradingsocial.io/blog/what-an-mt5-statement-contains"}]}</script>
 </head>
 <body>
 <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
@@ -1585,14 +1585,14 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   <div class="wrap">
     <div class="article-head">
       <span class="crumbs">
-        <a href="/blog">Blog</a><span class="sep">/</span><span>Beginner</span>
+        <a href="/blog">Blog</a><span class="sep">/</span><span>Analytics</span>
       </span>
-      <h1>From demo to live: a calm framework for going real</h1>
-      <p class="standfirst">Demo teaches you about your strategy. Live teaches you about yourself. Here's how to cross the gap without blowing up.</p>
+      <h1>What an MT5 statement actually contains</h1>
+      <p class="standfirst">MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.</p>
       <div class="article-byline">
         <div class="post-meta">
           <span style="width:36px;height:36px;border-radius:50%;flex-shrink:0;display:inline-block;border:1px solid var(--border);background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span>
-          <span class="pm-t"><b>Nathan Maiolo</b><span><time datetime="2026-05-12">May 12, 2026</time><span class="dotsep">·</span>7 min read</span></span>
+          <span class="pm-t"><b>Nathan Maiolo</b><span><time datetime="2026-09-23">Sep 23, 2026</time><span class="dotsep">·</span>7 min read</span></span>
         </div>
         <div class="article-share">
           <a href="#" aria-label="Share on X"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></a>
@@ -1606,30 +1606,56 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 
 <!-- ============================ COVER ============================ -->
 <div class="wrap">
-  <div class="article-cover reveal"><div class="thumb t-cyan"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M12 4L2 9l10 5 10-5-10-5z' stroke='currentColor' stroke-width='2' stroke-linejoin='round'></path><path d='M6 11v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'></path></svg></span></div></div>
+  <div class="article-cover reveal"><div class="thumb t-cyan"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M6 3h8l4 4v14H6z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M14 3v4h4M9 12h6M9 16h6M9 8h2' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span></div></div>
 </div>
 
 <!-- ============================ BODY ============================ -->
 <article class="article-body">
-  <div class="prose"><p class='dek'>Your <a href="/for/journal">demo</a> account performance tells you about your strategy. Your live account will tell you about yourself. Here is how to cross the gap calmly.</p>
-
-<p>The transition from demo to <a href="/compare/best-prop-firm-trading-journal">live trading</a> is one of the most psychologically significant events in a new trader's journey — and most traders underestimate it. Demo accounts teach you whether your strategy has positive expectancy, whether entries and exits are executable, and whether your read time is realistic. They teach you almost nothing about the emotional experience of trading real money.</p>
-
-<h2>What changes when it's real</h2>
-<p>With real capital, losses feel tangible. A $200 loss on a demo account is a number. A $200 loss on a live account is groceries, a night out, a fraction of rent. The emotional weight changes your decision-making in ways you can't fully anticipate until it happens. Traders who were calm and disciplined on demo often find themselves hesitating at entries, cutting winners early, and holding losers too long — all triggered by the new psychological stakes.</p>
-
-<h2>A structured transition</h2>
-<p>The goal is to make live trading feel as similar to demo as possible for as long as possible. A practical framework:</p>
-<ol>
-  <li><strong>Start at 10% of your intended position size.</strong> If you plan to trade 100-share lots, start with 10. The strategy is identical; the emotional load is a fraction.</li>
-  <li><strong>Gate progression on data, not on comfort.</strong> Set a rule: you cannot increase size until you've matched your demo win rate or expectancy for 30 live trades at the smaller size. This prevents impatience from rushing the process.</li>
-  <li><strong>Journal every live trade exactly as you did on demo.</strong> Same fields, same review. The journal keeps behaviour consistent across environments.</li>
-</ol>
-
-<p>The goal isn't to eliminate the emotional experience of trading — that's not possible. The goal is to keep position size small enough that the emotional experience doesn't change your decisions while you adapt to it.</p></div>
+  <div class="prose"><p class='dek'>Most guides to exporting an MT5 statement stop at the right-click. Toolbox, History tab, Report, save. That gets you a file and tells you nothing about what is in it — which matters, because that file is what you hand to a prop firm, a journal, or anyone who wants to check your numbers against something other than a screenshot.</p>
+<p>Here is what MetaTrader 5 actually writes down, and what it is worth.</p>
+<h2>Two files, both called "the statement"</h2>
+<p>MT5 produces two reports and traders use the same word for both.</p>
+<p>The first is the <strong>history report</strong>. You reach it from the Toolbox, in the History tab, through Report in the right-click menu. MetaQuotes' documentation sets out its structure: a header carrying the brokerage company, account number, account owner's name, deposit currency and the date the report was generated; then tables of Orders, Deals, Positions and Working Orders; then a Summary block of account figures (Balance, Equity, Margin, Free Margin and the rest) and a Details block of computed statistics — Total Net profit, Profit Factor, Expected Payoff, three separate drawdown measures, and the usual breakdowns by long and short. The <a href="<a href="https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report">https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report</a>">MetaQuotes documentation</a> lists them all. It saves as HTML; the terminal also offers a spreadsheet export.</p>
+<p>The second is the <strong>Trading Report</strong>, a more recent addition. It sits under Reports in the View menu, or "Report \ Overview" from the history context menu, and it is a dashboard rather than a ledger: tabs for Summary, Profit/Loss, Long/Short, Symbols and Risks, with Sharpe Ratio, Profit Factor, Recovery Factor, Max. Drawdown, Max. Deposit Load, MFE and MAE among the figures. Build 4150 added export of it to HTML and PDF.</p>
+<p>The difference is practical. The Trading Report is the better-looking file and the less useful one, because it is already aggregated. The history report is the one with the rows in it, and rows are what a journal can import. The menu wording can differ slightly between builds and between brokers' white-label terminals, so look for Report rather than an exact phrase.</p>
+<h2>Orders, deals and positions are not synonyms</h2>
+<p>This is the part almost every export guide skips, and it is the reason two tools can read the same file and disagree about how many trades you took.</p>
+<p>An <strong>order</strong> is the instruction you sent the server. A <strong>deal</strong> is an execution — the thing that actually happened on the market. MetaQuotes is explicit that a single order can produce several deals, when the volume you asked for was not covered by one offer. A <strong>position</strong> is the resulting exposure, assembled by the platform from every deal that opened, added to, partially closed or fully closed it.</p>
+<p>So the file holds three different views of the same afternoon. The history tables carry, for orders: the time, symbol, type, volume, requested price, stop-loss and take-profit levels, and the order's final state. For deals, MetaQuotes lists: Time, Deal, ID, Order, Symbol, Type, Direction, Volume, Price, Value, Cost, S/L, T/P, Commission, Fee, Profit, Change, Magic. The positions view reports opening and closing time, closed volume against source volume, the weighted average opening price, the closing price, the total financial result, and Stop Loss and Take Profit.</p>
+<p>Note Direction on the deal rows. MetaQuotes documents its values as "in", "out" or "in/out" — the deal's direction relative to the current position in that symbol — and it is how a parser works out which deals pair into one round trip. Note also that your net result on a trade is not the Profit column alone: profit, less commission, less fees, less swap. A statement that looks better than your balance usually means someone read one column.</p>
+<h2>Netting and hedging change the shape of the file</h2>
+<p>MT5 runs two position accounting systems. Under netting you hold one position per symbol at a time. Under hedging you can hold several positions in the same symbol, including opposite ones.</p>
+<p>That is not a detail. On a netting account, a morning of scaling in and out of one instrument collapses into a single position record with a weighted average price. On a hedging account the same activity stays as separate positions. The deals are identical; the trade count is not. If your journal's numbers differ from the terminal's, this is the first place to look.</p>
+<h2>The clock is the broker's, not yours</h2>
+<p>MT5 timestamps history in the trading server's time zone, not your computer's, and the file carries no field naming that zone. Inside the terminal a program can recover the offset — MQL5's own documentation derives it as the difference in hours between local and server time — but an offset in hours is not a named zone with daylight-saving rules attached, and a saved file has neither. Read the statement back months later and you cannot map its rows onto sessions with confidence. Sessions, day-of-week analysis and anything else that depends on hour-of-day inherits whatever offset your broker happens to run, and a Sunday evening open can sit on a Monday row.</p>
+<h2>What the statement proves</h2>
+<p>It proves that a broker's server recorded these executions on this account. That is a real and useful thing. It is the difference between a number you typed and a number a counterparty agreed to. It puts entry, exit, size, commission, swap and result outside your memory and outside your optimism.</p>
+<h2>What it does not prove</h2>
+<p>It is not an audited attestation. Nobody independent has signed it. The HTML version is generated on your own machine from a template — <code>ReportHistory.htm</code>, in the platform's <code>/Templates</code> folder — which means the file you upload is a local rendering of the server's data, not a signed document from the server. A determined person can edit it before sending it on, and no parser can tell.</p>
+<p>It also says nothing about the questions people usually want answered. Whether this is your only account. Whether the losing one is elsewhere. Whether the account is live or demo — MT5 does not stamp that in a way a third party can rely on. Deposits and withdrawals beyond what the balance rows imply. A statement is evidence about executions, not about a trader.</p>
+<h2>Statement import versus a live connection</h2>
+<p>On TradingSocial the two are deliberately not the same thing.</p>
+<p>A <strong>statement import</strong>, on the Trader plan, reads the MT5 report you exported and adds the closed trades to your <a href="/for/journal">journal</a>. The execution fields are locked once imported — prices, sizes, results, timestamps — and the trade carries a label saying it arrived by statement. But the file passed through your machine on the way in, so the label says exactly that and no more.</p>
+<p>A <strong>broker connection</strong>, which is a Pro Trader feature, pulls closed trades from the broker's records on a schedule, roughly hourly, using your investor password — a read-only credential that cannot place orders or move funds. Nothing passed through your hands. The label reflects that, and it is set by the system rather than chosen by you. The <a href="/for/mt5">MT5 page</a> covers the mechanics of both, including symbol suffix matching and the fact that only closed trades are journalled.</p>
+<p>Manual entries stay manual and stay editable, and are labelled as such. That is the whole of the claim: every trade says how it arrived. It is a bound, not a guarantee.</p>
+<h2>Why any of this matters</h2>
+<p>For your own review, provenance is almost irrelevant. You know whether you typed it honestly. Your <a href="/blog/win-rate-is-lying-to-you">expectancy and R-multiples</a> work the same either way, and the <a href="/blog/why-a-trading-journal">habit of reviewing at all</a> is doing most of the work.</p>
+<p>It starts mattering the moment someone else reads your numbers — a prop firm, a subscriber, a partner, an audience. At that point the question stops being "are these good results" and becomes "how did these results get here", and the honest answer is how it arrived, not a verdict on the trader. A broker-synced record says the data never touched a keyboard. A statement import says it came from the broker's ledger by way of your hard drive. A typed record says you typed it.</p>
+<p>Three different claims. Worth keeping them three different words.</p>
+<h2>Sources</h2>
+<ul>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report">https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report</a> — MetaQuotes' description of the history report: the header, Orders, Deals, Positions, Working Orders, Summary and Details blocks, the named statistics, and the <code>ReportHistory.htm</code> template.</li>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/trading/report">https://www.metatrader5.com/en/terminal/help/trading/report</a> — the newer Trading Report: Summary, Profit/Loss, Long/Short, Symbols and Risks tabs, the Sharpe Ratio / Recovery Factor / Max. Drawdown / MFE / MAE metrics, and HTML and PDF export.</li>
+  <li><a href="https://www.metatrader5.com/en/releasenotes/terminal/2342">https://www.metatrader5.com/en/releasenotes/terminal/2342</a> — MT5 build 4150 release note confirming trading report export to HTML and PDF was added, and where the export commands live.</li>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/trading/performing_deals">https://www.metatrader5.com/en/terminal/help/trading/performing_deals</a> — the verbatim column names in the History tab for orders, deals and positions, the Trade tab fields, and the deal entry types "in", "out" and "in/out".</li>
+  <li><a href="https://www.mql5.com/en/articles/211">https://www.mql5.com/en/articles/211</a> — MetaQuotes article on orders, deals and positions: one order can generate several deals, deals are stored in history and cannot be modified, and (background only) deal entry types in/out/inout.</li>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/trading/general_concept">https://www.metatrader5.com/en/terminal/help/trading/general_concept</a> — netting versus hedging position accounting, and how many positions per symbol each allows.</li>
+  <li><a href="https://www.mql5.com/en/book/common/timing/timing_local_server">https://www.mql5.com/en/book/common/timing/timing_local_server</a> — server time versus local time in MetaTrader; source for the offset between them being derivable in hours inside the terminal, which is not the same as a named time zone recorded in the file. Checked 22 September 2026.</li>
+  <li><a href="https://www.metatrader5.com/en/mobile-trading/android/help/history">https://www.metatrader5.com/en/mobile-trading/android/help/history</a> — mobile History fields, used to cross-check the deal column names (Deal, Order, Swap, Commission, Fee).</li>
+</ul></div>
 
   <div class="article-foot">
-    <div class="article-tags"><span class="tag tag--neutral">beginner</span><span class="tag tag--neutral">demo trading</span><span class="tag tag--neutral">live trading</span><span class="tag tag--neutral">transition</span><span class="tag tag--neutral">psychology</span></div>
+    <div class="article-tags"><span class="tag tag--neutral">validation</span><span class="tag tag--neutral">analytics</span><span class="tag tag--neutral">MT5</span><span class="tag tag--neutral">verification</span></div>
   </div>
 
   <div class="author-box">
@@ -1653,8 +1679,8 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     </div>
     <div class="postgrid">
       <article class="pcard-blog reveal"><a class="thumb t-orange" href="/blog/prop-firm-drawdown-rules-explained"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M12 3l7 3v5c0 5-3 7.5-7 9-4-1.5-7-4-7-9V6l7-3z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M9 12l2 2 4-4' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg></span><span class="thumb-lbl">Risk &amp; Sizing</span></a><div class="pcard-body"><span class="pcard-cat">Risk &amp; Sizing</span><h3><a href="/blog/prop-firm-drawdown-rules-explained">Prop firm drawdown rules, explained</a></h3><p class="excerpt">Static, end-of-day trailing and intraday trailing drawdown are three different rules wearing the same number. Here is how each one is measured.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Sep 23, 2026<span class="dotsep">·</span>7 min</span></span></div></div></article>
-      <article class="pcard-blog reveal"><a class="thumb t-cyan" href="/blog/what-an-mt5-statement-contains"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M6 3h8l4 4v14H6z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M14 3v4h4M9 12h6M9 16h6M9 8h2' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span><span class="thumb-lbl">Analytics</span></a><div class="pcard-body"><span class="pcard-cat">Analytics</span><h3><a href="/blog/what-an-mt5-statement-contains">What an MT5 statement actually contains</a></h3><p class="excerpt">MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Sep 23, 2026<span class="dotsep">·</span>7 min</span></span></div></div></article>
       <article class="pcard-blog reveal"><a class="thumb t-violet" href="/blog/what-to-record-in-every-journal-entry"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M5 4h11l3 3v13H5z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M9 9h6M9 13h6M9 17h3' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span><span class="thumb-lbl">Journaling</span></a><div class="pcard-body"><span class="pcard-cat">Journaling</span><h3><a href="/blog/what-to-record-in-every-journal-entry">What to record in every trade journal entry</a></h3><p class="excerpt">Every journal template is a column list. Here is the reasoning under it: which field answers which question later, and which ones only you can supply.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Sep 23, 2026<span class="dotsep">·</span>7 min</span></span></div></div></article>
+      <article class="pcard-blog reveal"><a class="thumb t-green" href="/blog/how-to-calculate-trading-expectancy"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M4 19V9M10 19V5M16 19v-7M22 19H2' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span><span class="thumb-lbl">Analytics</span></a><div class="pcard-body"><span class="pcard-cat">Analytics</span><h3><a href="/blog/how-to-calculate-trading-expectancy">How to calculate trading expectancy</a></h3><p class="excerpt">The formula, a worked example you can reproduce, the break-even win rate hiding inside it, and why the trade count matters more than the number.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Sep 23, 2026<span class="dotsep">·</span>7 min</span></span></div></div></article>
     </div>
   </div>
 </section>
