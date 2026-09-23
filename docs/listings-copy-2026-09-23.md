@@ -113,3 +113,73 @@ for the first few hours.
 Create accounts, sign in as you, or post on your behalf. If you would rather not
 write the submissions, the fastest path is to create each account, open the
 submit form, and paste the fields above.
+
+---
+
+# Step by step
+
+Checked in a browser on 23 September 2026. Sites move things; if a link is
+gone, look for "submit", "add product" or "suggest app" in the footer or the
+account menu.
+
+## SaaSHub — about 20 minutes
+
+1. Go to <https://www.saashub.com/services/submit>. (Note: `/submit` is a
+   different page — a list of 110 other directories. The one you want is
+   `/services/submit`.)
+2. Create an account or sign in.
+3. Submit `https://www.tradingsocial.io`. It pulls the title and description
+   from the page, so check both and replace them with the **short description**
+   above if they come through wrong.
+4. Fill in: pricing **Freemium, from A$30/month, free trial**; categories
+   **trading journal, trading analytics, fintech**.
+5. Under alternatives, tag **TraderSync** (<https://www.saashub.com/tradersync>)
+   and **Edgewonk** (<https://www.saashub.com/edgewonk>). Both have live pages.
+   TradeZella, Myfxbook and Tradervue do **not** — do not waste time looking.
+6. Add one screenshot: a public profile, not the marketing home page.
+
+## AlternativeTo — about 20 minutes
+
+1. Create an account at <https://alternativeto.net/> and sign in. The
+   add-an-app link only appears in the account menu once you are signed in;
+   there is no public submit URL.
+2. Add TradingSocial with the **short description**, licence **Freemium**,
+   platform **Online / SaaS**.
+3. Tag it as an alternative to **Edgewonk**
+   (<https://alternativeto.net/software/edgewonk/>), **Stonk Journal** and
+   **Plancana Trading Journal** — those three are the live trading-journal
+   cluster. TradeZella, TraderSync, Tradervue and Myfxbook are **not on
+   AlternativeTo**, so ignore what the older plan said about them.
+4. Add two or three screenshots and the tags: trading journal, trading,
+   analytics, fintech.
+
+## Slashdot / SourceForge — about 30 minutes
+
+1. Create a vendor account at <https://sourceforge.net/create/>. One account
+   covers both sites; a SourceForge listing is what appears on Slashdot.
+2. Choose the **business software** listing (not an open-source project).
+3. Use the **long description**: these listings reward detail, and the page is
+   the one that ranks.
+4. Categories: Trading Journal, Investment Management. Their trading-journal
+   directory is <https://slashdot.org/software/trading-journals/>, where
+   TradeZella, TraderSync and Tradervue already sit.
+5. Add the feature list from the shared fields above, pricing, and screenshots.
+
+## Afterwards
+
+- Give them a few days. Each listing is reviewed by a person.
+- When a listing goes live, send me the URL and I will add it to the sitemap of
+  places that link to you, and submit the page to IndexNow.
+- Do not pay for promotion on any of the three. The free listing is the link;
+  the paid slots are traffic, and at this stage the link is what you want.
+
+## Show HN — when the calculators have been live a week or two
+
+1. Post from your own account at <https://news.ycombinator.com/submit>.
+2. Title and body are in the section above. Link to
+   `https://www.tradingsocial.io/tools/position-size-calculator`, which is the
+   strongest of the three.
+3. Post the first comment yourself straight away, with the context.
+4. Be at your desk for the next three hours and answer everything.
+5. Do not ask anyone to upvote. That is the one thing that gets a submission
+   killed, and it is easy to detect.
