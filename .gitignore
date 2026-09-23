@@ -38,3 +38,6 @@ automation/n8n/post-log.jsonl.1
 # ~450 rows of real email addresses from a bot-signup audit; this repo is
 # public, and the file is regenerable from the database.
 docs/internal-accounts-*.csv
+
+# Signup/acquisition notes quote real user email addresses; public repo.
+docs/acquisition-*.md
