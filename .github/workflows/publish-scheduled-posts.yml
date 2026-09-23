@@ -1,0 +1,63 @@
+# Publishes blog posts on their own date.
+#
+# A post in data/posts.json with a published_date in the future is built by
+# nobody: scripts/build-blog.mjs filters it out, so it has no page, no card on
+# /blog and no sitemap entry. This job rebuilds every morning and commits what
+# changed, which is how a scheduled post becomes a live one — and a Vercel
+# deploy follows the commit, as it does for any push to main.
+#
+# Vercel Hobby allows two daily crons and both are spoken for (crypto-sync,
+# mt5-sync), so this lives in Actions like the other two.
+#
+# Nothing here decides anything: the date in data/posts.json is the schedule.
+# To reschedule a post, change its date. To publish one now, set it to today
+# (or run this workflow by hand).
+name: Publish scheduled posts
+
+on:
+  schedule:
+    # 00:20 UTC — just after the date rolls over for the UTC comparison the
+    # build makes, so a post appears on the date it says.
+    - cron: '20 0 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-scheduled-posts
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # build-sitemap.mjs dates each static page from the last commit that
+          # touched it, so the full history has to be here.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Rebuild the blog
+        run: node scripts/build-blog.mjs
+
+      - name: Commit anything that went live
+        run: |
+          if git diff --quiet; then
+            echo "nothing due today"
+            exit 0
+          fi
+          # Name the posts in the message so the deploy is self-explaining.
+          slugs=$(git diff --name-only --diff-filter=A -- blog/ \
+            | sed 's|blog/||; s|\.html$||' | paste -sd', ' -)
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blog blog.html sitemap.xml llms.txt
+          git commit -m "chore(blog): publish scheduled post(s): ${slugs:-none}" \
+                     -m "Automated by .github/workflows/publish-scheduled-posts.yml. The date in data/posts.json is the schedule."
+          git push
