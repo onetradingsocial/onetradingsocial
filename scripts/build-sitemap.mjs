@@ -51,6 +51,7 @@ export const PAGES = [
   { loc: '/compare/tradezella-alternative', file: 'compare/tradezella-alternative.html', changefreq: 'monthly', priority: '0.8' },
   { loc: '/compare/tradersync-alternative', file: 'compare/tradersync-alternative.html', changefreq: 'monthly', priority: '0.8' },
   { loc: '/compare/edgewonk-alternative', file: 'compare/edgewonk-alternative.html', changefreq: 'monthly', priority: '0.8' },
+  { loc: '/compare/myfxbook-alternative', file: 'compare/myfxbook-alternative.html', changefreq: 'monthly', priority: '0.8' },
   { loc: '/compare/best-prop-firm-trading-journal', file: 'compare/best-prop-firm-trading-journal.html', changefreq: 'monthly', priority: '0.8' },
   { loc: '/compare/best-mt5-trading-journal', file: 'compare/best-mt5-trading-journal.html', changefreq: 'monthly', priority: '0.8' },
 ]
