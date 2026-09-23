@@ -48,16 +48,18 @@ jobs:
 
       - name: Commit anything that went live
         run: |
-          if git diff --quiet; then
+          git add -A blog blog.html sitemap.xml llms.txt
+          if git diff --cached --quiet; then
             echo "nothing due today"
             exit 0
           fi
-          # Name the posts in the message so the deploy is self-explaining.
-          slugs=$(git diff --name-only --diff-filter=A -- blog/ \
+          # Name the posts in the message so the deploy is self-explaining. The
+          # staged diff, not `git diff`: a post that goes live is a NEW file,
+          # and a new file is invisible to an unstaged diff.
+          slugs=$(git diff --cached --name-only --diff-filter=A -- blog/ \
             | sed 's|blog/||; s|\.html$||' | paste -sd', ' -)
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add blog blog.html sitemap.xml llms.txt
-          git commit -m "chore(blog): publish scheduled post(s): ${slugs:-none}" \
+          git commit -m "chore(blog): publish scheduled post(s): ${slugs:-rebuild}" \
                      -m "Automated by .github/workflows/publish-scheduled-posts.yml. The date in data/posts.json is the schedule."
           git push
