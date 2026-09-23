@@ -34,3 +34,7 @@ automation/n8n/n8n-console.err.log
 # grow without bound).
 automation/n8n/*.log.1
 automation/n8n/post-log.jsonl.1
+
+# ~450 rows of real email addresses from a bot-signup audit; this repo is
+# public, and the file is regenerable from the database.
+docs/internal-accounts-*.csv
