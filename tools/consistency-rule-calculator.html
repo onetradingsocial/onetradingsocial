@@ -1407,22 +1407,141 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 .lp-crumb a { color: var(--faint); }
 .lp-crumb a:hover { color: var(--violet-br); }
 </style>
+<style>
+/* ---------- Comparison-page additions (ported from /pricing) ---------- */
+/* ---------- Comparison table ---------- */
+.compare { background: var(--bg-2); border-block: 1px solid var(--border); }
+.ctable-scroll { margin-top: 52px; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-lg); }
+.ctable {
+  width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 0;
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;
+}
+.ctable thead th { position: sticky; top: 0; z-index: 3; }
+.ctable th, .ctable td { text-align: left; padding: 16px 20px; }
+.ctable col.c-feat { width: 40%; }
+.ctable col.c-plan { width: 20%; }
+
+.ct-head th { background: #fff; border-bottom: 1px solid var(--border); vertical-align: bottom; }
+.ct-head .ct-h-feat { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); font-weight: 600; }
+.ct-plan-h { text-align: center !important; border-left: 1px solid var(--border); }
+.ct-plan-h .pn { font-family: var(--display); font-size: 18px; font-weight: 600; }
+.ct-plan-h .pp { font-family: var(--mono); font-size: 12px; color: var(--faint); margin-top: 4px; }
+.ct-plan-h.pop { background: linear-gradient(180deg, rgba(124,92,230,0.07), rgba(124,92,230,0.03)); }
+.ct-plan-h.pop .pn { color: var(--violet-br); }
+.ct-plan-h .mini-badge {
+  display: inline-block; margin-bottom: 9px;
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+  color: #fff; background: var(--brand-grad); padding: 3px 9px; border-radius: 999px;
+}
+
+.ct-cat td {
+  background: var(--surface-2); border-block: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--violet-br); font-weight: 600;
+}
+.ctable tbody tr.ct-row td { border-bottom: 1px solid var(--border); font-size: 14px; }
+.ctable tbody tr.ct-row:last-child td { border-bottom: none; }
+.ct-row .ct-feat { color: var(--text); font-weight: 500; }
+.ct-row td.ct-cell { text-align: center; border-left: 1px solid var(--border); color: var(--dim); }
+.ct-row td.ct-cell.pop { background: rgba(124,92,230,0.035); }
+
+.ct-yes { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: var(--up-soft); border: 1px solid rgba(18,165,107,0.28); }
+.ct-yes svg { width: 13px; height: 13px; color: var(--up); }
+.ct-no { color: var(--faintest); font-size: 18px; line-height: 1; }
+.ct-val { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); }
+.ct-val.dim { color: var(--faint); font-weight: 500; }
+.ct-val.up { color: var(--up); }
+
+.compare-cta { display: flex; justify-content: center; gap: 12px; margin-top: 36px; flex-wrap: wrap; }
+
+/* ---------- FAQ ---------- */
+.faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 48px; }
+@media (max-width: 800px){ .faq-grid { grid-template-columns: 1fr; } }
+.faq-item {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px 26px; box-shadow: var(--shadow-sm);
+}
+.faq-item h3 { font-family: var(--display); font-size: 17px; font-weight: 600; display: flex; align-items: flex-start; gap: 11px; line-height: inherit; letter-spacing: inherit; text-wrap: inherit; }
+.faq-item h3 .q { font-family: var(--mono); font-size: 13px; color: var(--violet-br); margin-top: 2px; }
+.faq-item p { font-size: 14px; color: var(--dim); line-height: 1.6; margin-top: 11px; padding-left: 25px; }
+/* ---------- vs-page specifics ---------- */
+.vs-note { font-family: var(--mono); font-size: 12px; color: var(--faint); margin-top: 14px; }
+.vs-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 44px; }
+@media (max-width: 800px){ .vs-cols { grid-template-columns: 1fr; } }
+.vs-card { background:#fff; border:1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow-sm); }
+.vs-card h3 { font-family: var(--display); font-size: 19px; font-weight: 600; }
+.vs-card ul { margin-top: 16px; display: grid; gap: 11px; }
+.vs-card li { font-size: 14px; color: var(--dim); line-height: 1.6; display: flex; gap: 10px; align-items: flex-start; }
+.vs-card li span.m { font-family: var(--mono); font-size: 12px; color: var(--violet-br); margin-top: 1px; }
+.vs-card--fair { background: var(--bg-2); }
+
+/* ---------- position size calculator ---------- */
+.calc { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 22px; align-items: start; margin-top: 8px; }
+@media (max-width: 900px){ .calc { grid-template-columns: 1fr; } }
+.calc-form, .calc-out {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 26px; box-shadow: var(--shadow-sm);
+}
+.calc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+@media (max-width: 560px){ .calc-grid { grid-template-columns: 1fr; } }
+.calc-field label { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 7px; }
+.calc-optional { font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--faint); margin-left: 6px; }
+.calc-input { display: flex; align-items: center; gap: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2); overflow: hidden; }
+.calc-input:focus-within { border-color: var(--violet-br); box-shadow: 0 0 0 3px rgba(107,67,224,0.14); }
+.calc-affix { font-family: var(--mono); font-size: 13px; color: var(--dim); padding: 0 2px 0 13px; }
+.calc-affix--end { padding: 0 13px 0 2px; }
+.calc-input input {
+  flex: 1; width: 100%; min-width: 0; border: 0; background: transparent; outline: none;
+  font-family: var(--mono); font-size: 15px; color: inherit; padding: 12px 13px;
+}
+.calc-field select {
+  width: 100%; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-2);
+  font-family: inherit; font-size: 14px; color: inherit; padding: 12px 13px;
+}
+.calc-field select:focus-visible { outline: none; border-color: var(--violet-br); box-shadow: 0 0 0 3px rgba(107,67,224,0.14); }
+.calc-hint { font-size: 12px; color: var(--faint); margin-top: 7px; line-height: 1.5; }
+.calc-error { font-size: 13px; color: #C2255C; margin-top: 16px; }
+.calc-primary { text-align: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.calc-label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--violet-br); }
+.calc-value { display: block; font-family: var(--display); font-size: 38px; font-weight: 600; letter-spacing: -0.02em; margin: 6px 0 4px; overflow-wrap: anywhere; }
+.calc-unit { font-size: 12.5px; color: var(--faint); }
+.calc-rows { margin-top: 18px; display: grid; gap: 12px; }
+.calc-rows > div { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
+.calc-rows dt { font-size: 13.5px; color: var(--dim); }
+.calc-rows dd { font-family: var(--mono); font-size: 14px; text-align: right; }
+.calc-note { font-size: 12.5px; color: var(--dim); line-height: 1.6; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.calc-disclaimer { font-size: 12.5px; color: var(--faint); line-height: 1.7; max-width: 900px; margin: 22px auto 0; text-align: center; }
+.calc-disclaimer a { color: var(--violet-br); text-decoration: underline; }
+.calc-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; }
+@media (max-width: 900px){ .calc-steps { grid-template-columns: 1fr; } }
+.calc-step { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-sm); }
+.calc-step-n { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-family: var(--mono); font-size: 13px; color: #fff; background: linear-gradient(135deg,#7C5CE6,#C840BC); }
+.calc-step h3 { font-family: var(--display); font-size: 17px; font-weight: 600; margin-top: 14px; }
+.calc-step p { font-size: 14px; color: var(--dim); line-height: 1.65; margin-top: 10px; }
+.calc-step p b { color: inherit; font-family: var(--mono); font-size: 13px; }
+.calc-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+@media (max-width: 900px){ .calc-links { grid-template-columns: 1fr; } }
+.calc-link { display: block; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; box-shadow: var(--shadow-sm); transition: transform .18s ease, border-color .18s ease; }
+.calc-link:hover { transform: translateY(-2px); border-color: var(--violet-br); }
+.calc-link h3 { font-family: var(--display); font-size: 16px; font-weight: 600; }
+.calc-link p { font-size: 13.5px; color: var(--dim); margin-top: 8px; line-height: 1.6; }
+</style>
   <!-- Analytics / advertising tags. Loaded by /consent.js only after the
        consent gate allows the relevant tier (audit item 17, WS7). Do not
        re-add inline gtag/fbq/rdt loaders here -- they cannot be declined. -->
   <script src="/consent.js"></script>
-  <title>Futures Trading Journal for Micros — TradingSocial</title>
-  <meta name="description" content="A futures journal that knows contract size and tick value: MES, MNQ, ES, NQ, CL and GC logged in R multiples and reviewed a week at a time.">
-  <meta property="og:title" content="Futures Trading Journal for Micros — TradingSocial">
-  <meta property="og:description" content="A futures journal that knows contract size and tick value: MES, MNQ, ES, NQ, CL and GC logged in R multiples and reviewed a week at a time.">
+  <title>Prop Firm Consistency Rule Calculator | TradingSocial</title>
+  <meta name="description" content="Free consistency rule calculator: enter profit so far, your best day and your firm’s percentage to see where you stand and what it takes to comply.">
+  <meta property="og:title" content="Prop Firm Consistency Rule Calculator | TradingSocial">
+  <meta property="og:description" content="Free consistency rule calculator: enter profit so far, your best day and your firm’s percentage to see where you stand and what it takes to comply.">
   <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <meta property="og:url" content="https://www.tradingsocial.io/for/futures">
+  <meta property="og:url" content="https://www.tradingsocial.io/tools/consistency-rule-calculator">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Futures Trading Journal for Micros — TradingSocial">
-  <meta name="twitter:description" content="A futures journal that knows contract size and tick value: MES, MNQ, ES, NQ, CL and GC logged in R multiples and reviewed a week at a time.">
+  <meta name="twitter:title" content="Prop Firm Consistency Rule Calculator | TradingSocial">
+  <meta name="twitter:description" content="Free consistency rule calculator: enter profit so far, your best day and your firm’s percentage to see where you stand and what it takes to comply.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <link rel="canonical" href="https://www.tradingsocial.io/for/futures">
+  <link rel="canonical" href="https://www.tradingsocial.io/tools/consistency-rule-calculator">
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -1437,16 +1556,33 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
     {
       "@type": "ListItem",
       "position": 2,
-      "name": "Solutions",
-      "item": "https://www.tradingsocial.io/for"
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "Futures traders",
-      "item": "https://www.tradingsocial.io/for/futures"
+      "name": "Consistency rule calculator",
+      "item": "https://www.tradingsocial.io/tools/consistency-rule-calculator"
     }
   ]
+}
+  </script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Consistency rule calculator",
+  "url": "https://www.tradingsocial.io/tools/consistency-rule-calculator",
+  "applicationCategory": "FinanceApplication",
+  "operatingSystem": "Any (web browser)",
+  "browserRequirements": "Requires JavaScript",
+  "inLanguage": "en",
+  "description": "Free consistency rule calculator: enter profit so far, your best day and your firm’s percentage to see where you stand and what it takes to comply.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "AUD"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "TradingSocial",
+    "url": "https://www.tradingsocial.io"
+  }
 }
   </script>
   <script type="application/ld+json">
@@ -1456,42 +1592,50 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "What's the best futures trading journal for ES and NQ?",
+      "name": "Does breaking a consistency rule fail my account?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "TradingSocial is built for index futures (ES, NQ, YM, RTY), micros (MES, MNQ) and commodities (CL, GC). Log contract size and tick value with every trade, tag the session and setup, and see your R multiples and consistency score in one dashboard, not a spreadsheet."
+        "text": "It depends on the firm and on where the rule sits. Topstep’s Combine version raises the profit target instead of failing the account; a payout-stage rule like Apex’s blocks or reduces the payout until the spread of profit changes. Your own terms are the only authority on which applies to you."
       }
     },
     {
       "@type": "Question",
-      "name": "Does TradingSocial sync with my futures broker automatically?",
+      "name": "What counts as one day?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. There is no CME, CQG or Rithmic-style futures broker sync. MT5 is the only automatic broker sync TradingSocial offers today, so futures trades, ES, NQ, CL, GC and the rest, are logged manually: enter the contract, size, entry and exit, and tick value calculates your R automatically."
+        "text": "The firm’s trading day, on the firm’s clock, which is often not the calendar day where you live. FTMO, for example, resets its daily measure at 00:00 CE(S)T. If you trade an evening session, the day your trade belongs to may not be the day you think."
       }
     },
     {
       "@type": "Question",
-      "name": "Can I journal micro futures like MES and MNQ?",
+      "name": "Can I fix an oversized day by making more profit?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Micro contracts like MES and MNQ log the same way as their full-size counterparts. Set the contract and tick value once, and every trade's R multiple scales correctly, whether you're trading one micro or ten."
+        "text": "Where the rule is measured against profit so far, yes: the denominator grows, so the same day is a smaller share of it. That is the \"profit needed to comply\" figure above. Where it is measured against a fixed target, more profit does not move the denominator, and only the passage of further qualifying days helps."
       }
     },
     {
       "@type": "Question",
-      "name": "How does R multiple work across ES, NQ, GC and CL with different tick values?",
+      "name": "Does this calculator check my account?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Enter the contract and its tick value when you log a trade, and TradingSocial calculates R consistently whether you're trading ES, GC, CL or a micro. That keeps your risk-adjusted stats comparable across a mixed futures book."
+        "text": "No. It has no connection to any firm, reads nothing, and enforces nothing. You type three numbers and it does the division. TradingSocial does not read or enforce any firm’s rule set either."
       }
     },
     {
       "@type": "Question",
-      "name": "How is a futures trading leaderboard ranked fairly?",
+      "name": "Why would a firm want smaller best days?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "The leaderboard ranks risk-adjusted return and consistency, not raw profit and loss, so one lucky trade in NQ doesn't outrank a trader compounding small edges every session. Only Trader and Pro plan members are ranked."
+        "text": "Because a funded account is a bet on repeatability. A profit made once, in one position, on one release, tells a firm very little about the next month. A rule of this kind is how they price that uncertainty before handing over a larger account."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where do I find my firm’s number?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "On its rules or objectives page, usually under consistency, scaling or payout. If the page does not say what the percentage is measured against, or when it is applied, that is worth asking support before you need the answer rather than after."
       }
     }
   ]
@@ -1580,172 +1724,151 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 </header>
 
 <!-- ============================ HERO ============================ -->
-<section class="lp-hero lp-hero--shot">
+<section class="lp-hero">
   <div class="wrap">
     <div class="hero-banner">
       <div class="hero-banner-grid"></div>
       <div class="hero-banner-noise"></div>
       <div class="hero-content">
-        <span class="chip chip--band"><span class="dot"></span>For futures traders</span>
-        <h1 class="h1">Journal futures like a <em>professional</em>, not a lucky day.</h1>
-        <p class="hero-sub">Log index futures, commodities and micros with contract-aware R multiples. Track intraday structure from the open to the close, and let the leaderboard reward consistency over one green session.</p>
-        <div class="hero-cta">
-          <a class="btn btn-lg btn-onband" href="https://app.tradingsocial.io/signup">Start journaling futures free</a>
-          <a class="btn btn-lg btn-band-ghost" href="/pricing">See pricing</a>
-        </div>
-        <p class="lp-hero-note">Free plan available &middot; 14 days of Pro free &middot; Card required, cancel anytime</p>
-      </div>
-    </div>
-    <div class="lp-shot reveal">
-      <div class="bwin">
-        <div class="bwin-bar">
-          <div class="dots"><i></i><i></i><i></i></div>
-          <div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/leaderboard</div>
-        </div>
-        <picture style="display:contents"><source style="display:none" type="image/avif" srcset="/assets/images/Leaderboard-480.avif 480w, /assets/images/Leaderboard-800.avif 800w, /assets/images/Leaderboard-1200.avif 1200w, /assets/images/Leaderboard-1600.avif 1600w, /assets/images/Leaderboard-1918.avif 1918w" sizes="(max-width: 1060px) 100vw, 1000px"><source style="display:none" type="image/webp" srcset="/assets/images/Leaderboard-480.webp 480w, /assets/images/Leaderboard-800.webp 800w, /assets/images/Leaderboard-1200.webp 1200w, /assets/images/Leaderboard-1600.webp 1600w, /assets/images/Leaderboard-1918.webp 1918w" sizes="(max-width: 1060px) 100vw, 1000px"><img class="bwin-shot" src="/assets/images/Leaderboard.png" alt="TradingSocial leaderboard — ranked trader table with Performance and XP tabs, timeframe and verification filters, top performer cards, and per-trader win rate, R:R, expectancy and profit factor" width="1918" height="1221" style="aspect-ratio:1918/1221" loading="eager" decoding="async"></picture>
+        <span class="chip chip--band"><span class="dot"></span>Free tool &middot; no sign-up</span>
+        <h1 class="h1">Prop firm consistency <em>calculator</em>.</h1>
+        <p class="hero-sub">Enter your profit so far, your best single day and the percentage your firm allows. It works out where you stand, the biggest day you can still afford, and how much more profit would bring an oversized day back inside the rule.</p>
+        <p class="lp-hero-note">Runs in your browser &middot; Nothing is sent anywhere &middot; No account needed</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ STAT STRIP ============================ -->
-<section class="section--tight">
+<!-- ============================ CALCULATOR ============================ -->
+<section class="section calc-section">
   <div class="wrap">
-    <div class="lp-stats reveal">
-      <div class="lp-stat"><b>ES &middot; NQ &middot; YM &middot; RTY</b><span>Index futures, plus MES &amp; MNQ micros</span></div>
-      <div class="lp-stat"><b>CL &middot; GC</b><span>Commodities journaled alongside your futures book</span></div>
-      <div class="lp-stat"><b>R per contract</b><span>Tick value and contract size built into every entry</span></div>
-      <div class="lp-stat"><b>Consistency score</b><span>Leaderboard ranks discipline, not one lucky day</span></div>
+    <div class="calc">
+      <form class="calc-form" id="calcForm" novalidate>
+        <div class="calc-grid">
+          <div class="calc-field">
+            <label for="total">Profit so far</label>
+            <div class="calc-input">
+              <span class="calc-affix" id="curPrefix">$</span>
+              <input type="number" id="total" name="total" inputmode="decimal" step="any" min="0" placeholder="6000" autocomplete="off">
+            </div>
+            <p class="calc-hint">Net profit on the account, as your firm counts it.</p>
+          </div>
+          <div class="calc-field">
+            <label for="currency">Currency</label>
+            <select id="currency" name="currency">
+              <option value="USD">USD — US dollar</option>
+              <option value="AUD">AUD — Australian dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — Pound sterling</option>
+              <option value="CAD">CAD — Canadian dollar</option>
+              <option value="NZD">NZD — New Zealand dollar</option>
+              <option value="SGD">SGD — Singapore dollar</option>
+              <option value="ZAR">ZAR — South African rand</option>
+              <option value="INR">INR — Indian rupee</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label for="best">Best single day</label>
+            <div class="calc-input">
+              <span class="calc-affix" id="bestPrefix">$</span>
+              <input type="number" id="best" name="best" inputmode="decimal" step="any" min="0" placeholder="2400" autocomplete="off">
+            </div>
+            <p class="calc-hint">Your largest profitable day on the account.</p>
+          </div>
+          <div class="calc-field">
+            <label for="threshold">Your firm's limit</label>
+            <div class="calc-input">
+              <input type="number" id="threshold" name="threshold" inputmode="decimal" step="any" min="1" max="100" placeholder="50" autocomplete="off">
+              <span class="calc-affix calc-affix--end">%</span>
+            </div>
+            <p class="calc-hint">Your firm&rsquo;s number, not ours &mdash; read it off your own rules page. Firms differ, and so do their measures.</p>
+          </div>
+          <div class="calc-field">
+            <label for="target">Profit target <span class="calc-optional">optional</span></label>
+            <div class="calc-input">
+              <span class="calc-affix" id="targetPrefix">$</span>
+              <input type="number" id="target" name="target" inputmode="decimal" step="any" min="0" placeholder="9000" autocomplete="off">
+            </div>
+            <p class="calc-hint">Where the rule is measured against the target rather than profit so far.</p>
+          </div>
+        </div>
+        <p class="calc-error" id="calcError" role="alert" hidden></p>
+      </form>
+
+      <div class="calc-out" id="calcOut" aria-live="polite">
+        <div class="calc-primary">
+          <span class="calc-label">Best day, as a share</span>
+          <strong class="calc-value" id="outShare">&mdash;</strong>
+          <span class="calc-unit" id="outShareUnit">of profit so far</span>
+        </div>
+        <dl class="calc-rows">
+          <div><dt>Against the limit</dt><dd id="outVerdict">&mdash;</dd></div>
+          <div><dt>Largest day still allowed</dt><dd id="outMaxDay">&mdash;</dd></div>
+          <div id="rowNeed" hidden><dt>Profit needed to comply</dt><dd id="outNeed">&mdash;</dd></div>
+          <div id="rowTarget" hidden><dt>Measured against target</dt><dd id="outTarget">&mdash;</dd></div>
+        </dl>
+        <p class="calc-note" id="outNote" hidden></p>
+      </div>
     </div>
+
+    <p class="calc-disclaimer">
+      This is arithmetic on the numbers you type: general information, not financial advice. It does not
+      know your firm's rules, read your account or enforce anything &mdash; only your firm's own terms decide whether
+      you comply, and firms measure &ldquo;a day&rdquo; and &ldquo;profit&rdquo; differently. See the
+      <a href="/disclaimer">risk disclaimer</a>.
+    </p>
   </div>
 </section>
 
-<!-- ============================ PROBLEM ============================ -->
+<!-- ============================ WHAT THE RULE IS ============================ -->
 <section class="section" style="background:var(--bg-2); border-block:1px solid var(--border)">
   <div class="wrap">
-    <div class="problem-grid">
-      <div class="reveal">
-        <span class="eyebrow">What makes futures different</span>
-        <h2 class="h2" style="margin-top:16px">Contracts, sessions and one lucky trade get in the way.</h2>
-        <p class="lead" style="margin-top:18px">Futures don't behave like a swing position you check once a day. Here's what usually breaks a futures journal.</p>
-        <p class="lead" style="margin-top:16px">The open, the midday lull and the close each trade differently. Tag the session and the strategy on every trade, and that pattern surfaces in your weekly review instead of staying a feeling.</p>
+    <div class="sec-head">
+      <span class="eyebrow">What the rule is for</span>
+      <h2 class="h2">A consistency rule asks whether the account earned it, or got lucky once.</h2>
+      <p class="lead">Two traders finish an evaluation nine thousand dollars up. One made it across six weeks. The other made eight thousand of it on a single afternoon around a data release. The rule exists to tell those two apart, because only one of them has shown something a firm can rely on repeating.</p>
+    </div>
+    <div class="calc-steps">
+      <div class="calc-step">
+        <span class="calc-step-n">1</span>
+        <h3>The share</h3>
+        <p><b>Best day &divide; total profit</b><br>$2,400 of $6,000 is 40%. Under a 50% limit that passes; under a 40% payout threshold it sits exactly on the line.</p>
       </div>
-      <div class="problem-vs reveal">
-        <div class="vs-row bad">
-          <span class="vs-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#E5475D" stroke-width="2.4" stroke-linecap="round"></path></svg></span>
-          <div class="vt"><b>One green day, no process behind it</b><p>A single strong session on ES doesn't prove you have an edge. Without a record of every session, you can't tell repeatable skill from a lucky fill.</p></div>
-        </div>
-        <div class="vs-row bad">
-          <span class="vs-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#E5475D" stroke-width="2.4" stroke-linecap="round"></path></svg></span>
-          <div class="vt"><b>Risk that gets lost across contracts</b><p>A P&amp;L screenshot of an NQ trade tells you nothing about size, tick value or the risk actually taken &mdash; an ES contract and an MES micro can look the same and carry completely different risk.</p></div>
-        </div>
-        <div class="vs-row good">
-          <span class="vs-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#12A56B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-          <div class="vt"><b>Consistency scored across a real sample</b><p>Every session logged, tick value built into every entry, and a leaderboard that rewards showing up again and again &mdash; not one lucky day.</p></div>
-        </div>
+      <div class="calc-step">
+        <span class="calc-step-n">2</span>
+        <h3>The ceiling</h3>
+        <p><b>Total profit &times; limit</b><br>At $6,000 and a 50% limit, the largest day the account can carry is $3,000. Every further profitable day raises that ceiling.</p>
+      </div>
+      <div class="calc-step">
+        <span class="calc-step-n">3</span>
+        <h3>The way out</h3>
+        <p><b>Best day &divide; limit &minus; total profit</b><br>An oversized day is not fatal: keep trading and the total grows until the same day is back inside the percentage. That figure is what the calculator returns.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ FEATURES ============================ -->
+<!-- ============================ HOW FIRMS DIFFER ============================ -->
 <section class="section">
   <div class="wrap">
-    <div class="section-head center reveal">
-      <span class="eyebrow eyebrow--center" style="justify-content:center">Built for contracts, not just tickers</span>
-      <h2 class="h2">Everything a futures journal needs</h2>
-      <p class="lead">From a single MES scalp to a full-size GC swing, logged the same disciplined way.</p>
+    <div class="sec-head">
+      <span class="eyebrow">Read your own terms</span>
+      <h2 class="h2">The percentage is the easy part. What it is measured against is not.</h2>
+      <p class="lead">Firms apply consistency at different moments, against different denominators, with different consequences. Two published examples, quoted from the firms&rsquo; own pages and checked on 22 September 2026:</p>
     </div>
-    <div class="lp-grid">
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M5 4h11l3 3v13H5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M9 9h6M9 13h6M9 17h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-        <h3>Contract-aware journaling</h3>
-        <p>Log ES, NQ, YM, RTY, MES, MNQ, CL and GC with the contract itself built into the entry, not a generic symbol field.</p>
+    <div class="calc-links">
+      <div class="calc-link" style="cursor:default">
+        <h3>Topstep</h3>
+        <p>Applies it twice. In the Trading Combine, the single best day of profit must stay at or below 55% of the profit target &mdash; and exceeding it raises the target rather than failing the account. On an Express Funded Account a 40% threshold applies at payout.</p>
       </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2"></circle><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="2"></circle></svg></span>
-        <h3>R multiples, by contract</h3>
-        <p>Enter tick value and size once, and every trade's R calculates correctly, a full ES contract and an MES micro measured the same disciplined way.</p>
+      <div class="calc-link" style="cursor:default">
+        <h3>Apex Trader Funding</h3>
+        <p>Applies a 50% requirement at the payout request: the best day must not exceed half of total profit at the time you ask to be paid.</p>
       </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></span>
-        <h3>Consistency scoring</h3>
-        <p>The leaderboard ranks risk-adjusted return and consistency. Only Trader and Pro members are ranked, so one green week doesn't carry the table.</p>
+      <div class="calc-link" style="cursor:default">
+        <h3>The measure that catches people</h3>
+        <p>Some firms measure against the profit target, some against profit so far, and some only when you request a payout. Same percentage, different arithmetic. Put your firm&rsquo;s number in the field above, and use the target field when the rule is written against a target.</p>
       </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg></span>
-        <h3>Rule compliance</h3>
-        <p>Set a max trades per day and a cooldown after consecutive losses, and see every breach on record, the discipline that keeps a working system alive past one bad session.</p>
-      </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
-        <h3>Session and strategy tags</h3>
-        <p>Tag each trade with its session, London, New York, Asia or Sydney, plus your own strategy tag, so you can see which part of the day actually produces your edge.</p>
-      </div>
-      <div class="lp-card reveal">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M6 4h12v3H6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg></span>
-        <h3>Weekly performance review</h3>
-        <p>An auto-generated weekly review shows which sessions and contracts actually worked for you, then rounds out the picture with your win rate, drawdown, best setup and costliest mistake.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================ PROOF ============================ -->
-<section class="section" style="background:var(--bg-2); border-block:1px solid var(--border)">
-  <div class="wrap">
-    <div class="show-panel-grid">
-      <div class="pcopy">
-        <h3 class="h3">The futures details a P&amp;L screenshot won't show.</h3>
-        <p class="lead">Index futures and commodities don't trade like a swing position. You're scaling, session timing matters, and one lucky trade proves nothing on its own. If you're trading a funded futures account, our <a href="/for/prop-firm">prop-firm page</a> covers drawdown rules separately.</p>
-        <ul class="feature-list">
-          <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Tick value built in</b><p>Set it once per contract and every entry, from MES to full-size GC, calculates correctly.</p></div></li>
-          <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Rule compliance</b><p>Cap your trades per day and set a cooldown after consecutive losses, with every breach on record, not buried in a broker statement.</p></div></li>
-          <li><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><div><b>Consistency score</b><p>The leaderboard rewards traders who show up every session, not the one that got lucky.</p></div></li>
-        </ul>
-      </div>
-      <div class="bwin reveal">
-        <div class="bwin-bar">
-          <div class="dots"><i></i><i></i><i></i></div>
-          <div class="bwin-url"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20" stroke="currentColor" stroke-width="1.6"></path></svg>app.tradingsocial.io/journal</div>
-        </div>
-        <picture style="display:contents"><source style="display:none" type="image/avif" srcset="/assets/images/Journal-480.avif 480w, /assets/images/Journal-800.avif 800w, /assets/images/Journal-1200.avif 1200w, /assets/images/Journal-1440.avif 1440w" sizes="(max-width: 920px) 100vw, 660px"><source style="display:none" type="image/webp" srcset="/assets/images/Journal-480.webp 480w, /assets/images/Journal-800.webp 800w, /assets/images/Journal-1200.webp 1200w, /assets/images/Journal-1440.webp 1440w" sizes="(max-width: 920px) 100vw, 660px"><img class="bwin-shot" src="/assets/images/Journal.png" alt="TradingSocial journal page — stat tiles for overall ranking, win rate and avg R, personalised insights, and a weekly performance review with profit factor, best session and most expensive mistake" width="1440" height="1221" style="aspect-ratio:1440/1221" loading="lazy" decoding="async"></picture>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================ STEPS ============================ -->
-<section class="section">
-  <div class="wrap">
-    <div class="section-head center reveal">
-      <span class="eyebrow eyebrow--center" style="justify-content:center">How it works</span>
-      <h2 class="h2">From contract to consistency score</h2>
-      <p class="lead">The same routine whether you traded one ES contract or ten MES micros.</p>
-    </div>
-    <div class="lp-steps">
-      <div class="lp-step reveal">
-        <h3>Log the trade</h3>
-        <p>Enter the contract, size, entry and exit, ES, NQ, a micro or a commodity. Tick value and R calculate automatically.</p>
-      </div>
-      <div class="lp-step reveal">
-        <h3>Tag the context</h3>
-        <p>Note the session, the setup and any rule you bent, using your own strategy and mistake tags to capture where in the day it happened.</p>
-      </div>
-      <div class="lp-step reveal">
-        <h3>Review the week</h3>
-        <p>See your consistency score, win rate and rule compliance in one auto-generated weekly review.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================ QUOTE ============================ -->
-<section class="section--tight">
-  <div class="wrap">
-    <div class="lp-quote reveal">
-      <p>One good trade on NQ isn't a track record. A consistency score built from every session, tagged and reviewed, is.</p>
-      <p class="who">Why one green day is not a track record</p>
     </div>
   </div>
 </section>
@@ -1753,55 +1876,51 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 <!-- ============================ FAQ ============================ -->
 <section class="section" style="background:var(--bg-2); border-block:1px solid var(--border)">
   <div class="wrap">
-    <div class="section-head center reveal">
-      <span class="eyebrow eyebrow--center" style="justify-content:center">Questions</span>
-      <h2 class="h2">Futures trading journal, answered</h2>
+    <div class="sec-head">
+      <span class="eyebrow">Questions</span>
+      <h2 class="h2">About consistency rules</h2>
     </div>
-    <div class="lp-faq">
-      <details>
-        <summary>What's the best futures trading journal for ES and NQ?</summary>
-        <p>TradingSocial is built for index futures (ES, NQ, YM, RTY), micros (MES, MNQ) and commodities (CL, GC). Log contract size and tick value with every trade, tag the session and setup, and see your R multiples and consistency score in one dashboard, not a spreadsheet.</p>
-      </details>
-      <details>
-        <summary>Does TradingSocial sync with my futures broker automatically?</summary>
-        <p>No. There is no CME, CQG or Rithmic-style futures broker sync. MT5 is the only automatic broker sync TradingSocial offers today, so futures trades, ES, NQ, CL, GC and the rest, are logged manually: enter the contract, size, entry and exit, and tick value calculates your R automatically. The <a href="/compare/best-mt5-trading-journal">MT5 journal buyer's guide</a> explains the difference between sync and statement import, and when neither is worth paying for.</p>
-      </details>
-      <details>
-        <summary>Can I journal micro futures like MES and MNQ?</summary>
-        <p>Yes. Micro contracts like MES and MNQ log the same way as their full-size counterparts. Set the contract and tick value once, and every trade's R multiple scales correctly, whether you're trading one micro or ten.</p>
-      </details>
-      <details>
-        <summary>How does R multiple work across ES, NQ, GC and CL with different tick values?</summary>
-        <p>Enter the contract and its tick value when you log a trade, and TradingSocial calculates R consistently whether you're trading ES, GC, CL or a micro. That keeps your risk-adjusted stats comparable across a mixed futures book.</p>
-      </details>
-      <details>
-        <summary>How is a futures trading leaderboard ranked fairly?</summary>
-        <p>The leaderboard ranks risk-adjusted return and consistency, not raw profit and loss, so one lucky trade in NQ doesn't outrank a trader compounding small edges every session. Only Trader and Pro plan members are ranked.</p>
-      </details>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h3><span class="q">Q</span>Does breaking a consistency rule fail my account?</h3>
+        <p>It depends on the firm and on where the rule sits. Topstep&rsquo;s Combine version raises the profit target instead of failing the account; a payout-stage rule like Apex&rsquo;s blocks or reduces the payout until the spread of profit changes. Your own terms are the only authority on which applies to you.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>What counts as one day?</h3>
+        <p>The firm&rsquo;s trading day, on the firm&rsquo;s clock, which is often not the calendar day where you live. FTMO, for example, resets its daily measure at 00:00 CE(S)T. If you trade an evening session, the day your trade belongs to may not be the day you think.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>Can I fix an oversized day by making more profit?</h3>
+        <p>Where the rule is measured against profit so far, yes: the denominator grows, so the same day is a smaller share of it. That is the "profit needed to comply" figure above. Where it is measured against a fixed target, more profit does not move the denominator, and only the passage of further qualifying days helps.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>Does this calculator check my account?</h3>
+        <p>No. It has no connection to any firm, reads nothing, and enforces nothing. You type three numbers and it does the division. TradingSocial does not read or enforce any firm&rsquo;s rule set either.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>Why would a firm want smaller best days?</h3>
+        <p>Because a funded account is a bet on repeatability. A profit made once, in one position, on one release, tells a firm very little about the next month. A rule of this kind is how they price that uncertainty before handing over a larger account.</p>
+      </div>
+      <div class="faq-item">
+        <h3><span class="q">Q</span>Where do I find my firm&rsquo;s number?</h3>
+        <p>On its rules or objectives page, usually under consistency, scaling or payout. If the page does not say what the percentage is measured against, or when it is applied, that is worth asking support before you need the answer rather than after.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ FINAL CTA + SIBLINGS ============================ -->
+<!-- ============================ FINAL CTA ============================ -->
 <section class="section finalcta">
   <div class="wrap">
-    <div class="finalcta-card">
-      <span class="chip chip--band"><span class="dot"></span>For futures traders</span>
-      <h2 class="h2">Trade contracts. Journal consistency.</h2>
-      <p class="hero-sub">Free to start, with 14 days of Pro free for the weekly review and rule compliance tracking.</p>
+    <div class="finalcta-card reveal">
+      <div class="hero-banner-grid"></div>
+      <span class="eyebrow eyebrow--center" style="justify-content:center">The part the calculator cannot do</span>
+      <h2 class="h2">Knowing the rule is easy. Having the record to check it against is the work.</h2>
+      <p class="hero-sub">TradingSocial journals each trade against the account it belongs to, keeps evaluation accounts separate from your live record, and rolls the week up so a day that got away from you is visible while it still matters. Free for 14 days of Pro &mdash; a card starts the trial, and cancelling before it ends costs nothing.</p>
       <div class="hero-cta">
-        <a class="btn btn-lg btn-onband" href="https://app.tradingsocial.io/signup">Start journaling futures free</a>
-        <a class="btn btn-lg btn-band-ghost" href="/pricing">See pricing</a>
+        <a class="btn btn-onband btn-lg" href="https://app.tradingsocial.io/signup">Start Free<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></a>
+        <a class="btn btn-band-ghost btn-lg" href="/for/prop-firm">See the prop-firm page</a>
       </div>
-    </div>
-    <div class="lp-siblings">
-      <a href="/for/forex">For forex traders</a>
-      <a href="/for/crypto">For crypto traders</a>
-      <a href="/for/mt5">For MT5 users</a>
-      <a href="/for/journal">For trading-journal users</a>
-      <a href="/for/prop-firm">For prop-firm traders</a>
-      <a href="/for/educators">For trading educators</a>
-      <a href="/for">All solutions</a>
     </div>
   </div>
 </section>
@@ -1881,4 +2000,120 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 </script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
+<script>
+/* Prop firm consistency rule calculator.
+   Runs entirely in the browser: nothing is sent anywhere, nothing is stored.
+     share            = best day / denominator
+     largest day left = denominator * limit
+     profit to comply = best day / limit - profit so far   (profit-based rules)
+   The denominator is profit so far, or the profit target when one is given,
+   because firms write the rule both ways. It reports the arithmetic and never
+   what to do about it: only the firm's own terms decide compliance. */
+(function () {
+  var form = document.getElementById('calcForm')
+  if (!form) return
+  var $ = function (id) { return document.getElementById(id) }
+  var f = { total: $('total'), currency: $('currency'), best: $('best'), threshold: $('threshold'), target: $('target') }
+  var out = {
+    share: $('outShare'), shareUnit: $('outShareUnit'), verdict: $('outVerdict'), maxDay: $('outMaxDay'),
+    need: $('outNeed'), rowNeed: $('rowNeed'), target: $('outTarget'), rowTarget: $('rowTarget'), note: $('outNote'),
+  }
+  var err = $('calcError')
+  var prefixes = [$('curPrefix'), $('bestPrefix'), $('targetPrefix')]
+  var DASH = '—'
+
+  var SYMBOL = { USD: '$', AUD: 'A$', EUR: '€', GBP: '£', CAD: 'C$', NZD: 'NZ$', SGD: 'S$', ZAR: 'R', INR: '₹' }
+
+  function num(el) {
+    var raw = String(el.value).trim()
+    if (raw === '') return null
+    var n = Number(raw)
+    return isFinite(n) ? n : NaN
+  }
+
+  function money(n) {
+    var code = f.currency.value
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, maximumFractionDigits: 2 }).format(n)
+    } catch (e) {
+      return (SYMBOL[code] || '$') + n.toFixed(2)
+    }
+  }
+
+  function blank() {
+    out.share.textContent = DASH
+    out.verdict.textContent = DASH
+    out.maxDay.textContent = DASH
+    out.rowNeed.hidden = true
+    out.rowTarget.hidden = true
+    out.note.hidden = true
+  }
+
+  function fail(msg) {
+    err.textContent = msg
+    err.hidden = false
+    blank()
+  }
+
+  function calculate() {
+    err.hidden = true
+    var sym = SYMBOL[f.currency.value] || '$'
+    for (var i = 0; i < prefixes.length; i++) if (prefixes[i]) prefixes[i].textContent = sym
+
+    var total = num(f.total), best = num(f.best), limit = num(f.threshold), target = num(f.target)
+    for (var k in f) {
+      if (k !== 'currency' && isNaN(num(f[k]))) return fail('Those need to be numbers.')
+    }
+    if (total === null || best === null || limit === null) return blank()
+
+    if (total <= 0) return fail('Profit so far has to be more than zero for a share of it to mean anything.')
+    if (best < 0) return fail('A best day cannot be negative.')
+    if (best > total) return fail('Your best day is larger than your total profit, so there are losses in between. Enter the net profit your firm counts.')
+    if (limit <= 0 || limit > 100) return fail("A consistency limit is a percentage between 0 and 100.")
+    if (target !== null && target <= 0) return fail('A profit target has to be more than zero.')
+
+    // Firms write the rule against profit so far or against the target.
+    var usingTarget = target !== null
+    var denom = usingTarget ? target : total
+    var pct = (best / denom) * 100
+    var pass = pct <= limit
+
+    out.share.textContent = pct.toFixed(1) + '%'
+    out.shareUnit.textContent = usingTarget ? 'of the profit target' : 'of profit so far'
+    out.verdict.textContent = pass
+      ? 'within ' + limit + '%'
+      : 'over ' + limit + '% by ' + (pct - limit).toFixed(1) + ' points'
+    out.maxDay.textContent = money(denom * (limit / 100)) + (usingTarget ? ' against the target' : '')
+
+    if (usingTarget) {
+      out.target.textContent = money(target) + ' target, ' + money(total) + ' banked'
+      out.rowTarget.hidden = false
+    } else {
+      out.rowTarget.hidden = true
+    }
+
+    var notes = []
+    if (!pass && !usingTarget) {
+      var needed = best / (limit / 100) - total
+      out.need.textContent = money(needed) + ' more profit'
+      out.rowNeed.hidden = false
+      notes.push('Measured against profit so far, the denominator grows as you trade: another ' + money(needed) + ' of profit, made in days smaller than ' + money(best) + ', brings that day back inside ' + limit + '%.')
+    } else if (!pass && usingTarget) {
+      out.rowNeed.hidden = true
+      notes.push('Measured against a fixed target, more profit does not move the denominator. Only your firm’s own terms say what happens next — some raise the target, some hold the payout.')
+    } else {
+      out.rowNeed.hidden = true
+      notes.push('On these numbers the best day is inside the limit. It is a snapshot, not a pass: another large day, or a loss that shrinks the total, changes the share.')
+    }
+    notes.push('Firms differ on what counts as a day, what counts as profit, and when the rule is applied. This does not read your account or enforce anything.')
+    out.note.innerHTML = notes.join('<br><br>')
+    out.note.hidden = false
+  }
+
+  form.addEventListener('input', calculate)
+  form.addEventListener('change', calculate)
+  form.addEventListener('submit', function (e) { e.preventDefault(); calculate() })
+  calculate()
+})()
+</script>
 </body></html>
