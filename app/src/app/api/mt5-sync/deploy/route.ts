@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
+import { SYNCING_BROKER_STATUSES } from '@/lib/verification'
 import { deployAccount, isAccountRunning } from '@/lib/server/metaapi'
 import { getTier } from '@/lib/server/entitlements'
 import { getFeatureFlags } from '@/lib/server/feature-flags'
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
   const { data: rows, error } = await svc
     .from('broker_accounts')
     .select('id, user_id, metaapi_account_id')
-    .in('status', ['pending', 'active', 'error'])
+    .in('status', SYNCING_BROKER_STATUSES)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   let deployed = 0

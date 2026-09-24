@@ -42,13 +42,40 @@ export function tradeLevel(source: TradeSource | null | undefined): Verification
   return 'self_reported'
 }
 
+/**
+ * `disconnected` is the RETIRED state: a connection that once existed and has
+ * been stood down deliberately. It is the one status the sync routes do not
+ * pick up (see SYNCING_BROKER_STATUSES), which is what makes it a retirement
+ * rather than a pause.
+ *
+ * A user-initiated disconnect does not produce it — disconnectBroker() deletes
+ * the row and the MetaApi account outright. This is for a connection we retire
+ * on our side and want to keep a record of: an internal/seed account, or one
+ * whose upstream is gone.
+ */
 export type BrokerStatus = 'pending' | 'active' | 'error' | 'disconnected' | null
+
+/** The statuses the hourly sync acts on. `disconnected` is deliberately absent,
+ *  and the routes share this list so that adding a status cannot silently put
+ *  retired accounts back into the cycle. */
+export const SYNCING_BROKER_STATUSES: Exclude<BrokerStatus, null | 'disconnected'>[] =
+  ['pending', 'active', 'error']
 
 export type SourceCounts = { manual: number; statement: number; broker: number }
 
 /**
  * Profile-level verification: the strongest evidence wins, but a broker
  * connection that is pending/failed surfaces as such.
+ *
+ * A RETIRED connection claims nothing by itself and must not read as failed:
+ * `error` outranks the trade counts (a broken connection is worth saying out
+ * loud), but a retirement is not a fault, so it falls through to whatever the
+ * trades already prove. That ordering is why /TheTradingSocial spent
+ * 2026-09-14 to 09-24 titled "trading track record" with a Failed chip while
+ * thirteen statement-imported trades sat underneath it: the account was
+ * stuck in `error` behind a MetaApi connection that had never once imported a
+ * trade. Trades that DID arrive from a broker stay broker-verified after the
+ * connection goes away — the evidence is in the trade, not in the link.
  */
 export function profileLevel(counts: SourceCounts, brokerStatus: BrokerStatus): VerificationLevel {
   if (brokerStatus === 'pending') return 'verification_pending'

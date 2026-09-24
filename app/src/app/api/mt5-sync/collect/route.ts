@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { authorizedCron } from '@/lib/cron'
 import { createServiceClient } from '@/lib/supabase/service'
+import { SYNCING_BROKER_STATUSES } from '@/lib/verification'
 import { undeployAccount, fetchDealsSince } from '@/lib/server/metaapi'
 import { pairDealsToTrades, type MetaApiDeal } from '@/lib/metaapi-deals'
 import { mapDealToTrade } from '@/lib/mt5'
@@ -97,7 +98,7 @@ export async function GET(req: Request) {
   const { data: rows, error } = await svc
     .from('broker_accounts')
     .select('id, user_id, metaapi_account_id, region, last_deal_time, created_at, status, sync_error_phase, sync_error_at, last_sync_at')
-    .in('status', ['pending', 'active', 'error'])
+    .in('status', SYNCING_BROKER_STATUSES)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   let synced = 0
