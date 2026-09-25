@@ -48,6 +48,8 @@ import { GOAL_META, type GoalKind } from '@/lib/goals'
 import { getComparison } from '@/lib/server/compare'
 import { ComparisonCard } from './_components/ComparisonCard'
 import type { EditTradeConfig } from './_components/EditTradeModal'
+import { brokerSyncNotice } from '@/lib/broker-sync-notice'
+import { BrokerSyncBanner } from './_components/BrokerSyncBanner'
 
 // Login-gated. Logged out, this answers 200 with a meta-refresh to /login
 // (redirect() runs after streaming has started), so the page itself has to
@@ -90,6 +92,16 @@ export default async function JournalPage() {
   const flags = await getFeatureFlags()
   const unlimited = canFlag(flags, tier, 'journal_unlimited')
   const visibleTrades = unlimited ? trades : trades.slice(0, JOURNAL_FREE_LIMIT)
+
+  // A stopped MT5 sync, said where the user will see it. Same RLS-scoped read
+  // as /settings. Rendered on the empty journal too: an account that connected
+  // and never synced is exactly the one staring at an empty list.
+  const { data: brokerRow } = await supabase
+    .from('broker_accounts')
+    .select('status, last_sync_at')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  const syncNotice = brokerSyncNotice(brokerRow, canFlag(flags, tier, 'mt5_autosync'), Date.now())
   const hiddenCount = trades.length - visibleTrades.length
 
   // Edit modal gating — the same derivation the create modal gets in
@@ -331,6 +343,7 @@ export default async function JournalPage() {
     return (
       <main className="ts-page">
         <JournalHero monthLabel={monthLabel} monthTrades={0} monthNet={0} streak={0} />
+        {syncNotice && <BrokerSyncBanner notice={syncNotice} now={now.getTime()} />}
         <JournalEmptyState
           canImport={canFlag(flags, tier, 'mt5_import')}
           canAutosync={canFlag(flags, tier, 'mt5_autosync')}
@@ -349,6 +362,8 @@ export default async function JournalPage() {
   return (
     <main className="ts-page">
       <JournalHero monthLabel={monthLabel} monthTrades={sums.monthTrades} monthNet={sums.monthNet} streak={metrics.currentStreak} />
+
+      {syncNotice && <BrokerSyncBanner notice={syncNotice} now={now.getTime()} />}
 
       {noBalance && (
         <div className="ts-banner mt-5">
