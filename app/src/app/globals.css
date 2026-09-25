@@ -493,6 +493,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.06; l
 
 .ts-banner { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 14px; font-size: 13.5px; color: var(--dim); background: var(--brand-grad-soft); border: 1px solid var(--border-vio); }
 .ts-banner b { color: var(--text); }
+/* Something has stopped working and needs the user — not an upsell or a tip. */
+.ts-banner--warn { background: var(--down-soft); border-color: rgba(229,71,93,0.36); }
 
 /* ---------- Journal: mobile ---------- */
 @media (max-width: 560px) {
