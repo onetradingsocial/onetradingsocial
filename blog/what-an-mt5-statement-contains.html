@@ -6,8 +6,8 @@
 <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/favicon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
-<title>Win rate is lying to you: a plain-English guide to R-multiples and expectancy — TradingSocial</title>
-<meta name="description" content="A 40% win rate can crush a 70% one. Here's the math that actually decides whether you make money.">
+<title>What an MT5 statement actually contains — TradingSocial</title>
+<meta name="description" content="MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.">
 <style>/* cyrillic-ext */
 @font-face {
   font-family: 'JetBrains Mono';
@@ -1485,19 +1485,19 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
        consent gate allows the relevant tier (audit item 17, WS7). Do not
        re-add inline gtag/fbq/rdt loaders here -- they cannot be declined. -->
   <script src="/consent.js"></script>
-  <meta property="og:title" content="Win rate is lying to you: a plain-English guide to R-multiples and expectancy">
-  <meta property="og:description" content="A 40% win rate can crush a 70% one. Here's the math that actually decides whether you make money.">
+  <meta property="og:title" content="What an MT5 statement actually contains">
+  <meta property="og:description" content="MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.">
   <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <meta property="og:url" content="https://www.tradingsocial.io/blog/win-rate-is-lying-to-you">
+  <meta property="og:url" content="https://www.tradingsocial.io/blog/what-an-mt5-statement-contains">
   <meta property="og:type" content="article">
-  <meta property="article:published_time" content="2026-06-01">
+  <meta property="article:published_time" content="2026-09-26">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Win rate is lying to you: a plain-English guide to R-multiples and expectancy">
-  <meta name="twitter:description" content="A 40% win rate can crush a 70% one. Here's the math that actually decides whether you make money.">
+  <meta name="twitter:title" content="What an MT5 statement actually contains">
+  <meta name="twitter:description" content="MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <link rel="canonical" href="https://www.tradingsocial.io/blog/win-rate-is-lying-to-you">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Win rate is lying to you: a plain-English guide to R-multiples and expectancy","description":"A 40% win rate can crush a 70% one. Here's the math that actually decides whether you make money.","url":"https://www.tradingsocial.io/blog/win-rate-is-lying-to-you","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tradingsocial.io/blog/win-rate-is-lying-to-you"},"datePublished":"2026-06-01","dateModified":"2026-06-01","articleSection":"Analytics","inLanguage":"en","author":{"@type":"Person","name":"Nathan Maiolo"},"publisher":{"@type":"Organization","name":"TradingSocial","url":"https://www.tradingsocial.io","logo":{"@type":"ImageObject","url":"https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png"}},"image":["https://www.tradingsocial.io/assets/images/og-image.png"],"keywords":"win rate, R-multiple, expectancy, risk-reward, analytics"}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.tradingsocial.io/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.tradingsocial.io/blog"},{"@type":"ListItem","position":3,"name":"Win rate is lying to you: a plain-English guide to R-multiples and expectancy","item":"https://www.tradingsocial.io/blog/win-rate-is-lying-to-you"}]}</script>
+  <link rel="canonical" href="https://www.tradingsocial.io/blog/what-an-mt5-statement-contains">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"What an MT5 statement actually contains","description":"MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.","url":"https://www.tradingsocial.io/blog/what-an-mt5-statement-contains","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tradingsocial.io/blog/what-an-mt5-statement-contains"},"datePublished":"2026-09-26","dateModified":"2026-09-26","articleSection":"Analytics","inLanguage":"en","author":{"@type":"Person","name":"Nathan Maiolo"},"publisher":{"@type":"Organization","name":"TradingSocial","url":"https://www.tradingsocial.io","logo":{"@type":"ImageObject","url":"https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png"}},"image":["https://www.tradingsocial.io/assets/images/og-image.png"],"keywords":"validation, analytics, MT5, verification"}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.tradingsocial.io/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.tradingsocial.io/blog"},{"@type":"ListItem","position":3,"name":"What an MT5 statement actually contains","item":"https://www.tradingsocial.io/blog/what-an-mt5-statement-contains"}]}</script>
 </head>
 <body>
 <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
@@ -1587,12 +1587,12 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       <span class="crumbs">
         <a href="/blog">Blog</a><span class="sep">/</span><span>Analytics</span>
       </span>
-      <h1>Win rate is lying to you: a plain-English guide to R-multiples and expectancy</h1>
-      <p class="standfirst">A 40% win rate can crush a 70% one. Here's the math that actually decides whether you make money.</p>
+      <h1>What an MT5 statement actually contains</h1>
+      <p class="standfirst">MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.</p>
       <div class="article-byline">
         <div class="post-meta">
           <span style="width:36px;height:36px;border-radius:50%;flex-shrink:0;display:inline-block;border:1px solid var(--border);background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span>
-          <span class="pm-t"><b>Nathan Maiolo</b><span><time datetime="2026-06-01">Jun 1, 2026</time><span class="dotsep">·</span>4 min read</span></span>
+          <span class="pm-t"><b>Nathan Maiolo</b><span><time datetime="2026-09-26">Sep 26, 2026</time><span class="dotsep">·</span>7 min read</span></span>
         </div>
         <div class="article-share">
           <a href="#" aria-label="Share on X"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></a>
@@ -1606,64 +1606,55 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 
 <!-- ============================ COVER ============================ -->
 <div class="wrap">
-  <div class="article-cover reveal"><div class="thumb t-cyan"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M4 19V9M10 19V5M16 19v-7M22 19H2' stroke='currentColor' stroke-width='2' stroke-linecap='round'></path></svg></span></div></div>
+  <div class="article-cover reveal"><div class="thumb t-cyan"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M6 3h8l4 4v14H6z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M14 3v4h4M9 12h6M9 16h6M9 8h2' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span></div></div>
 </div>
 
 <!-- ============================ BODY ============================ -->
 <article class="article-body">
-  <div class="prose"><p class='dek'>A trader walks into a forum and posts their stats: 72% <a href="/for/futures">win rate</a>, 180 trades. The replies flood in — "nice edge," "solid system," "what is your setup?" Nobody asks the one question that actually matters: what is your average winner versus your average loser?</p>
+  <div class="prose"><p class='dek'>Most guides to exporting an MT5 statement stop at the right-click. Toolbox, History tab, Report, save. That gets you a file and tells you nothing about what is in it — which matters, because that file is what you hand to a prop firm, a journal, or anyone who wants to check your numbers against something other than a screenshot.</p>
+<p>Here is what MetaTrader 5 actually writes down, and what it is worth.</p>
+<h2>Two files, both called "the statement"</h2>
+<p>MT5 produces two reports and traders use the same word for both.</p>
+<p>The first is the <strong>history report</strong>. You reach it from the Toolbox, in the History tab, through Report in the right-click menu. MetaQuotes' documentation sets out its structure: a header carrying the brokerage company, account number, account owner's name, deposit currency and the date the report was generated; then tables of Orders, Deals, Positions and Working Orders; then a Summary block of account figures (Balance, Equity, Margin, Free Margin and the rest) and a Details block of computed statistics — Total Net profit, Profit Factor, Expected Payoff, three separate drawdown measures, and the usual breakdowns by long and short. The <a href="<a href="https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report">https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report</a>">MetaQuotes documentation</a> lists them all. It saves as HTML; the terminal also offers a spreadsheet export.</p>
+<p>The second is the <strong>Trading Report</strong>, a more recent addition. It sits under Reports in the View menu, or "Report \ Overview" from the history context menu, and it is a dashboard rather than a ledger: tabs for Summary, Profit/Loss, Long/Short, Symbols and Risks, with Sharpe Ratio, Profit Factor, Recovery Factor, Max. Drawdown, Max. Deposit Load, MFE and MAE among the figures. Build 4150 added export of it to HTML and PDF.</p>
+<p>The difference is practical. The Trading Report is the better-looking file and the less useful one, because it is already aggregated. The history report is the one with the rows in it, and rows are what a journal can import. The menu wording can differ slightly between builds and between brokers' white-label terminals, so look for Report rather than an exact phrase.</p>
+<h2>Orders, deals and positions are not synonyms</h2>
+<p>This is the part almost every export guide skips, and it is the reason two tools can read the same file and disagree about how many trades you took.</p>
+<p>An <strong>order</strong> is the instruction you sent the server. A <strong>deal</strong> is an execution — the thing that actually happened on the market. MetaQuotes is explicit that a single order can produce several deals, when the volume you asked for was not covered by one offer. A <strong>position</strong> is the resulting exposure, assembled by the platform from every deal that opened, added to, partially closed or fully closed it.</p>
+<p>So the file holds three different views of the same afternoon. The history tables carry, for orders: the time, symbol, type, volume, requested price, stop-loss and take-profit levels, and the order's final state. For deals, MetaQuotes lists: Time, Deal, ID, Order, Symbol, Type, Direction, Volume, Price, Value, Cost, S/L, T/P, Commission, Fee, Profit, Change, Magic. The positions view reports opening and closing time, closed volume against source volume, the weighted average opening price, the closing price, the total financial result, and Stop Loss and Take Profit.</p>
+<p>Note Direction on the deal rows. MetaQuotes documents its values as "in", "out" or "in/out" — the deal's direction relative to the current position in that symbol — and it is how a parser works out which deals pair into one round trip. Note also that your net result on a trade is not the Profit column alone: profit, less commission, less fees, less swap. A statement that looks better than your balance usually means someone read one column.</p>
+<h2>Netting and hedging change the shape of the file</h2>
+<p>MT5 runs two position accounting systems. Under netting you hold one position per symbol at a time. Under hedging you can hold several positions in the same symbol, including opposite ones.</p>
+<p>That is not a detail. On a netting account, a morning of scaling in and out of one instrument collapses into a single position record with a weighted average price. On a hedging account the same activity stays as separate positions. The deals are identical; the trade count is not. If your journal's numbers differ from the terminal's, this is the first place to look.</p>
+<h2>The clock is the broker's, not yours</h2>
+<p>MT5 timestamps history in the trading server's time zone, not your computer's, and the file carries no field naming that zone. Inside the terminal a program can recover the offset — MQL5's own documentation derives it as the difference in hours between local and server time — but an offset in hours is not a named zone with daylight-saving rules attached, and a saved file has neither. Read the statement back months later and you cannot map its rows onto sessions with confidence. Sessions, day-of-week analysis and anything else that depends on hour-of-day inherits whatever offset your broker happens to run, and a Sunday evening open can sit on a Monday row.</p>
+<h2>What the statement proves</h2>
+<p>It proves that a broker's server recorded these executions on this account. That is a real and useful thing. It is the difference between a number you typed and a number a counterparty agreed to. It puts entry, exit, size, commission, swap and result outside your memory and outside your optimism.</p>
+<h2>What it does not prove</h2>
+<p>It is not an audited attestation. Nobody independent has signed it. The HTML version is generated on your own machine from a template — <code>ReportHistory.htm</code>, in the platform's <code>/Templates</code> folder — which means the file you upload is a local rendering of the server's data, not a signed document from the server. A determined person can edit it before sending it on, and no parser can tell.</p>
+<p>It also says nothing about the questions people usually want answered. Whether this is your only account. Whether the losing one is elsewhere. Whether the account is live or demo — MT5 does not stamp that in a way a third party can rely on. Deposits and withdrawals beyond what the balance rows imply. A statement is evidence about executions, not about a trader.</p>
+<h2>Statement import versus a live connection</h2>
+<p>Which matters for provenance, not for arithmetic. A statement passed through your machine on the way in, so a journal can only say that it arrived by statement. Trades pulled from the broker on a schedule never touched your hands, and the label says so. Manual entries stay manual and stay editable. Three different claims about how a number got there, and the label is set by the system rather than chosen.</p>
+<p>The mechanics of both on TradingSocial — which plan each sits on, symbol suffix matching, and the fact that only closed trades are journalled — are on the <a href="/for/mt5">MT5 page</a>.</p>
 
-<p>Because a 72% win rate is completely compatible with a losing system. And a 35% win rate is completely compatible with a highly profitable one. Win rate, on its own, tells you almost nothing about whether your strategy makes money. Yet it remains the headline stat most retail traders optimize for — and that obsession quietly bleeds accounts dry.</p>
-
-<h2>The Win Rate Trap: Why the Most-Watched Number Misleads You</h2>
-<p>Win rate measures how often you are right. It does not measure how much you make when you are right, or how much you lose when you are wrong. Those two omissions make it nearly useless as a standalone metric.</p>
-
-<p>Here is the arithmetic that exposes the trap. Suppose you have a 70% win rate. Your average winner is $80, your average loser is $200. Run 100 trades:</p>
+<h2>Why any of this matters</h2>
+<p>For your own review, provenance is almost irrelevant. You know whether you typed it honestly. Your <a href="/blog/win-rate-is-lying-to-you">expectancy and R-multiples</a> work the same either way, and the <a href="/blog/why-a-trading-journal">habit of reviewing at all</a> is doing most of the work.</p>
+<p>It starts mattering the moment someone else reads your numbers — a prop firm, a subscriber, a partner, an audience. At that point the question stops being "are these good results" and becomes "how did these results get here", and the honest answer is how it arrived, not a verdict on the trader. A broker-synced record says the data never touched a keyboard. A statement import says it came from the broker's ledger by way of your hard drive. A typed record says you typed it.</p>
+<p>Three different claims. Worth keeping them three different words.</p>
+<h2>Sources</h2>
 <ul>
-  <li>70 winners × $80 = $5,600 profit</li>
-  <li>30 losers × $200 = $6,000 loss</li>
-  <li>Net result: <strong>–$400</strong></li>
-</ul>
-
-<p>You were right nearly three-quarters of the time and still lost money. Now flip the scenario: 40% win rate, average winner $300, average loser $120.</p>
-<ul>
-  <li>40 winners × $300 = $12,000 profit</li>
-  <li>60 losers × $120 = $7,200 loss</li>
-  <li>Net result: <strong>+$4,800</strong></li>
-</ul>
-<p>You were wrong 60% of the time and turned a meaningful profit. Win rate is not the edge. The relationship between winner size and loser size is the edge.</p>
-
-<h2>R-Multiple: The Unit That Makes Systems Comparable</h2>
-<p>The cleanest way to measure that relationship is the <strong><a href="/for/journal">R-multiple</a></strong>. R is simply your initial risk on a trade — the distance in dollars from entry to your stop loss. Every outcome is then expressed as a multiple of that risk.</p>
-
-<p>The formula: <em>R-Multiple = (Exit Price − Entry Price) ÷ (Entry Price − Stop Loss)</em></p>
-
-<p>If you risk $100 on a trade and close it for a $250 profit, your R-multiple is +2.5R. If you get stopped out, your R-multiple is −1R. If you exit early and lose $60, it is −0.6R. Suddenly every trade, regardless of position size or instrument, speaks the same language.</p>
-
-<blockquote>Some professional trading systems run at 25–35% win rates. They lose most of the time. When they win, they win big — often at 5R, 8R, or higher. The math works because expectancy, not win rate, is the engine.</blockquote>
-
-<h2>Where win rate and average win meet</h2>
-<p><strong>Expectancy</strong> combines win rate, average winner, and average loser into a single number that predicts your average profit or loss per unit of risk across many trades. How to calculate trading expectancy works the arithmetic through, and the <a href="/tools/expectancy-calculator">expectancy calculator</a> does it for you.</p>
-
-<p>The formula: <em>Expectancy = (Win Rate × Average Win in R) − (Loss Rate × Average Loss in R)</em></p>
-
-<p>A positive expectancy means the system is profitable over a large sample. A negative expectancy means no amount of discipline or money management will save you — you are playing a losing game.</p>
-
-<h2>Practical Steps: Start Calculating Expectancy This Week</h2>
-<ol>
-  <li><strong>Define your R before every trade.</strong> Entry price minus stop loss price, multiplied by position size. Write it down before you enter.</li>
-  <li><strong>Log every exit as an R-multiple.</strong> Profit or loss divided by your defined R. One column in your journal, every trade.</li>
-  <li><strong>Calculate rolling expectancy every 20 trades.</strong> Apply the formula. If it is negative, you have a data problem to solve — not a mindset problem.</li>
-  <li><strong>Segment by setup type.</strong> Your overall expectancy may be positive while one specific pattern is dragging it down. Segmentation finds the leak.</li>
-  <li><strong>Set a minimum R target per trade type.</strong> Many profitable systems require a minimum 2R potential before entry is valid.</li>
-  <li><strong>Review win rate last, not first.</strong> After you know your expectancy and average R-multiple, then check win rate to understand the shape of the system — not to judge whether it works.</li>
-</ol>
-
-<h2>One Metric, Fewer Illusions</h2>
-<p>Win rate flatters. Expectancy does not. It will tell you in cold R-units whether your edge is real or whether you have been winning the battle of individual trades while losing the war of accumulated outcome. The traders who compound over years are not the ones who are right most often. They are the ones who make more when they are right than they lose when they are wrong — and they have the data to prove it.</p></div>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report">https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report</a> — MetaQuotes' description of the history report: the header, Orders, Deals, Positions, Working Orders, Summary and Details blocks, the named statistics, and the <code>ReportHistory.htm</code> template.</li>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/trading/report">https://www.metatrader5.com/en/terminal/help/trading/report</a> — the newer Trading Report: Summary, Profit/Loss, Long/Short, Symbols and Risks tabs, the Sharpe Ratio / Recovery Factor / Max. Drawdown / MFE / MAE metrics, and HTML and PDF export.</li>
+  <li><a href="https://www.metatrader5.com/en/releasenotes/terminal/2342">https://www.metatrader5.com/en/releasenotes/terminal/2342</a> — MT5 build 4150 release note confirming trading report export to HTML and PDF was added, and where the export commands live.</li>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/trading/performing_deals">https://www.metatrader5.com/en/terminal/help/trading/performing_deals</a> — the verbatim column names in the History tab for orders, deals and positions, the Trade tab fields, and the deal entry types "in", "out" and "in/out".</li>
+  <li><a href="https://www.mql5.com/en/articles/211">https://www.mql5.com/en/articles/211</a> — MetaQuotes article on orders, deals and positions: one order can generate several deals, deals are stored in history and cannot be modified, and (background only) deal entry types in/out/inout.</li>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/trading/general_concept">https://www.metatrader5.com/en/terminal/help/trading/general_concept</a> — netting versus hedging position accounting, and how many positions per symbol each allows.</li>
+  <li><a href="https://www.mql5.com/en/book/common/timing/timing_local_server">https://www.mql5.com/en/book/common/timing/timing_local_server</a> — server time versus local time in MetaTrader; source for the offset between them being derivable in hours inside the terminal, which is not the same as a named time zone recorded in the file. Checked 22 September 2026.</li>
+  <li><a href="https://www.metatrader5.com/en/mobile-trading/android/help/history">https://www.metatrader5.com/en/mobile-trading/android/help/history</a> — mobile History fields, used to cross-check the deal column names (Deal, Order, Swap, Commission, Fee).</li>
+</ul></div>
 
   <div class="article-foot">
-    <div class="article-tags"><span class="tag tag--neutral">win rate</span><span class="tag tag--neutral">R-multiple</span><span class="tag tag--neutral">expectancy</span><span class="tag tag--neutral">risk-reward</span><span class="tag tag--neutral">analytics</span></div>
+    <div class="article-tags"><span class="tag tag--neutral">validation</span><span class="tag tag--neutral">analytics</span><span class="tag tag--neutral">MT5</span><span class="tag tag--neutral">verification</span></div>
   </div>
 
   <div class="author-box">
@@ -1686,9 +1677,9 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       </a>
     </div>
     <div class="postgrid">
-      <article class="pcard-blog reveal"><a class="thumb t-cyan" href="/blog/what-an-mt5-statement-contains"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M6 3h8l4 4v14H6z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M14 3v4h4M9 12h6M9 16h6M9 8h2' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span><span class="thumb-lbl">Analytics</span></a><div class="pcard-body"><span class="pcard-cat">Analytics</span><h3><a href="/blog/what-an-mt5-statement-contains">What an MT5 statement actually contains</a></h3><p class="excerpt">MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Sep 26, 2026<span class="dotsep">·</span>7 min</span></span></div></div></article>
       <article class="pcard-blog reveal"><a class="thumb t-orange" href="/blog/prop-firm-drawdown-rules-explained"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M12 3l7 3v5c0 5-3 7.5-7 9-4-1.5-7-4-7-9V6l7-3z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M9 12l2 2 4-4' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg></span><span class="thumb-lbl">Risk &amp; Sizing</span></a><div class="pcard-body"><span class="pcard-cat">Risk &amp; Sizing</span><h3><a href="/blog/prop-firm-drawdown-rules-explained">Prop firm drawdown rules, explained</a></h3><p class="excerpt">Static, end-of-day trailing and intraday trailing drawdown are three different rules wearing the same number. Here is how each one is measured.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Sep 23, 2026<span class="dotsep">·</span>8 min</span></span></div></div></article>
       <article class="pcard-blog reveal"><a class="thumb t-violet" href="/blog/why-a-trading-journal"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M5 4h11l3 3v13H5z' stroke='currentColor' stroke-width='2' stroke-linejoin='round'></path><path d='M9 9h6M9 13h6M9 17h3' stroke='currentColor' stroke-width='2' stroke-linecap='round'></path></svg></span><span class="thumb-lbl">Journaling</span></a><div class="pcard-body"><span class="pcard-cat">Journaling</span><h3><a href="/blog/why-a-trading-journal">Why a trading journal is the highest-ROI habit you're not building</a></h3><p class="excerpt">Most traders track P&amp;L and call it a day. The ones who actually compound do something quieter — they review. Here's the case for journaling, and a framework that takes ten minutes.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Jun 3, 2026<span class="dotsep">·</span>4 min</span></span></div></div></article>
+      <article class="pcard-blog reveal"><a class="thumb t-cyan" href="/blog/win-rate-is-lying-to-you"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M4 19V9M10 19V5M16 19v-7M22 19H2' stroke='currentColor' stroke-width='2' stroke-linecap='round'></path></svg></span><span class="thumb-lbl">Analytics</span></a><div class="pcard-body"><span class="pcard-cat">Analytics</span><h3><a href="/blog/win-rate-is-lying-to-you">Win rate is lying to you: a plain-English guide to R-multiples and expectancy</a></h3><p class="excerpt">A 40% win rate can crush a 70% one. Here's the math that actually decides whether you make money.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Jun 1, 2026<span class="dotsep">·</span>4 min</span></span></div></div></article>
     </div>
   </div>
 </section>
