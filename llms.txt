@@ -39,6 +39,7 @@ TradingSocial is an education and performance-tracking platform. It does not pro
 ## Blog
 
 - [Blog](https://www.tradingsocial.io/blog): Practical, no-hype writing on trading journals, psychology, risk and performance from the TradingSocial team.
+- [What to record in every trade journal entry](https://www.tradingsocial.io/blog/what-to-record-in-every-journal-entry): Every journal template is a column list. Here is the reasoning under it: which field answers which question later, and which ones only you can supply.
 - [What an MT5 statement actually contains](https://www.tradingsocial.io/blog/what-an-mt5-statement-contains): MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.
 - [Prop firm drawdown rules, explained](https://www.tradingsocial.io/blog/prop-firm-drawdown-rules-explained): Static, end-of-day trailing and intraday trailing drawdown are three different rules wearing the same number. Here is how each one is measured.
 - [Why a trading journal is the highest-ROI habit you're not building](https://www.tradingsocial.io/blog/why-a-trading-journal): Most traders track P&L and call it a day. The ones who actually compound do something quieter — they review. Here's the case for journaling, and a framework that takes ten minutes.
