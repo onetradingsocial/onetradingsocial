@@ -6,8 +6,8 @@
 <link rel="icon" type="image/png" sizes="96x96" href="/assets/images/favicon-96.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/favicon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
-<title>What to record in every trade journal entry — TradingSocial</title>
-<meta name="description" content="Every journal template is a column list. Here is the reasoning under it: which field answers which question later, and which ones only you can supply.">
+<title>How to calculate trading expectancy — TradingSocial</title>
+<meta name="description" content="The formula, a worked example you can reproduce, the break-even win rate hiding inside it, and why the trade count matters more than the number.">
 <style>/* cyrillic-ext */
 @font-face {
   font-family: 'JetBrains Mono';
@@ -1485,19 +1485,19 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
        consent gate allows the relevant tier (audit item 17, WS7). Do not
        re-add inline gtag/fbq/rdt loaders here -- they cannot be declined. -->
   <script src="/consent.js"></script>
-  <meta property="og:title" content="What to record in every trade journal entry">
-  <meta property="og:description" content="Every journal template is a column list. Here is the reasoning under it: which field answers which question later, and which ones only you can supply.">
+  <meta property="og:title" content="How to calculate trading expectancy">
+  <meta property="og:description" content="The formula, a worked example you can reproduce, the break-even win rate hiding inside it, and why the trade count matters more than the number.">
   <meta property="og:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <meta property="og:url" content="https://www.tradingsocial.io/blog/what-to-record-in-every-journal-entry">
+  <meta property="og:url" content="https://www.tradingsocial.io/blog/how-to-calculate-trading-expectancy">
   <meta property="og:type" content="article">
-  <meta property="article:published_time" content="2026-09-30">
+  <meta property="article:published_time" content="2026-10-03">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="What to record in every trade journal entry">
-  <meta name="twitter:description" content="Every journal template is a column list. Here is the reasoning under it: which field answers which question later, and which ones only you can supply.">
+  <meta name="twitter:title" content="How to calculate trading expectancy">
+  <meta name="twitter:description" content="The formula, a worked example you can reproduce, the break-even win rate hiding inside it, and why the trade count matters more than the number.">
   <meta name="twitter:image" content="https://www.tradingsocial.io/assets/images/og-image.png">
-  <link rel="canonical" href="https://www.tradingsocial.io/blog/what-to-record-in-every-journal-entry">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"What to record in every trade journal entry","description":"Every journal template is a column list. Here is the reasoning under it: which field answers which question later, and which ones only you can supply.","url":"https://www.tradingsocial.io/blog/what-to-record-in-every-journal-entry","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tradingsocial.io/blog/what-to-record-in-every-journal-entry"},"datePublished":"2026-09-30","dateModified":"2026-09-30","articleSection":"Journaling","inLanguage":"en","author":{"@type":"Person","name":"Nathan Maiolo"},"publisher":{"@type":"Organization","name":"TradingSocial","url":"https://www.tradingsocial.io","logo":{"@type":"ImageObject","url":"https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png"}},"image":["https://www.tradingsocial.io/assets/images/og-image.png"],"keywords":"journaling, fields, thesis, mistakes"}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.tradingsocial.io/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.tradingsocial.io/blog"},{"@type":"ListItem","position":3,"name":"What to record in every trade journal entry","item":"https://www.tradingsocial.io/blog/what-to-record-in-every-journal-entry"}]}</script>
+  <link rel="canonical" href="https://www.tradingsocial.io/blog/how-to-calculate-trading-expectancy">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"How to calculate trading expectancy","description":"The formula, a worked example you can reproduce, the break-even win rate hiding inside it, and why the trade count matters more than the number.","url":"https://www.tradingsocial.io/blog/how-to-calculate-trading-expectancy","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tradingsocial.io/blog/how-to-calculate-trading-expectancy"},"datePublished":"2026-10-03","dateModified":"2026-10-03","articleSection":"Analytics","inLanguage":"en","author":{"@type":"Person","name":"Nathan Maiolo"},"publisher":{"@type":"Organization","name":"TradingSocial","url":"https://www.tradingsocial.io","logo":{"@type":"ImageObject","url":"https://www.tradingsocial.io/assets/images/d154a54c67af4b82bd6ecee3da5fcdb5.png"}},"image":["https://www.tradingsocial.io/assets/images/og-image.png"],"keywords":"expectancy, profit factor, sample size, analytics"}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.tradingsocial.io/"},{"@type":"ListItem","position":2,"name":"Blog","item":"https://www.tradingsocial.io/blog"},{"@type":"ListItem","position":3,"name":"How to calculate trading expectancy","item":"https://www.tradingsocial.io/blog/how-to-calculate-trading-expectancy"}]}</script>
 </head>
 <body>
 <noscript><style>.reveal{opacity:1 !important;transform:none !important}</style></noscript>
@@ -1585,14 +1585,14 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
   <div class="wrap">
     <div class="article-head">
       <span class="crumbs">
-        <a href="/blog">Blog</a><span class="sep">/</span><span>Journaling</span>
+        <a href="/blog">Blog</a><span class="sep">/</span><span>Analytics</span>
       </span>
-      <h1>What to record in every trade journal entry</h1>
-      <p class="standfirst">Every journal template is a column list. Here is the reasoning under it: which field answers which question later, and which ones only you can supply.</p>
+      <h1>How to calculate trading expectancy</h1>
+      <p class="standfirst">The formula, a worked example you can reproduce, the break-even win rate hiding inside it, and why the trade count matters more than the number.</p>
       <div class="article-byline">
         <div class="post-meta">
           <span style="width:36px;height:36px;border-radius:50%;flex-shrink:0;display:inline-block;border:1px solid var(--border);background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span>
-          <span class="pm-t"><b>Nathan Maiolo</b><span><time datetime="2026-09-30">Sep 30, 2026</time><span class="dotsep">·</span>8 min read</span></span>
+          <span class="pm-t"><b>Nathan Maiolo</b><span><time datetime="2026-10-03">Oct 3, 2026</time><span class="dotsep">·</span>8 min read</span></span>
         </div>
         <div class="article-share">
           <a href="#" aria-label="Share on X"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg></a>
@@ -1606,66 +1606,66 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
 
 <!-- ============================ COVER ============================ -->
 <div class="wrap">
-  <div class="article-cover reveal"><div class="thumb t-violet"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M5 4h11l3 3v13H5z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M9 9h6M9 13h6M9 17h3' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span></div></div>
+  <div class="article-cover reveal"><div class="thumb t-green"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M4 19V9M10 19V5M16 19v-7M22 19H2' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span></div></div>
 </div>
 
 <!-- ============================ BODY ============================ -->
 <article class="article-body">
-  <div class="prose"><p class='dek'>Search for a trading journal template and you will get a dozen column lists. Date, symbol, direction, entry, exit, size, P&amp;L, notes. They are all roughly the same list, and none of them tells you the thing that actually matters: what question each field is there to answer, months from now, when you have forgotten the trade entirely.</p>
-<p>That is the test. A field earns its place in your entry if there is a question you will want to ask later that the field is the only way to answer. Everything else is typing.</p>
-<h2>Start from the question, not the field</h2>
-<p>Here are the questions traders actually bring to a journal after a bad month. Each one implies the fields it needs:</p>
+  <div class="prose"><p class='dek'>Expectancy is the number that decides whether a strategy makes money, and the one most often quoted without the context that makes it mean anything — the count of trades behind it.</p>
+<p>Most explanations stop at the formula and a tidy example. Here is the arithmetic, a worked example you can reproduce in the <a href="/tools/expectancy-calculator">expectancy calculator</a>, the second formula that catches people out, and the five ways the figure goes quietly wrong.</p>
+<h2>The formula, and what each term has to mean</h2>
+<blockquote><p>Expectancy = (win rate × average win) − (loss rate × average loss)</p></blockquote>
+<p>That is the whole thing. It returns the average result of one trade across the set you measured, no more and no less.</p>
+<p>The definitions matter more than the multiplication:</p>
 <ul>
-  <li><em>Which of my setups is losing money?</em> — needs a setup name on every trade, spelled the same way every time.</li>
-  <li><em>Am I worse at some times of day than others?</em> — needs entry timestamps, in a timezone you fixed once.</li>
-  <li><em>Does my performance change after a loss?</em> — needs entries in sequence, with results, so a losing run can be reconstructed.</li>
-  <li><em>Is my edge real or is it one outlier?</em> — needs every trade, including the ones you would rather forget, and enough of them to count.</li>
-  <li><em>Do I actually follow my own rules?</em> — needs a yes or no from you on each trade, recorded at the time.</li>
-  <li><em>What was I thinking?</em> — needs a sentence that you wrote before you knew how it ended.</li>
+  <li><strong>Win rate</strong> is winners divided by <em>all</em> closed trades, not winners divided by losers. Decide once what happens to a trade that closes at exactly zero and never change it mid-sample. <strong>Loss rate</strong> is 1 − win rate.</li>
+  <li><strong>Average win</strong> is the sum of the winners divided by the number of winners; <strong>average loss</strong> is the same for losers, entered positive. The minus sign is already in the formula.</li>
+  <li>Both averages must be in the <strong>same unit</strong>: all R, or all currency. Never a mix.</li>
 </ul>
-<p>Work backwards from that list and the field set almost builds itself. Work forwards from a template and you end up with twenty columns, three of which you ever look at.</p>
-<h2>Two kinds of field, and only one is your problem</h2>
-<p>The useful split is not "essential versus optional". It is <strong>what the record already knows</strong> against <strong>what only you can supply</strong>.</p>
-<p>The first group is execution data. Instrument, direction, entry price, exit price, size, timestamps, fees, realised result. A broker statement contains all of it, and it is arithmetic from there: P&amp;L, win rate, average win, average loss, profit factor. MetaTrader 5 already reports the aggregates on any account history, with commission, fees and swap netted into each deal — <a href="/blog/what-an-mt5-statement-contains">what an MT5 statement actually contains</a> goes through the file field by field.</p>
-<p>If you are typing those fields out of a terminal by hand, you are doing work a file could do. TradingSocial reads an <a href="/for/mt5">MT5 statement</a> on the Trader plan, or syncs a connected MT5 account on Pro Trader, and lands closed trades in the journal with the execution fields locked from editing afterwards. That lock is also what makes a shared record mean anything to somebody else: every trade carries a label saying how it arrived — typed, imported from a statement file, or synced from a connected broker — and the label is set by the system rather than chosen. Those are three different strengths of evidence, not one badge.</p>
-<p>The second group is the one no import will ever fill, and it is the entire reason a journal beats an export. <a href="/blog/why-a-trading-journal">The case for journaling</a> lists these fields; what follows is the part that decides whether they earn their place — the question each one is the only way to answer later.</p>
-<ul>
-  <li><strong>Thesis</strong>, one sentence, written before the outcome — Was my reasoning sound on the trades that lost, and lucky on the ones that won?</li>
-  <li><strong>Planned risk</strong> — where the initial stop sat, and what that distance was worth — What was 1R on this trade, before I moved anything?</li>
-  <li><strong>State at entry</strong>, one word — Do my worst results cluster with a state I could have noticed at the time?</li>
-  <li><strong>Rule followed or broken</strong>, plus a named tag when broken — Which single named error accounts for most of my preventable losses?</li>
-</ul>
-<p>The planned-risk field carries more weight than it looks. Move a stop mid-trade and nothing in the execution record recovers the number you originally planned around, yet R is the denominator under <a href="/blog/win-rate-is-lying-to-you">every ratio you will calculate afterwards</a>. The <a href="/tools/position-size-calculator">position size calculator</a> gets you the figure before entry; the journal is the only place it survives.</p>
-<p>Four fields, and every one of them decays the moment you stand up from the desk.</p>
-<h2>Why you write the thesis before you know the answer</h2>
-<p>This is the part the template posts skip, and it has actual research behind it.</p>
-<p>Baruch Fischhoff's 1975 experiments found that being told how something turned out changes how likely people say it always was — and, critically, that participants were "largely unaware" the outcome knowledge had affected them at all. The 2012 review by Roese and Vohs describes hindsight bias as combining memory distortion with revised beliefs about an event's objective likelihood.</p>
-<p>Applied to a trade: once you know it worked, the entry looks obvious and you record a thesis that is cleaner and more confident than the one you actually had. Once you know it failed, you record doubts you did not feel. Both entries are useless for the only thing a journal is for — telling you whether your reasoning was any good, separately from whether the trade paid.</p>
-<blockquote><p>The thesis is only evidence if it was written down before the market answered it.</p></blockquote>
-<p>The fix is mechanical, not psychological. Write the thesis and the planned risk before or at entry. Write the emotion, the exit reason and the rule check within a few minutes of the close. The order matters more than the prose.</p>
-<h2>Ninety seconds, honestly</h2>
-<p>The entries people stop filling in are the ones that ask for twenty-odd columns, most of them retyped from a statement the broker already sent you.</p>
-<p>Count the work in the list above instead. The execution fields are imported or copied, which is seconds. That leaves a setup tag, a one-line thesis, an R figure you already calculated before entering, a one-word emotion, a rule check, and a mistake tag if there is one. That is a sentence and four taps. Ninety seconds is a realistic budget for it, and the budget is the point: an entry you will actually complete after a red trade beats a thorough one you skip.</p>
-<p>The other reason to keep it short is consistency. Patterns only surface if the same fields exist on every trade. Fifty entries with six fields will tell you more than fifteen entries with twenty, because the first set can be counted and the second cannot.</p>
-<h2>Fields that exist because a rule set exists</h2>
-<p>If you are trading an evaluation or a funded account, a few extra fields stop being optional, because somebody else's arithmetic now depends on them.</p>
-<p>FTMO's published objectives, for example, define a maximum daily loss as a floor the account's equity cannot drop below, recalculated each day at 00:00 CE(S)T from that day's opening balance, with equity measured as "Balance + Open Positions P/L ± Swaps – Commissions". Read that carefully: the day boundary is the firm's clock, not yours, and the measure includes open positions.</p>
-<p>So the entry needs a timestamp you can convert to the firm's day, the account it belongs to, and the risk you had on at the time — not just the risk you closed with. Tagging each account by type matters for the same reason: a challenge account's numbers should never quietly merge into your live track record, which is why <a href="/for/prop-firm">the prop-firm setup</a> keeps prop, live, demo and competition accounts labelled separately.</p>
-<p>TradingSocial does not read or enforce any firm's rule set. Everything above is your own record of your own compliance, which is the only version that survives you switching firms.</p>
-<h2>What the entry is worth months later</h2>
-<p>None of this pays off on the day you write it. It pays off the first time you sort by mistake tag and find that one named error accounts for most of your preventable losses — the process described in <a href="/blog/how-to-tag-your-trading-mistakes">how to tag your trading mistakes</a>. Or the first time a setup you were sure about turns out to be carried entirely by three trades from March.</p>
-<p>Neither of those questions can be answered retrospectively. You cannot go back and add a thesis to a trade from four months ago, and if you try, you will write the one the outcome suggests. The entry is a message to a version of you who has forgotten everything except the number.</p>
-<p>Ninety seconds, the same fields every time, written before you know. That is the whole method, and the rest is just deciding to keep doing it. If you want somewhere to put it, <a href="/for/journal">the journal</a> is free to start and <a href="/blog/why-a-trading-journal">the case for the habit</a> is a shorter read than this one.</p>
+<p>MetaTrader 5 reports this on every account history as Expected Payoff, "a statistically calculated value showing the average return of one deal". Note what it counts: the platform nets commission, fees and swap into each deal before averaging, so costs sit inside the figures <em>before</em> the average is taken. Yours should too.</p>
+<h2>A worked example you can check</h2>
+<p>Eighty closed trades, 34 of them winners, so a win rate of 42.5%. The winners averaged $412, the losers $188.</p>
+<p>Expectancy = (0.425 × 412) − (0.575 × 188) = 175.10 − 108.10 = $67.00 per trade</p>
+<p>Now check it the long way. Gross profit is 34 × $412 = $14,008. Gross loss is 46 × $188 = $8,648. Net is $5,360, and $5,360 ÷ 80 = $67.00.</p>
+<p>Two routes, one answer. If they disagree, your win rate and your averages came from different sets of trades — usually because some rows were filtered out of one and not the other.</p>
+<p>Type 42.5, 412, 188 and 80 into the <a href="/tools/expectancy-calculator">expectancy calculator</a> and it returns the same figures: expectancy 67.00 per trade, reward-to-risk 2.19 : 1, break-even win rate 31.3%, profit factor 1.62, and 5,360.00 over 80 trades. (The tool prints a currency symbol formatted for your browser's region, or a trailing R if you measure in R, so match the digits rather than the symbols.) Everything below uses those numbers, so you can follow along in the tool rather than take it on trust.</p>
+<h2>The break-even win rate is the second line</h2>
+<p>Set expectancy to zero and solve for the win rate. The two averages cancel down to a single ratio:</p>
+<p>Break-even win rate = 1 ÷ (1 + reward-to-risk)</p>
+<p>At 2.19 : 1 that is 1 ÷ 3.19 = 31.3%. The example system wins 42.5% of the time, so it clears break-even by about eleven percentage points. That margin, not the win rate itself, is the part worth watching.</p>
+<p>Run it the other way and the trap appears. A system winning 72% of the time with $80 average winners and $260 average losers has a reward-to-risk of 0.31 : 1, which puts break-even at 76.5%. Winning nearly three trades in four is not enough: expectancy is −$15.20 a trade and profit factor is 0.79. That asymmetry is the subject of <a href="/blog/win-rate-is-lying-to-you">win rate is lying to you</a>; the break-even formula is the compact version of it.</p>
+<p>None of which says which ratio to trade. Win rate and reward-to-risk come out of one system together, so moving one usually moves the other; the arithmetic only tells you where the line sits.</p>
+<h2>Profit factor is the same information, rotated</h2>
+<p>Profit factor is gross profit divided by gross loss. MetaTrader 5's definition is the standard one: "ratio of the gross profit to the gross loss. A value of one means that these parameters are equal." Here, $14,008 ÷ $8,648 = 1.62.</p>
+<p>The two are algebraically linked:</p>
+<p>Profit factor = 1 + expectancy ÷ (loss rate × average loss)</p>
+<p>So they cross their break-even points together — expectancy through zero, profit factor through 1.0 — and neither can be positive while the other is negative.</p>
+<p>Both are still worth keeping. Expectancy carries a unit and scales with the trade count, which is what makes "$5,360 over 80 trades" sayable. Profit factor is unitless, so it compares a futures account against a forex account with nothing to convert.</p>
+<h2>Sample size decides whether any of it means anything</h2>
+<p>An expectancy is a mean, and a mean from a small sample is unstable. Its precision improves with the square root of the number of observations — as the NIST Engineering Statistics Handbook puts it, "as N increases, the interval gets narrower from the √N term". The consequence is unforgiving: to halve your uncertainty, quadruple your trade count.</p>
+<p>Here is what that looks like in the worked example. Suppose the largest winner was $3,000 — more than a fifth of the gross profit in one trade — and suppose it had instead stopped out at the average loss. Winners fall to 33 and gross profit to $11,008, so the average win becomes $333.58; losers rise to 47 and gross loss to $8,836. Expectancy is now $27.15, profit factor 1.25.</p>
+<p>One trade out of eighty moved the headline figure by nearly 60%, and nothing about the strategy changed. That is the problem with quoting an early number as though it were a measurement, and why the calculator prints a warning rather than a verdict on any run under a hundred trades.</p>
+<h2>Five ways the number goes quietly wrong</h2>
+<p><strong>Mixing R and currency in one average.</strong> R is the risk you took on a trade — entry to initial stop, fixed before you were in it — and <a href="/blog/win-rate-is-lying-to-you">win rate is lying to you</a> works through why. The consequence here is that a +2R winner on one instrument is comparable with a +2R winner on another. A dollar figure is not comparable across position sizes, and a column where some rows are R and some are dollars averages to nothing at all. One unit per calculation; if you want both, calculate twice.</p>
+<p><strong>Leaving the worst trades out.</strong> "That one doesn't count, I wasn't really trading" is the most expensive sentence in performance review. The demonstration above runs both ways: a sample sensitive enough for one $3,000 winner to move expectancy by 60% is just as sensitive to one excluded disaster. If it was executed on the account it belongs in the set — and if it belongs to a different system, it belongs in a different set, not in the bin.</p>
+<p><strong>Quoting expectancy without the trade count.</strong> "My expectancy is 0.4R" is not a claim anyone can evaluate. Over 40 trades it is an indication; over 600 it is closer to a measurement. The count is half the statement, not a footnote.</p>
+<p><strong>Leaving costs outside the averages.</strong> Commission, swap and slippage come off every trade, so at the same gross expectancy they hit a high-frequency system harder than a low-frequency one. A figure built from planned rather than filled prices is a backtest — a different thing, covered in <a href="/blog/backtesting-vs-forward-testing">backtesting vs forward testing</a>.</p>
+<p><strong>Averaging setups that are not one system.</strong> A portfolio expectancy of +0.1R can easily be one setup at +0.5R and another at −0.3R, kept afloat by the first. The aggregate hides the leak; segmenting finds it. Which is why a <a href="/for/journal">journal that records the setup</a> is worth more later than a broker export.</p>
+<h2>What the number still cannot tell you</h2>
+<p>MetaTrader's help describes Expected Payoff as showing "the expected return of the next trade". Read that carefully. It is an average over trades that have already happened, and it carries forward only while your strategy, your execution and the market stay as they were.</p>
+<p>Results also arrive in streaks rather than in averages. A positive expectancy is entirely compatible with a long losing run, and whether you are still trading at the end of that run is a question about position size, not expectancy — which is why the <a href="/tools/position-size-calculator">position size calculator</a> and <a href="/blog/position-sizing-101">position sizing 101</a> sit alongside this.</p>
+<p>Run your own numbers through the <a href="/tools/expectancy-calculator">expectancy calculator</a>; it prints the break-even win rate and profit factor next to the figure. The calculation takes a minute. Collecting a sample large enough for it to mean something takes a lot longer, and there is no version of this where that part gets skipped.</p>
 <h2>Sources</h2>
 <ul>
-  <li><a href="https://psycnet.apa.org/record/1976-00159-001">https://psycnet.apa.org/record/1976-00159-001</a> — Fischhoff, B. (1975), "Hindsight is not equal to foresight: The effect of outcome knowledge on judgment under uncertainty", <em>Journal of Experimental Psychology: Human Perception and Performance</em>, 1(3), 288–299, DOI 10.1037/0096-1523.1.3.288. Source for outcome knowledge changing judged likelihood, and for participants being largely unaware of the effect.</li>
-  <li><a href="https://journals.sagepub.com/doi/abs/10.1177/1745691612454303">https://journals.sagepub.com/doi/abs/10.1177/1745691612454303</a> — Roese, N. J. &amp; Vohs, K. D. (2012), "Hindsight Bias", <em>Perspectives on Psychological Science</em>, 7(5), 411–426. Source for hindsight bias combining memory distortion with revised beliefs about objective likelihood.</li>
-  <li><a href="https://ftmo.com/en/trading-objectives/">https://ftmo.com/en/trading-objectives/</a> — FTMO's published trading objectives. Source for the maximum daily loss being an equity floor recalculated at 00:00 CE(S)T from that day's opening balance, and for equity defined as "Balance + Open Positions P/L ± Swaps – Commissions". Used as a concrete published example, not as a recommendation of any firm.</li>
-  <li><a href="https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report">https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report</a> — MetaQuotes' account history report definitions, including each deal's result being calculated as "profit (loss) - commission - fees - swap". Supports the claim that the execution half of an entry is derivable from a broker record.</li>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/algotrading/testing_report">https://www.metatrader5.com/en/terminal/help/algotrading/testing_report</a> — MetaQuotes' own definitions of Profit Factor ("ratio of the gross profit to the gross loss. A value of one means that these parameters are equal"), Expected Payoff, Gross Profit and Gross Loss.</li>
+  <li><a href="https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report">https://www.metatrader5.com/en/terminal/help/trading_advanced/history_report</a> — the account history report definitions, including that each deal's result is calculated as "profit (loss) - commission - fees - swap", and the description of Expected Payoff as the expected return of the next trade.</li>
+  <li><a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm">https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm</a> — NIST/SEMATECH Engineering Statistics Handbook on confidence intervals for the mean: "as N increases, the interval gets narrower from the √N term". Supports the quadruple-the-sample-to-halve-the-uncertainty point.</li>
+  <li><a href="https://vantharpinstitute.com/tharp-think-trading-concepts/">https://vantharpinstitute.com/tharp-think-trading-concepts/</a> — Van Tharp Institute. Source for 1R as the initial risk on a trade ("your initial risk is $10 per share, so in this case, 1R is equal to $10") and for expectancy as the mean of a system's R-multiple distribution. Checked 22 September 2026. It does not claim to have coined the term, and this post makes no claim about who did.</li>
+  <li><a href="https://www.tradingsocial.io/tools/expectancy-calculator">https://www.tradingsocial.io/tools/expectancy-calculator</a> — the calculator used for every figure in the worked example; it states the same two formulas (expectancy, and break-even win rate = 1 ÷ (1 + reward-to-risk)) and produced the outputs quoted.</li>
 </ul></div>
 
   <div class="article-foot">
-    <div class="article-tags"><span class="tag tag--neutral">journaling</span><span class="tag tag--neutral">fields</span><span class="tag tag--neutral">thesis</span><span class="tag tag--neutral">mistakes</span></div>
+    <div class="article-tags"><span class="tag tag--neutral">expectancy</span><span class="tag tag--neutral">profit factor</span><span class="tag tag--neutral">sample size</span><span class="tag tag--neutral">analytics</span></div>
   </div>
 
   <div class="author-box">
@@ -1688,7 +1688,7 @@ h1, h2, h3, .h1, .h2, .h3 { text-wrap: balance; }
       </a>
     </div>
     <div class="postgrid">
-      <article class="pcard-blog reveal"><a class="thumb t-green" href="/blog/how-to-calculate-trading-expectancy"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M4 19V9M10 19V5M16 19v-7M22 19H2' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span><span class="thumb-lbl">Analytics</span></a><div class="pcard-body"><span class="pcard-cat">Analytics</span><h3><a href="/blog/how-to-calculate-trading-expectancy">How to calculate trading expectancy</a></h3><p class="excerpt">The formula, a worked example you can reproduce, the break-even win rate hiding inside it, and why the trade count matters more than the number.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Oct 3, 2026<span class="dotsep">·</span>8 min</span></span></div></div></article>
+      <article class="pcard-blog reveal"><a class="thumb t-violet" href="/blog/what-to-record-in-every-journal-entry"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M5 4h11l3 3v13H5z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M9 9h6M9 13h6M9 17h3' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span><span class="thumb-lbl">Journaling</span></a><div class="pcard-body"><span class="pcard-cat">Journaling</span><h3><a href="/blog/what-to-record-in-every-journal-entry">What to record in every trade journal entry</a></h3><p class="excerpt">Every journal template is a column list. Here is the reasoning under it: which field answers which question later, and which ones only you can supply.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Sep 30, 2026<span class="dotsep">·</span>8 min</span></span></div></div></article>
       <article class="pcard-blog reveal"><a class="thumb t-cyan" href="/blog/what-an-mt5-statement-contains"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M6 3h8l4 4v14H6z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M14 3v4h4M9 12h6M9 16h6M9 8h2' stroke='currentColor' stroke-width='1.6' stroke-linecap='round'/></svg></span><span class="thumb-lbl">Analytics</span></a><div class="pcard-body"><span class="pcard-cat">Analytics</span><h3><a href="/blog/what-an-mt5-statement-contains">What an MT5 statement actually contains</a></h3><p class="excerpt">MetaTrader 5 produces two different files people call a statement. Here is what each one holds, what it proves, and what it quietly does not.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Sep 26, 2026<span class="dotsep">·</span>7 min</span></span></div></div></article>
       <article class="pcard-blog reveal"><a class="thumb t-orange" href="/blog/prop-firm-drawdown-rules-explained"><span class="glyph"><svg viewBox='0 0 24 24' fill='none'><path d='M12 3l7 3v5c0 5-3 7.5-7 9-4-1.5-7-4-7-9V6l7-3z' stroke='currentColor' stroke-width='1.6' stroke-linejoin='round'/><path d='M9 12l2 2 4-4' stroke='currentColor' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg></span><span class="thumb-lbl">Risk &amp; Sizing</span></a><div class="pcard-body"><span class="pcard-cat">Risk &amp; Sizing</span><h3><a href="/blog/prop-firm-drawdown-rules-explained">Prop firm drawdown rules, explained</a></h3><p class="excerpt">Static, end-of-day trailing and intraday trailing drawdown are three different rules wearing the same number. Here is how each one is measured.</p><div class="post-meta"><span style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:inline-block;background:linear-gradient(135deg,#7C5CE6,#C840BC)"></span><span class="pm-t"><b>Nathan Maiolo</b><span>Sep 23, 2026<span class="dotsep">·</span>8 min</span></span></div></div></article>
     </div>
