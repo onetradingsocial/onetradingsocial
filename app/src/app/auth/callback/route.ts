@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${base}/login?error=oauth`)
   }
 
+  // Decided once, with the same clock the trial latch and the funnel event use
+  // below, so the destination can never disagree with them about whether this
+  // callback was the signup.
+  const now = Date.now()
+  const isSignup = !!data.user && isFreshAccount(data.user.created_at, now)
+
   // Record the passive consent given to `OAuthLegalNotice`, which sits directly
   // beneath the Google button on /signup and /login — the only two places
   // `GoogleButton` is rendered, so there is no way into this callback that did
@@ -41,7 +47,6 @@ export async function GET(request: NextRequest) {
   // Never throws and never blocks the redirect (see recordTermsAcceptance).
   if (data.user) {
     const svc = createServiceClient()
-    const now = Date.now()
     await recordTermsAcceptance(svc, data.user.id, 'oauth_notice')
 
     // The third entrance to the trial. Google is the one path where the session
@@ -67,7 +72,7 @@ export async function GET(request: NextRequest) {
     // never had a session (confirmed on another device, then chose Google) is
     // not lost either: the render this redirect leads to passes through the
     // chokepoint in getEntitlements, which starts an eligible account's trial.
-    if (isFreshAccount(data.user.created_at, now)) {
+    if (isSignup) {
       await startTrialIfUnstarted(svc, data.user.id)
     }
 
@@ -90,6 +95,16 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  // New Google users have onboarding_completed=false; middleware sends them to onboarding.
+  // A Google signup lands where an email signup does: /welcome, the only screen
+  // that offers the card-backed trial (Sign up → Trial → Onboarding). This used
+  // to redirect every callback to `/`, which middleware forwards to /onboarding,
+  // and once onboarding is done middleware bars /welcome for good — so from
+  // 2026-09-15, when the trial moved behind that screen, no Google signup was
+  // ever offered it. Four of the first seven signups after the switch were
+  // Google; none reached /welcome.
+  //
+  // A returning user still goes home. A NON-fresh account that never finished
+  // onboarding also goes to `/`, and middleware resumes it at /onboarding.
+  if (isSignup) return NextResponse.redirect(`${base}/welcome`)
   return NextResponse.redirect(`${base}/`)
 }

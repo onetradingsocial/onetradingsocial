@@ -159,4 +159,19 @@ describe('the callback route wires it up', () => {
     // Reuses the service client already built for recordTermsAcceptance.
     expect(src.match(/createServiceClient\(\)/g)).toHaveLength(1)
   })
+
+  it('sends a Google signup to /welcome, where the trial is offered, and a login home', async () => {
+    // Regression: from 2026-09-15 the trial lives only on /welcome, and this
+    // route sent every callback to `/`, so no Google signup ever saw it.
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const src = readFileSync(
+      join(__dirname, '..', '..', '..', 'app/src/app/auth/callback/route.ts'), 'utf8',
+    )
+    expect(src).toContain('if (isSignup) return NextResponse.redirect(`${base}/welcome`)')
+    expect(src).toContain('return NextResponse.redirect(`${base}/`)')
+    // One freshness decision drives the trial latch and the destination alike.
+    expect(src.match(/isFreshAccount\(/g)).toHaveLength(1)
+    expect(src).toMatch(/if \(isSignup\) \{\s+await startTrialIfUnstarted/)
+  })
 })
